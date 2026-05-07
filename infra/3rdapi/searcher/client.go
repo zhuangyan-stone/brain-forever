@@ -106,6 +106,13 @@ func ResultToLLMText(resp *WebSearchResponse, maxRuneLen int) string {
 			if page.Summary != "" {
 				sb.WriteString(fmt.Sprintf("   Summary: %s\n", page.Summary))
 			}
+			if page.SiteName != "" {
+				sb.WriteString(fmt.Sprintf("   Site Name: %s\n", page.Name))
+			}
+			if page.Language != nil && len(*page.Language) > 0 {
+				sb.WriteString(fmt.Sprintf("   Site Language: %s\n", page.SiteName))
+			}
+
 			sb.WriteString("\n")
 		}
 	}
