@@ -1,5 +1,5 @@
 # --- Build artifacts ---
-__debug_bin.exe
+__debug_bin*
 brain.exe
 brain-forever.exe
 brain-forever
