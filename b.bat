@@ -25,13 +25,13 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM Build
 echo [2/3] go build...
-go build -o brain.exe .
+go build -o brain-forever.exe .
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] build failed
     exit /b %ERRORLEVEL%
 )
 
-echo [3/3] Build success: brain.exe
+echo [3/3] Build success: brain-forever.exe
 echo.
 
 endlocal

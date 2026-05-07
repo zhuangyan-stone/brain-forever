@@ -74,6 +74,7 @@ Most AI chats are **memoryless** — each session starts from scratch, and the A
 - Go 1.25.1 or later
 - CGO enabled
 - GCC (e.g., MinGW on Windows, or gcc on Linux/macOS)
+- SQLite3 development headers (see platform-specific notes below)
 - API keys for the services you intend to use
 
 ## Quick Start
@@ -96,20 +97,36 @@ cd BrainForever
 | `PROXY_ADDR` | No | Server address (default: `:8080`) |
 | `EMBEDDER_PROVIDER` | No | Embedding provider: `ali` (default) or `zhipu` |
 
-### 3. Build and run
+### 3. Platform-specific setup
 
 **Windows:**
+- Install [MinGW-w64](https://www.mingw-w64.org/) (e.g., via MSYS2) and ensure `gcc` is in your `PATH`.
+- SQLite3 headers are bundled with `go-sqlite3`, no extra installation needed.
 
+**Linux (Debian/Ubuntu):**
+```bash
+sudo apt update
+sudo apt install -y gcc libsqlite3-dev
+```
+
+**macOS:**
+```bash
+# Xcode Command Line Tools includes gcc and SQLite3 headers
+xcode-select --install
+```
+
+### 4. Build and run
+
+**Windows:**
 ```batch
 b.bat
-brain.exe
+brain-forever.exe
 ```
 
 **Linux/macOS:**
-
 ```bash
-CGO_ENABLED=1 go build -o brain .
-./brain
+./b.sh
+./brain-forever
 ```
 
 ### 4. Open the frontend
