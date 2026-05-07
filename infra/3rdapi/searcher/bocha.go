@@ -327,6 +327,7 @@ func convertToSearchResponse(b *bochaResponse) *WebSearchResponse {
 				SiteName:         v.SiteName,
 				SiteIcon:         v.SiteIcon,
 				Language:         v.Language,
+				PublishDate:      v.DatePublished,
 				IsFamilyFriendly: v.IsFamilyFriendly,
 			})
 		}

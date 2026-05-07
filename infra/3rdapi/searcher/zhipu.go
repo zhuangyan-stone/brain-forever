@@ -68,7 +68,7 @@ type zhipuSearchResultItem struct {
 	Title       string `json:"title"`
 	Content     string `json:"content"`
 	Link        string `json:"link"`
-	Media       string `json:"media"`
+	Media       string `json:"media"` // site name
 	Icon        string `json:"icon"`
 	Refer       string `json:"refer"`
 	PublishDate string `json:"publish_date"`
@@ -204,12 +204,13 @@ func convertZhiPuToSearchResponse(z *zhipuWebSearchResult) *WebSearchResponse {
 		pages := make([]WebPageValue, 0, len(z.SearchResult))
 		for _, v := range z.SearchResult {
 			pages = append(pages, WebPageValue{
-				ID:       v.Refer,
-				Name:     v.Title,
-				URL:      v.Link,
-				Snippet:  v.Content,
-				SiteName: v.Media,
-				SiteIcon: v.Icon,
+				ID:          v.Refer,
+				Name:        v.Title,
+				URL:         v.Link,
+				Summary:     v.Content,
+				SiteName:    v.Media,
+				SiteIcon:    v.Icon,
+				PublishDate: v.PublishDate,
 			})
 		}
 		result.Pages = pages

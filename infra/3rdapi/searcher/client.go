@@ -74,6 +74,7 @@ type WebPageValue struct {
 	SiteName         string  `json:"siteName"`
 	SiteIcon         string  `json:"siteIcon"`
 	Language         *string `json:"language"`
+	PublishDate      string  `json:"publish_date"`
 	IsFamilyFriendly *bool   `json:"isFamilyFriendly"`
 }
 
@@ -107,10 +108,14 @@ func ResultToLLMText(resp *WebSearchResponse, maxRuneLen int) string {
 				sb.WriteString(fmt.Sprintf("   Summary: %s\n", page.Summary))
 			}
 			if page.SiteName != "" {
-				sb.WriteString(fmt.Sprintf("   Site Name: %s\n", page.Name))
+				sb.WriteString(fmt.Sprintf("   Site name: %s\n", page.Name))
 			}
 			if page.Language != nil && len(*page.Language) > 0 {
-				sb.WriteString(fmt.Sprintf("   Site Language: %s\n", page.SiteName))
+				sb.WriteString(fmt.Sprintf("   Site language: %s\n", page.SiteName))
+			}
+
+			if page.PublishDate != "" {
+				sb.WriteString(fmt.Sprintf("   Date published: %s\n", page.PublishDate))
 			}
 
 			sb.WriteString("\n")
