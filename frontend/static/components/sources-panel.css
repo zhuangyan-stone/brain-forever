@@ -1,0 +1,121 @@
+/* ============================================================
+    BrainOnline AI 助手 — 引用来源面板
+    ============================================================
+    依赖：style.css（主题变量）
+    ============================================================ */
+
+.sources-panel {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    animation: fadeIn 0.3s ease;
+}
+
+/* ---- 可折叠区域 ---- */
+
+.sources-section {
+    margin-bottom: 4px;
+}
+
+.sources-section:last-child {
+    margin-bottom: 0;
+}
+
+.sources-panel .sources-title {
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* 可折叠标题 — 可点击 */
+.sources-panel .sources-collapsible {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border-radius: 4px;
+    transition: background 0.15s;
+    margin-bottom: 0;
+}
+
+.sources-panel .sources-collapsible:hover {
+    background: rgba(79, 195, 247, 0.08);
+}
+
+[data-theme="light"] .sources-panel .sources-collapsible:hover {
+    background: rgba(25, 118, 210, 0.06);
+}
+
+/* 折叠/展开指示器箭头 */
+.sources-panel .sources-collapsible::before {
+    content: '▶';
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sources-panel .sources-collapsible.expanded::before {
+    transform: rotate(90deg);
+}
+
+.sources-panel .sources-collapsible.collapsed::before {
+    transform: rotate(0deg);
+}
+
+/* 图标（强制搜索的 globe 图标缩小版） */
+.sources-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--accent);
+}
+
+/* 折叠内容体 */
+.sources-body {
+    padding-left: 20px;  /* 与箭头+图标缩进对齐 */
+    padding-top: 6px;
+}
+
+/* ---- 来源条目 ---- */
+
+.sources-panel .source-item {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    background: rgba(79, 195, 247, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+}
+
+[data-theme="light"] .sources-panel .source-item {
+    background: rgba(25, 118, 210, 0.04);
+}
+
+.sources-panel .source-item .source-title {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.sources-panel .source-item .source-score {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-left: 8px;
+}
+
+/* Web search source link */
+.sources-panel .source-item .source-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+.sources-panel .source-item .source-link:hover {
+    text-decoration: underline;
+    color: var(--accent-hover, var(--accent));
+}

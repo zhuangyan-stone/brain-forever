@@ -1,0 +1,184 @@
+/* ============================================================
+    刻度导航（右侧垂直刻度条）
+   ============================================================ */
+
+.tick-nav {
+    position: fixed;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 100;
+    pointer-events: none; /* 让刻度本身不阻挡点击，但子元素可点击 */
+
+    /* 面板样式：平时窄窄一条只显示刻度线 */
+    background: transparent;
+    border-radius: 10px;
+    padding: 8px 6px;
+    width: auto;
+    min-width: 20px;
+    /* 预占 border 空间，防止 hover 时增加 border 导致高度变化 */
+    border: 1px solid transparent;
+    transition: min-width 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, padding 0.25s ease;
+}
+
+/* 鼠标悬浮时面板向左展开 */
+.tick-nav:hover {
+    min-width: 320px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px var(--shadow);
+    padding: 8px 6px 8px 12px; /* 右 padding 保持 6px 不变，刻度线不移动 */
+    pointer-events: auto;
+}
+
+.tick-nav .tick {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    pointer-events: auto;
+    padding: 9px 6px;
+    border-radius: 6px;
+    transition: background 0.2s;
+    white-space: nowrap;
+    /* 反向排列：刻度线在最右侧，标题在中间 */
+    flex-direction: row-reverse;
+    gap: 8px;
+    position: relative;
+}
+
+.tick-nav .tick:hover {
+    background: var(--border);
+}
+
+.tick-nav .tick.active {
+    background: var(--border);
+}
+
+/* 刻度线 — 短横线，始终在条目右侧 */
+.tick-nav .tick .tick-dot {
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--text-muted);
+    flex-shrink: 0;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.tick-nav .tick.active .tick-dot {
+    background: var(--accent);
+    box-shadow: 0 0 4px var(--accent);
+}
+
+/* 首尾刻度指示 — 提示还有更多内容 */
+.tick-nav .tick.tick-edge-prev .tick-dot {
+    opacity: 0.35;
+}
+
+.tick-nav .tick.tick-edge-next .tick-dot {
+    opacity: 0.35;
+}
+
+/* 标题文本 — 默认隐藏，鼠标悬浮面板时显示 */
+.tick-nav .tick .tick-label {
+    display: none;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    /* 绝对定位，脱离文档流，不影响 flex 行的高度 */
+    position: absolute;
+    left: 10px;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.tick-nav:hover .tick .tick-label {
+    display: block;
+}
+
+.tick-nav .tick.active .tick-label {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* ============================================================
+   箭头指示器 — 提示还有更多刻度可滚动
+   ============================================================ */
+
+.tick-nav .tick-arrow {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    padding: 0 6px;
+    height: 14px;
+    border-radius: 6px;
+    transition: background 0.2s, opacity 0.2s;
+    user-select: none;
+    font-size: 0.55rem;
+    line-height: 1;
+    color: var(--text-muted);
+    opacity: 0.5;
+    /* 负 margin 抵消 flex gap 的影响，让箭头紧贴刻度行 */
+    margin: -7px 0;
+}
+
+.tick-nav:hover .tick-arrow {
+    display: flex;
+}
+
+.tick-nav .tick-arrow:hover {
+    background: var(--border);
+    opacity: 1;
+}
+
+.tick-nav .tick-arrow.tick-arrow-disabled {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+
+/* 窗口较窄时，刻度导航会与主工作区域重叠，直接隐藏 */
+@media (max-width: 1040px) {
+    .tick-nav {
+        display: none !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .tick-nav {
+        right: 6px;
+        gap: 4px;
+        padding: 6px 4px;
+    }
+
+    .tick-nav:hover {
+        min-width: 200px;
+        padding: 6px 8px;
+    }
+
+    .tick-nav .tick {
+        padding: 3px 4px;
+        gap: 6px;
+    }
+
+    .tick-nav .tick .tick-dot {
+        width: 10px;
+        height: 2px;
+    }
+
+    .tick-nav .tick .tick-label {
+        font-size: 0.72rem;
+    }
+}

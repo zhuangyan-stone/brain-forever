@@ -1,0 +1,385 @@
+/* ============================================================
+    BrainOnline AI 助手 — 消息气泡样式（原 markdown.css）
+    ============================================================
+    依赖：style.css（主题变量）
+    作用域：.message .bubble 内部
+    包含：Markdown 渲染、错误消息状态
+    ============================================================ */
+
+/* 段落间距 */
+.message .bubble p {
+    margin-bottom: 8px;
+}
+.message .bubble p:last-child {
+    margin-bottom: 0;
+}
+
+/* 标题 */
+.message .bubble h1,
+.message .bubble h2,
+.message .bubble h3,
+.message .bubble h4 {
+    margin: 12px 0 6px;
+    font-weight: 600;
+    color: var(--accent);
+}
+.message .bubble h1 { font-size: 1.2rem; }
+.message .bubble h2 { font-size: 1.1rem; }
+.message .bubble h3 { font-size: 1.05rem; }
+.message .bubble h4 { font-size: 1rem; }
+
+/* 列表 */
+.message .bubble ul,
+.message .bubble ol {
+    padding-left: 20px;
+    margin-bottom: 8px;
+}
+.message .bubble li {
+    margin-bottom: 4px;
+}
+
+/* 粗体 / 斜体 */
+.message .bubble strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.message .bubble em {
+    font-style: italic;
+}
+
+/* 行内代码 */
+.message .bubble code {
+    background: rgba(79, 195, 247, 0.12);
+    color: #80cbc4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+    font-size: 0.85em;
+}
+
+[data-theme="light"] .message .bubble code {
+    background: rgba(25, 118, 210, 0.08);
+    color: #c7254e;
+}
+
+/* 代码块 */
+.message .bubble pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    overflow-x: auto;
+    position: relative;
+    max-width: 100%;
+}
+.message .bubble pre code {
+    background: none !important;
+    color: var(--text-primary);
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+/* 覆盖 highlight.js 的 .hljs 背景色，让代码块背景统一由 <pre> 控制 */
+.message .bubble pre code.hljs {
+    background: none !important;
+}
+
+/* 代码块语言标签（由 highlight.js 的 data-lang 属性提供） */
+.message .bubble pre[data-lang]::before {
+    content: attr(data-lang);
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+    color: var(--text-muted);
+    background: rgba(79, 195, 247, 0.08);
+    border-radius: 0 8px 0 8px;
+    letter-spacing: 0.5px;
+    text-transform: lowercase;
+    transition: opacity 0.2s ease;
+}
+
+[data-theme="light"] .message .bubble pre[data-lang]::before {
+    background: rgba(25, 118, 210, 0.06);
+}
+
+/* hover 代码块时，语言标签淡出，让复制按钮不受遮挡 */
+.message .bubble pre:hover[data-lang]::before {
+    opacity: 0;
+}
+
+/* 代码块复制按钮（hover 时显示） */
+.message .bubble pre .copy-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 2px 8px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.message .bubble pre:hover .copy-btn {
+    opacity: 1;
+}
+.message .bubble pre .copy-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+.message .bubble pre .copy-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3 !important;
+}
+.message .bubble pre .copy-btn:disabled:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+}
+
+/* 引用块 */
+.message .bubble blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 6px 12px;
+    margin: 8px 0;
+    color: var(--text-secondary);
+    background: rgba(79, 195, 247, 0.05);
+    border-radius: 0 6px 6px 0;
+}
+
+[data-theme="light"] .message .bubble blockquote {
+    background: rgba(25, 118, 210, 0.04);
+}
+
+/* 水平分割线 */
+.message .bubble hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0;
+}
+
+/* 表格 */
+.message .bubble table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 0.9rem;
+}
+.message .bubble th,
+.message .bubble td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+}
+.message .bubble th {
+    background: var(--bg-secondary);
+    color: var(--accent);
+    font-weight: 600;
+}
+.message .bubble tr:nth-child(even) {
+    background: rgba(128, 128, 128, 0.04);
+}
+
+/* 链接 */
+.message .bubble a {
+    color: var(--accent);
+    text-decoration: none;
+}
+.message .bubble a:hover {
+    text-decoration: underline;
+}
+
+/* 图片 */
+.message .bubble img {
+    max-width: 100%;
+    border-radius: 6px;
+    margin: 8px 0;
+}
+
+/* ============================================================
+    错误消息状态
+    ============================================================ */
+
+.message.error .bubble {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+}
+
+/* ============================================================
+    消息操作按钮（hover 时气泡右下角显示）
+    ============================================================ */
+
+.message-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    padding-top: 4px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.message:hover .message-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.msg-action-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    transition: background 0.2s, transform 0.1s;
+    padding: 0;
+    line-height: 1;
+}
+
+.msg-action-btn:active {
+    transform: scale(0.9);
+}
+
+/* 复制按钮 */
+.msg-action-btn.copy-msg-btn {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+}
+
+.msg-action-btn.copy-msg-btn:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+.msg-action-btn.copy-msg-btn.copied {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+
+/* ============================================================
+    复制格式选择下拉菜单
+   ============================================================ */
+
+.copy-dropdown-menu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 140px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    padding: 4px 0;
+    overflow: hidden;
+    animation: dropdown-fade-in 0.12s ease;
+}
+
+[data-theme="light"] .copy-dropdown-menu {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+@keyframes dropdown-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+    KaTeX 数学公式样式
+   ============================================================ */
+
+/* 行内公式与块级公式在消息气泡中的间距 */
+.message .bubble .katex-display {
+    margin: 8px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* 行内公式垂直对齐 */
+.message .bubble .katex {
+    font-size: 1.05em;
+}
+
+/* 暗色主题下 KaTeX 公式颜色适配 */
+[data-theme="dark"] .message .bubble .katex .mathnormal,
+[data-theme="dark"] .message .bubble .katex .mathit,
+[data-theme="dark"] .message .bubble .katex .mathrm,
+[data-theme="dark"] .message .bubble .katex .mathcal,
+[data-theme="dark"] .message .bubble .katex .mathfrak,
+[data-theme="dark"] .message .bubble .katex .mathbb {
+    color: #e0e0e0;
+}
+
+/* 公式代码回退样式（KaTeX 加载失败时） */
+.message .bubble .katex-error {
+    color: var(--error);
+    background: var(--bg-secondary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.copy-dropdown-item {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.12s;
+}
+
+.copy-dropdown-item:hover {
+    background: var(--bg-secondary);
+    color: var(--accent);
+}
+
+.copy-dropdown-item:active {
+    background: var(--border);
+}
+
+/* ============================================================
+    Token 用量信息
+   ============================================================ */
+
+.token-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 0 8px;
+    line-height: 1.4;
+    user-select: none;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.token-estimated-icon {
+    margin-right: 2px;
+}
+
+.token-estimated-label {
+    color: #f0ad4e;
+    font-weight: 500;
+}

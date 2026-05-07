@@ -1,0 +1,37 @@
+@echo off
+REM ============================================
+REM BrainOnline Build Script
+REM Sets CGO and GCC path, then builds
+REM ============================================
+
+setlocal
+
+REM Set GCC path (adjust if your MinGW is elsewhere)
+set "PATH=C:\msys64\ucrt64\bin;%PATH%"
+
+REM Enable CGO
+set "CGO_ENABLED=1"
+
+echo === BrainOnline Builder ===
+echo.
+
+REM Tidy dependencies
+echo [1/3] go mod tidy...
+call go mod tidy
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] go mod tidy failed
+    exit /b %ERRORLEVEL%
+)
+
+REM Build
+echo [2/3] go build...
+go build -o brain.exe .
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] build failed
+    exit /b %ERRORLEVEL%
+)
+
+echo [3/3] Build success: brain.exe
+echo.
+
+endlocal
