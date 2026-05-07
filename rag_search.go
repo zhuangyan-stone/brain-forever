@@ -64,14 +64,18 @@ func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, fresh
 	if resp != nil {
 		for _, p := range resp.Pages {
 			content := p.Summary
-			if len(content) == 0 {
-				content = p.Snippet
+
+			if p.Snippet != "" {
+				content += "\n\n" + p.Snippet
 			}
-			webPages = append(webPages, agent.WebSource{
-				Title:   p.Name,
-				Content: p.Snippet,
-				URL:     p.URL,
-			})
+
+			if content != "" {
+				webPages = append(webPages, agent.WebSource{
+					Title:   p.Name,
+					Content: content,
+					URL:     p.URL,
+				})
+			}
 		}
 	}
 	return llmText, webPages, nil
