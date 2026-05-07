@@ -1,24 +1,28 @@
-# --- 编译产物 ---
+# --- Build artifacts ---
 __debug_bin.exe
 brain.exe
+brain-forever.exe
+brain-forever
 *.exe
 
-# --- 数据库文件 ---
+# --- Database files ---
 *.db
 *.db-shm
 *.db-wal
 
-# --- IDE / 编辑器 ---
+# --- IDE / Editor ---
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# --- Go 相关 ---
-# vendor/  # 如果你用了 vendor 目录，取消注释
+# --- Go related ---
+# vendor/  # Uncomment if you use a vendor directory
 
-# --- 系统文件 ---
+# --- System files ---
 .DS_Store
 Thumbs.db
+
+# --- Environment variables ---
 .env
