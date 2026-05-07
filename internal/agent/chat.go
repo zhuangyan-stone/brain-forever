@@ -28,6 +28,11 @@ type ChatHandler struct {
 
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
+
+	// webPagesCollector collects web search page results during a streaming LLM call.
+	// It is set before performLLMStreamingCall / performLLMStreamingThinkingCall
+	// and read after the call returns to send web sources to the frontend.
+	webPagesCollector *[]WebSource
 }
 
 // NewChatHandler creates a ChatHandler

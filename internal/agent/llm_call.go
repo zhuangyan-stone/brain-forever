@@ -32,9 +32,15 @@ func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID strin
 		return fmt.Sprintf("Failed to parse search query: %v", parseErr), nil
 	}
 
-	searchResultText, _, searchErr := h.executeWebSearch(ctx, query)
+	searchResultText, webPages, searchErr := h.executeWebSearch(ctx, query)
 	if searchErr != nil {
 		log.Printf("Web search failed: %v", searchErr)
+	}
+
+	// Store web pages into the collector so they can be sent to the frontend
+	// as a "sources" SSE event after the streaming call completes.
+	if len(webPages) > 0 && h.webPagesCollector != nil {
+		*h.webPagesCollector = append(*h.webPagesCollector, webPages...)
 	}
 
 	if searchResultText == "" {
@@ -119,8 +125,15 @@ func (h *ChatHandler) performLLMStreamingCall(
 	var pages []WebSource
 	callback := newSSEStreamCallback(sseWriter, &pages)
 
+	// Set the web pages collector so executeWebSearchTool can store results
+	h.webPagesCollector = &pages
+
 	// Delegate to DeepSeekRaw
 	reply, err := h.llmClient.PerformLLMStreamingCall(ctx, callback, messages, tools, h)
+
+	// Clear the collector
+	h.webPagesCollector = nil
+
 	if err != nil {
 		return "", pages, err
 	}
@@ -145,8 +158,15 @@ func (h *ChatHandler) performLLMStreamingThinkingCall(
 	var pages []WebSource
 	callback := newSSEStreamCallback(sseWriter, &pages)
 
+	// Set the web pages collector so executeWebSearchTool can store results
+	h.webPagesCollector = &pages
+
 	// Delegate to DeepSeekRaw in thinking mode
 	reply, err := h.llmClient.PerformLLMStreamingThinkingCall(ctx, callback, messages, tools, h)
+
+	// Clear the collector
+	h.webPagesCollector = nil
+
 	if err != nil {
 		return "", pages, err
 	}
