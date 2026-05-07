@@ -22,9 +22,9 @@ import (
 // The frontend only needs to send the user's latest message each time,
 // and ChatHandler merges history with new messages before sending to the actual LLM.
 type ChatHandler struct {
-	traitSearcher TraitSearcher        // Personal knowledge base (RAG) search
-	webSearcher   WebSearcher          // Web search interface
-	llmClient     *llm_raw.DeepSeekRaw // Raw HTTP client for DeepSeek API
+	traitSearcher TraitSearcher     // Personal knowledge base (RAG) search
+	webSearcher   WebSearcher       // Web search interface
+	llmClient     llm_raw.LLMClient // LLM API client
 
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
@@ -33,7 +33,7 @@ type ChatHandler struct {
 // NewChatHandler creates a ChatHandler
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
-func NewChatHandler(traitSearcher TraitSearcher, webSearcher WebSearcher, llmClient *llm_raw.DeepSeekRaw, cookieName string) *ChatHandler {
+func NewChatHandler(traitSearcher TraitSearcher, webSearcher WebSearcher, llmClient llm_raw.LLMClient, cookieName string) *ChatHandler {
 	return &ChatHandler{
 		traitSearcher:  traitSearcher,
 		webSearcher:    webSearcher,
