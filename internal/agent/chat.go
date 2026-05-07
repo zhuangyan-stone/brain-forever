@@ -8,9 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openai/openai-go/v3"
-
-	"BrainOnline/infra/3rdapi/llm"
+	"BrainOnline/infra/3rdapi/llm_raw"
 	"BrainOnline/infra/sse"
 )
 
@@ -24,9 +22,9 @@ import (
 // The frontend only needs to send the user's latest message each time,
 // and ChatHandler merges history with new messages before sending to the actual LLM.
 type ChatHandler struct {
-	traitSearcher TraitSearcher // Personal knowledge base (RAG) search
-	webSearcher   WebSearcher   // Web search interface
-	aiClient      *llm.OpenAICompatibleClient
+	traitSearcher TraitSearcher        // Personal knowledge base (RAG) search
+	webSearcher   WebSearcher          // Web search interface
+	llmClient     *llm_raw.DeepSeekRaw // Raw HTTP client for DeepSeek API
 
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
@@ -35,11 +33,11 @@ type ChatHandler struct {
 // NewChatHandler creates a ChatHandler
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
-func NewChatHandler(traitSearcher TraitSearcher, webSearcher WebSearcher, aiClient *llm.OpenAICompatibleClient, cookieName string) *ChatHandler {
+func NewChatHandler(traitSearcher TraitSearcher, webSearcher WebSearcher, llmClient *llm_raw.DeepSeekRaw, cookieName string) *ChatHandler {
 	return &ChatHandler{
 		traitSearcher:  traitSearcher,
 		webSearcher:    webSearcher,
-		aiClient:       aiClient,
+		llmClient:      llmClient,
 		sessionManager: NewSessionManager(),
 		cookieName:     cookieName,
 	}
@@ -62,21 +60,21 @@ func appendToMessageHistory(session *session, newMsg *Message) {
 	session.history = append(session.history, *newMsg)
 }
 
-// toOpenAIMessages converts agent.Message slice to openai.ChatCompletionMessageParamUnion slice.
-func toOpenAIMessages(msgs []Message) []openai.ChatCompletionMessageParamUnion {
-	result := make([]openai.ChatCompletionMessageParamUnion, len(msgs))
+// toRawMessages converts agent.Message slice to llm_raw.Message slice.
+func toRawMessages(msgs []Message) []llm_raw.Message {
+	result := make([]llm_raw.Message, len(msgs))
 	for i, m := range msgs {
 		switch m.Role {
 		case "system":
-			result[i] = openai.SystemMessage(m.Content)
+			result[i] = llm_raw.Message{Role: "system", Content: m.Content}
 		case "user":
-			result[i] = openai.UserMessage(m.Content)
+			result[i] = llm_raw.Message{Role: "user", Content: m.Content}
 		case "assistant":
-			result[i] = openai.AssistantMessage(m.Content)
+			result[i] = llm_raw.Message{Role: "assistant", Content: m.Content}
 		case "tool":
-			result[i] = openai.ToolMessage(m.Content, "")
+			result[i] = llm_raw.Message{Role: "tool", Content: m.Content}
 		default:
-			result[i] = openai.UserMessage(m.Content)
+			result[i] = llm_raw.Message{Role: "user", Content: m.Content}
 		}
 	}
 	return result
@@ -134,17 +132,22 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// 4. Create SSE writer
 	sseWriter := sse.NewSSEWriter(w)
 
-	// Convert agent.Message history to openai.ChatCompletionMessageParamUnion for the API call
-	llmMsgs := toOpenAIMessages(session.history)
+	// Convert agent.Message history to llm_raw.Message for the API call
+	llmMsgs := toRawMessages(session.history)
 
-	systemMsg := makeFixSystemPrompt()
-	messages := make([]openai.ChatCompletionMessageParamUnion, 0, len(llmMsgs)+1)
+	systemMsg := llm_raw.Message{
+		Role:    "system",
+		Content: makeFixSystemPromptContent(),
+	}
+	messages := make([]llm_raw.Message, 0, len(llmMsgs)+1)
 	messages = append(messages, systemMsg)
 	messages = append(messages, llmMsgs...)
 
-	// 7. Stream with tool call handling (web_search tool is always available)
-	toolDef := webSearchToolDefinition()
-	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, []openai.ChatCompletionToolUnionParam{toolDef})
+	// 5. Build tool definition
+	toolDef := webSearchToolDefinitionRaw()
+
+	// 6. Stream with tool call handling (web_search tool is always available)
+	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, []llm_raw.ToolDefinition{toolDef})
 	if err != nil {
 		sseWriter.WriteEvent(SSEEvent{
 			Type:    "error",
@@ -163,39 +166,40 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 8. Determine token counts: prefer the API's real usage info,
-	//     fall back to manual estimation if the provider doesn't support it.
+	// 7. Determine token counts from the LLM client's usage info
 	isEstimated := true
 	var promptTokens, completionTokens int = -1, -1
 
-	if usage := h.aiClient.GetUsageInfo(); usage != nil {
+	if usage := h.llmClient.GetUsageInfo(); usage != nil {
 		if usage.PromptTokens > 0 || usage.CompletionTokens > 0 {
 			isEstimated = false
 		}
 
 		if usage.PromptTokens > 0 {
-			promptTokens = int(usage.PromptTokens)
+			promptTokens = usage.PromptTokens
 		}
 		if usage.CompletionTokens > 0 {
-			completionTokens = int(usage.CompletionTokens)
+			completionTokens = usage.CompletionTokens
 		}
 	}
 
-	// Fall back to estimation for any token count the API didn't provide
+	// If the API didn't provide token counts, use simple estimation
 	if promptTokens == -1 {
 		var content strings.Builder
 		for _, msg := range messages {
-			if c := msg.GetContent(); c.AsAny() != nil {
-				if s, ok := c.AsAny().(*string); ok && s != nil {
-					content.WriteString(*s)
-				}
-			}
+			content.WriteString(msg.Content)
 		}
-		promptTokens = h.aiClient.EstimateTokens(content.String())
+		promptTokens = len(content.String()) / 4
+		if promptTokens < 1 {
+			promptTokens = 1
+		}
 	}
 
 	if completionTokens == -1 {
-		completionTokens = h.aiClient.EstimateTokens(fullReply)
+		completionTokens = len(fullReply) / 4
+		if completionTokens < 1 {
+			completionTokens = 1
+		}
 	}
 
 	usage := &Usage{
@@ -205,7 +209,7 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		IsEstimated:      isEstimated,
 	}
 
-	// 9. Append the LLM's full reply to the user's internal history
+	// 8. Append the LLM's full reply to the user's internal history
 	//     The AI reply reuses the user message's ID (source ID)
 	if len(fullReply) > 0 {
 		session.history = append(session.history, Message{
@@ -217,7 +221,7 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// 10. Send done event
+	// 9. Send done event
 	sseWriter.WriteEvent(SSEEvent{
 		Type:  "done",
 		Usage: usage,
@@ -229,16 +233,46 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 // Helper functions
 // ============================================================
 
-// makeFixSystemPrompt creates a system message with the fixed AI assistant prompt
-// (including search suggestion behavior instructions).
-func makeFixSystemPrompt() openai.ChatCompletionMessageParamUnion {
+// makeFixSystemPromptContent returns the system prompt content string.
+func makeFixSystemPromptContent() string {
 	now := time.Now().Format(time.DateTime)
-
-	return openai.SystemMessage(fmt.Sprintf(`You are an AI assistant, and also one who, during conversations with users, faithfully records various user characteristics, 
+	return fmt.Sprintf(`You are an AI assistant, and also one who, during conversations with users, faithfully records various user characteristics, 
 deepens understanding of the user, and gradually builds a user profile to better provide service.
 When necessary, you will call relevant tools to obtain the information needed to better complete 
 your responses. Currently, there are two tools available: user traits and web information.
 
 Some real-time information for your reference in responses:
-Current time: %s`, now))
+Current time: %s`, now)
+}
+
+// webSearchToolDefinitionRaw returns the ToolDefinition for web search
+// using llm_raw types.
+func webSearchToolDefinitionRaw() llm_raw.ToolDefinition {
+	const schema = `{
+		"type": "object",
+		"properties": {
+			"search_queries": {
+				"type": "string",
+				"description": "搜索关键词"
+			}
+		},
+		"required": ["search_queries"],
+		"additionalProperties": false
+	}`
+
+	var paramsMap map[string]any
+	if err := json.Unmarshal([]byte(schema), &paramsMap); err != nil {
+		panic(fmt.Sprintf("failed to parse web search tool schema: %v", err))
+	}
+
+	strict := true
+	return llm_raw.ToolDefinition{
+		Type: "function",
+		Function: llm_raw.ToolFunctionDef{
+			Name:        webSearchToolName,
+			Description: "Call this tool to perform web searches when real-time information is needed (e.g., weather, news, stock prices, exchange rates, latest events, etc.). Generates a list of search keywords based on the user's input.",
+			Parameters:  paramsMap,
+			Strict:      &strict,
+		},
+	}
 }

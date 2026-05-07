@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"BrainOnline/infra/3rdapi/embedder"
-	"BrainOnline/infra/3rdapi/llm"
+	"BrainOnline/infra/3rdapi/llm_raw"
 	"BrainOnline/infra/3rdapi/search"
 	"BrainOnline/infra/3rdapi/search/bocha"
 
@@ -68,8 +68,8 @@ func main() {
 	}
 	defer store.Close()
 
-	// Initialize LLM AI client
-	llmClient := llm.NewDeepSeekClientFromConfig(llm.ClientConfig{
+	// Initialize LLM AI client (raw HTTP client with tool call support)
+	llmClient := llm_raw.NewDeepSeekRawFromConfig(llm_raw.RawClientConfig{
 		EnvKey:  "DEEPSEEK_API_KEY",
 		BaseURL: "https://api.deepseek.com/beta",
 		Model:   "deepseek-v4-flash",
