@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"BrainOnline/infra/3rdapi/search"
+	"BrainOnline/infra/3rdapi/searcher"
 	"BrainOnline/internal/agent"
 	"BrainOnline/internal/store"
 )
@@ -41,28 +41,28 @@ func (ps *traitSearchAdapter) SearchByText(ctx context.Context, queryText string
 // Adapter: converts search.WebSearcher to agent.WebSearcher
 // ============================================================
 
-// webSearchAdapter adapts search.WebSearcher to implement the agent.WebSearcher interface
+// webSearchAdapter adapts searcher.WebSearcher to implement the agent.WebSearcher interface
 type webSearchAdapter struct {
-	client search.WebSearcher
+	client searcher.WebSearcher
 }
 
 func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, freshness string, count int) (string, []agent.WebSource, error) {
-	req := search.WebSearchRequest{
+	req := searcher.WebSearchRequest{
 		Query:              []string{query},
 		Freshness:          freshness,
 		Count:              count,
 		Summary:            true,
 		FamilyFriendlyOnly: true,
 	}
-	resp, llmText, err := w.client.SearchForLLM(ctx, req, count, 0, 0, 10240)
+	resp, llmText, err := w.client.SearchForLLM(ctx, req, 10240)
 	if err != nil {
 		return "", nil, err
 	}
 
 	// Extract web page results for frontend display
 	var webPages []agent.WebSource
-	if resp != nil && resp.Data != nil && resp.Data.WebPages != nil {
-		for _, p := range resp.Data.WebPages.Value {
+	if resp != nil {
+		for _, p := range resp.Pages {
 			content := p.Summary
 			if len(content) == 0 {
 				content = p.Snippet

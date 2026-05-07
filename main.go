@@ -13,8 +13,7 @@ import (
 
 	"BrainOnline/infra/3rdapi/embedder"
 	"BrainOnline/infra/3rdapi/llm_raw"
-	"BrainOnline/infra/3rdapi/search"
-	"BrainOnline/infra/3rdapi/search/bocha"
+	"BrainOnline/infra/3rdapi/searcher"
 
 	"BrainOnline/internal/agent"
 	"BrainOnline/internal/store"
@@ -43,13 +42,13 @@ func main() {
 	// Select Embedder implementation via EMBEDDER_PROVIDER env var:
 	//   "ali"   — Alibaba Tongyi text-embedding-v4 (2048 dims)
 	//   "zhipu" — Zhipu GLM embedding-3 (2048 dims)
-	provider := os.Getenv("EMBEDDER_PROVIDER")
-	if provider == "" {
-		provider = "ali"
+	embedderProvider := os.Getenv("EMBEDDER_PROVIDER")
+	if embedderProvider == "" {
+		embedderProvider = "ali"
 	}
 
 	var e embedder.Embedder
-	switch provider {
+	switch embedderProvider {
 	case "zhipu":
 		// Zhipu embedding-3 fixed at 2048 dimensions
 		e = embedder.NewZhipuEmbedder("", "ZHIPUAI_API_KEY", 2048)
@@ -80,7 +79,7 @@ func main() {
 	apiKey := os.Getenv("BOCHA_API_KEY")
 	if apiKey != "" {
 		webSearchClient = &webSearchAdapter{
-			client: bocha.NewClient(search.WebSearchClientConfig{
+			client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
 				APIKey: apiKey,
 			}),
 		}
