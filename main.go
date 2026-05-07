@@ -76,17 +76,35 @@ func main() {
 
 	// Initialize Web Search client (optional — only if BOCHA_API_KEY is set)
 	var webSearchClient agent.WebSearcher
-	apiKey := os.Getenv("BOCHA_API_KEY")
-	if apiKey != "" {
-		webSearchClient = &webSearchAdapter{
-			client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
-				APIKey: apiKey,
-			}),
+
+	webSearchProvider := os.Getenv("SEARCHER_PROVIDER")
+	switch webSearchProvider {
+	case "zhipu":
+		apiKey := os.Getenv("ZHIPUAI_API_KEY")
+		if apiKey != "" {
+			webSearchClient = &webSearchAdapter{
+				client: searcher.NewZhiPuClient(searcher.WebSearchClientConfig{
+					APIKey: apiKey,
+				}),
+			}
+			fmt.Println("✓ Web search enabled (bigmodel.cn)")
+		} else {
+			log.Printf("[WARN] ZHIPUAI_API_KEY is not set or empty — web search will be disabled. " +
+				"Set the ZHIPUAI_API_KEY environment variable to enable web search functionality.")
 		}
-		fmt.Println("✓ Web search enabled (bocha.ai)")
-	} else {
-		log.Printf("[WARN] BOCHA_API_KEY is not set or empty — web search will be disabled. " +
-			"Set the BOCHA_API_KEY environment variable to enable web search functionality.")
+	case "bocha":
+		apiKey := os.Getenv("BOCHA_API_KEY")
+		if apiKey != "" {
+			webSearchClient = &webSearchAdapter{
+				client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
+					APIKey: apiKey,
+				}),
+			}
+			fmt.Println("✓ Web search enabled (bocha.cn)")
+		} else {
+			log.Printf("[WARN] BOCHA_API_KEY is not set or empty — web search will be disabled. " +
+				"Set the BOCHA_API_KEY environment variable to enable web search functionality.")
+		}
 	}
 
 	// Create a signal-aware context: auto-cancels on SIGINT/SIGTERM
