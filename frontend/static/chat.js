@@ -451,7 +451,7 @@ function showTokenUsage(assistantBubble, usage) {
     const text = `提示 ${usage.prompt_tokens} + 生成 ${usage.completion_tokens} = ${usage.total_tokens}`;
 
     if (usage.is_estimated) {
-        info.title = '当前大模型未返回 token 消耗数据，此为程序估算值，仅供参考';
+        info.title = '当前大模型未返回 token 消耗数据，此处为估算值，供参考';
         info.innerHTML = `词元消耗：<span class="token-estimated-icon">⚠</span> ${text} <span class="token-estimated-label">(估算)</span>`;
     } else {
         info.textContent = `词元消耗：${text}`;
@@ -962,10 +962,18 @@ function showSources(sources, type) {
             }
         });
     } else if (type === 'web') {
-        // ---- 联网搜索结果 ----
+        // ---- 联网搜索结果（分页显示） ----
+        // 分组：URL 非空的排在前面，URL 为空的排在后面
+        const withUrl = sources.filter(s => s.url);
+        const withoutUrl = sources.filter(s => !s.url);
+        sources = withUrl.concat(withoutUrl);
+        const PAGE_SIZE = 5;
+        const totalPages = Math.ceil(sources.length / PAGE_SIZE);
+        let currentPage = 0;
+
         const title = document.createElement('div');
         title.className = 'sources-title sources-collapsible';
-        title.innerHTML = `${globeIconSvg} 参考了以下 ${sources.length} 个联网搜索结果`;
+        title.innerHTML = `${globeIconSvg} 参考了 ${sources.length} 个联网搜索结果`;
         title.setAttribute('role', 'button');
         title.tabIndex = 0;
         section.appendChild(title);
@@ -974,15 +982,101 @@ function showSources(sources, type) {
         body.className = 'sources-body';
         body.style.display = 'none'; // 默认折叠
 
-        sources.forEach((src) => {
-            const item = document.createElement('div');
-            item.className = 'source-item';
-            item.innerHTML = `
-                <a class="source-title source-link" href="${escapeHtml(src.url)}" target="_blank" rel="noopener">${escapeHtml(src.title)}</a>
-                ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
-            `;
-            body.appendChild(item);
-        });
+        // 容器：用于存放当前页的条目，切换页时清空重建
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'sources-items-container';
+        body.appendChild(itemsContainer);
+
+        // 分页圆点导航（底部居中）
+        const dotsNav = document.createElement('div');
+        dotsNav.className = 'sources-pagination-dots';
+        body.appendChild(dotsNav);
+
+        /**
+         * 渲染指定页码的条目和圆点状态
+         */
+        function renderPage(page) {
+            currentPage = page;
+
+            // 清空条目容器
+            itemsContainer.innerHTML = '';
+
+            const start = page * PAGE_SIZE;
+            const end = Math.min(start + PAGE_SIZE, sources.length);
+            const pageSources = sources.slice(start, end);
+
+            pageSources.forEach((src) => {
+                console.log('[sources-panel] source item:', { title: src.title, content: src.content, publish_date: src.publish_date, url: src.url, site_name: src.site_name });
+                const item = document.createElement('div');
+                item.className = 'source-item';
+
+                // 清理标题：去除标题中重复的网站名称以及搜索引擎附加的 "（发布时间：XXXX）" 后缀
+                let cleanTitle = src.title || '';
+                // 先去除 "（发布时间：XXXX）" 或 "(发布时间：XXXX)" 后缀
+                cleanTitle = cleanTitle.replace(/[（(]发布时间：.*?[）)]/g, '').trim();
+                const siteName = src.site_name || '';
+                if (siteName) {
+                    if (cleanTitle.startsWith(siteName)) {
+                        cleanTitle = cleanTitle.slice(siteName.length);
+                    }
+                    if (cleanTitle.endsWith(siteName)) {
+                        cleanTitle = cleanTitle.slice(0, -siteName.length);
+                    }
+                    cleanTitle = cleanTitle.replace(/^[\s\-_:—：]+|[\s\-_:—：]+$/g, '');
+                }
+                if (!cleanTitle) {
+                    cleanTitle = src.title ? src.title.replace(/[（(]发布时间：.*?[）)]/g, '').trim() : '';
+                }
+
+                let siteBadgeHtml = '';
+                if (src.site_icon || src.site_name) {
+                    const iconHtml = src.site_icon
+                        ? `<img class="source-site-icon" src="${escapeHtml(src.site_icon)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+                        : '';
+                    const nameHtml = src.site_name
+                        ? `<span class="source-site-name">${escapeHtml(src.site_name)}</span>`
+                        : '';
+                    if (iconHtml || nameHtml) {
+                        siteBadgeHtml = `<span class="source-site-badge">${iconHtml}${nameHtml}</span>`;
+                    }
+                }
+
+                // URL 为空时，标题不加链接效果（纯文本显示）
+                const titleHtml = src.url
+                    ? `<a class="source-title source-link" href="${escapeHtml(src.url)}" target="_blank" rel="noopener">${escapeHtml(cleanTitle)}</a>`
+                    : `<span class="source-title">${escapeHtml(cleanTitle)}</span>`;
+
+                // 发布时间格式化为 [发布于：XXXX]
+                const publishHtml = src.publish_date
+                    ? `<span style="color:var(--text-muted);font-size:0.75rem;display:block;margin-top:4px">[发布于：${escapeHtml(src.publish_date)}]</span>`
+                    : '';
+
+                item.innerHTML = `
+                    <div class="source-title-row">
+                        ${titleHtml}
+                        ${siteBadgeHtml}
+                    </div>
+                    ${publishHtml}
+                    ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
+                `;
+                itemsContainer.appendChild(item);
+            });
+
+            // 重建圆点导航
+            dotsNav.innerHTML = '';
+            for (let i = 0; i < totalPages; i++) {
+                const dot = document.createElement('span');
+                dot.className = 'sources-pagination-dot' + (i === currentPage ? ' active' : '');
+                dot.dataset.page = i;
+                dot.addEventListener('click', () => {
+                    renderPage(i);
+                });
+                dotsNav.appendChild(dot);
+            }
+        }
+
+        // 初始渲染第 0 页
+        renderPage(0);
 
         section.appendChild(body);
 
@@ -1119,6 +1213,10 @@ async function restoreSession() {
             // 如果是 assistant 消息且有 usage 信息，显示 token-info
             if (msg.role === 'assistant' && msg.usage && msgDiv) {
                 showTokenUsage(msgDiv, msg.usage);
+            }
+            // 如果是 assistant 消息且有 sources（联网搜索结果），恢复显示 sources-panel
+            if (msg.role === 'assistant' && msg.sources && msg.sources.length > 0) {
+                showSources(msg.sources, 'web');
             }
         }
     } catch (e) {
