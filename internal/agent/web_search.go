@@ -67,7 +67,7 @@ func searchQueriesFromToolCall(id, arguments string) (string, error) {
 		SearchQueries string `json:"search_queries"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", fmt.Errorf("failed to parse search query from tool call arguments. %w", err)
+		return "", fmt.Errorf("failed to parse search query from tool call arguments. call id %s. %w", id, err)
 	}
 	return result.SearchQueries, nil
 }

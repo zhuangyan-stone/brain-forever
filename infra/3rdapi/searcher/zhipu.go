@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"BrainOnline/infra/httpx"
+	"BrainOnline/toolset"
 )
 
 // ============================================================
@@ -203,14 +204,19 @@ func convertZhiPuToSearchResponse(z *zhipuWebSearchResult) *WebSearchResponse {
 	if len(z.SearchResult) > 0 {
 		pages := make([]WebPageValue, 0, len(z.SearchResult))
 		for _, v := range z.SearchResult {
+			t, err := toolset.TryParseTimeString(v.PublishDate, time.DateOnly)
+			if err != nil {
+				fmt.Printf("parse zhipu-web-search publish_date fail. %v\n", err)
+			}
+
 			pages = append(pages, WebPageValue{
 				ID:          v.Refer,
-				Name:        v.Title,
+				Title:       v.Title,
 				URL:         v.Link,
 				Summary:     v.Content,
 				SiteName:    v.Media,
 				SiteIcon:    v.Icon,
-				PublishDate: v.PublishDate,
+				PublishDate: t,
 			})
 		}
 		result.Pages = pages

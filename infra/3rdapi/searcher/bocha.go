@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"BrainOnline/infra/httpx"
+	"BrainOnline/toolset"
 )
 
 // ============================================================
@@ -318,16 +319,21 @@ func convertToSearchResponse(b *bochaResponse) *WebSearchResponse {
 	if b.Data != nil && b.Data.WebPages != nil {
 		pages := make([]WebPageValue, 0, len(b.Data.WebPages.Value))
 		for _, v := range b.Data.WebPages.Value {
+			t, err := toolset.TryParseTimeString(v.DatePublished, time.RFC3339)
+			if err != nil {
+				fmt.Printf("parse bochat-web-search date_published fail. %v\n", err)
+			}
+
 			pages = append(pages, WebPageValue{
 				ID:               v.ID,
-				Name:             v.Name,
+				Title:            v.Name,
 				URL:              v.URL,
 				Snippet:          v.Snippet,
 				Summary:          v.Summary,
 				SiteName:         v.SiteName,
 				SiteIcon:         v.SiteIcon,
 				Language:         v.Language,
-				PublishDate:      v.DatePublished,
+				PublishDate:      t,
 				IsFamilyFriendly: v.IsFamilyFriendly,
 			})
 		}
@@ -339,7 +345,20 @@ func convertToSearchResponse(b *bochaResponse) *WebSearchResponse {
 
 // filterBochaNonFamilyFriendly removes results that are not family-friendly in-place.
 func filterBochaNonFamilyFriendly(resp *WebSearchResponse) {
-	if resp == nil {
+	if resp == nil || len(resp.Pages) == 0 {
+		return
+	}
+
+	unsupported := true
+
+	for _, v := range resp.Pages {
+		if v.IsFamilyFriendly != nil {
+			unsupported = false
+			break
+		}
+	}
+
+	if unsupported {
 		return
 	}
 
