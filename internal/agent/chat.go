@@ -30,8 +30,8 @@ type ChatHandler struct {
 	cookieName     string // cookie name for reading/writing sessionID
 
 	// webPagesCollector collects web search page results during a streaming LLM call.
-	// It is set before performLLMStreamingCall / performLLMStreamingThinkingCall
-	// and read after the call returns to send web sources to the frontend.
+	// It is set before performLLMStreamingCall and read after the call returns to send
+	// web sources to the frontend.
 	webPagesCollector *[]WebSource
 }
 
@@ -127,7 +127,7 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	session.mu.Lock()
 	defer session.mu.Unlock()
 
-	// 3. Assign ID and append the new message from the frontend
+	// 3. Add the message to the history and assign it a unique ID
 	appendToMessageHistory(session, &req.Message)
 
 	if req.Message.ID <= 0 {
@@ -140,13 +140,20 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// Convert agent.Message history to llm_raw.Message for the API call
 	llmMsgs := toRawMessages(session.history)
 
-	systemMsg := llm_raw.Message{
+	startSystemMsg := llm_raw.Message{
 		Role:    "system",
 		Content: makeFixSystemPromptContent(),
 	}
-	messages := make([]llm_raw.Message, 0, len(llmMsgs)+1)
-	messages = append(messages, systemMsg)
+	messages := make([]llm_raw.Message, 0, 1+len(llmMsgs)+1)
+	messages = append(messages, startSystemMsg)
 	messages = append(messages, llmMsgs...)
+
+	lastSysteMsg := llm_raw.Message{
+		Role:    "system",
+		Content: makeEnvInfoSystemPromptContent(),
+	}
+
+	messages = append(messages, lastSysteMsg)
 
 	// 5. Build tool definition
 	toolDef := webSearchToolDefinitionRaw()
@@ -217,13 +224,18 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// 8. Append the LLM's full reply to the user's internal history
 	//     The AI reply reuses the user message's ID (source ID)
 	if len(fullReply) > 0 {
-		session.history = append(session.history, Message{
+		assistantMsg := Message{
 			ID:        req.Message.ID, // same as user message's id
 			Role:      "assistant",
 			Content:   fullReply,
 			CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
 			Usage:     usage,
-		})
+		}
+		// Attach web search sources so they can be restored after page refresh
+		if len(webPages) > 0 {
+			assistantMsg.Sources = webPages
+		}
+		session.history = append(session.history, assistantMsg)
 	}
 
 	// 9. Send done event
@@ -240,14 +252,19 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 
 // makeFixSystemPromptContent returns the system prompt content string.
 func makeFixSystemPromptContent() string {
-	now := time.Now().Format(time.DateTime)
-	return fmt.Sprintf(`You are an AI assistant, and also one who, during conversations with users, faithfully records various user characteristics, 
+	const s = `You are an AI assistant, and also one who, during conversations with users, faithfully records various user characteristics,
 deepens understanding of the user, and gradually builds a user profile to better provide service.
-When necessary, you will call relevant tools to obtain the information needed to better complete 
-your responses. Currently, there are two tools available: user traits and web information.
+When necessary, you will call relevant tools to obtain the information needed to better complete
+your responses. Currently, there are two tools available: user traits and web information.`
+	return s
+}
 
+func makeEnvInfoSystemPromptContent() string {
+	now := time.Now().Format(time.DateTime)
+	return fmt.Sprintf(`
+	
 Some real-time information for your reference in responses:
-Current time: %s`, now)
+	Current time: %s\n`, now)
 }
 
 // webSearchToolDefinitionRaw returns the ToolDefinition for web search
@@ -258,7 +275,7 @@ func webSearchToolDefinitionRaw() llm_raw.ToolDefinition {
 		"properties": {
 			"search_queries": {
 				"type": "string",
-				"description": "搜索关键词"
+				"description": "Search keywords"
 			}
 		},
 		"required": ["search_queries"],

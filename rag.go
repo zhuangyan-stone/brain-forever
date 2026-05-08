@@ -70,10 +70,17 @@ func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, fresh
 			}
 
 			if content != "" {
+				var publishDateStr string
+				if p.PublishDate != nil && !p.PublishDate.IsZero() {
+					publishDateStr = p.PublishDate.Format("2006-01-02")
+				}
 				webPages = append(webPages, agent.WebSource{
-					Title:   p.Name,
-					Content: content,
-					URL:     p.URL,
+					Title:       p.Title,
+					Content:     content,
+					URL:         p.URL,
+					SiteName:    p.SiteName,
+					SiteIcon:    p.SiteIcon,
+					PublishDate: publishDateStr,
 				})
 			}
 		}

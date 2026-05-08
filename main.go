@@ -68,10 +68,14 @@ func main() {
 	defer store.Close()
 
 	// Initialize LLM AI client (raw HTTP client with tool call support)
-	llmClient := llm_raw.NewDeepSeekRawFromConfig(llm_raw.RawClientConfig{
-		EnvKey:  "DEEPSEEK_API_KEY",
-		BaseURL: "https://api.deepseek.com/beta",
-		Model:   "deepseek-v4-flash",
+	llmClient := llm_raw.NewDeepSeekRawFromConfig(llm_raw.DeepseekRawClientConfig{
+		RawClientConfig: llm_raw.RawClientConfig{
+			EnvKey:                "DEEPSEEK_API_KEY",
+			BaseURL:               "https://api.deepseek.com/beta",
+			Model:                 "deepseek-v4-flash",
+			MaxToolCallIterations: 9,
+		},
+		ThinkingEnabled: true,
 	})
 
 	// Initialize Web Search client (optional — only if BOCHA_API_KEY is set)

@@ -39,8 +39,25 @@ func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID strin
 
 	// Store web pages into the collector so they can be sent to the frontend
 	// as a "sources" SSE event after the streaming call completes.
+	// Deduplicate by URL to avoid sending duplicate references to the frontend
+	// when the same page appears across multiple search rounds.
 	if len(webPages) > 0 && h.webPagesCollector != nil {
-		*h.webPagesCollector = append(*h.webPagesCollector, webPages...)
+		// Build a set of existing URLs for O(1) lookup
+		existing := make(map[string]bool, len(*h.webPagesCollector))
+		for _, p := range *h.webPagesCollector {
+			if p.URL != "" {
+				existing[p.URL] = true
+			}
+		}
+		// Only append pages whose URL is not already in the collector
+		for _, p := range webPages {
+			if p.URL == "" || !existing[p.URL] {
+				*h.webPagesCollector = append(*h.webPagesCollector, p)
+				if p.URL != "" {
+					existing[p.URL] = true
+				}
+			}
+		}
 	}
 
 	if searchResultText == "" {
@@ -56,11 +73,11 @@ func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID strin
 // sseStreamCallback implements llm_raw.StreamCallback by writing events
 // to an SSE writer for the frontend.
 type sseStreamCallback struct {
-	sseWriter *sse.SSEWriter
+	sseWriter *sse.Writer
 	webPages  *[]WebSource
 }
 
-func newSSEStreamCallback(sseWriter *sse.SSEWriter, webPages *[]WebSource) *sseStreamCallback {
+func newSSEStreamCallback(sseWriter *sse.Writer, webPages *[]WebSource) *sseStreamCallback {
 	return &sseStreamCallback{
 		sseWriter: sseWriter,
 		webPages:  webPages,
@@ -84,7 +101,7 @@ func (cb *sseStreamCallback) OnReasoning(ctx context.Context, delta string) erro
 func (cb *sseStreamCallback) OnToolCallStart(ctx context.Context, toolName string, arguments string) error {
 	// For web_search, send a "web_search" SSE event to notify the frontend
 	if toolName == webSearchToolName {
-		query, parseErr := searchQueriesFromToolCall("", arguments)
+		query, parseErr := searchQueriesFromToolCall("/", arguments)
 		if parseErr == nil && query != "" {
 			return cb.sseWriter.WriteEvent(SSEEvent{
 				Type:    "web_search",
@@ -116,7 +133,7 @@ func (cb *sseStreamCallback) OnError(ctx context.Context, err error) error {
 // tool call loop internally.
 func (h *ChatHandler) performLLMStreamingCall(
 	ctx context.Context,
-	sseWriter *sse.SSEWriter,
+	sseWriter *sse.Writer,
 	messages []llm_raw.Message,
 	tools []llm_raw.ToolDefinition,
 ) (fullReply string, webPages []WebSource, err error) {
@@ -130,39 +147,6 @@ func (h *ChatHandler) performLLMStreamingCall(
 
 	// Delegate to DeepSeekRaw
 	reply, err := h.llmClient.PerformLLMStreamingCall(ctx, callback, messages, tools, h)
-
-	// Clear the collector
-	h.webPagesCollector = nil
-
-	if err != nil {
-		return "", pages, err
-	}
-
-	return reply, pages, nil
-}
-
-// ============================================================
-// LLM Streaming + Thinking Call — delegates to DeepSeekRaw
-// ============================================================
-
-// performLLMStreamingThinkingCall performs a streaming LLM call in deep-thinking
-// mode. It delegates to DeepSeekRaw.PerformLLMStreamingThinkingCall.
-func (h *ChatHandler) performLLMStreamingThinkingCall(
-	ctx context.Context,
-	sseWriter *sse.SSEWriter,
-	messages []llm_raw.Message,
-	tools []llm_raw.ToolDefinition,
-) (fullReply string, webPages []WebSource, err error) {
-
-	// Create the SSE callback
-	var pages []WebSource
-	callback := newSSEStreamCallback(sseWriter, &pages)
-
-	// Set the web pages collector so executeWebSearchTool can store results
-	h.webPagesCollector = &pages
-
-	// Delegate to DeepSeekRaw in thinking mode
-	reply, err := h.llmClient.PerformLLMStreamingThinkingCall(ctx, callback, messages, tools, h)
 
 	// Clear the collector
 	h.webPagesCollector = nil

@@ -2,6 +2,12 @@ package llm_raw
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
+	"BrainOnline/infra/sse"
 )
 
 // ============================================================
@@ -44,10 +50,14 @@ type LLMClient interface {
 
 	// ChatStream sends a chat request and returns a stream for reading chunks.
 	// Uses the client's default model.
-	ChatStream(ctx context.Context, messages []Message) *StreamReader
+	ChatStream(ctx context.Context, messages []Message) *ChatCompletionChunkDecoder
 
 	// ChatStreamWithOptions sends a streaming chat request with custom parameters.
-	ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest) *StreamReader
+	ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest) *ChatCompletionChunkDecoder
+
+	// GetMaxToolCallIterations returns the maximum number of tool call iterations
+	// allowed in the streaming loop before forcing a direct answer.
+	GetMaxToolCallIterations() int
 
 	// PerformLLMStreamingCall performs a streaming LLM call with tool support.
 	// If the LLM calls a tool (e.g. web_search), it executes the tool via the
@@ -63,22 +73,29 @@ type LLMClient interface {
 	// Returns the final assistant reply content.
 	PerformLLMStreamingCall(
 		ctx context.Context,
-		callback StreamCallback,
+		callback ToolCallsEvent,
 		messages []Message,
 		tools []ToolDefinition,
 		executor ToolExecutor,
 	) (fullReply string, err error)
+}
 
-	// PerformLLMStreamingThinkingCall performs a streaming LLM call in deep-thinking
-	// mode. It streams reasoning_content to the callback as "reasoning" events,
-	// and supports multiple tool calls across multiple sub-turns.
-	PerformLLMStreamingThinkingCall(
-		ctx context.Context,
-		callback StreamCallback,
-		messages []Message,
-		tools []ToolDefinition,
-		executor ToolExecutor,
-	) (fullReply string, err error)
+// ============================================================
+// RawClientConfig — generic config for creating an LLM client instance
+//
+// This struct is used by factory functions (e.g. NewDeepSeekRawFromConfig)
+// to create a concrete LLM client. DeepSeek-specific fields (e.g. Thinking)
+// are handled internally by the implementation.
+// ============================================================
+
+// RawClientConfig contains common configuration for creating an LLM client.
+type RawClientConfig struct {
+	APIKey                string       // API key, if empty reads from EnvKey env var
+	BaseURL               string       // API base URL (e.g., "https://api.deepseek.com")
+	Model                 string       // Model name (e.g., "deepseek-chat")
+	EnvKey                string       // Environment variable name to read API key from
+	HTTPClient            *http.Client // Optional custom HTTP client; nil uses default timeout
+	MaxToolCallIterations int          // Max tool call iterations in streaming loop; 0 means default (5)
 }
 
 // ============================================================
@@ -116,6 +133,17 @@ type ToolCallFunction struct {
 	Arguments string `json:"arguments"`
 }
 
+// StreamingToolCall stores tool call data collected from streaming deltas.
+// This is a generic structure used across LLM implementations (OpenAI-compatible APIs)
+// to accumulate partial tool call fields from streaming chunks into complete tool calls.
+type StreamingToolCall struct {
+	Index     int
+	ID        string
+	Type      string
+	Name      string
+	Arguments string
+}
+
 // ChatCompletionRequest is the request body for the chat completion API.
 type ChatCompletionRequest struct {
 	Model       string           `json:"model"`
@@ -126,8 +154,41 @@ type ChatCompletionRequest struct {
 	TopP        float64          `json:"top_p,omitempty"`
 	Tools       []ToolDefinition `json:"tools,omitempty"`
 
+	ToolChoice json.RawMessage `json:"tool_choice,omitempty"`
+
+	// Thinking enables the model's thinking/reasoning mode (DeepSeek-specific).
+	// e.g. {"type": "enabled"}
+	Thinking *ThinkingConfig `json:"thinking,omitempty"`
+
 	// StreamOptions controls whether token usage is included in the final streaming chunk.
 	StreamOptions *StreamOptions `json:"stream_options,omitempty"`
+}
+
+func (req *ChatCompletionRequest) DisableToolChoice() {
+	// Set ToolChoice to "none" — prevents the LLM from calling any tool.
+	req.ToolChoice = json.RawMessage(`"none"`)
+}
+
+func (req *ChatCompletionRequest) EnableToolChoice() {
+	// Set ToolChoice to "auto" — lets the LLM decide whether to call a tool.
+	req.ToolChoice = json.RawMessage(`"auto"`)
+}
+
+func (req *ChatCompletionRequest) RequiredToolChoice() {
+	// Set ToolChoice to "required" — forces the LLM to call a tool (intelligently)
+	// rather than producing a text reply.
+	req.ToolChoice = json.RawMessage(`"required"`)
+}
+
+func (req *ChatCompletionRequest) ForceToolChoice(functionName string) {
+	// Set ToolChoice to a specific function object:
+	// {"type": "function", "function": {"name": functionName }}
+	req.ToolChoice = json.RawMessage(`{"type":"function","function":{"name":"` + functionName + `"}}`)
+}
+
+// ThinkingConfig configures the model's thinking/reasoning mode (DeepSeek-specific).
+type ThinkingConfig struct {
+	Type string `json:"type"` // "enabled" to enable, "disabled" to disable
 }
 
 // StreamOptions configures streaming behavior.
@@ -186,6 +247,70 @@ type ChunkChoice struct {
 }
 
 // ============================================================
+// ChatCompletionChunkDecoder — typed SSE decoder for LLM streaming chunks
+//
+// ChatCompletionChunkDecoder embeds sse.SSEReader and provides
+// typed access to ChatCompletionChunk values. It overrides Next()
+// to handle [DONE] termination signals and parse each SSE data line
+// as a JSON ChatCompletionChunk.
+// ============================================================
+
+// ChatCompletionChunkDecoder reads SSE streaming chunks and decodes them
+// into typed ChatCompletionChunk values.
+type ChatCompletionChunkDecoder struct {
+	sse.Reader
+	currentChunk ChatCompletionChunk
+}
+
+// NewChatCompletionChunkDecoder creates a ChatCompletionChunkDecoder
+// from an SSE response body.
+func NewChatCompletionChunkDecoder(body io.ReadCloser) *ChatCompletionChunkDecoder {
+	return &ChatCompletionChunkDecoder{
+		Reader: *sse.NewSSEReader(body),
+	}
+}
+
+// newChatCompletionChunkDecoderError creates a ChatCompletionChunkDecoder
+// in an error/done state. Used internally when an API request fails
+// before streaming begins.
+func newChatCompletionChunkDecoderError(err error) *ChatCompletionChunkDecoder {
+	d := &ChatCompletionChunkDecoder{}
+	d.SetErr(err)
+	return d
+}
+
+// Next advances the stream to the next chunk.
+// Returns false when the stream is exhausted or an error occurs.
+// After Next returns false, call Err() to check for errors.
+func (d *ChatCompletionChunkDecoder) Next() bool {
+	// Use the embedded SSEReader's Decode to get the raw SSE data line
+	data, ok := d.Decode()
+	if !ok {
+		return false
+	}
+
+	// Check for the stream termination signal
+	if data == "[DONE]" {
+		return false
+	}
+
+	// Parse the chunk
+	var chunk ChatCompletionChunk
+	if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+		d.SetErr(fmt.Errorf("failed to parse streaming chunk. %w", err))
+		return false
+	}
+
+	d.currentChunk = chunk
+	return true
+}
+
+// CurrentChatCompletionChunk returns the most recently read chunk.
+func (d *ChatCompletionChunkDecoder) CurrentChatCompletionChunk() ChatCompletionChunk {
+	return d.currentChunk
+}
+
+// ============================================================
 // ToolDefinition — defines a tool that the LLM can call
 // ============================================================
 
@@ -226,10 +351,10 @@ type ToolExecutor interface {
 // StreamCallback interface — decouples streaming output from the LLM client
 // ============================================================
 
-// StreamCallback defines callbacks for streaming events during LLM calls.
+// ToolCallsEvent defines callbacks for streaming events during LLM calls.
 // The caller implements this to receive streaming content (e.g., to forward
 // to an SSE writer).
-type StreamCallback interface {
+type ToolCallsEvent interface {
 	// OnText is called when a text content delta is received from the LLM.
 	OnText(ctx context.Context, delta string) error
 

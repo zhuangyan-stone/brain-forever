@@ -20,6 +20,11 @@ type Message struct {
 	Content string `json:"content"`         // Message content
 	Usage   *Usage `json:"usage,omitempty"` // Token usage (nil for user messages)
 
+	// Sources holds web search result references associated with this message.
+	// Populated for assistant messages that involved web search.
+	// Used by the frontend to restore the sources-panel after page refresh.
+	Sources []WebSource `json:"sources,omitempty"`
+
 	CreatedAt string `json:"created_at"` // UTC time string, e.g. "2026-05-02T16:30:00Z"
 }
 
@@ -55,10 +60,13 @@ type TraitSource struct {
 // WebSource represents a web search result source.
 // Used for online search results with page URL.
 type WebSource struct {
-	Title   string  `json:"title"`
-	Content string  `json:"content,omitempty"`
-	URL     string  `json:"url,omitempty"` // Web page URL
-	Score   float64 `json:"score"`
+	Title       string  `json:"title"`
+	Content     string  `json:"content,omitempty"`
+	URL         string  `json:"url,omitempty"`          // Web page URL
+	SiteName    string  `json:"site_name,omitempty"`    // Website name (e.g. "知乎", "CSDN")
+	SiteIcon    string  `json:"site_icon,omitempty"`    // Website favicon URL
+	PublishDate string  `json:"publish_date,omitempty"` // Page publish date, formatted string e.g. "2006-01-02"
+	Score       float64 `json:"score"`
 }
 
 // Usage represents token usage
