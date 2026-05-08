@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // WebSearcher is a generic Web search interface.
@@ -66,16 +67,16 @@ type WebSearchResponse struct {
 
 // WebPageValue represents a single web page result.
 type WebPageValue struct {
-	ID               string  `json:"id"`
-	Name             string  `json:"name"`
-	URL              string  `json:"url"`
-	Snippet          string  `json:"snippet"`
-	Summary          string  `json:"summary,omitempty"`
-	SiteName         string  `json:"siteName"`
-	SiteIcon         string  `json:"siteIcon"`
-	Language         *string `json:"language"`
-	PublishDate      string  `json:"publish_date"`
-	IsFamilyFriendly *bool   `json:"isFamilyFriendly"`
+	ID               string     `json:"id"`
+	Title            string     `json:"title"` // page title
+	URL              string     `json:"url"`
+	Snippet          string     `json:"snippet"`
+	Summary          string     `json:"summary"`
+	SiteName         string     `json:"siteName"`
+	SiteIcon         string     `json:"siteIcon"`
+	Language         *string    `json:"language"`
+	PublishDate      *time.Time `json:"publish_date"`
+	IsFamilyFriendly *bool      `json:"isFamilyFriendly"`
 }
 
 // ---------------------------------------------------------------------------
@@ -99,8 +100,11 @@ func ResultToLLMText(resp *WebSearchResponse, maxRuneLen int) string {
 	if len(resp.Pages) > 0 {
 		sb.WriteString("[Web Pages]\n")
 		for i, page := range resp.Pages {
-			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, page.Name))
+			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, page.Title))
 			sb.WriteString(fmt.Sprintf("   URL: %s\n", page.URL))
+			if page.Title != "" {
+				sb.WriteString(fmt.Sprintf("   Title: %s\n", page.Title))
+			}
 			if page.Snippet != "" {
 				sb.WriteString(fmt.Sprintf("   Snippet: %s\n", page.Snippet))
 			}
@@ -108,14 +112,15 @@ func ResultToLLMText(resp *WebSearchResponse, maxRuneLen int) string {
 				sb.WriteString(fmt.Sprintf("   Summary: %s\n", page.Summary))
 			}
 			if page.SiteName != "" {
-				sb.WriteString(fmt.Sprintf("   Site name: %s\n", page.Name))
-			}
-			if page.Language != nil && len(*page.Language) > 0 {
-				sb.WriteString(fmt.Sprintf("   Site language: %s\n", page.SiteName))
+				sb.WriteString(fmt.Sprintf("   Site: %s\n", page.SiteName))
 			}
 
-			if page.PublishDate != "" {
-				sb.WriteString(fmt.Sprintf("   Date published: %s\n", page.PublishDate))
+			if page.Language != nil && len(*page.Language) > 0 {
+				sb.WriteString(fmt.Sprintf("   Language : %s:\n", *page.Language))
+			}
+
+			if page.PublishDate != nil && !page.PublishDate.IsZero() {
+				sb.WriteString(fmt.Sprintf("   Date published: %s\n", page.PublishDate.Format("2006-01-02 15:04:05")))
 			}
 
 			sb.WriteString("\n")
