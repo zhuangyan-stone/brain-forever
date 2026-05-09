@@ -1491,10 +1491,10 @@ function showDeleteModal() {
         // 用户问题最多显示 28 字
         const userPreview = escapeHtml(truncate(rawContent, 28));
         html += `<div style="margin-bottom:8px; border-bottom: black 1px solid;"><strong>我：</strong>${userPreview}</div>`;
-        // 查找该用户消息对应的 AI 回复（相同 msgId 的 assistant 消息）
-        const msgId = userMsg.dataset.msgId;
-        if (msgId) {
-            const assistantMsg = chatContainer.querySelector(`.message.assistant[data-msg-id="${msgId}"]`);
+        // 在同一个 .message-group 内查找 AI 回复（不依赖 data-msg-id 配对）
+        const group = userMsg.closest('.message-group');
+        if (group) {
+            const assistantMsg = group.querySelector('.message.assistant');
             if (assistantMsg) {
                 const assistantContent = assistantMsg.querySelector('.bubble').textContent || '';
                 // 去掉首尾空白，最多显示 62 字

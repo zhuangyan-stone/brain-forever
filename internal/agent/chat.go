@@ -66,21 +66,30 @@ func NewChatHandler(traitSearcher toolcalls.TraitSearcher, webSearcher toolcalls
 	}
 }
 
-// Enqueue a new message, assign an ID, and return a snapshot of all messages
-func appendToMessageHistory(session *session, newMsg *Message) {
-	if newMsg.ID != 0 {
-		panic(fmt.Sprintf("new message's ID is not 0, but %d", newMsg.ID))
+// Enqueue a new message for request, assign an ID
+func appendNewRequestMessage(session *session, reqMsg *Message) {
+	if reqMsg.ID != 0 {
+		panic(fmt.Sprintf("new request message's ID is not 0, but %d", reqMsg.ID))
 	}
 
 	// Assign new ID if ID==0 (frontend no longer manages IDs)
 	if len(session.history) > 0 {
-		newMsg.ID = session.history[len(session.history)-1].ID + 1
+		reqMsg.ID = session.history[len(session.history)-1].ID + 1
 	} else {
-		newMsg.ID = 1
+		reqMsg.ID = 1
 	}
 
 	// Append to history
-	session.history = append(session.history, *newMsg)
+	session.history = append(session.history, *reqMsg)
+}
+
+// Enqueue a new message for response (message's ID must != 0)
+func appendNewResponseMessage(session *session, resMsg *Message) {
+	if resMsg.ID == 0 {
+		panic("new response message's ID is 0")
+	}
+
+	session.history = append(session.history, *resMsg)
 }
 
 // toRawMessages converts agent.Message slice to llm.Message slice.
@@ -146,7 +155,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	defer session.mu.Unlock()
 
 	// 3. Add the message to the history and assign it a unique ID
-	appendToMessageHistory(session, &req.Message)
+	appendNewRequestMessage(session, &req.Message)
 
 	if req.Message.ID <= 0 {
 		panic("new message's ID is zero still after append to history")
@@ -255,7 +264,8 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		if len(webPages) > 0 {
 			assistantMsg.Sources = webPages
 		}
-		session.history = append(session.history, assistantMsg)
+
+		appendNewResponseMessage(session, &assistantMsg)
 	}
 
 	// 9. Send done event
