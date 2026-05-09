@@ -16,7 +16,7 @@ type DeleteMessageRequest struct {
 }
 
 // OnDeleteMessage handles DELETE /api/history — deletes a user+assistant message pair by msg_id
-func (h *ChatHandler) OnDeleteMessage(w http.ResponseWriter, r *http.Request) {
+func (h *ChatAgent) OnDeleteMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return

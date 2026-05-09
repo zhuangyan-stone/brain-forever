@@ -10,7 +10,7 @@ import (
 // ============================================================
 
 // OnRestoreSession handles GET /api/session — returns current session info
-func (h *ChatHandler) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
+func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return

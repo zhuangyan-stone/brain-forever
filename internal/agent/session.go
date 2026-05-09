@@ -27,14 +27,14 @@ func generateSessionID() string {
 // StartGC starts the background session GC goroutine.
 // It delegates to SessionManager.StartGC so that main.go can start GC
 // without needing to access the unexported sessionManager field.
-func (h *ChatHandler) StartGC(ctx context.Context) {
+func (h *ChatAgent) StartGC(ctx context.Context) {
 	h.sessionManager.StartGC(ctx)
 }
 
 // getSessionID gets the sessionID from the request
 // Prefers reading from cookie; if absent, generates a new UUID and writes it to cookie
 // Returns the sessionID and a bool indicating whether this is a newly created session
-func (h *ChatHandler) getSessionID(w http.ResponseWriter, r *http.Request) (string, bool) {
+func (h *ChatAgent) getSessionID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	// Try to read from cookie
 	cookie, err := r.Cookie(h.cookieName)
 	if err == nil && cookie.Value != "" {
@@ -59,7 +59,7 @@ func (h *ChatHandler) getSessionID(w http.ResponseWriter, r *http.Request) (stri
 
 // resolveSessionID is a convenience wrapper around getSessionID that discards the isNew flag.
 // Use this when you only need the sessionID string and don't care whether it's new.
-func (h *ChatHandler) resolveSessionID(w http.ResponseWriter, r *http.Request) string {
+func (h *ChatAgent) resolveSessionID(w http.ResponseWriter, r *http.Request) string {
 	sessionID, _ := h.getSessionID(w, r)
 	return sessionID
 }

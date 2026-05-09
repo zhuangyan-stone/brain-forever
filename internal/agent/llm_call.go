@@ -18,7 +18,7 @@ import (
 // ExecuteTool implements llm.ToolExecutor.
 // It dispatches tool calls by name to the appropriate handler.
 // The returned messages are translated according to the handler's default language.
-func (h *ChatHandler) ExecuteTool(ctx context.Context, toolName string, toolCallID string, arguments string) (string, error) {
+func (h *ChatAgent) ExecuteTool(ctx context.Context, toolName string, toolCallID string, arguments string) (string, error) {
 	switch toolName {
 	case toolcalls.WebSearchToolName:
 		return h.executeWebSearchTool(ctx, toolCallID, arguments)
@@ -32,7 +32,7 @@ func (h *ChatHandler) ExecuteTool(ctx context.Context, toolName string, toolCall
 
 // executeWebSearchTool parses the search query and executes a web search.
 // The returned messages are translated according to the handler's default language.
-func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID string, arguments string) (string, error) {
+func (h *ChatAgent) executeWebSearchTool(ctx context.Context, toolCallID string, arguments string) (string, error) {
 	query, parseErr := toolcalls.SearchQueriesFromToolCall(toolCallID, arguments)
 	if parseErr != nil {
 		return i18n.TL(h.defaultLang, "search_parse_error", map[string]interface{}{
@@ -139,7 +139,7 @@ func (cb *sseStreamCallback) OnError(ctx context.Context, err error) error {
 // performLLMStreamingCall performs a streaming LLM call with tool support.
 // It delegates to DeepSeekRaw.PerformLLMStreamingCall, which handles the
 // tool call loop internally.
-func (h *ChatHandler) performLLMStreamingCall(
+func (h *ChatAgent) performLLMStreamingCall(
 	ctx context.Context,
 	sseWriter *sse.Writer,
 	messages []llm.Message,

@@ -18,12 +18,12 @@ import (
 // ChatHandler — POST /api/chat handler (core)
 // ============================================================
 
-// ChatHandler handles chat requests, integrating RAG retrieval + LLM streaming
+// ChatAgent handles chat requests, integrating RAG retrieval + LLM streaming
 //
-// ChatHandler uses SessionManager to isolate each user's chat history by sessionID.
+// ChatAgent uses SessionManager to isolate each user's chat history by sessionID.
 // The frontend only needs to send the user's latest message each time,
-// and ChatHandler merges history with new messages before sending to the actual LLM.
-type ChatHandler struct {
+// and ChatAgent merges history with new messages before sending to the actual LLM.
+type ChatAgent struct {
 	traitSearcher toolcalls.TraitSearcher // Personal knowledge base (RAG) search
 	webSearcher   toolcalls.WebSearcher   // Web search interface
 	charLLMClient llm.LLMClient           // LLM API client
@@ -44,7 +44,7 @@ type ChatHandler struct {
 
 // Close releases underlying resources held by the ChatHandler.
 // Currently closes the VectorStore (knowledge base) database.
-func (h *ChatHandler) Close() error {
+func (h *ChatAgent) Close() error {
 	return h.traitSearcher.Close()
 }
 
@@ -52,11 +52,11 @@ func (h *ChatHandler) Close() error {
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
-func NewChatHandler(traitSearcher toolcalls.TraitSearcher, webSearcher toolcalls.WebSearcher, llmClient llm.LLMClient, cookieName string, defaultLang string) *ChatHandler {
+func NewChatHandler(traitSearcher toolcalls.TraitSearcher, webSearcher toolcalls.WebSearcher, llmClient llm.LLMClient, cookieName string, defaultLang string) *ChatAgent {
 	if defaultLang == "" {
 		defaultLang = "en"
 	}
-	return &ChatHandler{
+	return &ChatAgent{
 		traitSearcher:  traitSearcher,
 		webSearcher:    webSearcher,
 		charLLMClient:  llmClient,
@@ -105,7 +105,7 @@ func toRawMessages(msgs []Message) []llm.Message {
 
 // resolveNewMessageRequest parses and validates the incoming chat request.
 // Returns nil if validation fails (the caller should return immediately in that case).
-func (h *ChatHandler) resolveNewMessageRequest(w http.ResponseWriter, r *http.Request) *ChatRequest {
+func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Request) *ChatRequest {
 	// Only accept POST
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -131,7 +131,7 @@ func (h *ChatHandler) resolveNewMessageRequest(w http.ResponseWriter, r *http.Re
 }
 
 // OnNewMessage handles POST /api/chat requests
-func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
+func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// 1. Resolve request
 	req := h.resolveNewMessageRequest(w, r)
 	if req == nil {

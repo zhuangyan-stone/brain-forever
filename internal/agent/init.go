@@ -158,7 +158,7 @@ func InitWebSearchClient(cfg config.WebSearchConfig) toolcalls.WebSearcher {
 
 // InitAgent creates a fully initialized ChatHandler from a Config.
 // It also starts the background session GC.
-func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaultLang string) (*ChatHandler, error) {
+func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaultLang string) (*ChatAgent, error) {
 	// 1. Initialize Embedder
 	embeddingClient := InitEmbedder(cfg.Embedder)
 
