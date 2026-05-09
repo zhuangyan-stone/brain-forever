@@ -42,6 +42,12 @@ type ChatHandler struct {
 	webPagesCollector *[]toolcalls.WebSource
 }
 
+// Close releases underlying resources held by the ChatHandler.
+// Currently closes the VectorStore (knowledge base) database.
+func (h *ChatHandler) Close() error {
+	return h.traitSearcher.Close()
+}
+
 // NewChatHandler creates a ChatHandler
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"

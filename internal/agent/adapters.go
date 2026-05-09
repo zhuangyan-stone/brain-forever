@@ -17,6 +17,11 @@ type traitSearchAdapter struct {
 	store *store.VectorStore
 }
 
+// Close closes the underlying VectorStore database.
+func (ps *traitSearchAdapter) Close() error {
+	return ps.store.Close()
+}
+
 func (ps *traitSearchAdapter) SearchByText(ctx context.Context, queryText string, topK int) ([]toolcalls.TraitSource, error) {
 	results, err := ps.store.SearchByText(ctx, queryText, topK)
 	if err != nil {

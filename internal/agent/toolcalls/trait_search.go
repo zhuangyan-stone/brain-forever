@@ -18,4 +18,7 @@ type TraitSource struct {
 // from the user's knowledge base (vector search).
 type TraitSearcher interface {
 	SearchByText(ctx context.Context, queryText string, topK int) ([]TraitSource, error)
+
+	// Close releases any underlying resources held by the searcher.
+	Close() error
 }

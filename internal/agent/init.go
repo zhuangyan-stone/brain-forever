@@ -89,7 +89,7 @@ func InitLLMClient(cfg config.ChatLLMConfig) llm.LLMClient {
 		maxIter = 9
 	}
 
-	return llm.NewDeepSeekRawFromConfig(llm.DeepseekRawClientConfig{
+	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{
 		RawClientConfig: llm.RawClientConfig{
 			EnvKey:                envKey,
 			BaseURL:               baseURL,

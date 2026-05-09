@@ -48,8 +48,8 @@ import (
 // DeepSeekRaw client
 // ============================================================
 
-// DeepSeekRaw is a DeepSeek API client that uses raw http.Client.
-type DeepSeekRaw struct {
+// DeepSeekClient is a DeepSeek API client that uses raw http.Client.
+type DeepSeekClient struct {
 	apiKey                string
 	baseURL               string
 	model                 string
@@ -60,12 +60,12 @@ type DeepSeekRaw struct {
 	maxToolCallIterations int    // max tool call iterations; 0 means default (5)
 }
 
-// NewDeepSeekRaw creates a new DeepSeekRaw client.
+// NewDeepSeekClient creates a new DeepSeekRaw client.
 //
 // apiKey: DeepSeek API Key, if empty reads from the env variable specified by envKey
 // envKey: environment variable name, defaults to "DEEPSEEK_API_KEY"
 // model:  model name (e.g. "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner")
-func NewDeepSeekRaw(apiKey, envKey, model string, enableThinking bool) *DeepSeekRaw {
+func NewDeepSeekClient(apiKey, envKey, model string, enableThinking bool) *DeepSeekClient {
 	if apiKey == "" {
 		if envKey == "" {
 			envKey = "DEEPSEEK_API_KEY"
@@ -73,7 +73,7 @@ func NewDeepSeekRaw(apiKey, envKey, model string, enableThinking bool) *DeepSeek
 		apiKey = os.Getenv(envKey)
 	}
 
-	return &DeepSeekRaw{
+	return &DeepSeekClient{
 		apiKey:          apiKey,
 		baseURL:         "https://api.deepseek.com/beta",
 		model:           model,
@@ -92,15 +92,15 @@ func NewDeepSeekRaw(apiKey, envKey, model string, enableThinking bool) *DeepSeek
 // NewDeepSeekRawFromConfig to create a DeepSeekRaw client.
 // ============================================================
 
-// DeepseekRawClientConfig extends RawClientConfig with DeepSeek-specific fields.
-type DeepseekRawClientConfig struct {
+// DeepseekClientConfig extends RawClientConfig with DeepSeek-specific fields.
+type DeepseekClientConfig struct {
 	RawClientConfig
 
 	ThinkingEnabled bool // Thinking mode: true = enabled, false = disabled (default false)
 }
 
-// NewDeepSeekRawFromConfig creates a DeepSeekRaw client from a generic RawClientConfig.
-func NewDeepSeekRawFromConfig(cfg DeepseekRawClientConfig) *DeepSeekRaw {
+// NewDeepSeekClientFromConfig creates a DeepSeekRaw client from a generic RawClientConfig.
+func NewDeepSeekClientFromConfig(cfg DeepseekClientConfig) *DeepSeekClient {
 	if cfg.APIKey == "" {
 		envKey := cfg.EnvKey
 		if envKey == "" {
@@ -118,7 +118,7 @@ func NewDeepSeekRawFromConfig(cfg DeepseekRawClientConfig) *DeepSeekRaw {
 		httpClient = httpx.NewHTTPClient(120 * time.Second)
 	}
 
-	return &DeepSeekRaw{
+	return &DeepSeekClient{
 		apiKey:                cfg.APIKey,
 		baseURL:               cfg.BaseURL,
 		model:                 cfg.Model,
@@ -130,12 +130,12 @@ func NewDeepSeekRawFromConfig(cfg DeepseekRawClientConfig) *DeepSeekRaw {
 }
 
 // Model returns the current model name.
-func (c *DeepSeekRaw) Model() string {
+func (c *DeepSeekClient) Model() string {
 	return c.model
 }
 
 // GetMaxToolCallIterations returns the maximum number of tool call iterations.
-func (c *DeepSeekRaw) GetMaxToolCallIterations() int {
+func (c *DeepSeekClient) GetMaxToolCallIterations() int {
 	if c.maxToolCallIterations <= 0 {
 		return 5 // default
 	}
@@ -144,18 +144,18 @@ func (c *DeepSeekRaw) GetMaxToolCallIterations() int {
 
 // GetUsageInfo returns the token usage information from the most recent API call.
 // Returns nil if no call has been made yet.
-func (c *DeepSeekRaw) GetUsageInfo() *Usage {
+func (c *DeepSeekClient) GetUsageInfo() *Usage {
 	return c.lastUsage
 }
 
 // SetUsageInfo sets the token usage information from an API call.
 // This is used by streaming callers to store usage data from the final chunk.
-func (c *DeepSeekRaw) SetUsageInfo(usage Usage) {
+func (c *DeepSeekClient) SetUsageInfo(usage Usage) {
 	c.lastUsage = &usage
 }
 
 // storeUsage saves token usage from the most recent API call.
-func (c *DeepSeekRaw) storeUsage(usage Usage) {
+func (c *DeepSeekClient) storeUsage(usage Usage) {
 	c.lastUsage = &usage
 }
 
@@ -165,7 +165,7 @@ func (c *DeepSeekRaw) storeUsage(usage Usage) {
 
 // Chat sends a chat message and gets a reply (non-streaming).
 // Uses the client's default model.
-func (c *DeepSeekRaw) Chat(ctx context.Context, messages []Message) (*ChatCompletionResponse, error) {
+func (c *DeepSeekClient) Chat(ctx context.Context, messages []Message) (*ChatCompletionResponse, error) {
 	return c.ChatWithOptions(ctx, ChatCompletionRequest{
 		Model:    c.model,
 		Messages: messages,
@@ -173,7 +173,7 @@ func (c *DeepSeekRaw) Chat(ctx context.Context, messages []Message) (*ChatComple
 }
 
 // ChatWithOptions sends a chat request with custom parameters (non-streaming).
-func (c *DeepSeekRaw) ChatWithOptions(ctx context.Context, req ChatCompletionRequest) (*ChatCompletionResponse, error) {
+func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletionRequest) (*ChatCompletionResponse, error) {
 	if c.apiKey == "" {
 		return nil, fmt.Errorf("API client not initialized (API key may be missing)")
 	}
@@ -237,7 +237,7 @@ func (c *DeepSeekRaw) ChatWithOptions(ctx context.Context, req ChatCompletionReq
 
 // ChatStream sends a chat request and returns a stream for reading chunks.
 // Uses the client's default model.
-func (c *DeepSeekRaw) ChatStream(ctx context.Context, messages []Message) *ChatCompletionChunkDecoder {
+func (c *DeepSeekClient) ChatStream(ctx context.Context, messages []Message) *ChatCompletionChunkDecoder {
 	return c.ChatStreamWithOptions(ctx, ChatCompletionRequest{
 		Model:    c.model,
 		Messages: messages,
@@ -247,7 +247,7 @@ func (c *DeepSeekRaw) ChatStream(ctx context.Context, messages []Message) *ChatC
 // ChatStreamWithOptions sends a streaming chat request with custom parameters.
 // It uses a dedicated HTTP client with a long timeout to prevent connection drops
 // during long pauses between chunks.
-func (c *DeepSeekRaw) ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest) *ChatCompletionChunkDecoder {
+func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest) *ChatCompletionChunkDecoder {
 	if c.apiKey == "" {
 		return newChatCompletionChunkDecoderError(fmt.Errorf("API client not initialized (API key may be missing)"))
 	}
@@ -336,7 +336,7 @@ func GetReasoningContent(chunk ChatCompletionChunk) string {
 //   - executor: ToolExecutor that executes tool calls (e.g., web_search)
 //
 // Returns the final assistant reply content.
-func (c *DeepSeekRaw) PerformLLMStreamingCall(
+func (c *DeepSeekClient) PerformLLMStreamingCall(
 	ctx context.Context,
 	callback ToolCallsEvent,
 	messages []Message,

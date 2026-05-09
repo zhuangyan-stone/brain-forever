@@ -80,6 +80,7 @@ func main() {
 		log.Fatalf("failed to initialize agent: %v", err)
 		return
 	}
+	defer chatHandler.Close()
 
 	// ============================================================
 	// Setup routes
