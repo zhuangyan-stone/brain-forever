@@ -78,6 +78,7 @@ func main() {
 	chatHandler, err := agent.InitAgent(ctx, cfg, "brain_go_session", defaultLang)
 	if err != nil {
 		log.Fatalf("failed to initialize agent: %v", err)
+		return
 	}
 
 	// ============================================================

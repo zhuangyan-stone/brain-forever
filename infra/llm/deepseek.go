@@ -1,4 +1,4 @@
-package llm_raw
+package llm
 
 import (
 	"bytes"

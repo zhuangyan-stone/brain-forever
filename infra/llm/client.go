@@ -1,4 +1,4 @@
-package llm_raw
+package llm
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"BrainOnline/infra/sse"
+	"BrainOnline/infra/httpx/sse"
 )
 
 // ============================================================
@@ -22,10 +22,10 @@ import (
 //
 // Usage:
 //
-//	var client llm_raw.LLMClient
-//	client = llm_raw.NewDeepSeekRaw("", "DEEPSEEK_API_KEY", "deepseek-chat")
-//	resp, err := client.Chat(ctx, []llm_raw.Message{...})
-//	stream := client.ChatStream(ctx, []llm_raw.Message{...})
+//	var client llm.LLMClient
+//	client = llm.NewDeepSeekRaw("", "DEEPSEEK_API_KEY", "deepseek-chat")
+//	resp, err := client.Chat(ctx, []llm.Message{...})
+//	stream := client.ChatStream(ctx, []llm.Message{...})
 // ============================================================
 
 // LLMClient defines the interface for LLM API clients.

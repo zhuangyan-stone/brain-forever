@@ -3,7 +3,7 @@ package agent
 import (
 	"context"
 
-	"BrainOnline/infra/3rdapi/searcher"
+	"BrainOnline/infra/searcher"
 	"BrainOnline/internal/agent/toolcalls"
 	"BrainOnline/internal/store"
 )

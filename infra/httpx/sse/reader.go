@@ -15,7 +15,7 @@ import (
 // into the currentChunk field.
 //
 // Subtypes can embed SSEReader and override Next() to provide
-// typed current values (e.g. ChatCompletionChunkDecoder in llm_raw).
+// typed current values (e.g. ChatCompletionChunkDecoder in llm).
 // ============================================================
 
 // Reader reads SSE data lines from an io.ReadCloser.

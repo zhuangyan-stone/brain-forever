@@ -161,7 +161,7 @@ BrainForever/
 │       ├── users.go                 # 用户管理
 │       └── roles.go                 # 角色管理
 ├── infra/
-│   ├── 3rdapi/
+│   ├── 
 │   │   ├── embedder/                # 文本嵌入服务商
 │   │   ├── llm/                     # AI 聊天客户端
 │   │   └── search/                  # 网页搜索客户端

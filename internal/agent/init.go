@@ -6,9 +6,9 @@ import (
 	"log"
 	"os"
 
-	"BrainOnline/infra/3rdapi/embedder"
-	"BrainOnline/infra/3rdapi/llm_raw"
-	"BrainOnline/infra/3rdapi/searcher"
+	"BrainOnline/infra/embedder"
+	"BrainOnline/infra/llm"
+	"BrainOnline/infra/searcher"
 	"BrainOnline/internal/agent/toolcalls"
 	"BrainOnline/internal/config"
 	"BrainOnline/internal/store"
@@ -68,7 +68,7 @@ func InitVectorStore(cfg config.VectorStoreConfig, e embedder.Embedder) (*store.
 }
 
 // InitLLMClient creates an LLM chat completion client.
-func InitLLMClient(cfg config.ChatLLMConfig) llm_raw.LLMClient {
+func InitLLMClient(cfg config.ChatLLMConfig) llm.LLMClient {
 	envKey := cfg.EnvKey
 	if envKey == "" {
 		envKey = "DEEPSEEK_API_KEY"
@@ -89,8 +89,8 @@ func InitLLMClient(cfg config.ChatLLMConfig) llm_raw.LLMClient {
 		maxIter = 9
 	}
 
-	return llm_raw.NewDeepSeekRawFromConfig(llm_raw.DeepseekRawClientConfig{
-		RawClientConfig: llm_raw.RawClientConfig{
+	return llm.NewDeepSeekRawFromConfig(llm.DeepseekRawClientConfig{
+		RawClientConfig: llm.RawClientConfig{
 			EnvKey:                envKey,
 			BaseURL:               baseURL,
 			Model:                 model,
@@ -160,16 +160,16 @@ func InitWebSearchClient(cfg config.WebSearchConfig) toolcalls.WebSearcher {
 // It also starts the background session GC.
 func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaultLang string) (*ChatHandler, error) {
 	// 1. Initialize Embedder
-	e := InitEmbedder(cfg.Embedder)
+	embeddingClient := InitEmbedder(cfg.Embedder)
 
 	// 2. Initialize VectorStore
-	vectorStore, err := InitVectorStore(cfg.VectorStore, e)
+	vectorStore, err := InitVectorStore(cfg.VectorStore, embeddingClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
 	}
 
 	// 3. Initialize LLM Client
-	llmClient := InitLLMClient(cfg.ChatLLM)
+	chatLLMClient := InitLLMClient(cfg.ChatLLM)
 
 	// 4. Initialize Web Search Client
 	webSearchClient := InitWebSearchClient(cfg.WebSearch)
@@ -178,7 +178,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	chatHandler := NewChatHandler(
 		&traitSearchAdapter{store: vectorStore},
 		webSearchClient,
-		llmClient,
+		chatLLMClient,
 		cookieName,
 		defaultLang,
 	)

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"BrainOnline/i18n"
-	"BrainOnline/infra/3rdapi/llm_raw"
-	"BrainOnline/infra/sse"
+	"BrainOnline/infra/httpx/sse"
+	"BrainOnline/infra/llm"
 	"BrainOnline/internal/agent/toolcalls"
 )
 
@@ -26,7 +26,7 @@ import (
 type ChatHandler struct {
 	traitSearcher toolcalls.TraitSearcher // Personal knowledge base (RAG) search
 	webSearcher   toolcalls.WebSearcher   // Web search interface
-	llmClient     llm_raw.LLMClient       // LLM API client
+	charLLMClient llm.LLMClient           // LLM API client
 
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
@@ -46,14 +46,14 @@ type ChatHandler struct {
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
-func NewChatHandler(traitSearcher toolcalls.TraitSearcher, webSearcher toolcalls.WebSearcher, llmClient llm_raw.LLMClient, cookieName string, defaultLang string) *ChatHandler {
+func NewChatHandler(traitSearcher toolcalls.TraitSearcher, webSearcher toolcalls.WebSearcher, llmClient llm.LLMClient, cookieName string, defaultLang string) *ChatHandler {
 	if defaultLang == "" {
 		defaultLang = "en"
 	}
 	return &ChatHandler{
 		traitSearcher:  traitSearcher,
 		webSearcher:    webSearcher,
-		llmClient:      llmClient,
+		charLLMClient:  llmClient,
 		sessionManager: NewSessionManager(),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
@@ -77,21 +77,21 @@ func appendToMessageHistory(session *session, newMsg *Message) {
 	session.history = append(session.history, *newMsg)
 }
 
-// toRawMessages converts agent.Message slice to llm_raw.Message slice.
-func toRawMessages(msgs []Message) []llm_raw.Message {
-	result := make([]llm_raw.Message, len(msgs))
+// toRawMessages converts agent.Message slice to llm.Message slice.
+func toRawMessages(msgs []Message) []llm.Message {
+	result := make([]llm.Message, len(msgs))
 	for i, m := range msgs {
 		switch m.Role {
 		case "system":
-			result[i] = llm_raw.Message{Role: "system", Content: m.Content}
+			result[i] = llm.Message{Role: "system", Content: m.Content}
 		case "user":
-			result[i] = llm_raw.Message{Role: "user", Content: m.Content}
+			result[i] = llm.Message{Role: "user", Content: m.Content}
 		case "assistant":
-			result[i] = llm_raw.Message{Role: "assistant", Content: m.Content}
+			result[i] = llm.Message{Role: "assistant", Content: m.Content}
 		case "tool":
-			result[i] = llm_raw.Message{Role: "tool", Content: m.Content}
+			result[i] = llm.Message{Role: "tool", Content: m.Content}
 		default:
-			result[i] = llm_raw.Message{Role: "user", Content: m.Content}
+			result[i] = llm.Message{Role: "user", Content: m.Content}
 		}
 	}
 	return result
@@ -156,14 +156,14 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// 5. Create SSE writer
 	sseWriter := sse.NewSSEWriter(w)
 
-	// Convert agent.Message history to llm_raw.Message for the API call
+	// Convert agent.Message history to llm.Message for the API call
 	llmMsgs := toRawMessages(session.history)
 
-	startSystemMsg := llm_raw.Message{
+	startSystemMsg := llm.Message{
 		Role:    "system",
 		Content: makeFixSystemPromptContent(lang),
 	}
-	messages := make([]llm_raw.Message, 0, 1+len(llmMsgs)+1)
+	messages := make([]llm.Message, 0, 1+len(llmMsgs)+1)
 	messages = append(messages, startSystemMsg)
 	messages = append(messages, llmMsgs...)
 
@@ -171,7 +171,7 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	toolDef := webSearchToolDefinitionRaw(lang)
 
 	// 7. Stream with tool call handling (web_search tool is always available)
-	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, []llm_raw.ToolDefinition{toolDef})
+	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, []llm.ToolDefinition{toolDef})
 	if err != nil {
 		sseWriter.WriteEvent(SSEEvent{
 			Type:    "error",
@@ -194,7 +194,7 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	isEstimated := true
 	var promptTokens, completionTokens int = -1, -1
 
-	if usage := h.llmClient.GetUsageInfo(); usage != nil {
+	if usage := h.charLLMClient.GetUsageInfo(); usage != nil {
 		if usage.PromptTokens > 0 || usage.CompletionTokens > 0 {
 			isEstimated = false
 		}
@@ -269,8 +269,8 @@ func makeFixSystemPromptContent(lang string) string {
 }
 
 // webSearchToolDefinitionRaw returns the ToolDefinition for web search
-// using llm_raw types, with translated descriptions.
-func webSearchToolDefinitionRaw(lang string) llm_raw.ToolDefinition {
+// using llm types, with translated descriptions.
+func webSearchToolDefinitionRaw(lang string) llm.ToolDefinition {
 	// Build the schema as a Go map and marshal it to JSON.
 	// Using json.Marshal ensures the description string is properly escaped
 	// (e.g., double quotes, newlines, etc.), so any translation content is safe.
@@ -297,9 +297,9 @@ func webSearchToolDefinitionRaw(lang string) llm_raw.ToolDefinition {
 	}
 
 	strict := true
-	return llm_raw.ToolDefinition{
+	return llm.ToolDefinition{
 		Type: "function",
-		Function: llm_raw.ToolFunctionDef{
+		Function: llm.ToolFunctionDef{
 			Name:        toolcalls.WebSearchToolName,
 			Description: i18n.TL(lang, "web_search_tool_description"),
 			Parameters:  paramsMap,

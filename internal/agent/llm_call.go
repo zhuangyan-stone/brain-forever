@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"BrainOnline/i18n"
-	"BrainOnline/infra/3rdapi/llm_raw"
-	"BrainOnline/infra/sse"
+	"BrainOnline/infra/httpx/sse"
+	"BrainOnline/infra/llm"
 	"BrainOnline/internal/agent/toolcalls"
 )
 
@@ -15,7 +15,7 @@ import (
 // ToolExecutor implementation — ChatHandler executes tools for DeepSeekRaw
 // ============================================================
 
-// ExecuteTool implements llm_raw.ToolExecutor.
+// ExecuteTool implements llm.ToolExecutor.
 // It dispatches tool calls by name to the appropriate handler.
 // The returned messages are translated according to the handler's default language.
 func (h *ChatHandler) ExecuteTool(ctx context.Context, toolName string, toolCallID string, arguments string) (string, error) {
@@ -78,7 +78,7 @@ func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID strin
 // SSEStreamCallback — adapts StreamCallback to SSE writer
 // ============================================================
 
-// sseStreamCallback implements llm_raw.StreamCallback by writing events
+// sseStreamCallback implements llm.StreamCallback by writing events
 // to an SSE writer for the frontend.
 type sseStreamCallback struct {
 	sseWriter *sse.Writer
@@ -142,8 +142,8 @@ func (cb *sseStreamCallback) OnError(ctx context.Context, err error) error {
 func (h *ChatHandler) performLLMStreamingCall(
 	ctx context.Context,
 	sseWriter *sse.Writer,
-	messages []llm_raw.Message,
-	tools []llm_raw.ToolDefinition,
+	messages []llm.Message,
+	tools []llm.ToolDefinition,
 ) (fullReply string, webPages []toolcalls.WebSource, err error) {
 
 	// Create the SSE callback
@@ -154,7 +154,7 @@ func (h *ChatHandler) performLLMStreamingCall(
 	h.webPagesCollector = &pages
 
 	// Delegate to DeepSeekRaw
-	reply, err := h.llmClient.PerformLLMStreamingCall(ctx, callback, messages, tools, h)
+	reply, err := h.charLLMClient.PerformLLMStreamingCall(ctx, callback, messages, tools, h)
 
 	// Clear the collector
 	h.webPagesCollector = nil
