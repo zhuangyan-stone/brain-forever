@@ -7,6 +7,9 @@ other = "\n\n---\nThe following is content related to the user, for your referen
 [trait_inject_entry]
 other = "\n[Knowledge {{.Index}}] Title: {{.Title}}\nContent: {{.Content}}\n"
 
+[time_query_tool_description]
+other = "Call this tool to get the current local date, time, and timezone information. Use this when the user asks about the current date, time, timezone, or other time-sensitive questions."
+
 [web_search_tool_description]
 other = "Call this tool to perform web searches when real-time information is needed (e.g., weather, news, stock prices, exchange rates, latest events, etc.). Generates a list of search keywords based on the user's input."
 

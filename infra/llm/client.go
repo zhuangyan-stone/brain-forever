@@ -336,9 +336,6 @@ type ToolFunctionDef struct {
 // ToolExecutor is the interface for executing tool calls made by the LLM.
 // The caller (e.g., ChatHandler) implements this interface to provide
 // concrete tool implementations (e.g., web_search).
-//
-// ExecuteTool receives a tool call from the LLM and returns the result
-// content that will be sent back to the LLM as a tool result message.
 type ToolExecutor interface {
 	// ExecuteTool executes a tool call and returns the result content.
 	// toolName is the function name (e.g., "web_search").
@@ -363,7 +360,7 @@ type ToolCallsEvent interface {
 
 	// OnToolCallStart is called when the LLM starts calling a tool.
 	// This can be used to notify the frontend (e.g., send a "web_search" SSE event).
-	OnToolCallStart(ctx context.Context, toolName string, arguments string) error
+	OnToolCallStart(ctx context.Context, toolName string, toolCallID string, arguments string) error
 
 	// OnToolCallResult is called after a tool has been executed.
 	// This can be used to notify the frontend about tool execution results.

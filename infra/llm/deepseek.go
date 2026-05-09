@@ -474,7 +474,7 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 			// Execute each tool call via the ToolExecutor
 			for _, tc := range collectedToolCalls {
 				// Notify callback about tool call start
-				if err := callback.OnToolCallStart(ctx, tc.Name, tc.Arguments); err != nil {
+				if err := callback.OnToolCallStart(ctx, tc.Name, tc.ID, tc.Arguments); err != nil {
 					// Log but continue — non-fatal
 				}
 

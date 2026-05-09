@@ -22,12 +22,21 @@ func (h *ChatAgent) ExecuteTool(ctx context.Context, toolName string, toolCallID
 	switch toolName {
 	case toolcalls.WebSearchToolName:
 		return h.executeWebSearchTool(ctx, toolCallID, arguments)
+	case toolcalls.TimeQueryToolName:
+		return h.executeTimeQueryTool(ctx, toolCallID, arguments)
 	default:
-		log.Printf("Unknown tool call: %s (only web_search is supported)", toolName)
+		log.Printf("Unknown tool call: %s (only web_search and get_current_local_time are supported)", toolName)
 		return i18n.TL(h.defaultLang, "unknown_tool", map[string]interface{}{
 			"ToolName": toolName,
 		}), nil
 	}
+}
+
+// executeTimeQueryTool executes the get_current_local_time tool.
+// This tool takes no arguments — it simply returns the current local time
+// with timezone information.
+func (h *ChatAgent) executeTimeQueryTool(ctx context.Context, toolCallID string, arguments string) (string, error) {
+	return toolcalls.ExecuteTimeQuery(), nil
 }
 
 // executeWebSearchTool parses the search query and executes a web search.
@@ -106,10 +115,10 @@ func (cb *sseStreamCallback) OnReasoning(ctx context.Context, delta string) erro
 	})
 }
 
-func (cb *sseStreamCallback) OnToolCallStart(ctx context.Context, toolName string, arguments string) error {
+func (cb *sseStreamCallback) OnToolCallStart(ctx context.Context, toolName string, toolCallID string, arguments string) error {
 	// For web_search, send a "web_search" SSE event to notify the frontend
 	if toolName == toolcalls.WebSearchToolName {
-		query, parseErr := toolcalls.SearchQueriesFromToolCall("/", arguments)
+		query, parseErr := toolcalls.SearchQueriesFromToolCall(toolCallID, arguments)
 		if parseErr == nil && query != "" {
 			return cb.sseWriter.WriteEvent(SSEEvent{
 				Type:    "web_search",

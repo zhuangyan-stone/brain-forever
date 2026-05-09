@@ -169,15 +169,17 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		Role:    "system",
 		Content: makeFixSystemPromptContent(lang),
 	}
-	messages := make([]llm.Message, 0, 1+len(llmMsgs)+1)
+	messages := make([]llm.Message, 0, 1+len(llmMsgs))
 	messages = append(messages, startSystemMsg)
 	messages = append(messages, llmMsgs...)
 
 	// 6. Build tool definition with translated description
-	toolDef := webSearchToolDefinitionRaw(lang)
+	timeQueryToolDef := toolcalls.TimeQueryToolDefinition(lang)
+	webSearchToolDef := toolcalls.WebSearchToolDefinition(lang)
+	toolsDef := []llm.ToolDefinition{timeQueryToolDef, webSearchToolDef}
 
 	// 7. Stream with tool call handling (web_search tool is always available)
-	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, []llm.ToolDefinition{toolDef})
+	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, toolsDef)
 	if err != nil {
 		sseWriter.WriteEvent(SSEEvent{
 			Type:    "error",
@@ -272,44 +274,4 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 // translated according to the given language.
 func makeFixSystemPromptContent(lang string) string {
 	return i18n.TL(lang, "system_prompt")
-}
-
-// webSearchToolDefinitionRaw returns the ToolDefinition for web search
-// using llm types, with translated descriptions.
-func webSearchToolDefinitionRaw(lang string) llm.ToolDefinition {
-	// Build the schema as a Go map and marshal it to JSON.
-	// Using json.Marshal ensures the description string is properly escaped
-	// (e.g., double quotes, newlines, etc.), so any translation content is safe.
-	schema := map[string]any{
-		"type": "object",
-		"properties": map[string]any{
-			"search_queries": map[string]any{
-				"type":        "string",
-				"description": i18n.TL(lang, "web_search_param_description"),
-			},
-		},
-		"required":             []string{"search_queries"},
-		"additionalProperties": false,
-	}
-
-	schemaBytes, err := json.Marshal(schema)
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal web search tool schema: %v", err))
-	}
-
-	var paramsMap map[string]any
-	if err := json.Unmarshal(schemaBytes, &paramsMap); err != nil {
-		panic(fmt.Sprintf("failed to parse web search tool schema: %v", err))
-	}
-
-	strict := true
-	return llm.ToolDefinition{
-		Type: "function",
-		Function: llm.ToolFunctionDef{
-			Name:        toolcalls.WebSearchToolName,
-			Description: i18n.TL(lang, "web_search_tool_description"),
-			Parameters:  paramsMap,
-			Strict:      &strict,
-		},
-	}
 }

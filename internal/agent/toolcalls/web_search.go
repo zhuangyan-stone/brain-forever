@@ -1,6 +1,8 @@
 package toolcalls
 
 import (
+	"BrainOnline/infra/i18n"
+	"BrainOnline/infra/llm"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -64,4 +66,44 @@ func ExecuteWebSearch(ctx context.Context, searcher WebSearcher, query string) (
 		return "", nil, err
 	}
 	return
+}
+
+// WebSearchToolDefinition returns the ToolDefinition for web search
+// using llm types, with translated descriptions.
+func WebSearchToolDefinition(lang string) llm.ToolDefinition {
+	// Build the schema as a Go map and marshal it to JSON.
+	// Using json.Marshal ensures the description string is properly escaped
+	// (e.g., double quotes, newlines, etc.), so any translation content is safe.
+	schema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"search_queries": map[string]any{
+				"type":        "string",
+				"description": i18n.TL(lang, "web_search_param_description"),
+			},
+		},
+		"required":             []string{"search_queries"},
+		"additionalProperties": false,
+	}
+
+	schemaBytes, err := json.Marshal(schema)
+	if err != nil {
+		panic(fmt.Sprintf("failed to marshal web search tool schema: %v", err))
+	}
+
+	var paramsMap map[string]any
+	if err := json.Unmarshal(schemaBytes, &paramsMap); err != nil {
+		panic(fmt.Sprintf("failed to parse web search tool schema: %v", err))
+	}
+
+	strict := true
+	return llm.ToolDefinition{
+		Type: "function",
+		Function: llm.ToolFunctionDef{
+			Name:        WebSearchToolName,
+			Description: i18n.TL(lang, "web_search_tool_description"),
+			Parameters:  paramsMap,
+			Strict:      &strict,
+		},
+	}
 }
