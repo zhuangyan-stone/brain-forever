@@ -36,7 +36,7 @@ Most AI chats are **memoryless** — each session starts from scratch, and the A
 
 - **It gets better over time** - The more conversations you have, the richer your personal profile becomes, and the more the AI's responses feel like they're coming from someone who truly knows you.
 
-- **你会越来越好，它也是** - 随着时光流转，与你对话越多，特质档案就越丰富，AI的回复也越让你觉得，在这个世界，你有个真正了解你的人（你会可惜它并不是真人），它你一起成长，你们一起变好。
+- **你会越来越好，它也是** - 随着时光流转，与你对话越多，特质档案就越丰富，AI的回复也越让你觉得，在这个世界，你有个真正了解你的人（当然，如你所知，它不是人），你们一起成长，一起变好。
 
 - **It's subtle and natural** - You don't need to fill out forms or answer questionnaires. Just talk, and the historian does the rest.
 - **这很微妙，但它是自然的** - 你不需要填写表格或回答问卷。只要说话，起居郞（也可以是起居娘，你愿意的话）会处理剩下的。
