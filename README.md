@@ -1,10 +1,10 @@
 # BrainForever / 脑力永恒
 
-> A loyal historian sits between you and the AI, quietly getting to know you — your personality, habits, interests, profession, thinking style, cultural taste, and even your food preferences — so the AI can serve you better over time.
+A loyal historian sits between you and the AI, quietly getting to know you — your personality, habits, interests, profession, thinking style, cultural taste, and even your food preferences — so the AI can serve you better over time.
 
 What’s it like to have such a recorder? If you know Chinese history, you’ll know that only the emperor was entitled to have an "official diarist" — the Qijü Lang. So how to put it? It’s an honor, and also a tie. Either way, the information is recorded only on your computer. So we suggest you give it a try — and feel what it’s like to be the emperor.
 
-> 一位忠诚的历史学家坐在你和AI之间，默默了解你——你的个性、习惯、兴趣、职业、思维风格、文化品味，甚至你的饮食偏好——以便AI随着时间推移更好地服务你。
+一位忠诚的历史学家坐在你和AI之间，默默了解你——你的个性、习惯、兴趣、职业、思维风格、文化品味，甚至你的饮食偏好——以便AI随着时间推移更好地服务你。
 
 拥有这样一个记录者的感觉是什么？如果你看中国的历史，你可能知道，只有皇帝才配得起有“起居郎”……所以，怎么说呢？是荣耀，也是牵绊。不管怎样，信息只记录在您的电脑上，所以我们建议你试试，这当皇帝的感觉！
 
