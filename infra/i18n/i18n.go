@@ -71,9 +71,9 @@ func init() {
 func findI18nDir() string {
 	// Check common locations
 	candidates := []string{
-		"i18n",
-		"./i18n",
-		"../i18n",
+		"lang",
+		"./lang",
+		"../lang",
 	}
 
 	for _, dir := range candidates {
@@ -83,7 +83,7 @@ func findI18nDir() string {
 	}
 
 	// Fallback: use the current working directory
-	return "i18n"
+	return "lang"
 }
 
 // getLocalizer returns a localizer for the given language tag.

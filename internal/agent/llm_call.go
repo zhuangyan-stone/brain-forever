@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"BrainOnline/i18n"
 	"BrainOnline/infra/httpx/sse"
+	"BrainOnline/infra/i18n"
 	"BrainOnline/infra/llm"
 	"BrainOnline/internal/agent/toolcalls"
 )
