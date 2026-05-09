@@ -36,14 +36,13 @@ Most AI chats are **memoryless** — each session starts from scratch, and the A
 
 - **It gets better over time** - The more conversations you have, the richer your personal profile becomes, and the more the AI's responses feel like they're coming from someone who truly knows you.
 
-- **你会越来越好，它也是** - 随着时光流转，与你对话越多，特质档案就越丰富，AI的回复也越让你觉得，在这个世界，你有个真正了解你的人，当然，它也不是人，它说好和你一起成长，你们一起变好。
-
+- **你会越来越好，它也是** - 随着时光流转，与你对话越多，特质档案就越丰富，AI的回复也越让你觉得，在这个世界，你有个真正了解你的人（你会可惜它并不是真人），它你一起成长，你们一起变好。
 
 - **It's subtle and natural** - You don't need to fill out forms or answer questionnaires. Just talk, and the historian does the rest.
-- **这很微妙，但它是自然的** - 你不需要填写表格或回答问卷。只要说话，起居郞（可以是以起居娘，如果你愿意）会处理剩下的。
+- **这很微妙，但它是自然的** - 你不需要填写表格或回答问卷。只要说话，起居郞（也可以是起居娘，你愿意的话）会处理剩下的。
 
-- **Your data stays yours** - Everything is stored locally — no cloud, no surveillance, no third-party profiling.Except for that day — when we must hand ourselves back to God, while wanting to leave a part of ourselves to the world. When that day comes, you may entrust your selected memories to www.brain-online.com,  giving your brain eternal life — keeping it online forever.
-- **你的数据依然属于你自己** - 所有数据都存储在本地——没有云端，没有监控，没有第三方画像。除了那一天到来——我们要自己交还给上帝，同时想把自己留给这个世界——这时，你可以把经过你筛选的一些记忆交给 www.brain-online.com，让你的大脑永生，让你的大脑永远在线。
+- **Your data stays yours** - Everything is stored locally — no cloud, no surveillance, no third-party profiling.Except for that day — when we must hand ourselves back to God, while wanting to leave a part of ourselves to the world. When that day comes, you may entrust your selected memories to www.[brain-online.com](www.brain-online.com),  giving your brain eternal life — keeping it online forever.
+- **你的数据依然属于你自己** - 所有数据都存储在本地——没有云端，没有监控，没有第三方画像。除了那一天到来——我们要自己交还给上帝，同时想把自己留给这个世界——这时，你可以把经过你筛选的一些记忆交给 [brain-online.com](www.brain-online.com)，让你的大脑永生，让你的大脑永远在线。
 
 ## Features / 产品特点
 
