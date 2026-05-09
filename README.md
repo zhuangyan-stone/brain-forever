@@ -44,84 +44,7 @@ Most AI chats are **memoryless** — each session starts from scratch, and the A
 - **Your data stays yours** - Everything is stored locally — no cloud, no surveillance, no third-party profiling.Except for that day — when we must hand ourselves back to God, while wanting to leave a part of ourselves to the world. When that day comes, you may entrust your selected memories to www.[brain-online.com](www.brain-online.com),  giving your brain eternal life — keeping it online forever.
 - **你的数据依然属于你自己** - 所有数据都存储在本地——没有云端，没有监控，没有第三方画像。除了那一天到来——我们要自己交还给上帝，同时想把自己留给这个世界——这时，你可以把经过你筛选的一些记忆交给 [brain-online.com](www.brain-online.com)，让你的大脑永生，让你的大脑永远在线。
 
-## Features / 产品特点
-
-- **Personalized AI Conversations** - The AI adapts to your unique personality, communication style, and preferences as it gets to know you through natural conversation.
-- **Streaming Responses** - Real-time token-by-token streaming via Server-Sent Events (SSE) for a smooth, natural chat experience.
-
-- **Web Search (Optional)** - When you need fresh information, BrainForever can search the web to supplement its knowledge.
-- **Session Management** - Your conversations are organized by session, with automatic cleanup of idle sessions.
-- **Dark/Light Theme** - Switch between themes for comfortable reading day or night.
-- **Message Management** - Delete individual messages or entire conversation turns as needed.
-
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (HTML/CSS/JS)                    │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │              Chat Interface (SSE stream)               │  │
-│  └──────────────────────┬────────────────────────────────┘  │
-│                         │ POST /api/chat                     │
-│                         │ ← SSE (text/event-stream)          │
-└─────────────────────────┼───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│                   BrainForever Server (Go)                    │
-│                                                               │
-│  ┌───────────────────────────────────────────────────────┐   │
-│  │  ChatHandler                                           │   │
-│  │  ① Receives your message                               │   │
-│  │  ② The historian reviews your profile & conversation   │   │
-│  │  ③ (Optional) Searches the web for fresh info          │   │
-│  │  ④ Crafts a personalized prompt → calls the AI         │   │
-│  │  ⑤ Streams the AI's response back to you               │   │
-│  └───────────────────────────────────────────────────────┘   │
-│                                                               │
-│  ┌───────────────────────────────────────────────────────┐   │
-│  │  Your Personal Profile (local storage)                 │   │
-│  │  - Conversation history                                │   │
-│  │  - Personal trait library (evolving over time)         │   │
-│  └───────────────────────────────────────────────────────┘   │
-│                                                               │
-│  ┌───────────────────────────────────────────────────────┐   │
-│  │  AI Client (DeepSeek / OpenAI-compatible)              │   │
-│  │  - Streaming chat completions                          │   │
-│  │  - Token usage tracking                                │   │
-│  └───────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Prerequisites
-
-- Go 1.25.1 or later
-- CGO enabled
-- GCC (e.g., MinGW on Windows, or gcc on Linux/macOS)
-- SQLite3 development headers (see platform-specific notes below)
-- API keys for the services you intend to use
-
-## Quick Start
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/yourusername/BrainForever.git
-cd BrainForever
-```
-
-### 2. Set up environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `DASHSCOPE_API_KEY` | Yes (default) | API key for text embedding |
-| `ZHIPUAI_API_KEY` | Alternative | Alternative embedding provider (set `EMBEDDER_PROVIDER=zhipu`) |
-| `DEEPSEEK_API_KEY` | Yes | API key for the AI chat model |
-| `BOCHA_API_KEY` | No | API key for optional web search |
-| `PROXY_ADDR` | No | Server address (default: `:8080`) |
-| `EMBEDDER_PROVIDER` | No | Embedding provider: `ali` (default) or `zhipu` |
-
-### 3. Platform-specific setup
+## Platform-specific setup
 
 **Windows:**
 - Install [MinGW-w64](https://www.mingw-w64.org/) (e.g., via MSYS2) and ensure `gcc` is in your `PATH`.
@@ -139,7 +62,7 @@ sudo apt install -y gcc libsqlite3-dev
 xcode-select --install
 ```
 
-### 4. Build and run
+## Build and run
 
 **Windows:**
 ```batch
@@ -153,47 +76,9 @@ brain-forever.exe
 ./brain-forever
 ```
 
-### 4. Open the frontend
+## Open the frontend
 
 Navigate to [http://localhost:8080](http://localhost:8080) in your browser.
-
-## API Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/chat` | Send a message and receive a streaming AI response |
-| `GET` | `/api/session` | Restore your current conversation history |
-| `POST` | `/api/history` | Delete a message and its associated AI reply |
-| `GET` | `/api/health` | Health check |
-
-## Project Structure
-
-```
-BrainForever/
-├── main.go                          # Entry point, HTTP server setup
-├── b.bat                            # Windows build script
-├── go.mod / go.sum                  # Go module dependencies
-├── frontend/
-│   ├── index.html                   # Chat UI
-│   └── static/                      # Frontend assets (CSS, JS, images)
-├── internal/
-│   ├── agent/
-│   │   ├── chat.go                  # Chat handler (core logic)
-│   │   └── typedef.go               # Type definitions & session management
-│   └── store/
-│       ├── vector.go                # Knowledge store
-│       ├── users.go                 # User management
-│       └── roles.go                 # Role management
-├── infra/
-│   ├── 3rdapi/
-│   │   ├── embedder/                # Text embedding providers
-│   │   ├── llm/                     # AI chat client
-│   │   └── search/                  # Web search client
-│   ├── httpx/                       # HTTP client with DNS fallback
-│   └── sse/                         # SSE encoder/decoder
-└── toolset/
-    └── rune_tl.go                   # Text processing utilities
-```
 
 ## License
 
