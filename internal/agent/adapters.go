@@ -1,34 +1,34 @@
-package main
+package agent
 
 import (
 	"context"
 
 	"BrainOnline/infra/3rdapi/searcher"
-	"BrainOnline/internal/agent"
+	"BrainOnline/internal/agent/toolcalls"
 	"BrainOnline/internal/store"
 )
 
 // ============================================================
-// Adapter: converts store.VectorStore's SearchResult to agent.TraitSource
+// Adapter: converts store.VectorStore's SearchResult to toolcalls.TraitSource
 // ============================================================
 
-// traitSearchAdapter adapts VectorStore to implement the agent.PersonalTraitSearcher interface
+// traitSearchAdapter adapts VectorStore to implement the toolcalls.TraitSearcher interface
 type traitSearchAdapter struct {
 	store *store.VectorStore
 }
 
-func (ps *traitSearchAdapter) SearchByText(ctx context.Context, queryText string, topK int) ([]agent.TraitSource, error) {
+func (ps *traitSearchAdapter) SearchByText(ctx context.Context, queryText string, topK int) ([]toolcalls.TraitSource, error) {
 	results, err := ps.store.SearchByText(ctx, queryText, topK)
 	if err != nil {
 		return nil, err
 	}
 
-	sources := make([]agent.TraitSource, 0, len(results))
+	sources := make([]toolcalls.TraitSource, 0, len(results))
 	for _, r := range results {
 		if r.Score <= 0.6 {
 			continue
 		}
-		sources = append(sources, agent.TraitSource{
+		sources = append(sources, toolcalls.TraitSource{
 			Title:   r.Document.Title,
 			Content: r.Document.Content,
 			Score:   r.Score,
@@ -38,15 +38,15 @@ func (ps *traitSearchAdapter) SearchByText(ctx context.Context, queryText string
 }
 
 // ============================================================
-// Adapter: converts search.WebSearcher to agent.WebSearcher
+// Adapter: converts searcher.WebSearcher to toolcalls.WebSearcher
 // ============================================================
 
-// webSearchAdapter adapts searcher.WebSearcher to implement the agent.WebSearcher interface
+// webSearchAdapter adapts searcher.WebSearcher to implement the toolcalls.WebSearcher interface
 type webSearchAdapter struct {
 	client searcher.WebSearcher
 }
 
-func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, freshness string, count int) (string, []agent.WebSource, error) {
+func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, freshness string, count int) (string, []toolcalls.WebSource, error) {
 	req := searcher.WebSearchRequest{
 		Query:              []string{query},
 		Freshness:          freshness,
@@ -60,7 +60,7 @@ func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, fresh
 	}
 
 	// Extract web page results for frontend display
-	var webPages []agent.WebSource
+	var webPages []toolcalls.WebSource
 	if resp != nil {
 		for _, p := range resp.Pages {
 			content := p.Summary
@@ -74,7 +74,7 @@ func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, fresh
 				if p.PublishDate != nil && !p.PublishDate.IsZero() {
 					publishDateStr = p.PublishDate.Format("2006-01-02")
 				}
-				webPages = append(webPages, agent.WebSource{
+				webPages = append(webPages, toolcalls.WebSource{
 					Title:       p.Title,
 					Content:     content,
 					URL:         p.URL,

@@ -1,0 +1,26 @@
+[system_prompt]
+other = "你是一个AI助手，在与用户对话的过程中，你会忠实地记录用户的各项特征，加深对用户的了解，逐步构建用户画像，以便更好地提供服务。在必要时，你会调用相关工具来获取所需信息，以更好地完成回答。目前可用的工具有两个：用户特征和网络信息。"
+
+[trait_inject_header]
+other = "\n\n---\n以下是与你相关的用户知识库内容，供你回答时参考。如果与问题无关，可以忽略：\n"
+
+[trait_inject_entry]
+other = "\n[知识 {{.Index}}] 标题：{{.Title}}\n内容：{{.Content}}\n"
+
+[web_search_tool_description]
+other = "当需要实时信息（如天气、新闻、股票价格、汇率、最新事件等）时，调用此工具进行网络搜索。根据用户的输入生成搜索关键词列表。"
+
+[web_search_param_description]
+other = "搜索关键词。对于必须完整匹配的精确短语，使用双引号括起来，例如：\"Hello world\"。多个概念之间用空格组合。示例：C++ \"Hello world\" 历史"
+
+[search_no_results]
+other = "搜索未返回任何结果"
+
+[search_parse_error]
+other = "解析搜索查询失败：{{.Error}}"
+
+[unknown_tool]
+other = "未知工具 '{{.ToolName}}' — 没有可用的处理器"
+
+[tool_execution_failed]
+other = "工具执行失败：{{.Error}}"

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"BrainOnline/internal/agent/toolcalls"
 )
 
 // ============================================================
@@ -23,7 +25,7 @@ type Message struct {
 	// Sources holds web search result references associated with this message.
 	// Populated for assistant messages that involved web search.
 	// Used by the frontend to restore the sources-panel after page refresh.
-	Sources []WebSource `json:"sources,omitempty"`
+	Sources []toolcalls.WebSource `json:"sources,omitempty"`
 
 	CreatedAt string `json:"created_at"` // UTC time string, e.g. "2026-05-02T16:30:00Z"
 }
@@ -40,33 +42,13 @@ type ChatRequest struct {
 
 // SSEEvent is the SSE event sent to the frontend
 type SSEEvent struct {
-	Type       string        `json:"type"`                  // text | sources | done | error
-	Content    string        `json:"content,omitempty"`     // Used for text type
-	Sources    []TraitSource `json:"sources,omitempty"`     // Used for sources type (RAG sources)
-	WebSources []WebSource   `json:"web_sources,omitempty"` // Used for sources type (web search sources)
-	Usage      *Usage        `json:"usage,omitempty"`       // Used for done type
-	Message    string        `json:"message,omitempty"`     // Used for error type
-	MsgID      int64         `json:"msg_id,omitempty"`      // Used for done type — ID of the user message
-}
-
-// TraitSource represents a personal knowledge source (RAG retrieval).
-// Used for knowledge base references with similarity score.
-type TraitSource struct {
-	Title   string  `json:"title"`
-	Content string  `json:"content,omitempty"`
-	Score   float64 `json:"score"`
-}
-
-// WebSource represents a web search result source.
-// Used for online search results with page URL.
-type WebSource struct {
-	Title       string  `json:"title"`
-	Content     string  `json:"content,omitempty"`
-	URL         string  `json:"url,omitempty"`          // Web page URL
-	SiteName    string  `json:"site_name,omitempty"`    // Website name (e.g. "知乎", "CSDN")
-	SiteIcon    string  `json:"site_icon,omitempty"`    // Website favicon URL
-	PublishDate string  `json:"publish_date,omitempty"` // Page publish date, formatted string e.g. "2006-01-02"
-	Score       float64 `json:"score"`
+	Type       string                  `json:"type"`                  // text | sources | done | error
+	Content    string                  `json:"content,omitempty"`     // Used for text type
+	Sources    []toolcalls.TraitSource `json:"sources,omitempty"`     // Used for sources type (RAG sources)
+	WebSources []toolcalls.WebSource   `json:"web_sources,omitempty"` // Used for sources type (web search sources)
+	Usage      *Usage                  `json:"usage,omitempty"`       // Used for done type
+	Message    string                  `json:"message,omitempty"`     // Used for error type
+	MsgID      int64                   `json:"msg_id,omitempty"`      // Used for done type — ID of the user message
 }
 
 // Usage represents token usage

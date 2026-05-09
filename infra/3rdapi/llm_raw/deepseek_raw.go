@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"BrainOnline/i18n"
 	"BrainOnline/infra/httpx"
 )
 
@@ -480,7 +481,9 @@ func (c *DeepSeekRaw) PerformLLMStreamingCall(
 				// Execute the tool via the executor
 				resultContent, execErr := executor.ExecuteTool(ctx, tc.Name, tc.ID, tc.Arguments)
 				if execErr != nil {
-					resultContent = fmt.Sprintf("Tool execution failed: %v", execErr)
+					resultContent = i18n.T("tool_execution_failed", map[string]interface{}{
+						"Error": execErr,
+					})
 				}
 
 				// Notify callback about tool call result

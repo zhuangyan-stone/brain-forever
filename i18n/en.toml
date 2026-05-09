@@ -1,0 +1,26 @@
+[system_prompt]
+other = "You are an AI assistant, and also one who, during conversations with users, faithfully records various user characteristics,\ndeepens understanding of the user, and gradually builds a user profile to better provide service.\nWhen necessary, you will call relevant tools to obtain the information needed to better complete\nyour responses. Currently, there are two tools available: user traits and web information."
+
+[trait_inject_header]
+other = "\n\n---\nThe following is content related to the user, for your reference when answering. If it is irrelevant to the question, it can be ignored:\n"
+
+[trait_inject_entry]
+other = "\n[Knowledge {{.Index}}] Title: {{.Title}}\nContent: {{.Content}}\n"
+
+[web_search_tool_description]
+other = "Call this tool to perform web searches when real-time information is needed (e.g., weather, news, stock prices, exchange rates, latest events, etc.). Generates a list of search keywords based on the user's input."
+
+[web_search_param_description]
+other = "Search query string. Use double quotes for exact phrases that must not be split, e.g., '\"Hello world\"'. For multiple concepts, combine with spaces. Example: 'C++ \"Hello world\" history'"
+
+[search_no_results]
+other = "Search returned no results"
+
+[search_parse_error]
+other = "Failed to parse search query: {{.Error}}"
+
+[unknown_tool]
+other = "Unknown tool '{{.ToolName}}' — no handler available"
+
+[tool_execution_failed]
+other = "Tool execution failed: {{.Error}}"

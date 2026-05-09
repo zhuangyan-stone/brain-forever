@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 
+	"BrainOnline/i18n"
 	"BrainOnline/infra/3rdapi/llm_raw"
 	"BrainOnline/infra/sse"
+	"BrainOnline/internal/agent/toolcalls"
 )
 
 // ============================================================
@@ -15,24 +17,30 @@ import (
 
 // ExecuteTool implements llm_raw.ToolExecutor.
 // It dispatches tool calls by name to the appropriate handler.
+// The returned messages are translated according to the handler's default language.
 func (h *ChatHandler) ExecuteTool(ctx context.Context, toolName string, toolCallID string, arguments string) (string, error) {
 	switch toolName {
-	case webSearchToolName:
+	case toolcalls.WebSearchToolName:
 		return h.executeWebSearchTool(ctx, toolCallID, arguments)
 	default:
 		log.Printf("Unknown tool call: %s (only web_search is supported)", toolName)
-		return fmt.Sprintf("Unknown tool '%s' — no handler available", toolName), nil
+		return i18n.TL(h.defaultLang, "unknown_tool", map[string]interface{}{
+			"ToolName": toolName,
+		}), nil
 	}
 }
 
 // executeWebSearchTool parses the search query and executes a web search.
+// The returned messages are translated according to the handler's default language.
 func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID string, arguments string) (string, error) {
-	query, parseErr := searchQueriesFromToolCall(toolCallID, arguments)
+	query, parseErr := toolcalls.SearchQueriesFromToolCall(toolCallID, arguments)
 	if parseErr != nil {
-		return fmt.Sprintf("Failed to parse search query: %v", parseErr), nil
+		return i18n.TL(h.defaultLang, "search_parse_error", map[string]interface{}{
+			"Error": parseErr,
+		}), nil
 	}
 
-	searchResultText, webPages, searchErr := h.executeWebSearch(ctx, query)
+	searchResultText, webPages, searchErr := toolcalls.ExecuteWebSearch(ctx, h.webSearcher, query)
 	if searchErr != nil {
 		log.Printf("Web search failed: %v", searchErr)
 	}
@@ -61,7 +69,7 @@ func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID strin
 	}
 
 	if searchResultText == "" {
-		return "Search returned no results", nil
+		return i18n.TL(h.defaultLang, "search_no_results"), nil
 	}
 	return searchResultText, nil
 }
@@ -74,10 +82,10 @@ func (h *ChatHandler) executeWebSearchTool(ctx context.Context, toolCallID strin
 // to an SSE writer for the frontend.
 type sseStreamCallback struct {
 	sseWriter *sse.Writer
-	webPages  *[]WebSource
+	webPages  *[]toolcalls.WebSource
 }
 
-func newSSEStreamCallback(sseWriter *sse.Writer, webPages *[]WebSource) *sseStreamCallback {
+func newSSEStreamCallback(sseWriter *sse.Writer, webPages *[]toolcalls.WebSource) *sseStreamCallback {
 	return &sseStreamCallback{
 		sseWriter: sseWriter,
 		webPages:  webPages,
@@ -100,8 +108,8 @@ func (cb *sseStreamCallback) OnReasoning(ctx context.Context, delta string) erro
 
 func (cb *sseStreamCallback) OnToolCallStart(ctx context.Context, toolName string, arguments string) error {
 	// For web_search, send a "web_search" SSE event to notify the frontend
-	if toolName == webSearchToolName {
-		query, parseErr := searchQueriesFromToolCall("/", arguments)
+	if toolName == toolcalls.WebSearchToolName {
+		query, parseErr := toolcalls.SearchQueriesFromToolCall("/", arguments)
 		if parseErr == nil && query != "" {
 			return cb.sseWriter.WriteEvent(SSEEvent{
 				Type:    "web_search",
@@ -136,10 +144,10 @@ func (h *ChatHandler) performLLMStreamingCall(
 	sseWriter *sse.Writer,
 	messages []llm_raw.Message,
 	tools []llm_raw.ToolDefinition,
-) (fullReply string, webPages []WebSource, err error) {
+) (fullReply string, webPages []toolcalls.WebSource, err error) {
 
 	// Create the SSE callback
-	var pages []WebSource
+	var pages []toolcalls.WebSource
 	callback := newSSEStreamCallback(sseWriter, &pages)
 
 	// Set the web pages collector so executeWebSearchTool can store results

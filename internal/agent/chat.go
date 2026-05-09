@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"BrainOnline/i18n"
 	"BrainOnline/infra/3rdapi/llm_raw"
 	"BrainOnline/infra/sse"
+	"BrainOnline/internal/agent/toolcalls"
 )
 
 // ============================================================
@@ -22,29 +24,39 @@ import (
 // The frontend only needs to send the user's latest message each time,
 // and ChatHandler merges history with new messages before sending to the actual LLM.
 type ChatHandler struct {
-	traitSearcher TraitSearcher     // Personal knowledge base (RAG) search
-	webSearcher   WebSearcher       // Web search interface
-	llmClient     llm_raw.LLMClient // LLM API client
+	traitSearcher toolcalls.TraitSearcher // Personal knowledge base (RAG) search
+	webSearcher   toolcalls.WebSearcher   // Web search interface
+	llmClient     llm_raw.LLMClient       // LLM API client
 
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
 
+	// defaultLang is the default language for i18n (e.g., "zh-CN", "en").
+	// Used for translating system prompts, tool descriptions, and other
+	// content sent to the AI API and frontend.
+	defaultLang string
+
 	// webPagesCollector collects web search page results during a streaming LLM call.
 	// It is set before performLLMStreamingCall and read after the call returns to send
 	// web sources to the frontend.
-	webPagesCollector *[]WebSource
+	webPagesCollector *[]toolcalls.WebSource
 }
 
 // NewChatHandler creates a ChatHandler
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
-func NewChatHandler(traitSearcher TraitSearcher, webSearcher WebSearcher, llmClient llm_raw.LLMClient, cookieName string) *ChatHandler {
+// defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
+func NewChatHandler(traitSearcher toolcalls.TraitSearcher, webSearcher toolcalls.WebSearcher, llmClient llm_raw.LLMClient, cookieName string, defaultLang string) *ChatHandler {
+	if defaultLang == "" {
+		defaultLang = "en"
+	}
 	return &ChatHandler{
 		traitSearcher:  traitSearcher,
 		webSearcher:    webSearcher,
 		llmClient:      llmClient,
 		sessionManager: NewSessionManager(),
 		cookieName:     cookieName,
+		defaultLang:    defaultLang,
 	}
 }
 
@@ -134,7 +146,14 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		panic("new message's ID is zero still after append to history")
 	}
 
-	// 4. Create SSE writer
+	// 4. Determine the language for this request.
+	// Priority: request header Accept-Language > handler defaultLang > "en"
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+	if lang == "" {
+		lang = h.defaultLang
+	}
+
+	// 5. Create SSE writer
 	sseWriter := sse.NewSSEWriter(w)
 
 	// Convert agent.Message history to llm_raw.Message for the API call
@@ -142,23 +161,16 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 
 	startSystemMsg := llm_raw.Message{
 		Role:    "system",
-		Content: makeFixSystemPromptContent(),
+		Content: makeFixSystemPromptContent(lang),
 	}
 	messages := make([]llm_raw.Message, 0, 1+len(llmMsgs)+1)
 	messages = append(messages, startSystemMsg)
 	messages = append(messages, llmMsgs...)
 
-	lastSysteMsg := llm_raw.Message{
-		Role:    "system",
-		Content: makeEnvInfoSystemPromptContent(),
-	}
+	// 6. Build tool definition with translated description
+	toolDef := webSearchToolDefinitionRaw(lang)
 
-	messages = append(messages, lastSysteMsg)
-
-	// 5. Build tool definition
-	toolDef := webSearchToolDefinitionRaw()
-
-	// 6. Stream with tool call handling (web_search tool is always available)
+	// 7. Stream with tool call handling (web_search tool is always available)
 	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, []llm_raw.ToolDefinition{toolDef})
 	if err != nil {
 		sseWriter.WriteEvent(SSEEvent{
@@ -250,40 +262,37 @@ func (h *ChatHandler) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 // Helper functions
 // ============================================================
 
-// makeFixSystemPromptContent returns the system prompt content string.
-func makeFixSystemPromptContent() string {
-	const s = `You are an AI assistant, and also one who, during conversations with users, faithfully records various user characteristics,
-deepens understanding of the user, and gradually builds a user profile to better provide service.
-When necessary, you will call relevant tools to obtain the information needed to better complete
-your responses. Currently, there are two tools available: user traits and web information.`
-	return s
-}
-
-func makeEnvInfoSystemPromptContent() string {
-	now := time.Now().Format(time.DateTime)
-	return fmt.Sprintf(`
-	
-Some real-time information for your reference in responses:
-	Current time: %s\n`, now)
+// makeFixSystemPromptContent returns the system prompt content string,
+// translated according to the given language.
+func makeFixSystemPromptContent(lang string) string {
+	return i18n.TL(lang, "system_prompt")
 }
 
 // webSearchToolDefinitionRaw returns the ToolDefinition for web search
-// using llm_raw types.
-func webSearchToolDefinitionRaw() llm_raw.ToolDefinition {
-	const schema = `{
+// using llm_raw types, with translated descriptions.
+func webSearchToolDefinitionRaw(lang string) llm_raw.ToolDefinition {
+	// Build the schema as a Go map and marshal it to JSON.
+	// Using json.Marshal ensures the description string is properly escaped
+	// (e.g., double quotes, newlines, etc.), so any translation content is safe.
+	schema := map[string]any{
 		"type": "object",
-		"properties": {
-			"search_queries": {
-				"type": "string",
-				"description": "Search keywords"
-			}
+		"properties": map[string]any{
+			"search_queries": map[string]any{
+				"type":        "string",
+				"description": i18n.TL(lang, "web_search_param_description"),
+			},
 		},
-		"required": ["search_queries"],
-		"additionalProperties": false
-	}`
+		"required":             []string{"search_queries"},
+		"additionalProperties": false,
+	}
+
+	schemaBytes, err := json.Marshal(schema)
+	if err != nil {
+		panic(fmt.Sprintf("failed to marshal web search tool schema: %v", err))
+	}
 
 	var paramsMap map[string]any
-	if err := json.Unmarshal([]byte(schema), &paramsMap); err != nil {
+	if err := json.Unmarshal(schemaBytes, &paramsMap); err != nil {
 		panic(fmt.Sprintf("failed to parse web search tool schema: %v", err))
 	}
 
@@ -291,8 +300,8 @@ func webSearchToolDefinitionRaw() llm_raw.ToolDefinition {
 	return llm_raw.ToolDefinition{
 		Type: "function",
 		Function: llm_raw.ToolFunctionDef{
-			Name:        webSearchToolName,
-			Description: "Call this tool to perform web searches when real-time information is needed (e.g., weather, news, stock prices, exchange rates, latest events, etc.). Generates a list of search keywords based on the user's input.",
+			Name:        toolcalls.WebSearchToolName,
+			Description: i18n.TL(lang, "web_search_tool_description"),
 			Parameters:  paramsMap,
 			Strict:      &strict,
 		},

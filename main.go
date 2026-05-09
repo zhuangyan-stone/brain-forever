@@ -11,11 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"BrainOnline/infra/3rdapi/embedder"
-	"BrainOnline/infra/3rdapi/llm_raw"
-	"BrainOnline/infra/3rdapi/searcher"
-
+	"BrainOnline/i18n"
+	"BrainOnline/infra/httpx"
 	"BrainOnline/internal/agent"
+	"BrainOnline/internal/config"
 	"BrainOnline/internal/store"
 )
 
@@ -24,9 +23,28 @@ import (
 // ============================================================
 
 func main() {
-	dbPath := "./brain.db"
-	if len(os.Args) > 1 {
-		dbPath = os.Args[1]
+	// ============================================================
+	// Build configuration from environment variables
+	// ============================================================
+
+	cfg := config.Config{
+		Embedder: config.EmbedderConfig{
+			Provider:  os.Getenv("EMBEDDER_PROVIDER"),
+			Dimension: 2048,
+		},
+		VectorStore: config.VectorStoreConfig{
+			DBPath: "./brain.db",
+		},
+		ChatLLM: config.ChatLLMConfig{
+			EnvKey:                "DEEPSEEK_API_KEY",
+			BaseURL:               "https://api.deepseek.com/beta",
+			Model:                 "deepseek-v4-flash",
+			MaxToolCallIterations: 9,
+			ThinkingEnabled:       true,
+		},
+		WebSearch: config.WebSearchConfig{
+			Provider: os.Getenv("SEARCHER_PROVIDER"),
+		},
 	}
 
 	// ============================================================
@@ -39,92 +57,32 @@ func main() {
 	defer userStore.Close()
 	fmt.Printf("✓ User store initialized (users.db)\n")
 
-	// Select Embedder implementation via EMBEDDER_PROVIDER env var:
-	//   "ali"   — Alibaba Tongyi text-embedding-v4 (2048 dims)
-	//   "zhipu" — Zhipu GLM embedding-3 (2048 dims)
-	embedderProvider := os.Getenv("EMBEDDER_PROVIDER")
-	if embedderProvider == "" {
-		embedderProvider = "ali"
+	// ============================================================
+	// Determine default language for i18n from environment variable
+	// ============================================================
+	defaultLang := os.Getenv("DEFAULT_LANG")
+	if defaultLang == "" {
+		defaultLang = "zh-CN" // Default to Chinese for Chinese users
 	}
+	i18n.SetDefaultLanguage(defaultLang)
 
-	var e embedder.Embedder
-	switch embedderProvider {
-	case "zhipu":
-		// Zhipu embedding-3 fixed at 2048 dimensions
-		e = embedder.NewZhipuEmbedder("", "ZHIPUAI_API_KEY", 2048)
-		fmt.Printf("✓ Using Zhipu Embedder: %s (%d dims)\n", e.Model(), e.Dimension())
-	default:
-		// Alibaba text-embedding-v4 supports specifying dimension via API parameter (max 2048)
-		// Set to 2048 to match Zhipu embedding-3, ensuring uniform dimensions in the same database
-		e = embedder.NewDashScopeEmbedder("", "DASHSCOPE_API_KEY", 2048)
-		fmt.Printf("✓ Using DashScope Embedder: %s (%d dims)\n", e.Model(), e.Dimension())
-	}
-
-	// Dimension obtained from Embedder to ensure consistency with vector index
-	store, err := store.NewVectorStore(dbPath, e)
-	if err != nil {
-		log.Fatalf("Failed to initialize vector store: %v", err)
-	}
-	defer store.Close()
-
-	// Initialize LLM AI client (raw HTTP client with tool call support)
-	llmClient := llm_raw.NewDeepSeekRawFromConfig(llm_raw.DeepseekRawClientConfig{
-		RawClientConfig: llm_raw.RawClientConfig{
-			EnvKey:                "DEEPSEEK_API_KEY",
-			BaseURL:               "https://api.deepseek.com/beta",
-			Model:                 "deepseek-v4-flash",
-			MaxToolCallIterations: 9,
-		},
-		ThinkingEnabled: true,
-	})
-
-	// Initialize Web Search client (optional — only if BOCHA_API_KEY is set)
-	var webSearchClient agent.WebSearcher
-
-	webSearchProvider := os.Getenv("SEARCHER_PROVIDER")
-	switch webSearchProvider {
-	case "zhipu":
-		apiKey := os.Getenv("ZHIPUAI_API_KEY")
-		if apiKey != "" {
-			webSearchClient = &webSearchAdapter{
-				client: searcher.NewZhiPuClient(searcher.WebSearchClientConfig{
-					APIKey: apiKey,
-				}),
-			}
-			fmt.Println("✓ Web search enabled (bigmodel.cn)")
-		} else {
-			log.Printf("[WARN] ZHIPUAI_API_KEY is not set or empty — web search will be disabled. " +
-				"Set the ZHIPUAI_API_KEY environment variable to enable web search functionality.")
-		}
-	case "bocha":
-		apiKey := os.Getenv("BOCHA_API_KEY")
-		if apiKey != "" {
-			webSearchClient = &webSearchAdapter{
-				client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
-					APIKey: apiKey,
-				}),
-			}
-			fmt.Println("✓ Web search enabled (bocha.cn)")
-		} else {
-			log.Printf("[WARN] BOCHA_API_KEY is not set or empty — web search will be disabled. " +
-				"Set the BOCHA_API_KEY environment variable to enable web search functionality.")
-		}
-	}
-
+	// ============================================================
 	// Create a signal-aware context: auto-cancels on SIGINT/SIGTERM
-	// Declared early so StartGC can use it; the graceful shutdown goroutine
-	// also uses this same ctx later.
+	// ============================================================
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Create Chat Handler (using adapters), pass cookie name for session management
-	chatHandler := agent.NewChatHandler(&traitSearchAdapter{store: store}, webSearchClient, llmClient, "brain_go_session")
+	// ============================================================
+	// Initialize agent (Embedder, VectorStore, LLMClient, WebSearchClient)
+	// ============================================================
+	chatHandler, err := agent.InitAgent(ctx, cfg, "brain_go_session", defaultLang)
+	if err != nil {
+		log.Fatalf("failed to initialize agent: %v", err)
+	}
 
-	// Start background session GC — cleans up idle sessions every hour
-	// Uses the same context as graceful shutdown, so GC stops when the server exits
-	chatHandler.StartGC(ctx)
-
+	// ============================================================
 	// Setup routes
+	// ============================================================
 	mux := http.NewServeMux()
 
 	// API routes
@@ -153,7 +111,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    addr,
-		Handler: corsMiddleware(mux),
+		Handler: httpx.UseCORSMiddleware(mux),
 	}
 
 	// ============================================================
