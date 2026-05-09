@@ -41,7 +41,7 @@ Most AI chats are **memoryless** — each session starts from scratch, and the A
 - **It's subtle and natural** - You don't need to fill out forms or answer questionnaires. Just talk, and the historian does the rest.
 - **这很微妙，但它是自然的** - 你不需要填写表格或回答问卷。只要说话，起居郞（也可以是起居娘，你愿意的话）会处理剩下的。
 
-- **Your data stays yours** - Everything is stored locally — no cloud, no surveillance, no third-party profiling.Except for that day — when we must hand ourselves back to God, while wanting to leave a part of ourselves to the world. When that day comes, you may entrust your selected memories to[brain-online.com](www.brain-online.com),  giving your brain eternal life — keeping it online forever.
+- **Your data stays yours** - Everything is stored locally — no cloud, no surveillance, no third-party profiling.Except for that day — when we must hand ourselves back to God, while wanting to leave a part of ourselves to the world. When that day comes, you may entrust your selected memories to [brain-online.com](www.brain-online.com),  giving your brain eternal life — keeping it online forever.
 - **你的数据依然属于你自己** - 所有数据都存储在本地——没有云端，没有监控，没有第三方画像。除了那一天到来——我们要自己交还给上帝，同时想把自己留给这个世界——这时，你可以把经过你筛选的一些记忆交给 [brain-online.com](www.brain-online.com)，让你的大脑永生，让你的大脑永远在线。
 
 ## Platform-specific setup
