@@ -21,7 +21,7 @@ export const state = {
     abortController: null,
 
     // 深度思考按钮状态
-    deepThinkActive: true,
+    deepThinkActive: false,
 
     // 智能搜索按钮状态
     webSearchActive: true,
