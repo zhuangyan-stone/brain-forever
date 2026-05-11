@@ -49,7 +49,7 @@ type ChatRequest struct {
 
 // SSEEvent is the SSE event sent to the frontend
 type SSEEvent struct {
-	Type       string                `json:"type"`              // reasoning | text | sources | done | error
+	Type       string                `json:"type"`              // reasoning | reasoning_end | text | sources | done | error
 	Subject    string                `json:"subject,omitempty"` // reasoning -> "", "pend"
 	Tool       string                `json:"tool,omitempty"`
 	Content    string                `json:"content,omitempty"`     // Used for text type

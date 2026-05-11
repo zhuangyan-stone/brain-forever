@@ -31,9 +31,6 @@ function scheduleContentRender(contentDiv) {
  * @param {HTMLElement} contentDiv
  */
 function handleTextEvent(event, assistantBubble, contentDiv) {
-    // AI 开始正式回复 → 如果存在 reasoning 区域，标记为"思考完成"
-    finalizeReasoningArea(assistantBubble);
-
     // 停止搜索提示的闪烁动画
     stopSearchHintsAnimation(assistantBubble);
 
@@ -113,6 +110,15 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
 }
 
 /**
+ * 处理 reasoning_end 事件：标记 reasoning 区域为"思考完成"
+ * @param {object} event
+ * @param {HTMLElement} assistantBubble
+ */
+function handleReasoningEndEvent(event, assistantBubble) {
+    finalizeReasoningArea(assistantBubble);
+}
+
+/**
  * handleSSEEvent 根据事件类型分发到对应的处理函数
  * @param {object} event
  * @param {HTMLElement} assistantBubble
@@ -123,6 +129,10 @@ function handleSSEEvent(event, assistantBubble) {
     switch (event.type) {
         case 'reasoning':
             handleReasoningEvent(event, assistantBubble);
+            break;
+
+        case 'reasoning_end':
+            handleReasoningEndEvent(event, assistantBubble);
             break;
 
         case 'text':

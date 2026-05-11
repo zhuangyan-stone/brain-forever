@@ -21,29 +21,6 @@ import (
 //
 // This implementation uses net/http directly (no openai-go SDK dependency)
 // to provide an alternative way of calling the DeepSeek API.
-//
-// It provides a high-level streaming method (PerformLLMStreamingCall) that
-// handles tool call loops internally, delegating actual tool execution to a
-// ToolExecutor interface.
-//
-// Usage:
-/*
-	client := NewDeepSeekRaw("", "DEEPSEEK_API_KEY", "deepseek-chat")
-	resp, err := client.Chat(ctx, []Message{
-		{Role: "user", Content: "Hello"},
-	})
-
-	stream := client.ChatStream(ctx, []Message{
-		{Role: "user", Content: "Hello"},
-	})
-	for stream.Next() {
-		chunk := stream.CurrentChatCompletionChunk()
-	}
-	if stream.Err() != nil { ... }
-
-	result := client.PerformLLMStreamingCall(ctx, callback, messages, tools, executor)
-*/
-// ============================================================
 
 // ============================================================
 // DeepSeekRaw client
@@ -60,12 +37,12 @@ type DeepSeekClient struct {
 	maxToolCallIterations int    // max tool call iterations; 0 means default (5)
 }
 
-// NewDeepSeekClient creates a new DeepSeekRaw client.
+// NewDeepSeekClient creates a new DeepSeek client.
 //
 // apiKey: DeepSeek API Key, if empty reads from the env variable specified by envKey
 // envKey: environment variable name, defaults to "DEEPSEEK_API_KEY"
 // model:  model name (e.g. "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner")
-func NewDeepSeekClient(apiKey, envKey, model string) *DeepSeekClient {
+func NewDeepSeekClient(baseURL, apiKey, envKey, model string) *DeepSeekClient {
 	if apiKey == "" {
 		if envKey == "" {
 			envKey = "DEEPSEEK_API_KEY"
@@ -75,7 +52,7 @@ func NewDeepSeekClient(apiKey, envKey, model string) *DeepSeekClient {
 
 	return &DeepSeekClient{
 		apiKey:  apiKey,
-		baseURL: "https://api.deepseek.com/beta",
+		baseURL: baseURL,
 		model:   model,
 
 		httpClient:       httpx.NewHTTPClient(120 * time.Second),
@@ -84,7 +61,7 @@ func NewDeepSeekClient(apiKey, envKey, model string) *DeepSeekClient {
 }
 
 // ============================================================
-// deepseekRawClientConfig — DeepSeek-specific internal config
+// DeepseekClientConfig — DeepSeek-specific internal config
 //
 // This private struct extends RawClientConfig with DeepSeek-specific
 // fields such as Thinking mode. It is used internally by
@@ -93,7 +70,7 @@ func NewDeepSeekClient(apiKey, envKey, model string) *DeepSeekClient {
 
 // DeepseekClientConfig extends RawClientConfig with DeepSeek-specific fields.
 type DeepseekClientConfig struct {
-	RawClientConfig
+	ClientConfig
 }
 
 // NewDeepSeekClientFromConfig creates a DeepSeekRaw client from a generic RawClientConfig.
@@ -107,7 +84,7 @@ func NewDeepSeekClientFromConfig(cfg DeepseekClientConfig) *DeepSeekClient {
 	}
 
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://api.deepseek.com/beta"
+		cfg.BaseURL = "https://api.deepseek.com/"
 	}
 
 	httpClient := cfg.HTTPClient
@@ -309,6 +286,14 @@ func GetReasoningContentFromChoice(choice ChunkChoice) string {
 // streamChatCompletion — read all chunks from a streaming LLM response
 // ============================================================
 
+// StreamResult holds the aggregated result from reading a streaming LLM response.
+type StreamResult struct {
+	Reply        string
+	Reasoning    string
+	ToolCalls    []StreamingToolCall
+	FinishReason string
+}
+
 // streamChatCompletion reads all chunks from a streaming LLM response,
 // collecting the reply text, reasoning content, and any tool calls.
 // It forwards streaming content to the pipeline callbacks (OnText, OnReasoning).
@@ -318,20 +303,17 @@ func GetReasoningContentFromChoice(choice ChunkChoice) string {
 //   - pipeline: Pipeline for forwarding streaming content to the caller
 //   - onUsage: callback invoked when token usage info is available from the final chunk
 //
-// Returns:
-//   - reply: the complete assistant text content
-//   - reasoning: the complete reasoning/reasoning content
-//   - toolCalls: accumulated tool calls from streaming deltas
-//   - finishReason: the finish reason from the last chunk (e.g. "stop", "tool_calls")
-//   - err: any error encountered during streaming
+// Returns the aggregated StreamResult and any error encountered during streaming.
 func streamChatCompletion(
 	stream *ChatCompletionChunkDecoder,
 	pipeline Pipeline,
 	onUsage func(Usage),
-) (reply string, reasoning string, toolCalls []StreamingToolCall, finishReason string, err error) {
+) (StreamResult, error) {
 
 	var replyBuilder strings.Builder
 	var reasoningBuilder strings.Builder
+	var toolCalls []StreamingToolCall
+	finishReason := ""
 
 	for stream.Next() {
 		chunk := stream.CurrentChatCompletionChunk()
@@ -342,8 +324,7 @@ func streamChatCompletion(
 		}
 
 		if len(chunk.Choices) == 0 {
-			err = errors.New("chunk's choices is empty")
-			return
+			return StreamResult{}, errors.New("chunk's choices is empty")
 		}
 
 		choice := chunk.Choices[0]
@@ -354,7 +335,7 @@ func streamChatCompletion(
 
 		// Collect tool call deltas (streaming tool calls come in chunks)
 		for _, tc := range choice.Delta.ToolCalls {
-			toolCalls = mergeToolCall(toolCalls, tc)
+			toolCalls = mergeToolCalls(toolCalls, tc)
 		}
 
 		// Extract reasoning_content
@@ -372,10 +353,15 @@ func streamChatCompletion(
 	}
 
 	if err := stream.Err(); err != nil {
-		return "", "", nil, "", fmt.Errorf("stream error. %w", err)
+		return StreamResult{}, fmt.Errorf("stream error. %w", err)
 	}
 
-	return replyBuilder.String(), reasoningBuilder.String(), toolCalls, finishReason, nil
+	return StreamResult{
+		Reply:        replyBuilder.String(),
+		Reasoning:    reasoningBuilder.String(),
+		ToolCalls:    toolCalls,
+		FinishReason: finishReason,
+	}, nil
 }
 
 // ============================================================
@@ -410,6 +396,22 @@ func (c *DeepSeekClient) ChatWithPipeline(
 	// Extract all tool definitions prepared for the LLM
 	toolDefs := pipeline.GetToolDefines()
 
+	// Track whether reasoning has occurred at any point across all iterations.
+	// We only emit OnReasoningEnd once, at the very end of the entire pipeline,
+	// to avoid sending premature "reasoning_end" events when the LLM re-enters
+	// reasoning after a tool call iteration.
+	hasReasoned := false
+
+	// Use defer to ensure OnReasoningEnd is called on all return paths,
+	// including error paths. If streamChatCompletion or executeToolCalls fails
+	// after OnReasoning has already been called, the frontend would otherwise
+	// never receive reasoning_end, leaving it in a stuck "thinking..." state.
+	defer func() {
+		if hasReasoned {
+			pipeline.OnReasoningEnd()
+		}
+	}()
+
 	for {
 		toolCallIterations++
 
@@ -443,20 +445,37 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		}
 
 		// Read all chunks from the stream — collect reply, reasoning, and tool calls
-		reply, reasoning, toolCalls, finishReason, err := streamChatCompletion(stream, pipeline, c.SetUsageInfo)
+		streamResult, err := streamChatCompletion(stream, pipeline, c.SetUsageInfo)
 		if err != nil {
 			return "", "", err
 		}
 
+		// Track whether any "thinking" activity has occurred across all iterations.
+		// "Thinking" includes both:
+		//   1. LLM reasoning_content (the model's internal chain-of-thought)
+		//   2. Tool calls (invoking external tools like web_search is also considered
+		//      part of the AI's thinking process)
+		// We intentionally do NOT emit OnReasoningEnd here — doing so would
+		// send a premature "reasoning_end" event after each tool call iteration,
+		// causing the frontend to show "reasion finished" while the LLM is still
+		// processing (e.g. after a tool result is appended and the LLM re-enters
+		// reasoning). Instead, we emit OnReasoningEnd only once at the very end,
+		// right before returning the final reply.
+		if streamResult.Reasoning != "" {
+			hasReasoned = true
+		}
+
 		// Check if the LLM decided to call a tool
-		if finishReason == "tool_calls" && len(toolCalls) > 0 {
+		if streamResult.FinishReason == "tool_calls" && len(streamResult.ToolCalls) > 0 {
+			// Tool calls are considered part of the AI's thinking process.
+			hasReasoned = true
 			// Prepare the assistant message for tool calls (for history)
-			assistantMsg := prepareAssistantMessageForToolCalls(reply, reasoning, toolCalls)
+			assistantMsg := makeAssistantMessageForToolCalls(streamResult.Reply, streamResult.Reasoning, streamResult.ToolCalls)
 			// Append the assistant message first (before tool messages)
 			messages = append(messages, assistantMsg)
 
 			// Execute each tool call via the ToolCaller
-			if err := executeToolCalls(pipeline, toolCalls, &messages); err != nil {
+			if err := executeToolCalls(pipeline, streamResult.ToolCalls, &messages); err != nil {
 				return "", "", err
 			}
 
@@ -467,16 +486,22 @@ func (c *DeepSeekClient) ChatWithPipeline(
 			continue
 		}
 
-		// Normal completion (stop, length, etc.) — return the reply and reasoning
-		return reply, reasoning, nil
+		// Normal completion (stop, length, etc.) — break out of the loop.
+		// The actual return is handled after the loop, where OnReasoningEnd
+		// is called by the defer above.
+		reply = streamResult.Reply
+		reasoning = streamResult.Reasoning
+		break
 	}
+
+	return
 }
 
-// mergeToolCall merges a streaming tool call delta into the accumulated toolCalls slice.
+// mergeToolCalls merges a streaming tool call delta into the accumulated toolCalls slice.
 // Streaming tool calls arrive in chunks; chunks with the same Index belong to the same
 // logical function call. This function either updates the existing entry (by appending
 // arguments and filling in missing fields) or appends a new entry for a first-seen Index.
-func mergeToolCall(toolCalls []StreamingToolCall, delta DeltaToolCall) []StreamingToolCall {
+func mergeToolCalls(toolCalls []StreamingToolCall, delta DeltaToolCall) []StreamingToolCall {
 	for i := range toolCalls {
 		if toolCalls[i].Index == delta.Index {
 			if delta.Function.Name != "" {
@@ -503,9 +528,9 @@ func mergeToolCall(toolCalls []StreamingToolCall, delta DeltaToolCall) []Streami
 	})
 }
 
-// prepareAssistantMessageForToolCalls constructs a Message with role "assistant" from streaming tool call results.
+// makeAssistantMessageForToolCalls constructs a Message with role "assistant" from streaming tool call results.
 // It copies the reply text, reasoning content, and converts each StreamingToolCall into a ToolCall.
-func prepareAssistantMessageForToolCalls(reply, reasoning string, toolCalls []StreamingToolCall) Message {
+func makeAssistantMessageForToolCalls(reply, reasoning string, toolCalls []StreamingToolCall) Message {
 	assistantMsg := Message{
 		Role: "assistant",
 	}

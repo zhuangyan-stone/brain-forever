@@ -9,43 +9,6 @@ import { scrollToBottom } from './chat-ui.js';
 'use strict';
 
 /**
- * 格式化思考用时，返回如 "12.3s" 的字符串
- * @param {number} elapsedMs - 经过的毫秒数
- * @returns {string}
- */
-function formatReasoningTime(elapsedMs) {
-    const seconds = elapsedMs / 1000;
-    if (seconds < 60) {
-        return seconds.toFixed(1) + 's';
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}分${secs}秒`;
-}
-
-/**
- * 记录 reasoning 开始时间
- * 思考过程中标题保持"正在思考…"，完成时通过 stopReasoningTimer 显示最终用时
- * @param {HTMLElement} titleEl - .reasoning-title 元素（保留参数以兼容调用方）
- */
-function startReasoningTimer(titleEl) {
-    state.reasoningStartTime = Date.now();
-}
-
-/**
- * 停止 reasoning 计时器，在标题中显示最终用时
- * @param {HTMLElement} titleEl - .reasoning-title 元素
- */
-function stopReasoningTimer(titleEl) {
-    if (state.reasoningStartTime && titleEl) {
-        const elapsed = Date.now() - state.reasoningStartTime;
-        const prefix = '思考完成';
-        titleEl.textContent = `${prefix} (${formatReasoningTime(elapsed)})`;
-    }
-    state.reasoningStartTime = null;
-}
-
-/**
  * 获取或创建 assistant 气泡中的 reasoning 状态区域
  * @param {HTMLElement} assistantBubble
  * @returns {HTMLElement}
@@ -99,9 +62,6 @@ export function createReasoningArea(assistantBubble) {
     header.addEventListener('click', (e) => {
         toggleReasoningCollapse(header);
     });
-    // 启动思考用时计时器
-    const titleEl = reasoningArea.querySelector('.reasoning-title');
-    startReasoningTimer(titleEl);
 
     return reasoningArea;
 }
@@ -169,7 +129,7 @@ export function scheduleReasoningRender(contentEl) {
 }
 
 /**
- * 将 reasoning 区域标记为"思考完成"：停止计时器、移除 active、添加 done、立即最终渲染
+ * 将 reasoning 区域标记为"思考完成"：标题改为"思考完成"、移除 active、添加 done、立即最终渲染
  * @param {HTMLElement} assistantBubble
  */
 export function finalizeReasoningArea(assistantBubble) {
@@ -178,7 +138,7 @@ export function finalizeReasoningArea(assistantBubble) {
 
     const titleEl = area.querySelector('.reasoning-title');
     if (titleEl) {
-        stopReasoningTimer(titleEl);
+        titleEl.textContent = '思考完成';
     }
     area.classList.remove('active');
     area.classList.add('done');

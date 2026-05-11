@@ -29,9 +29,6 @@ export const state = {
     // 当前会话的快照：发送消息时锁定，SSE 处理期间基于此判断
     sessionDeepThinkingEnabled: false,
 
-    // Reasoning 计时
-    reasoningStartTime: null,
-
     // 用户消息计数（用于生成 data-msg-index）
     userMsgCount: 0,
 
@@ -67,5 +64,4 @@ export function resetStreamingState() {
         clearTimeout(state.renderTimer);
         state.renderTimer = null;
     }
-    state.reasoningStartTime = null;
 }
