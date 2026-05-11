@@ -620,19 +620,15 @@ case 'done':
                     break;
                 }
             }
-            // 更新用户消息 DOM 上的 data-msg-id（最新一条 user 消息）
-            const userMsgEl = chatContainer.querySelector('.message.user:last-child');
-            if (userMsgEl) {
-                userMsgEl.dataset.msgId = userMsgId;
+            // 将 data-msg-id 设置在 message-group 上（同一组的 user 和 assistant 共享同一 ID）
+            const group = assistantBubble.closest('.message-group');
+            if (group) {
+                group.dataset.msgId = userMsgId;
             }
         }
         // AI 回复复用用户消息的 ID（source ID）
         const usage = event.usage || null;
         messages.push({ role: 'assistant', content: accumulatedMarkdown, id: userMsgId, usage });
-        // 保存 msg_id 到 AI 回复的 DOM
-        if (userMsgId) {
-            assistantBubble.dataset.msgId = userMsgId;
-        }
         // 显示 token 用量信息
         if (event.usage) {
             showTokenUsage(assistantBubble, event.usage);
@@ -945,8 +941,9 @@ chatContainer.addEventListener('click', (e) => {
         const html = bubble ? bubble.innerHTML : '';
 
         // 获取原始 Markdown 源
-        // 根据消息角色（user/assistant）从 messages[] 数组中匹配对应条目
-        const msgId = messageEl.dataset.msgId;
+        // 从 message-group 获取 data-msg-id（同一组的 user 和 assistant 共享同一 ID）
+        const group = messageEl.closest('.message-group');
+        const msgId = group ? group.dataset.msgId : null;
         const isUser = messageEl.classList.contains('user');
         const role = isUser ? 'user' : 'assistant';
         let markdown = null;
@@ -1434,9 +1431,12 @@ async function restoreSession() {
             const msgDiv = addMessage(msg.role, msg.content);
             const entry = { role: msg.role, content: msg.content, id: msg.id, usage: msg.usage || null };
             messages.push(entry);
-            // 保存 ID 到 DOM（addMessage 返回的即是 .message 元素）
+            // 将 data-msg-id 设置在 message-group 上（同一组的 user 和 assistant 共享同一 ID）
             if (msgDiv && msg.id) {
-                msgDiv.dataset.msgId = msg.id;
+                const group = msgDiv.closest('.message-group');
+                if (group) {
+                    group.dataset.msgId = msg.id;
+                }
             }
             // 如果是 assistant 消息且有 usage 信息，显示 token-info
             if (msg.role === 'assistant' && msg.usage && msgDiv) {
@@ -1797,13 +1797,12 @@ async function confirmDelete() {
     const index = parseInt(deleteModal.dataset.deleteIndex, 10);
     if (isNaN(index) || index < 0) return;
 
-    // 获取要删除的用户消息的 msg_id
+    // 获取要删除的用户消息
     const userMsg = chatContainer.querySelector(`.message.user[data-msg-index="${index}"]`);
     if (!userMsg) {
         hideDeleteModal();
         return;
     }
-    const msgId = parseInt(userMsg.dataset.msgId, 10);
 
     // 找到该消息所在的 .message-group
     const group = userMsg.closest('.message-group');
@@ -1812,12 +1811,13 @@ async function confirmDelete() {
         return;
     }
 
+    // 从 message-group 获取 msg_id（同一组的 user 和 assistant 共享同一 ID）
+    const msgId = parseInt(group.dataset.msgId, 10);
+
     // 在移除 DOM 之前，先收集该组中所有消息的 ID（用于后续清理 messages 数组）
     const groupMsgIds = new Set();
-    group.querySelectorAll('.message').forEach(el => {
-        const id = parseInt(el.dataset.msgId, 10);
-        if (!isNaN(id)) groupMsgIds.add(id);
-    });
+    // 同一组的 user 和 assistant 共享同一 ID，只需添加一次
+    if (!isNaN(msgId)) groupMsgIds.add(msgId);
 
     try {
         // msgId 为 0 或无效（NaN）表示提交未完成（失败或尚未分配），仅删除前端 DOM
