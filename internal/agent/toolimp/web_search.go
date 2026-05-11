@@ -1,4 +1,4 @@
-package toolcalls
+package toolimp
 
 import (
 	"BrainOnline/infra/i18n"
@@ -40,20 +40,18 @@ type WebSearcher interface {
 // The LLM can call this tool when it determines that online search is needed.
 const WebSearchToolName = "web_search"
 
-// SearchQueriesFromToolCall parses the search query from a tool call's arguments.
-// arguments is the JSON string from the tool call's Function.Arguments field.
-func SearchQueriesFromToolCall(id, arguments string) (string, error) {
+func webSearchArguments(arguments string) (string, error) {
 	var result struct {
 		SearchQueries string `json:"search_queries"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", fmt.Errorf("failed to parse search query from tool call arguments. call id %s. %w", id, err)
+		return "", fmt.Errorf("json unmarsha fail. %w", err)
 	}
 	return result.SearchQueries, nil
 }
 
-// ExecuteWebSearch performs the actual web search and returns the results.
-func ExecuteWebSearch(ctx context.Context, searcher WebSearcher, query string) (searchResultText string, webPages []WebSource, err error) {
+// executeWebSearch performs the actual web search and returns the results.
+func executeWebSearch(ctx context.Context, searcher WebSearcher, query string) (searchResultText string, webPages []WebSource, err error) {
 	if searcher == nil {
 		return "", nil, fmt.Errorf("web search client not configured")
 	}
@@ -68,9 +66,9 @@ func ExecuteWebSearch(ctx context.Context, searcher WebSearcher, query string) (
 	return
 }
 
-// WebSearchToolDefinition returns the ToolDefinition for web search
+// webSearchToolDefinition returns the ToolDefinition for web search
 // using llm types, with translated descriptions.
-func WebSearchToolDefinition(lang string) llm.ToolDefinition {
+func webSearchToolDefinition(lang string) llm.ToolDefinition {
 	// Build the schema as a Go map and marshal it to JSON.
 	// Using json.Marshal ensures the description string is properly escaped
 	// (e.g., double quotes, newlines, etc.), so any translation content is safe.
@@ -106,4 +104,52 @@ func WebSearchToolDefinition(lang string) llm.ToolDefinition {
 			Strict:      &strict,
 		},
 	}
+}
+
+type WebSearchToolImp struct {
+	def llm.ToolDefinition
+
+	ctx      context.Context
+	searcher WebSearcher
+	lang     string
+
+	q string
+
+	WebPages []WebSource
+}
+
+var _ llm.ToolIMP = (*WebSearchToolImp)(nil)
+
+func MakeWebSearchTool(ctx context.Context, searcher WebSearcher, lang string) *WebSearchToolImp {
+	return &WebSearchToolImp{
+		def:      webSearchToolDefinition(lang),
+		searcher: searcher,
+		lang:     lang,
+	}
+}
+
+func (imp *WebSearchToolImp) GetName() string {
+	return WebSearchToolName
+}
+
+func (imp *WebSearchToolImp) GetDefinition() llm.ToolDefinition {
+	return imp.def
+}
+
+func (imp *WebSearchToolImp) GetPendingText() string {
+	return fmt.Sprintf("%s %s", i18n.TL(imp.lang, "web_search_tool_searching"), imp.q)
+}
+
+func (imp *WebSearchToolImp) SetArgument(arguments string) (err error) {
+	imp.q, err = webSearchArguments(arguments)
+	return
+}
+
+func (imp *WebSearchToolImp) Execute() (result string, err error) {
+	if imp.q == "" {
+		return "", fmt.Errorf("call %s with empty query", WebSearchToolName)
+	}
+
+	result, imp.WebPages, err = executeWebSearch(imp.ctx, imp.searcher, imp.q)
+	return
 }

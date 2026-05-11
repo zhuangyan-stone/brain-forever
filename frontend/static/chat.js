@@ -20,7 +20,7 @@ const modalCancelBtn = document.getElementById('modalCancelBtn');
 const modalConfirmBtn = document.getElementById('modalConfirmBtn');
 const toastContainer = document.getElementById('toastContainer');
 const deepThinkBtn = document.getElementById('deepThinkBtn');
-const forceSearchBtn = document.getElementById('forceSearchBtn');
+const webSearchBtn = document.getElementById('webSearchBtn');
 const attachBtn = document.getElementById('attachBtn');
 const fileInput = document.getElementById('fileInput');
 const sendModeToggle = document.getElementById('sendModeToggle');
@@ -31,8 +31,11 @@ const sendModeLabel = document.getElementById('sendModeLabel');
 // ============================================================
 
 // 状态变量
-let deepThinkActive = false;
-let forceSearchActive = false;
+let deepThinkActive = true;
+let webSearchActive = true;
+
+// 当前会话的快照：发送消息时锁定，SSE 处理期间基于此判断
+let sessionDeepThinkingEnabled = false;
 
 /**
  * toggleButton 切换按钮的选中/未选中状态
@@ -50,9 +53,9 @@ deepThinkBtn.addEventListener('click', () => {
 });
 
 // 智能搜索按钮点击
-forceSearchBtn.addEventListener('click', () => {
-    forceSearchActive = !forceSearchActive;
-    toggleButton(forceSearchBtn, forceSearchActive);
+webSearchBtn.addEventListener('click', () => {
+    webSearchActive = !webSearchActive;
+    toggleButton(webSearchBtn, webSearchActive);
 });
 
 // ============================================================
@@ -107,6 +110,9 @@ function switchHighlightTheme(theme) {
 let messages = [];          // 完整的消息历史 [{role, content}]
 let isStreaming = false;    // 是否正在流式接收
 let abortController = null; // 用于取消请求
+
+// Reasoning 计时
+let reasoningStartTime = null;  // Date.now() 时间戳，思考开始时刻
 
 // 刻度导航状态
 let userMsgCount = 0;       // 用户消息计数（用于生成 data-msg-index）
@@ -232,6 +238,9 @@ async function sendMessage() {
     abortController = new AbortController();
 
     try {
+        // 锁定本轮会话的深度思考状态（防止流式过程中用户乱点按钮导致状态漂移）
+        sessionDeepThinkingEnabled = deepThinkActive;
+
         // 发送请求 — 只传用户最新的一句话，历史由后端维护
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -240,7 +249,7 @@ async function sendMessage() {
                 message: { id: 0, role: 'user', content: content, created_at: createdAt },
                 stream: true,
                 deep_think: deepThinkActive,
-                force_search: forceSearchActive
+                web_search_enabled: webSearchActive
             }),
             signal: abortController.signal
         });
@@ -316,6 +325,90 @@ async function sendMessage() {
             renderTimer = null;
         }
         accumulatedMarkdown = '';
+
+        // 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
+        const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
+        if (reasoningContentEl && reasoningContentEl.renderTimer) {
+            clearTimeout(reasoningContentEl.renderTimer);
+            reasoningContentEl.renderTimer = null;
+        }
+
+        reasoningStartTime = null;
+    }
+}
+
+// ============================================================
+// Reasoning（深度思考）状态管理
+// ============================================================
+
+/**
+ * 格式化思考用时，返回如 "12.3s" 的字符串
+ * @param {number} elapsedMs - 经过的毫秒数
+ * @returns {string}
+ */
+function formatReasoningTime(elapsedMs) {
+    const seconds = elapsedMs / 1000;
+    if (seconds < 60) {
+        return seconds.toFixed(1) + 's';
+    }
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}分${secs}秒`;
+}
+
+/**
+ * 记录 reasoning 开始时间
+ * 思考过程中标题保持"正在思考…"，完成时通过 stopReasoningTimer 显示最终用时
+ * @param {HTMLElement} titleEl - .reasoning-title 元素（保留参数以兼容调用方）
+ */
+function startReasoningTimer(titleEl) {
+    reasoningStartTime = Date.now();
+}
+
+/**
+ * 停止 reasoning 计时器，在标题中显示最终用时
+ * @param {HTMLElement} titleEl - .reasoning-title 元素
+ */
+function stopReasoningTimer(titleEl) {
+    if (reasoningStartTime && titleEl) {
+        const elapsed = Date.now() - reasoningStartTime;
+        titleEl.textContent = `思考完成 (${formatReasoningTime(elapsed)})`;
+    }
+    reasoningStartTime = null;
+}
+
+/**
+ * 获取或创建 assistant 气泡中的 reasoning 状态区域
+ */
+function getOrCreateReasoningArea(assistantBubble) {
+    let area = assistantBubble.querySelector('.reasoning-area');
+    if (!area) {
+        area = document.createElement('div');
+        area.className = 'reasoning-area';
+        // 插入到气泡之前
+        const bubble = assistantBubble.querySelector('.bubble');
+        if (bubble) {
+            bubble.insertAdjacentElement('beforebegin', area);
+        } else {
+            assistantBubble.appendChild(area);
+        }
+    }
+    return area;
+}
+
+/**
+ * 切换 reasoning 区域的折叠/展开状态
+ */
+function toggleReasoningCollapse(headerEl) {
+    const area = headerEl.closest('.reasoning-area');
+    if (!area) return;
+    const isCollapsed = area.classList.toggle('collapsed');
+    const toggleBtn = headerEl.querySelector('.reasoning-toggle');
+    if (toggleBtn) {
+        // 使用 ▶ 作为基础字符，展开时通过 CSS transform: rotate(90deg) 变为 ▼
+        // 折叠时 transform: rotate(0deg) 保持 ▶ — 与 sources-panel 完全一致
+        toggleBtn.textContent = '▶';
+        toggleBtn.title = isCollapsed ? '展开思考过程' : '折叠思考过程';
     }
 }
 
@@ -327,8 +420,65 @@ function handleSSEEvent(event, assistantBubble) {
     const contentDiv = assistantBubble.querySelector('.bubble');
 
     switch (event.type) {
+        case 'reasoning':
+            // 深度思考内容：首次收到时创建区域并显示"正在思考……"，后续追加内容
+            let reasoningArea = assistantBubble.querySelector('.reasoning-area');
+            if (!reasoningArea) {
+                // 首次收到 reasoning 事件，创建思考区域
+                reasoningArea = getOrCreateReasoningArea(assistantBubble);
+                reasoningArea.className = 'reasoning-area active';
+                reasoningArea.innerHTML = `
+                    <div class="reasoning-header">
+                        <span class="reasoning-toggle" title="折叠思考过程">▶</span>
+                        <span class="reasoning-icon">🤔</span>
+                        <span class="reasoning-title">正在思考…</span>
+                    </div>
+                    <div class="reasoning-content"></div>
+                `;
+                // 点击 header 切换折叠/展开
+                const header = reasoningArea.querySelector('.reasoning-header');
+                header.addEventListener('click', (e) => {
+                    // 如果点击的是 toggle 按钮本身，不重复触发（但 toggle 在 header 内，用 stopPropagation 避免）
+                    // 实际上 toggle 按钮也在 header 内，点击它也会触发 header 的 click
+                    // 所以我们直接用 header 的 click 即可
+                    toggleReasoningCollapse(header);
+                });
+                // 启动思考用时计时器
+                const titleEl = reasoningArea.querySelector('.reasoning-title');
+                startReasoningTimer(titleEl);
+            }
+            if (event.content) {
+                const contentEl = reasoningArea.querySelector('.reasoning-content');
+                if (contentEl) {
+                    // reasoning 内容本质是 Markdown，使用 marked 渲染
+                    // 维护 rawText 属性累积原始 Markdown（避免用 textContent 丢失格式）
+                    if (!contentEl.rawText) contentEl.rawText = '';
+                    contentEl.rawText += event.content;
+                    // 节流渲染：RENDER_INTERVAL 毫秒内最多渲染一次
+                    if (!contentEl.renderTimer) {
+                        contentEl.renderTimer = setTimeout(() => {
+                            contentEl.renderTimer = null;
+                            contentEl.innerHTML = renderMarkdown(contentEl.rawText);
+                            scrollToBottom();
+                        }, RENDER_INTERVAL);
+                    }
+                }
+            }
+            break;
+
         case 'text':
-            // AI 开始正式回复 → 停止搜索提示的闪烁动画
+            // AI 开始正式回复 → 如果存在 reasoning 区域，标记为"思考完成"
+            const textReasoningArea = assistantBubble.querySelector('.reasoning-area.active');
+            if (textReasoningArea) {
+                const titleEl = textReasoningArea.querySelector('.reasoning-title');
+                if (titleEl) {
+                    stopReasoningTimer(titleEl);
+                }
+                textReasoningArea.classList.remove('active');
+                textReasoningArea.classList.add('done');
+            }
+
+            // 停止搜索提示的闪烁动画
             const hints = assistantBubble.querySelectorAll('.web-search-hint');
             hints.forEach(h => h.style.animation = 'none');
 
@@ -359,21 +509,81 @@ function handleSSEEvent(event, assistantBubble) {
             break;
 
         case 'web_search':
-            // 联网搜索通知：在 AI 气泡上方显示搜索状态
-            if (contentDiv) {
-                // 在气泡内添加一个搜索提示
-                const searchHint = document.createElement('div');
-                searchHint.className = 'web-search-hint';
-                searchHint.textContent = '正在联网搜索：' + (event.content || '...');
-                // 插入到气泡内容之前
-                contentDiv.insertAdjacentElement('beforebegin', searchHint);
+            if (sessionDeepThinkingEnabled) {
+                // 深度思考模式下，搜索是思考中的子过程，在 reasoning 区追加一行
+                let reasoningArea = assistantBubble.querySelector('.reasoning-area');
+                if (!reasoningArea) {
+                    reasoningArea = getOrCreateReasoningArea(assistantBubble);
+                    reasoningArea.className = 'reasoning-area active';
+                    reasoningArea.innerHTML = `
+                        <div class="reasoning-header">
+                            <span class="reasoning-toggle" title="折叠思考过程">▶</span>
+                            <span class="reasoning-icon">🤔</span>
+                            <span class="reasoning-title">正在思考…</span>
+                        </div>
+                        <div class="reasoning-content"></div>
+                    `;
+                    // 点击 header 切换折叠/展开
+                    const header = reasoningArea.querySelector('.reasoning-header');
+                    header.addEventListener('click', (e) => {
+                        toggleReasoningCollapse(header);
+                    });
+                    // 启动思考用时计时器
+                    const titleEl = reasoningArea.querySelector('.reasoning-title');
+                    startReasoningTimer(titleEl);
+                }
+                const contentEl = reasoningArea.querySelector('.reasoning-content');
+                if (contentEl && event.content) {
+                    // 将搜索提示写入 rawText，使其与 reasoning 内容一起被 Markdown 渲染，
+                    // 避免后续 reasoning 事件或 done 事件通过 innerHTML 覆盖掉搜索提示。
+                    if (!contentEl.rawText) contentEl.rawText = '';
+                    contentEl.rawText += '\n> 🔍 正在联网搜索：' + event.content + '\n';
+                    // 节流渲染（复用 reasoning 的渲染逻辑）
+                    if (!contentEl.renderTimer) {
+                        contentEl.renderTimer = setTimeout(() => {
+                            contentEl.renderTimer = null;
+                            contentEl.innerHTML = renderMarkdown(contentEl.rawText);
+                            scrollToBottom();
+                        }, RENDER_INTERVAL);
+                    }
+                }
+            } else {
+                // 非深度思考模式：在 AI 气泡上方显示搜索状态（原有逻辑）
+                if (contentDiv) {
+                    const searchHint = document.createElement('div');
+                    searchHint.className = 'web-search-hint';
+                    searchHint.textContent = '正在联网搜索：' + (event.content || '...');
+                    contentDiv.insertAdjacentElement('beforebegin', searchHint);
+                }
             }
             break;
+case 'done':
+    // 流结束：如果 reasoning 区域仍处于 active 状态（没有 text 事件），标记为完成
+    const doneReasoningArea = assistantBubble.querySelector('.reasoning-area.active');
+    if (doneReasoningArea) {
+        const titleEl = doneReasoningArea.querySelector('.reasoning-title');
+        if (titleEl) {
+            stopReasoningTimer(titleEl);
+        }
+        doneReasoningArea.classList.remove('active');
+        doneReasoningArea.classList.add('done');
+        // 清除 reasoning 节流定时器，立即做最终渲染
+        const doneContentEl = doneReasoningArea.querySelector('.reasoning-content');
+        if (doneContentEl) {
+            if (doneContentEl.renderTimer) {
+                clearTimeout(doneContentEl.renderTimer);
+                doneContentEl.renderTimer = null;
+            }
+            if (doneContentEl.rawText) {
+                doneContentEl.innerHTML = renderMarkdown(doneContentEl.rawText);
+            }
+        }
+    }
 
-        case 'done':
-            // 流结束：停止搜索提示的闪烁动画（安全兜底）
-            const doneHints = assistantBubble.querySelectorAll('.web-search-hint');
-            doneHints.forEach(h => h.style.animation = 'none');
+    // 停止搜索提示的闪烁动画（安全兜底）
+    const doneHints = assistantBubble.querySelectorAll('.web-search-hint');
+    doneHints.forEach(h => h.style.animation = 'none');
+
 
             // 流结束：确保最后一次渲染完成，保存纯文本到 messages
             if (contentDiv) {
@@ -1218,11 +1428,50 @@ async function restoreSession() {
             if (msg.role === 'assistant' && msg.sources && msg.sources.length > 0) {
                 showSources(msg.sources, 'web');
             }
+            // 如果是 assistant 消息且有 reasoning（深度思考链），恢复显示 reasoning 区域
+            if (msg.role === 'assistant' && msg.reasoning && msgDiv) {
+                restoreReasoningArea(msgDiv, msg.reasoning);
+            }
         }
     } catch (e) {
         // 网络错误等情况下，回退到显示欢迎消息
         console.warn('无法恢复会话历史，显示欢迎消息:', e);
         showWelcomeMessage();
+    }
+}
+
+/**
+ * restoreReasoningArea 在 assistant 消息气泡中恢复 reasoning（深度思考链）区域
+ * @param {HTMLElement} assistantBubble - .message.assistant 元素
+ * @param {string} reasoningText - 思考链的原始 Markdown 文本
+ */
+function restoreReasoningArea(assistantBubble, reasoningText) {
+    if (!assistantBubble || !reasoningText) return;
+
+    // 创建 reasoning 区域
+    const reasoningArea = document.createElement('div');
+    reasoningArea.className = 'reasoning-area done';
+    reasoningArea.innerHTML = `
+        <div class="reasoning-header">
+            <span class="reasoning-toggle" title="折叠思考过程">▶</span>
+            <span class="reasoning-icon">🤔</span>
+            <span class="reasoning-title">思考完成</span>
+        </div>
+        <div class="reasoning-content">${renderMarkdown(reasoningText)}</div>
+    `;
+
+    // 点击 header 切换折叠/展开
+    const header = reasoningArea.querySelector('.reasoning-header');
+    header.addEventListener('click', (e) => {
+        toggleReasoningCollapse(header);
+    });
+
+    // 插入到气泡之前
+    const bubble = assistantBubble.querySelector('.bubble');
+    if (bubble) {
+        bubble.insertAdjacentElement('beforebegin', reasoningArea);
+    } else {
+        assistantBubble.appendChild(reasoningArea);
     }
 }
 

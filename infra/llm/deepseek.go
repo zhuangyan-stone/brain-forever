@@ -16,7 +16,7 @@ import (
 )
 
 // ============================================================
-// DeepSeekRaw — DeepSeek API client using raw http.Client
+// DeepSeek — DeepSeek API client using raw http.Client
 //
 // This implementation uses net/http directly (no openai-go SDK dependency)
 // to provide an alternative way of calling the DeepSeek API.
@@ -53,7 +53,6 @@ type DeepSeekClient struct {
 	apiKey                string
 	baseURL               string
 	model                 string
-	thinkingEnabled       bool // true = enabled, false = disabled
 	httpClient            *http.Client
 	streamHTTPClient      *http.Client
 	lastUsage             *Usage // token usage from the most recent API call
@@ -65,7 +64,7 @@ type DeepSeekClient struct {
 // apiKey: DeepSeek API Key, if empty reads from the env variable specified by envKey
 // envKey: environment variable name, defaults to "DEEPSEEK_API_KEY"
 // model:  model name (e.g. "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner")
-func NewDeepSeekClient(apiKey, envKey, model string, enableThinking bool) *DeepSeekClient {
+func NewDeepSeekClient(apiKey, envKey, model string) *DeepSeekClient {
 	if apiKey == "" {
 		if envKey == "" {
 			envKey = "DEEPSEEK_API_KEY"
@@ -74,10 +73,9 @@ func NewDeepSeekClient(apiKey, envKey, model string, enableThinking bool) *DeepS
 	}
 
 	return &DeepSeekClient{
-		apiKey:          apiKey,
-		baseURL:         "https://api.deepseek.com/beta",
-		model:           model,
-		thinkingEnabled: enableThinking,
+		apiKey:  apiKey,
+		baseURL: "https://api.deepseek.com/beta",
+		model:   model,
 
 		httpClient:       httpx.NewHTTPClient(120 * time.Second),
 		streamHTTPClient: httpx.NewStreamHTTPClient(15 * time.Minute),
@@ -95,8 +93,6 @@ func NewDeepSeekClient(apiKey, envKey, model string, enableThinking bool) *DeepS
 // DeepseekClientConfig extends RawClientConfig with DeepSeek-specific fields.
 type DeepseekClientConfig struct {
 	RawClientConfig
-
-	ThinkingEnabled bool // Thinking mode: true = enabled, false = disabled (default false)
 }
 
 // NewDeepSeekClientFromConfig creates a DeepSeekRaw client from a generic RawClientConfig.
@@ -122,7 +118,6 @@ func NewDeepSeekClientFromConfig(cfg DeepseekClientConfig) *DeepSeekClient {
 		apiKey:                cfg.APIKey,
 		baseURL:               cfg.BaseURL,
 		model:                 cfg.Model,
-		thinkingEnabled:       cfg.ThinkingEnabled,
 		httpClient:            httpClient,
 		streamHTTPClient:      httpx.NewStreamHTTPClient(15 * time.Minute),
 		maxToolCallIterations: cfg.MaxToolCallIterations,
@@ -185,13 +180,11 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 	// Ensure Stream is false for non-streaming
 	req.Stream = false
 
-	// Inject thinking mode from client config.
-	// Since the DeepSeek API defaults thinking to enabled, we explicitly
-	// set "disabled" when thinking is off to ensure it's truly disabled.
-	if c.thinkingEnabled {
+	// Thinking mode is now controlled per-request by the caller via
+	// PerformLLMStreamingCall's deepThink parameter. For the non-streaming
+	// Chat/ChatWithOptions path, default to enabled (matching DeepSeek API's default).
+	if req.Thinking == nil {
 		req.Thinking = &ThinkingConfig{Type: "enabled"}
-	} else {
-		req.Thinking = &ThinkingConfig{Type: "disabled"}
 	}
 
 	body, err := json.Marshal(req)
@@ -259,13 +252,11 @@ func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatComp
 	// Enable streaming
 	req.Stream = true
 
-	// Inject thinking mode from client config.
-	// Since the DeepSeek API defaults thinking to enabled, we explicitly
-	// set "disabled" when thinking is off to ensure it's truly disabled.
-	if c.thinkingEnabled {
+	// Thinking mode is now set per-request by PerformLLMStreamingCall.
+	// If the caller hasn't set it (e.g. direct ChatStreamWithOptions usage),
+	// default to enabled (matching DeepSeek API's default).
+	if req.Thinking == nil {
 		req.Thinking = &ThinkingConfig{Type: "enabled"}
-	} else {
-		req.Thinking = &ThinkingConfig{Type: "disabled"}
 	}
 
 	// Ensure stream_options with include_usage is set
@@ -335,17 +326,19 @@ func GetReasoningContent(chunk ChatCompletionChunk) string {
 //   - tools: tool definitions to pass to the LLM
 //   - executor: ToolExecutor that executes tool calls (e.g., web_search)
 //
-// Returns the final assistant reply content.
+// Returns the final assistant reply content and reasoning content.
 func (c *DeepSeekClient) PerformLLMStreamingCall(
 	ctx context.Context,
-	callback ToolCallsEvent,
+	callback StreamEventCallback,
 	messages []Message,
-	tools []ToolDefinition,
-	executor ToolExecutor,
-) (fullReply string, err error) {
+	toolCaller ToolCaller,
+	deepThink bool,
+) (fullReply string, reasoning string, err error) {
 
 	maxToolCallIterations := c.GetMaxToolCallIterations()
 	toolCallIterations := 0
+
+	toolDefs := toolCaller.GetToolDefines()
 
 	for {
 		toolCallIterations++
@@ -355,8 +348,15 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 			Model:    c.model,
 			Messages: messages,
 		}
-		if len(tools) > 0 {
-			req.Tools = tools
+		if len(toolDefs) > 0 {
+			req.Tools = toolDefs
+		}
+
+		// Set thinking mode based on the per-request deepThink flag.
+		// ChatStreamWithOptions will respect this if already set.
+		req.Thinking = &ThinkingConfig{Type: "enabled"}
+		if !deepThink {
+			req.Thinking.Type = "disabled"
 		}
 
 		// Safety check: prevent infinite tool call loops.
@@ -368,13 +368,13 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 
 		stream := c.ChatStreamWithOptions(ctx, req)
 		if stream.Err() != nil {
-			return "", fmt.Errorf("failed to call LLM API: client not initialized")
+			return "", "", fmt.Errorf("failed to call LLM API: client not initialized")
 		}
 
 		// Collect the full assistant response (text + reasoning + tool calls)
 		var replyBuilder strings.Builder
 		var reasoningBuilder strings.Builder
-		var collectedToolCalls []StreamingToolCall
+		var toolCalls []StreamingToolCall
 		finishReason := ""
 
 		for stream.Next() {
@@ -393,26 +393,26 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 				// Collect tool call deltas (streaming tool calls come in chunks)
 				for _, tc := range choice.Delta.ToolCalls {
 					found := false
-					for i := range collectedToolCalls {
-						if collectedToolCalls[i].Index == tc.Index {
+					for i := range toolCalls {
+						if toolCalls[i].Index == tc.Index {
 							if tc.Function.Name != "" {
-								collectedToolCalls[i].Name = tc.Function.Name
+								toolCalls[i].Name = tc.Function.Name
 							}
 							if tc.Function.Arguments != "" {
-								collectedToolCalls[i].Arguments += tc.Function.Arguments
+								toolCalls[i].Arguments += tc.Function.Arguments
 							}
 							if tc.ID != "" {
-								collectedToolCalls[i].ID = tc.ID
+								toolCalls[i].ID = tc.ID
 							}
 							if tc.Type != "" {
-								collectedToolCalls[i].Type = tc.Type
+								toolCalls[i].Type = tc.Type
 							}
 							found = true
 							break
 						}
 					}
 					if !found {
-						collectedToolCalls = append(collectedToolCalls, StreamingToolCall{
+						toolCalls = append(toolCalls, StreamingToolCall{
 							Index:     tc.Index,
 							ID:        tc.ID,
 							Type:      tc.Type,
@@ -426,7 +426,7 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 				reasoningContent := GetReasoningContent(chunk)
 				if reasoningContent != "" {
 					if err := callback.OnReasoning(ctx, reasoningContent); err != nil {
-						return "", fmt.Errorf("failed to write reasoning event. %w", err)
+						return "", "", fmt.Errorf("failed to write reasoning event. %w", err)
 					}
 					reasoningBuilder.WriteString(reasoningContent)
 				}
@@ -434,7 +434,7 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 				// Forward text content
 				if choice.Delta.Content != "" {
 					if err := callback.OnText(ctx, choice.Delta.Content); err != nil {
-						return "", fmt.Errorf("failed to write text event. %w", err)
+						return "", "", fmt.Errorf("failed to write text event. %w", err)
 					}
 					replyBuilder.WriteString(choice.Delta.Content)
 				}
@@ -442,11 +442,11 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 		}
 
 		if err := stream.Err(); err != nil {
-			return "", fmt.Errorf("stream error. %w", err)
+			return "", "", fmt.Errorf("stream error. %w", err)
 		}
 
 		// Check if the LLM decided to call a tool
-		if finishReason == "tool_calls" && len(collectedToolCalls) > 0 {
+		if finishReason == "tool_calls" && len(toolCalls) > 0 {
 			// Build the assistant message with tool calls (for history)
 			assistantMsg := Message{
 				Role: "assistant",
@@ -457,7 +457,8 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 			if reasoningBuilder.Len() > 0 {
 				assistantMsg.ReasoningContent = reasoningBuilder.String()
 			}
-			for _, tc := range collectedToolCalls {
+
+			for _, tc := range toolCalls {
 				assistantMsg.ToolCalls = append(assistantMsg.ToolCalls, ToolCall{
 					ID:   tc.ID,
 					Type: tc.Type,
@@ -471,33 +472,36 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 			// Append the assistant message first
 			messages = append(messages, assistantMsg)
 
-			// Execute each tool call via the ToolExecutor
-			for _, tc := range collectedToolCalls {
-				// Notify callback about tool call start
-				if err := callback.OnToolCallStart(ctx, tc.Name, tc.ID, tc.Arguments); err != nil {
-					// Log but continue — non-fatal
-				}
+			// Execute each tool call via the ToolCallser
+			for _, tc := range toolCalls {
+				resultContent := ""
 
-				// Execute the tool via the executor
-				resultContent, execErr := executor.ExecuteTool(ctx, tc.Name, tc.ID, tc.Arguments)
-				if execErr != nil {
-					resultContent = i18n.T("tool_execution_failed", map[string]interface{}{
-						"Error": execErr,
+				if argErr := toolCaller.SetArgument(tc.Name, tc.ID, tc.Arguments); argErr != nil {
+					resultContent = i18n.T("set_tool_argument_faild", map[string]interface{}{
+						"Error": argErr,
+					})
+				} else {
+					if callReason := toolCaller.GetCallReason(tc.Name, tc.ID); callReason != "" {
+						callback.OnReasoning(ctx, callReason)
+					}
+					// Execute the tool via the caller
+					var execErr error
+					resultContent, execErr = toolCaller.Call(ctx, tc.Name, tc.ID, tc.Arguments)
+
+					if execErr != nil {
+						resultContent = i18n.T("tool_execution_failed", map[string]interface{}{
+							"Error": execErr,
+						})
+					}
+
+					// Append the tool result message
+					messages = append(messages, Message{
+						Role:       "tool",
+						ToolCallID: tc.ID,
+						Content:    resultContent,
 					})
 				}
-
-				// Notify callback about tool call result
-				if err := callback.OnToolCallResult(ctx, tc.Name, tc.ID, resultContent); err != nil {
-					// Log but continue — non-fatal
-				}
-
-				// Append the tool result message
-				messages = append(messages, Message{
-					Role:       "tool",
-					ToolCallID: tc.ID,
-					Content:    resultContent,
-				})
-			}
+			} // end-for
 
 			// Close current stream before looping
 			stream.Close()
@@ -506,7 +510,7 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 			continue
 		}
 
-		// Normal completion (stop, length, etc.) — return the reply
-		return replyBuilder.String(), nil
+		// Normal completion (stop, length, etc.) — return the reply and reasoning
+		return replyBuilder.String(), reasoningBuilder.String(), nil
 	}
 }

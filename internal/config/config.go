@@ -68,10 +68,6 @@ type ChatLLMConfig struct {
 	// in the streaming loop before forcing a direct answer.
 	// Default: 9.
 	MaxToolCallIterations int
-
-	// ThinkingEnabled enables the model's thinking/reasoning mode.
-	// Default: true.
-	ThinkingEnabled bool
 }
 
 // WebSearchConfig configures the web search provider.

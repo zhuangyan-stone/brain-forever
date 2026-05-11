@@ -96,7 +96,6 @@ func InitLLMClient(cfg config.ChatLLMConfig) llm.LLMClient {
 			Model:                 model,
 			MaxToolCallIterations: maxIter,
 		},
-		ThinkingEnabled: cfg.ThinkingEnabled,
 	})
 }
 

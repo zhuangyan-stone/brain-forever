@@ -67,17 +67,16 @@ type LLMClient interface {
 	//   - ctx: context for cancellation
 	//   - callback: StreamCallback for receiving streaming events (text, reasoning, etc.)
 	//   - messages: the conversation messages (will be modified in-place during tool call loops)
-	//   - tools: tool definitions to pass to the LLM
-	//   - executor: ToolExecutor that executes tool calls (e.g., web_search)
+	//   - toolCaller: ToolCaller that executes tool calls (e.g., web_search)
+	//   - deepThink: enable deep thinking/reasoning mode for this request
 	//
-	// Returns the final assistant reply content.
+	// Returns the final assistant reply content and reasoning content.
 	PerformLLMStreamingCall(
 		ctx context.Context,
-		callback ToolCallsEvent,
 		messages []Message,
-		tools []ToolDefinition,
-		executor ToolExecutor,
-	) (fullReply string, err error)
+		agent Agent,
+		deepThink bool,
+	) (fullReply string, reasoning string, err error)
 }
 
 // ============================================================
@@ -327,45 +326,4 @@ type ToolFunctionDef struct {
 	Description string      `json:"description"`
 	Parameters  interface{} `json:"parameters"`
 	Strict      *bool       `json:"strict,omitempty"`
-}
-
-// ============================================================
-// ToolExecutor interface — decouples tool execution from the LLM client
-// ============================================================
-
-// ToolExecutor is the interface for executing tool calls made by the LLM.
-// The caller (e.g., ChatHandler) implements this interface to provide
-// concrete tool implementations (e.g., web_search).
-type ToolExecutor interface {
-	// ExecuteTool executes a tool call and returns the result content.
-	// toolName is the function name (e.g., "web_search").
-	// arguments is the JSON string of the tool call arguments.
-	// The returned string is the tool result content sent back to the LLM.
-	ExecuteTool(ctx context.Context, toolName string, toolCallID string, arguments string) (resultContent string, err error)
-}
-
-// ============================================================
-// StreamCallback interface — decouples streaming output from the LLM client
-// ============================================================
-
-// ToolCallsEvent defines callbacks for streaming events during LLM calls.
-// The caller implements this to receive streaming content (e.g., to forward
-// to an SSE writer).
-type ToolCallsEvent interface {
-	// OnText is called when a text content delta is received from the LLM.
-	OnText(ctx context.Context, delta string) error
-
-	// OnReasoning is called when a reasoning_content delta is received (DeepSeek-specific).
-	OnReasoning(ctx context.Context, delta string) error
-
-	// OnToolCallStart is called when the LLM starts calling a tool.
-	// This can be used to notify the frontend (e.g., send a "web_search" SSE event).
-	OnToolCallStart(ctx context.Context, toolName string, toolCallID string, arguments string) error
-
-	// OnToolCallResult is called after a tool has been executed.
-	// This can be used to notify the frontend about tool execution results.
-	OnToolCallResult(ctx context.Context, toolName string, toolCallID string, result string) error
-
-	// OnError is called when an error occurs during streaming.
-	OnError(ctx context.Context, err error) error
 }

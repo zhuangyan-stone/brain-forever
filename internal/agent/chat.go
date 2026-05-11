@@ -39,7 +39,7 @@ type ChatAgent struct {
 	// webPagesCollector collects web search page results during a streaming LLM call.
 	// It is set before performLLMStreamingCall and read after the call returns to send
 	// web sources to the frontend.
-	webPagesCollector *[]toolcalls.WebSource
+	// webPagesCollector *[]toolcalls.WebSource
 }
 
 // Close releases underlying resources held by the ChatHandler.
@@ -182,13 +182,28 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	messages = append(messages, startSystemMsg)
 	messages = append(messages, llmMsgs...)
 
-	// 6. Build tool definition with translated description
-	timeQueryToolDef := toolcalls.TimeQueryToolDefinition(lang)
-	webSearchToolDef := toolcalls.WebSearchToolDefinition(lang)
-	toolsDef := []llm.ToolDefinition{timeQueryToolDef, webSearchToolDef}
+	// 6. Build tool definitions with translated descriptions.
+	// time_query tool is always available.
+	// web_search tool is only provided when WebSearchEnabled is true.
+	timeQueryToolImp := toolcalls.MakeTimeQueryTool(lang)
+	toolsImp := []llm.ToolIMP{timeQueryToolImp}
 
-	// 7. Stream with tool call handling (web_search tool is always available)
-	fullReply, webPages, err := h.performLLMStreamingCall(r.Context(), sseWriter, messages, toolsDef)
+	if req.WebSearchEnabled {
+		webSearchToolImp := toolcalls.MakeWebSearchTool(r.Context(), h.webSearcher, lang)
+		toolsImp = append(toolsImp, &webSearchToolImp)
+	}
+
+	// 7. Stream with tool call handling
+	var fullReply string
+	var err error
+
+	fullReply, messages, err = h.performLLMStreamingCall(r.Context(),
+		sseWriter,
+		req.Message.ID,
+		messages,
+		toolsImp,
+		req.DeepThink)
+
 	if err != nil {
 		sseWriter.WriteEvent(SSEEvent{
 			Type:    "error",
@@ -257,6 +272,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 			ID:        req.Message.ID, // same as user message's id
 			Role:      "assistant",
 			Content:   fullReply,
+			Reasoning: reasoning,
 			CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
 			Usage:     usage,
 		}

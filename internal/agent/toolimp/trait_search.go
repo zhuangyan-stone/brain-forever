@@ -1,4 +1,4 @@
-package toolcalls
+package toolimp
 
 import "context"
 
@@ -22,3 +22,5 @@ type TraitSearcher interface {
 	// Close releases any underlying resources held by the searcher.
 	Close() error
 }
+
+// TODO : imp llm.ToolIMP

@@ -1,4 +1,4 @@
-package toolcalls
+package toolimp
 
 import (
 	"BrainOnline/infra/i18n"
@@ -20,12 +20,12 @@ func getCurrentLocalTimeWithZone() string {
 	return fmt.Sprintf("%s [%s]", timePart, tzName)
 }
 
-// TimeQueryToolDefinition returns the ToolDefinition for time query
+// timeQueryToolDefinition returns the ToolDefinition for time query
 // using llm types, with translated descriptions.
 //
 // This tool takes no parameters — the LLM simply calls it to get the
 // current local time with timezone information.
-func TimeQueryToolDefinition(lang string) llm.ToolDefinition {
+func timeQueryToolDefinition(lang string) llm.ToolDefinition {
 	// Build the schema as a Go map and marshal it to JSON.
 	// Using json.Marshal ensures the description string is properly escaped
 	// (e.g., double quotes, newlines, etc.), so any translation content is safe.
@@ -62,6 +62,36 @@ func TimeQueryToolDefinition(lang string) llm.ToolDefinition {
 }
 
 // ExecuteTimeQuery performs the actual get current local time and returns the results.
-func ExecuteTimeQuery() (currentLocalTimeWithZone string) {
+func executeTimeQuery() (currentLocalTimeWithZone string) {
 	return getCurrentLocalTimeWithZone()
+}
+
+type TimeQueryToolImp struct {
+	def llm.ToolDefinition
+}
+
+func MakeTimeQueryTool(lang string) *TimeQueryToolImp {
+	return &TimeQueryToolImp{def: timeQueryToolDefinition(lang)}
+}
+
+var _ llm.ToolIMP = (*TimeQueryToolImp)(nil)
+
+func (f *TimeQueryToolImp) GetName() string {
+	return TimeQueryToolName
+}
+
+func (f *TimeQueryToolImp) GetDefinition() llm.ToolDefinition {
+	return f.def
+}
+
+func (f *TimeQueryToolImp) SetArgument(arguments string) error {
+	return nil
+}
+
+func (f *TimeQueryToolImp) GetPendingText() string {
+	return ""
+}
+
+func (f *TimeQueryToolImp) Execute() (string, error) {
+	return getCurrentLocalTimeWithZone(), nil
 }

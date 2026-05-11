@@ -40,7 +40,6 @@ func main() {
 			BaseURL:               "https://api.deepseek.com/beta",
 			Model:                 "deepseek-v4-flash",
 			MaxToolCallIterations: 9,
-			ThinkingEnabled:       true,
 		},
 		WebSearch: config.WebSearchConfig{
 			Provider: os.Getenv("SEARCHER_PROVIDER"),

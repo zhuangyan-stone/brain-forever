@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"BrainOnline/internal/agent/toolcalls"
+	"BrainOnline/internal/agent/toolimp"
 )
 
 // ============================================================
@@ -22,18 +22,25 @@ type Message struct {
 	Content string `json:"content"`         // Message content
 	Usage   *Usage `json:"usage,omitempty"` // Token usage (nil for user messages)
 
+	// Reasoning holds the deep thinking / reasoning chain content associated
+	// with this assistant message. Populated when deep_think is enabled.
+	// Used by the frontend to restore the reasoning area after page refresh.
+	Reasoning string `json:"reasoning,omitempty"`
+
 	// Sources holds web search result references associated with this message.
 	// Populated for assistant messages that involved web search.
 	// Used by the frontend to restore the sources-panel after page refresh.
-	Sources []toolcalls.WebSource `json:"sources,omitempty"`
+	Sources []toolimp.WebSource `json:"sources,omitempty"`
 
 	CreatedAt string `json:"created_at"` // UTC time string, e.g. "2026-05-02T16:30:00Z"
 }
 
 // ChatRequest is the chat request sent from the frontend
 type ChatRequest struct {
-	Message Message `json:"message"`
-	Stream  bool    `json:"stream"` // Always true
+	Message          Message `json:"message"`
+	Stream           bool    `json:"stream"` // Always true
+	DeepThink        bool    `json:"deep_think"`
+	WebSearchEnabled bool    `json:"web_search_enabled"`
 }
 
 // ============================================================
@@ -42,13 +49,14 @@ type ChatRequest struct {
 
 // SSEEvent is the SSE event sent to the frontend
 type SSEEvent struct {
-	Type       string                  `json:"type"`                  // text | sources | done | error
-	Content    string                  `json:"content,omitempty"`     // Used for text type
-	Sources    []toolcalls.TraitSource `json:"sources,omitempty"`     // Used for sources type (RAG sources)
-	WebSources []toolcalls.WebSource   `json:"web_sources,omitempty"` // Used for sources type (web search sources)
-	Usage      *Usage                  `json:"usage,omitempty"`       // Used for done type
-	Message    string                  `json:"message,omitempty"`     // Used for error type
-	MsgID      int64                   `json:"msg_id,omitempty"`      // Used for done type — ID of the user message
+	Type       string                `json:"type"`                  // reasoning | text | sources | done | error
+	Subject    string                `json:"subject,omitempty"`     // reasoning ->
+	Content    string                `json:"content,omitempty"`     // Used for text type
+	Sources    []toolimp.TraitSource `json:"sources,omitempty"`     // Used for sources type (RAG sources)
+	WebSources []toolimp.WebSource   `json:"web_sources,omitempty"` // Used for sources type (web search sources)
+	Usage      *Usage                `json:"usage,omitempty"`       // Used for done type
+	Message    string                `json:"message,omitempty"`     // Used for error type
+	MsgID      int64                 `json:"msg_id,omitempty"`      // Used for done type — ID of the user message
 }
 
 // Usage represents token usage
