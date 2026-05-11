@@ -178,7 +178,7 @@ initDeleteModal();
 window.addEventListener('DOMContentLoaded', restoreSession);
 
 // ============================================================
-// 输入面板自动折叠 — 持续滚动时折叠，聚焦/输入时恢复
+// 输入面板自动折叠 — 滚动刻度变化时折叠，聚焦/输入时恢复
 // ============================================================
 
 (function initInputCollapse() {
@@ -188,20 +188,11 @@ window.addEventListener('DOMContentLoaded', restoreSession);
 
     if (!chatContainer || !inputArea || !messageInput) return;
 
-    /** 滚动阈值（像素）— 约等于 15 行文本高度（按 1.5 行高 × 15 行 ≈ 22.5em ≈ 360px） */
-    const SCROLL_THRESHOLD = 360;
-
-    /** 连续滚动累计距离 */
-    let accumulatedScroll = 0;
-
     /** 是否已折叠 */
     let isCollapsed = false;
 
-    /** 上次滚动时间戳，用于判断是否连续滚动 */
-    let lastScrollTime = 0;
-
-    /** 连续滚动超时（毫秒）— 超过此时间无滚动则重置累计 */
-    const SCROLL_TIMEOUT = 1500;
+    /** 上一次记录的 activeTickIndex，用于检测刻度变化 */
+    let lastActiveTickIndex = state.activeTickIndex;
 
     /**
      * 折叠输入面板（隐藏 send-mode-corner 和 input-footer）
@@ -218,37 +209,20 @@ window.addEventListener('DOMContentLoaded', restoreSession);
     function restoreInputArea() {
         if (!isCollapsed) return;
         isCollapsed = false;
-        accumulatedScroll = 0;
         inputArea.classList.remove('collapsed');
     }
 
-    // ---- 滚动检测 ----
+    // ---- 滚动检测：当滚动刻度变化时折叠 ----
     chatContainer.addEventListener('scroll', () => {
-        // 已折叠时不再累计滚动距离
-        if (isCollapsed) return;
+        const currentTickIndex = state.activeTickIndex;
 
-        const now = Date.now();
-
-        // 如果距离上次滚动超过超时时间，重置累计
-        if (now - lastScrollTime > SCROLL_TIMEOUT) {
-            accumulatedScroll = 0;
-        }
-
-        lastScrollTime = now;
-
-        // 记录 scrollTop 变化来计算本次滚动距离
-        if (!chatContainer._lastScrollTop) {
-            chatContainer._lastScrollTop = chatContainer.scrollTop;
-        }
-
-        const delta = Math.abs(chatContainer.scrollTop - chatContainer._lastScrollTop);
-        chatContainer._lastScrollTop = chatContainer.scrollTop;
-
-        accumulatedScroll += delta;
-
-        // 当累计滚动距离超过阈值时触发折叠
-        if (accumulatedScroll >= SCROLL_THRESHOLD) {
-            collapseInputArea();
+        // 刻度变化时折叠，并记住新刻度
+        if (currentTickIndex !== lastActiveTickIndex) {
+            lastActiveTickIndex = currentTickIndex;
+            // 已折叠时不再重复触发
+            if (!isCollapsed) {
+                collapseInputArea();
+            }
         }
     });
 
@@ -271,5 +245,5 @@ window.addEventListener('DOMContentLoaded', restoreSession);
         sendBtn.addEventListener('click', restoreInputArea);
     }
 
-    console.log('[input-collapse] 输入面板自动折叠功能已初始化');
+    console.log('[input-collapse] 输入面板自动折叠功能已初始化（基于滚动刻度变化）');
 })();
