@@ -67,11 +67,12 @@ func executeTimeQuery() (currentLocalTimeWithZone string) {
 }
 
 type TimeQueryToolImp struct {
-	def llm.ToolDefinition
+	def  llm.ToolDefinition
+	lang string
 }
 
 func MakeTimeQueryTool(lang string) *TimeQueryToolImp {
-	return &TimeQueryToolImp{def: timeQueryToolDefinition(lang)}
+	return &TimeQueryToolImp{def: timeQueryToolDefinition(lang), lang: lang}
 }
 
 var _ llm.ToolIMP = (*TimeQueryToolImp)(nil)
@@ -89,7 +90,7 @@ func (f *TimeQueryToolImp) SetArgument(arguments string) error {
 }
 
 func (f *TimeQueryToolImp) GetPendingText() string {
-	return ""
+	return i18n.TL(f.lang, "time_query_tool_pending")
 }
 
 func (f *TimeQueryToolImp) Execute() (string, error) {

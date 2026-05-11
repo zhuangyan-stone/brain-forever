@@ -18,3 +18,6 @@ other = "设置工具参数失败：{{.Error}}"
 
 [web_search_tool_searching]
 other = "正在搜索"
+
+[time_query_tool_pending]
+other = "让我看一下当前时间……"
