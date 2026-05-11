@@ -79,15 +79,15 @@ type LLMClient interface {
 }
 
 // ============================================================
-// RawClientConfig — generic config for creating an LLM client instance
+// ClientConfig — generic config for creating an LLM client instance
 //
 // This struct is used by factory functions (e.g. NewDeepSeekRawFromConfig)
 // to create a concrete LLM client. DeepSeek-specific fields (e.g. Thinking)
 // are handled internally by the implementation.
 // ============================================================
 
-// RawClientConfig contains common configuration for creating an LLM client.
-type RawClientConfig struct {
+// ClientConfig contains common configuration for creating an LLM client.
+type ClientConfig struct {
 	APIKey                string       // API key, if empty reads from EnvKey env var
 	BaseURL               string       // API base URL (e.g., "https://api.deepseek.com")
 	Model                 string       // Model name (e.g., "deepseek-chat")
