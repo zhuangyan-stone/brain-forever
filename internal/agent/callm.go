@@ -56,6 +56,12 @@ func (atc *pipelineImp) OnReasoning(reasoning string) {
 	})
 }
 
+func (atc *pipelineImp) OnReasoningEnd() {
+	atc.sseWriter.WriteEvent(SSEEvent{
+		Type: "reasoning_end",
+	})
+}
+
 func (atc *pipelineImp) OnToolReasoning(subject, toolName, text string) {
 	atc.sseWriter.WriteEvent(SSEEvent{
 		Type:    "reasoning",
