@@ -372,7 +372,7 @@ function startReasoningTimer(titleEl) {
 function stopReasoningTimer(titleEl) {
     if (reasoningStartTime && titleEl) {
         const elapsed = Date.now() - reasoningStartTime;
-        const prefix = sessionDeepThinkingEnabled ? '深度思考完成' : '思考完成';
+        const prefix = '思考完成';
         titleEl.textContent = `${prefix} (${formatReasoningTime(elapsed)})`;
     }
     reasoningStartTime = null;
@@ -399,7 +399,6 @@ function getOrCreateReasoningArea(assistantBubble) {
 
 /**
  * 创建 reasoning 区域（含标题栏和内容区）
- * 标题根据 sessionDeepThinkingEnabled 区分"正在深度思考……"和"正在思考……"
  * @param {HTMLElement} assistantBubble
  * @returns {HTMLElement} reasoning-area 元素
  */
@@ -416,11 +415,11 @@ function createReasoningArea(assistantBubble) {
         roleLabel.style.display = 'none';
     }
 
-    const titleText = sessionDeepThinkingEnabled ? '正在深度思考……' : '正在思考……';
+    const titleText = '正在思考……';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
             <span class="reasoning-toggle" title="折叠思考过程">▶</span>
-            <span class="reasoning-icon">⛓️</span>
+            <span class="reasoning-icon">🤖</span>
             <span class="reasoning-role-badge">AI</span>
             <span class="reasoning-title">${titleText}</span>
         </div>
@@ -468,7 +467,7 @@ function toggleReasoningCollapse(headerEl) {
         // 使用 ▶ 作为基础字符，展开时通过 CSS transform: rotate(90deg) 变为 ▼
         // 折叠时 transform: rotate(0deg) 保持 ▶ — 与 sources-panel 完全一致
         toggleBtn.textContent = '▶';
-        toggleBtn.title = isCollapsed ? '展开思考过程' : '折叠思考过程';
+        toggleBtn.title = isCollapsed ? '展开思考内容' : '折叠思考内容';
     }
 }
 
@@ -1062,7 +1061,7 @@ function addMessage(role, content, isStreaming = false) {
     // 角色标签
     const label = document.createElement('div');
     label.className = 'role-label';
-    label.textContent = role === 'user' ? '我' : 'AI';
+    label.textContent = role === 'user' ? '我' : '🤖 AI';
     if (role === 'assistant') {
         label.classList.add('role-label-ai');
     }
@@ -1289,16 +1288,18 @@ function showSources(sources, type) {
                 itemsContainer.appendChild(item);
             });
 
-            // 重建圆点导航
+            // 重建圆点导航（仅当有多页时显示）
             dotsNav.innerHTML = '';
-            for (let i = 0; i < totalPages; i++) {
-                const dot = document.createElement('span');
-                dot.className = 'sources-pagination-dot' + (i === currentPage ? ' active' : '');
-                dot.dataset.page = i;
-                dot.addEventListener('click', () => {
-                    renderPage(i);
-                });
-                dotsNav.appendChild(dot);
+            if (totalPages > 1) {
+                for (let i = 0; i < totalPages; i++) {
+                    const dot = document.createElement('span');
+                    dot.className = 'sources-pagination-dot' + (i === currentPage ? ' active' : '');
+                    dot.dataset.page = i;
+                    dot.addEventListener('click', () => {
+                        renderPage(i);
+                    });
+                    dotsNav.appendChild(dot);
+                }
             }
         }
 
@@ -1474,11 +1475,11 @@ function restoreReasoningArea(assistantBubble, reasoningText, wasDeepThink) {
     // 创建 reasoning 区域（默认折叠）
     const reasoningArea = document.createElement('div');
     reasoningArea.className = 'reasoning-area done collapsed';
-    const titleText = wasDeepThink ? '深度思考完成' : '思考完成';
+    const titleText = '思考完成';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
             <span class="reasoning-toggle" title="折叠思考过程">▶</span>
-            <span class="reasoning-icon">⛓️</span>
+            <span class="reasoning-icon">🤖</span>
             <span class="reasoning-role-badge">AI</span>
             <span class="reasoning-title">${titleText}</span>
         </div>
