@@ -297,9 +297,11 @@
     padding: 4px 12px 8px 12px;
 }
 
-/* reasoning 内容中的 Markdown 段落 — 紧凑间距 */
+/* reasoning 内容中的 Markdown 段落 */
 .reasoning-content p {
-    margin: 0 0 4px 0;
+    margin: 4px 0 12px 4px;
+    border-left: 1px dotted #a0a1a7;
+    padding: 0 0 0 8px;
 }
 .reasoning-content p:last-child {
     margin-bottom: 0;
@@ -308,7 +310,7 @@
 /* reasoning 内容中的列表 — 与段落文本左对齐 */
 .reasoning-content ul,
 .reasoning-content ol {
-    padding-left: 20px;
+    padding-left: 28px;
     margin: 2px 0 4px 0;
 }
 .reasoning-content li {
@@ -339,10 +341,11 @@
     font-size: 0.82em;
 }
 
-/* reasoning 内容中的引用块 — 紧凑 */
+/* reasoning 内容中的引用块 — 紧凑，无左边框（blockquote 本身用于缩进/引用，不需要额外的 border-left） */
 .reasoning-content blockquote {
     margin: 4px 0;
     padding: 4px 10px;
+    border-left: none;
 }
 
 /* reasoning 内容中的水平线 — 紧凑 */
@@ -374,7 +377,7 @@
     margin: 2px 0;
     padding: 2px 8px 2px 12px;
     font-size: 0.82rem;
-    border-left-color: var(--accent);
+    border-left: none;
     opacity: 0.9;
 }
 
