@@ -90,7 +90,7 @@ func InitLLMClient(cfg config.ChatLLMConfig) llm.LLMClient {
 	}
 
 	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{
-		RawClientConfig: llm.RawClientConfig{
+		ClientConfig: llm.ClientConfig{
 			EnvKey:                envKey,
 			BaseURL:               baseURL,
 			Model:                 model,
