@@ -695,6 +695,43 @@
 }
 
 /* ============================================================
+    输入区域折叠状态 — 持续滚动时自动折叠，仅保留输入框
+    ============================================================ */
+
+.input-area.collapsed {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    box-shadow: none;
+    border-radius: var(--radius);
+    background: var(--bg-secondary);
+    transition: padding 0.25s ease, margin-bottom 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.input-area.collapsed .send-mode-corner,
+.input-area.collapsed .input-footer {
+    display: none;
+}
+
+.input-area.collapsed .input-wrapper {
+    border-color: var(--border);
+    padding: 4px 10px;
+    transition: padding 0.25s ease;
+}
+
+.input-area.collapsed .message-input {
+    max-height: 60px;
+    font-size: 0.9rem;
+    transition: font-size 0.25s ease, max-height 0.25s ease;
+}
+
+/* 折叠状态下的输入框占位符提示 — 提示用户点击恢复 */
+.input-area.collapsed .message-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* ============================================================
     滚动条样式（Firefox 风格细滚动条）
     ============================================================ */
 

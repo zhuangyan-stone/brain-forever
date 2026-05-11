@@ -176,3 +176,100 @@ initDeleteModal();
 
 // 页面加载后先恢复会话
 window.addEventListener('DOMContentLoaded', restoreSession);
+
+// ============================================================
+// 输入面板自动折叠 — 持续滚动时折叠，聚焦/输入时恢复
+// ============================================================
+
+(function initInputCollapse() {
+    const chatContainer = document.getElementById('chatContainer');
+    const inputArea = document.querySelector('.input-area');
+    const messageInput = document.getElementById('messageInput');
+
+    if (!chatContainer || !inputArea || !messageInput) return;
+
+    /** 滚动阈值（像素）— 约等于 15 行文本高度（按 1.5 行高 × 15 行 ≈ 22.5em ≈ 360px） */
+    const SCROLL_THRESHOLD = 360;
+
+    /** 连续滚动累计距离 */
+    let accumulatedScroll = 0;
+
+    /** 是否已折叠 */
+    let isCollapsed = false;
+
+    /** 上次滚动时间戳，用于判断是否连续滚动 */
+    let lastScrollTime = 0;
+
+    /** 连续滚动超时（毫秒）— 超过此时间无滚动则重置累计 */
+    const SCROLL_TIMEOUT = 1500;
+
+    /**
+     * 折叠输入面板（隐藏 send-mode-corner 和 input-footer）
+     */
+    function collapseInputArea() {
+        if (isCollapsed) return;
+        isCollapsed = true;
+        inputArea.classList.add('collapsed');
+    }
+
+    /**
+     * 恢复输入面板（显示所有内容）
+     */
+    function restoreInputArea() {
+        if (!isCollapsed) return;
+        isCollapsed = false;
+        accumulatedScroll = 0;
+        inputArea.classList.remove('collapsed');
+    }
+
+    // ---- 滚动检测 ----
+    chatContainer.addEventListener('scroll', () => {
+        // 已折叠时不再累计滚动距离
+        if (isCollapsed) return;
+
+        const now = Date.now();
+
+        // 如果距离上次滚动超过超时时间，重置累计
+        if (now - lastScrollTime > SCROLL_TIMEOUT) {
+            accumulatedScroll = 0;
+        }
+
+        lastScrollTime = now;
+
+        // 记录 scrollTop 变化来计算本次滚动距离
+        if (!chatContainer._lastScrollTop) {
+            chatContainer._lastScrollTop = chatContainer.scrollTop;
+        }
+
+        const delta = Math.abs(chatContainer.scrollTop - chatContainer._lastScrollTop);
+        chatContainer._lastScrollTop = chatContainer.scrollTop;
+
+        accumulatedScroll += delta;
+
+        // 当累计滚动距离超过阈值时触发折叠
+        if (accumulatedScroll >= SCROLL_THRESHOLD) {
+            collapseInputArea();
+        }
+    });
+
+    // ---- 恢复条件 1：输入框获得焦点 ----
+    messageInput.addEventListener('focus', restoreInputArea);
+
+    // ---- 恢复条件 2：输入框内容变化（用户开始输入） ----
+    messageInput.addEventListener('input', restoreInputArea);
+
+    // ---- 恢复条件 3：点击输入区域任意位置 ----
+    inputArea.addEventListener('click', (e) => {
+        if (isCollapsed) {
+            messageInput.focus();
+        }
+    });
+
+    // ---- 当发送消息后恢复 ----
+    const sendBtn = document.getElementById('sendBtn');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', restoreInputArea);
+    }
+
+    console.log('[input-collapse] 输入面板自动折叠功能已初始化');
+})();
