@@ -120,6 +120,12 @@ type WebSearchToolImp struct {
 	WebPages []WebSource
 }
 
+// ResetWebPages clears the accumulated web pages.
+// This should be called before a new round of tool calls begins.
+func (imp *WebSearchToolImp) ResetWebPages() {
+	imp.WebPages = nil
+}
+
 var _ llm.ToolIMP = (*WebSearchToolImp)(nil)
 
 func MakeWebSearchTool(ctx context.Context, searcher WebSearcher, lang string) *WebSearchToolImp {
@@ -153,6 +159,14 @@ func (imp *WebSearchToolImp) Execute() (result string, err error) {
 		return "", fmt.Errorf("call %s with empty query", WebSearchToolName)
 	}
 
-	result, imp.WebPages, err = executeWebSearch(imp.ctx, imp.searcher, imp.q)
+	// Execute the web search
+	var pages []WebSource
+	result, pages, err = executeWebSearch(imp.ctx, imp.searcher, imp.q)
+	if err != nil {
+		return "", err
+	}
+
+	// Accumulate results across multiple tool calls in the same thinking process
+	imp.WebPages = append(imp.WebPages, pages...)
 	return
 }
