@@ -410,11 +410,18 @@ function createReasoningArea(assistantBubble) {
     reasoningArea = getOrCreateReasoningArea(assistantBubble);
     reasoningArea.className = 'reasoning-area active';
 
+    // 隐藏独立的 AI 角色标签，将其合并到 reasoning-header 中
+    const roleLabel = assistantBubble.querySelector('.role-label-ai');
+    if (roleLabel) {
+        roleLabel.style.display = 'none';
+    }
+
     const titleText = sessionDeepThinkingEnabled ? '正在深度思考……' : '正在思考……';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
             <span class="reasoning-toggle" title="折叠思考过程">▶</span>
-            <span class="reasoning-icon">🤔</span>
+            <span class="reasoning-icon">⛓️</span>
+            <span class="reasoning-role-badge">AI</span>
             <span class="reasoning-title">${titleText}</span>
         </div>
         <div class="reasoning-content"></div>
@@ -1056,6 +1063,9 @@ function addMessage(role, content, isStreaming = false) {
     const label = document.createElement('div');
     label.className = 'role-label';
     label.textContent = role === 'user' ? '我' : 'AI';
+    if (role === 'assistant') {
+        label.classList.add('role-label-ai');
+    }
     inner.appendChild(label);
 
     // 气泡
@@ -1455,14 +1465,21 @@ async function restoreSession() {
 function restoreReasoningArea(assistantBubble, reasoningText, wasDeepThink) {
     if (!assistantBubble || !reasoningText) return;
 
-    // 创建 reasoning 区域
+    // 隐藏独立的 AI 角色标签，将其合并到 reasoning-header 中
+    const roleLabel = assistantBubble.querySelector('.role-label-ai');
+    if (roleLabel) {
+        roleLabel.style.display = 'none';
+    }
+
+    // 创建 reasoning 区域（默认折叠）
     const reasoningArea = document.createElement('div');
-    reasoningArea.className = 'reasoning-area done';
+    reasoningArea.className = 'reasoning-area done collapsed';
     const titleText = wasDeepThink ? '深度思考完成' : '思考完成';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
             <span class="reasoning-toggle" title="折叠思考过程">▶</span>
-            <span class="reasoning-icon">🤔</span>
+            <span class="reasoning-icon">⛓️</span>
+            <span class="reasoning-role-badge">AI</span>
             <span class="reasoning-title">${titleText}</span>
         </div>
         <div class="reasoning-content">${renderMarkdown(reasoningText)}</div>

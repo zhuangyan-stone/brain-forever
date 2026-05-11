@@ -232,6 +232,14 @@
     max-width: 100%;
 }
 
+/* AI 角色徽章 — 合并到 reasoning-header 中，替代独立的 role-label */
+.reasoning-role-badge {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+
 .reasoning-header:hover .reasoning-toggle {
     opacity: 1;
 }
