@@ -190,7 +190,8 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		req.Message.ID,
 		messages,
 		toolsImp,
-		req.DeepThink)
+		req.DeepThink,
+		lang)
 }
 
 // ============================================================
