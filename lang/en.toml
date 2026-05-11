@@ -21,3 +21,6 @@ other = "Searching"
 
 [time_query_tool_pending]
 other = "Let me check the current time..."
+
+[server_error]
+other = "Oops! Server error!\n{{.Error}}"

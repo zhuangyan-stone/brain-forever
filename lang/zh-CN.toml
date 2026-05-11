@@ -21,3 +21,6 @@ other = "正在搜索"
 
 [time_query_tool_pending]
 other = "让我看一下当前时间……"
+
+[server_error]
+other = "哎呀！服务端出错啦！\n{{.Error}}"
