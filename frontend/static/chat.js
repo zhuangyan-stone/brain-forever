@@ -475,172 +475,200 @@ function toggleReasoningCollapse(headerEl) {
 // SSE 事件处理
 // ============================================================
 
+/**
+ * 确保 reasoning 区域存在，返回其 content 元素
+ */
+function ensureReasoningContent(assistantBubble) {
+    let reasoningArea = assistantBubble.querySelector('.reasoning-area');
+    if (!reasoningArea) {
+        reasoningArea = createReasoningArea(assistantBubble);
+    }
+    return reasoningArea.querySelector('.reasoning-content');
+}
+
+/**
+ * 对 reasoning-content 元素执行节流渲染
+ */
+function scheduleReasoningRender(contentEl) {
+    if (!contentEl.renderTimer) {
+        contentEl.renderTimer = setTimeout(() => {
+            contentEl.renderTimer = null;
+            contentEl.innerHTML = renderMarkdown(contentEl.rawText);
+            scrollToBottom();
+        }, RENDER_INTERVAL);
+    }
+}
+
+/**
+ * 将 reasoning 区域标记为"思考完成"：停止计时器、移除 active、添加 done、立即最终渲染
+ */
+function finalizeReasoningArea(assistantBubble) {
+    const area = assistantBubble.querySelector('.reasoning-area.active');
+    if (!area) return;
+
+    const titleEl = area.querySelector('.reasoning-title');
+    if (titleEl) {
+        stopReasoningTimer(titleEl);
+    }
+    area.classList.remove('active');
+    area.classList.add('done');
+
+    const contentEl = area.querySelector('.reasoning-content');
+    if (contentEl) {
+        if (contentEl.renderTimer) {
+            clearTimeout(contentEl.renderTimer);
+            contentEl.renderTimer = null;
+        }
+        if (contentEl.rawText) {
+            contentEl.innerHTML = renderMarkdown(contentEl.rawText);
+        }
+    }
+}
+
+/**
+ * 停止所有 web-search-hint 的闪烁动画
+ */
+function stopSearchHintsAnimation(assistantBubble) {
+    const hints = assistantBubble.querySelectorAll('.web-search-hint');
+    hints.forEach(h => h.style.animation = 'none');
+}
+
+/**
+ * 对 contentDiv 执行节流渲染（累积 Markdown → HTML）
+ */
+function scheduleContentRender(contentDiv) {
+    if (!renderTimer) {
+        renderTimer = setTimeout(() => {
+            renderTimer = null;
+            contentDiv.innerHTML = renderMarkdown(accumulatedMarkdown);
+            scrollToBottom();
+        }, RENDER_INTERVAL);
+    }
+}
+
+/**
+ * 处理 reasoning 事件
+ */
+function handleReasoningEvent(event, assistantBubble) {
+    const contentEl = ensureReasoningContent(assistantBubble);
+    if (!contentEl || !event.content) return;
+
+    if (!contentEl.rawText) contentEl.rawText = '';
+
+    if (event.subject === 'tool-pending') {
+        // tool-pending：显示工具调用提示（带图标）
+        const icon = getToolIcon(event.tool);
+        contentEl.rawText += `\n> ${icon} ${event.content}\n`;
+    } else {
+        // 真正的 LLM 思考内容
+        contentEl.rawText += event.content;
+    }
+
+    scheduleReasoningRender(contentEl);
+}
+
+/**
+ * 处理 text 事件
+ */
+function handleTextEvent(event, assistantBubble, contentDiv) {
+    // AI 开始正式回复 → 如果存在 reasoning 区域，标记为"思考完成"
+    finalizeReasoningArea(assistantBubble);
+
+    // 停止搜索提示的闪烁动画
+    stopSearchHintsAnimation(assistantBubble);
+
+    // 累积原始 Markdown，实时渲染为 HTML（带节流）
+    if (contentDiv) {
+        accumulatedMarkdown += event.content;
+        contentDiv.classList.add('streaming');
+        scheduleContentRender(contentDiv);
+    }
+}
+
+/**
+ * 处理 sources 事件
+ */
+function handleSourcesEvent(event) {
+    if (event.sources) {
+        showSources(event.sources, 'rag');
+    }
+    if (event.web_sources) {
+        showSources(event.web_sources, 'web');
+    }
+}
+
+/**
+ * 处理 done 事件
+ */
+function handleDoneEvent(event, assistantBubble, contentDiv) {
+    // 流结束：如果 reasoning 区域仍处于 active 状态（没有 text 事件），标记为完成
+    finalizeReasoningArea(assistantBubble);
+
+    // 停止搜索提示的闪烁动画（安全兜底）
+    stopSearchHintsAnimation(assistantBubble);
+
+    // 流结束：确保最后一次渲染完成，保存纯文本到 messages
+    if (!contentDiv) return;
+
+    contentDiv.classList.remove('streaming');
+    // 清除未执行的节流定时器，立即做最终渲染
+    if (renderTimer) {
+        clearTimeout(renderTimer);
+        renderTimer = null;
+    }
+    // 最终渲染为 HTML
+    contentDiv.innerHTML = renderMarkdown(accumulatedMarkdown);
+    // 启用所有复制按钮（流已结束）
+    enableCopyButtons(assistantBubble);
+    // 后端返回的消息 ID（前端之前传 0，由后端分配）
+    const msgId = event.msg_id || 0;
+    if (msgId) {
+        // 更新本地 messages 数组中最新一条 id===0 的用户消息的 ID
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'user' && messages[i].id === 0) {
+                messages[i].id = msgId;
+                break;
+            }
+        }
+        // 将 data-msg-id 设置在 message-group 上（同一组的 user 和 assistant 共享同一 ID）
+        const group = assistantBubble.closest('.message-group');
+        if (group) {
+            group.dataset.msgId = msgId;
+        }
+    }
+    // AI 回复复用用户消息的 ID（source ID）
+    const usage = event.usage || null;
+    messages.push({ role: 'assistant', content: accumulatedMarkdown, id: msgId, usage });
+    // 显示 token 用量信息
+    if (event.usage) {
+        showTokenUsage(assistantBubble, event.usage);
+    }
+    // 重置累积变量，为下一次流式做准备
+    accumulatedMarkdown = '';
+    scrollToBottom();
+}
+
 function handleSSEEvent(event, assistantBubble) {
     const contentDiv = assistantBubble.querySelector('.bubble');
 
     switch (event.type) {
         case 'reasoning':
-            // reasoning 事件有两种 subject：
-            //   1. subject=""（空串）：真正的 LLM 思考内容
-            //   2. subject="tool-pending"：LLM 决定调用某个工具
-            if (event.subject === 'tool-pending') {
-                // ---- tool-pending：显示工具调用提示 ----
-                let reasoningArea = assistantBubble.querySelector('.reasoning-area');
-                if (!reasoningArea) {
-                    reasoningArea = createReasoningArea(assistantBubble);
-                }
-                const contentEl = reasoningArea.querySelector('.reasoning-content');
-                if (contentEl && event.content) {
-                    if (!contentEl.rawText) contentEl.rawText = '';
-                    // 根据工具名称选择图标
-                    const icon = getToolIcon(event.tool);
-                    // 添加为独立一行（使用 blockquote 风格，但用自定义类以便样式控制）
-                    contentEl.rawText += `\n> ${icon} ${event.content}\n`;
-                    // 节流渲染
-                    if (!contentEl.renderTimer) {
-                        contentEl.renderTimer = setTimeout(() => {
-                            contentEl.renderTimer = null;
-                            contentEl.innerHTML = renderMarkdown(contentEl.rawText);
-                            scrollToBottom();
-                        }, RENDER_INTERVAL);
-                    }
-                }
-            } else {
-                // ---- 真正的 LLM 思考内容（subject=""） ----
-                let reasoningArea = assistantBubble.querySelector('.reasoning-area');
-                if (!reasoningArea) {
-                    reasoningArea = createReasoningArea(assistantBubble);
-                }
-                if (event.content) {
-                    const contentEl = reasoningArea.querySelector('.reasoning-content');
-                    if (contentEl) {
-                        if (!contentEl.rawText) contentEl.rawText = '';
-                        contentEl.rawText += event.content;
-                        // 节流渲染
-                        if (!contentEl.renderTimer) {
-                            contentEl.renderTimer = setTimeout(() => {
-                                contentEl.renderTimer = null;
-                                contentEl.innerHTML = renderMarkdown(contentEl.rawText);
-                                scrollToBottom();
-                            }, RENDER_INTERVAL);
-                        }
-                    }
-                }
-            }
+            handleReasoningEvent(event, assistantBubble);
             break;
 
         case 'text':
-            // AI 开始正式回复 → 如果存在 reasoning 区域，标记为"思考完成"
-            const textReasoningArea = assistantBubble.querySelector('.reasoning-area.active');
-            if (textReasoningArea) {
-                const titleEl = textReasoningArea.querySelector('.reasoning-title');
-                if (titleEl) {
-                    stopReasoningTimer(titleEl);
-                }
-                textReasoningArea.classList.remove('active');
-                textReasoningArea.classList.add('done');
-            }
-
-            // 停止搜索提示的闪烁动画
-            const hints = assistantBubble.querySelectorAll('.web-search-hint');
-            hints.forEach(h => h.style.animation = 'none');
-
-            // 累积原始 Markdown，实时渲染为 HTML（带节流）
-            if (contentDiv) {
-                accumulatedMarkdown += event.content;
-                contentDiv.classList.add('streaming');
-
-                // 节流渲染：RENDER_INTERVAL 毫秒内最多渲染一次
-                if (!renderTimer) {
-                    renderTimer = setTimeout(() => {
-                        renderTimer = null;
-                        contentDiv.innerHTML = renderMarkdown(accumulatedMarkdown);
-                        scrollToBottom();
-                    }, RENDER_INTERVAL);
-                }
-            }
+            handleTextEvent(event, assistantBubble, contentDiv);
             break;
 
         case 'sources':
-            // 显示引用来源（知识库引用或联网搜索结果）
-            if (event.sources) {
-                showSources(event.sources, 'rag');
-            }
-            if (event.web_sources) {
-                showSources(event.web_sources, 'web');
-            }
+            handleSourcesEvent(event);
             break;
 
-case 'done':
-    // 流结束：如果 reasoning 区域仍处于 active 状态（没有 text 事件），标记为完成
-    const doneReasoningArea = assistantBubble.querySelector('.reasoning-area.active');
-    if (doneReasoningArea) {
-        const titleEl = doneReasoningArea.querySelector('.reasoning-title');
-        if (titleEl) {
-            stopReasoningTimer(titleEl);
-        }
-        doneReasoningArea.classList.remove('active');
-        doneReasoningArea.classList.add('done');
-        // 清除 reasoning 节流定时器，立即做最终渲染
-        const doneContentEl = doneReasoningArea.querySelector('.reasoning-content');
-        if (doneContentEl) {
-            if (doneContentEl.renderTimer) {
-                clearTimeout(doneContentEl.renderTimer);
-                doneContentEl.renderTimer = null;
-            }
-            if (doneContentEl.rawText) {
-                doneContentEl.innerHTML = renderMarkdown(doneContentEl.rawText);
-            }
-        }
-    }
-
-    // 停止搜索提示的闪烁动画（安全兜底）
-    const doneHints = assistantBubble.querySelectorAll('.web-search-hint');
-    doneHints.forEach(h => h.style.animation = 'none');
-
-    // 流结束：确保最后一次渲染完成，保存纯文本到 messages
-    if (contentDiv) {
-        contentDiv.classList.remove('streaming');
-        // 清除未执行的节流定时器，立即做最终渲染
-        if (renderTimer) {
-            clearTimeout(renderTimer);
-            renderTimer = null;
-        }
-        // 最终渲染为 HTML
-        contentDiv.innerHTML = renderMarkdown(accumulatedMarkdown);
-        // 启用所有复制按钮（流已结束）
-        enableCopyButtons(assistantBubble);
-        // 后端返回的用户消息 ID（前端之前传 0，由后端分配）
-        const userMsgId = event.msg_id || 0;
-        if (userMsgId) {
-            // 更新本地 messages 数组中最新一条 id===0 的用户消息的 ID
-            for (let i = messages.length - 1; i >= 0; i--) {
-                if (messages[i].role === 'user' && messages[i].id === 0) {
-                    messages[i].id = userMsgId;
-                    break;
-                }
-            }
-            // 将 data-msg-id 设置在 message-group 上（同一组的 user 和 assistant 共享同一 ID）
-            const group = assistantBubble.closest('.message-group');
-            if (group) {
-                group.dataset.msgId = userMsgId;
-            }
-        }
-        // AI 回复复用用户消息的 ID（source ID）
-        const usage = event.usage || null;
-        messages.push({ role: 'assistant', content: accumulatedMarkdown, id: userMsgId, usage });
-        // 显示 token 用量信息
-        if (event.usage) {
-            showTokenUsage(assistantBubble, event.usage);
-        }
-        // 重置累积变量，为下一次流式做准备
-        accumulatedMarkdown = '';
-        scrollToBottom();
-    }
-    break;
+        case 'done':
+            handleDoneEvent(event, assistantBubble, contentDiv);
+            break;
 
         case 'error':
-            // 错误
             showError(assistantBubble, event.message);
             break;
 
