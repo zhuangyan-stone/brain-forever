@@ -9,7 +9,7 @@ import (
 	"BrainOnline/infra/embedder"
 	"BrainOnline/infra/llm"
 	"BrainOnline/infra/searcher"
-	"BrainOnline/internal/agent/toolcalls"
+	"BrainOnline/internal/agent/toolimp"
 	"BrainOnline/internal/config"
 	"BrainOnline/internal/store"
 )
@@ -101,7 +101,7 @@ func InitLLMClient(cfg config.ChatLLMConfig) llm.LLMClient {
 
 // InitWebSearchClient creates a web search client based on the given configuration.
 // Returns nil if the provider is empty or the API key is not set.
-func InitWebSearchClient(cfg config.WebSearchConfig) toolcalls.WebSearcher {
+func InitWebSearchClient(cfg config.WebSearchConfig) toolimp.WebSearcher {
 	provider := cfg.Provider
 	if provider == "" {
 		provider = os.Getenv("SEARCHER_PROVIDER")

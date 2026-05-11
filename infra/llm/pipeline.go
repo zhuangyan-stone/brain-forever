@@ -1,6 +1,6 @@
 package llm
 
-type AgentPiple interface {
+type Pipeline interface {
 	ToolCaller
 	SSEResponser
 }

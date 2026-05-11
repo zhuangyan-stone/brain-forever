@@ -107,14 +107,16 @@ func webSearchToolDefinition(lang string) llm.ToolDefinition {
 }
 
 type WebSearchToolImp struct {
+	ctx context.Context
+
 	def llm.ToolDefinition
 
-	ctx      context.Context
 	searcher WebSearcher
 	lang     string
 
 	q string
 
+	// result
 	WebPages []WebSource
 }
 
@@ -122,6 +124,7 @@ var _ llm.ToolIMP = (*WebSearchToolImp)(nil)
 
 func MakeWebSearchTool(ctx context.Context, searcher WebSearcher, lang string) *WebSearchToolImp {
 	return &WebSearchToolImp{
+		ctx:      ctx,
 		def:      webSearchToolDefinition(lang),
 		searcher: searcher,
 		lang:     lang,

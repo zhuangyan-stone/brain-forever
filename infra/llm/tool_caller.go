@@ -27,9 +27,8 @@ type ToolIMP interface {
 type ToolCaller interface {
 	GetToolDefines() []ToolDefinition
 
-	SetArgument(toolName, arguments string) error
-
-	Pending(toolName string)
+	// 设置函数调用入参（通常由LLM生成），必要的话，借助sse发送给前端
+	Pending(toolCallID, toolName string, arguments string) error
 
 	// Execute tool function and returns the result content.
 	// toolName is the function name (e.g., "web_search").

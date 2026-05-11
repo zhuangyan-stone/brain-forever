@@ -59,7 +59,7 @@ type LLMClient interface {
 	// allowed in the streaming loop before forcing a direct answer.
 	GetMaxToolCallIterations() int
 
-	// PerformLLMStreamingCall performs a streaming LLM call with tool support.
+	// ChatWithPipeline performs a streaming LLM call with tool support.
 	// If the LLM calls a tool (e.g. web_search), it executes the tool via the
 	// ToolExecutor, appends the tool result, and re-streams with the updated messages.
 	//
@@ -67,16 +67,15 @@ type LLMClient interface {
 	//   - ctx: context for cancellation
 	//   - callback: StreamCallback for receiving streaming events (text, reasoning, etc.)
 	//   - messages: the conversation messages (will be modified in-place during tool call loops)
-	//   - toolCaller: ToolCaller that executes tool calls (e.g., web_search)
-	//   - deepThink: enable deep thinking/reasoning mode for this request
+	//   - pipeline: 连接 agent 的前端 (sse client)和后端 (llm-api) 的数据，包括工具调用
+	//   - withDeepThink: enable deep thinking/reasoning mode for this request
 	//
 	// Returns the final assistant reply content and reasoning content.
-	PerformLLMStreamingCall(
+	ChatWithPipeline(
 		ctx context.Context,
 		messages []Message,
-		agent Agent,
-		deepThink bool,
-	) (fullReply string, reasoning string, err error)
+		pipeline Pipeline,
+		withDeepThink bool) (reply string, reasoning string, err error)
 }
 
 // ============================================================

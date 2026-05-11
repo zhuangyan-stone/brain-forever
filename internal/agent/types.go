@@ -49,8 +49,9 @@ type ChatRequest struct {
 
 // SSEEvent is the SSE event sent to the frontend
 type SSEEvent struct {
-	Type       string                `json:"type"`                  // reasoning | text | sources | done | error
-	Subject    string                `json:"subject,omitempty"`     // reasoning ->
+	Type       string                `json:"type"`              // reasoning | text | sources | done | error
+	Subject    string                `json:"subject,omitempty"` // reasoning -> "", "pend"
+	Tool       string                `json:"tool,omitempty"`
 	Content    string                `json:"content,omitempty"`     // Used for text type
 	Sources    []toolimp.TraitSource `json:"sources,omitempty"`     // Used for sources type (RAG sources)
 	WebSources []toolimp.WebSource   `json:"web_sources,omitempty"` // Used for sources type (web search sources)

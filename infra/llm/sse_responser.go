@@ -1,8 +1,9 @@
 package llm
 
 type SSEResponser interface {
-	OnReasoning(subject, text string)
-	OnWebSource(data any)
+	OnReasoning(reasoning string)
+	OnToolReasoning(subject, toolName, text string)
+
 	OnText(text string)
 	OnError(err error)
 }

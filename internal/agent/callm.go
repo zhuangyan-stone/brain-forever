@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"BrainOnline/infra/httpx/sse"
 	"BrainOnline/infra/llm"
 	"BrainOnline/internal/agent/toolimp"
+	"BrainOnline/toolset"
 )
 
 // ============================================================
@@ -17,63 +20,49 @@ import (
 // Tool implements llm.Agent.
 // It dispatches tool calls by name to the appropriate handler.
 // The returned messages are translated according to the handler's default language.
-type agentImp struct {
-	agent     *ChatAgent
-	sseWriter sse.Writer
-
+type pipelineImp struct {
 	ctx context.Context
+
+	agent     *ChatAgent
+	sseWriter *sse.Writer
 
 	tools map[string]llm.ToolIMP
 }
 
-var _ llm.Agent = (*agentImp)(nil)
+var _ llm.Pipeline = (*pipelineImp)(nil)
 
-func NewAgentImp()
+func MakePipeline(ctx context.Context, agent *ChatAgent, sseWriter *sse.Writer, tools []llm.ToolIMP) pipelineImp {
+	pipeline := pipelineImp{
+		ctx:       ctx,
+		agent:     agent,
+		sseWriter: sseWriter,
+		tools:     make(map[string]llm.ToolIMP, len(tools)),
+	}
 
-func (atc *agentImp) OnReasoning(subject, text string) {
+	for _, t := range tools {
+		pipeline.tools[t.GetName()] = t
+	}
+
+	return pipeline
+}
+
+func (atc *pipelineImp) OnReasoning(reasoning string) {
+	atc.sseWriter.WriteEvent(SSEEvent{
+		Type:    "reasoning",
+		Content: reasoning,
+	})
+}
+
+func (atc *pipelineImp) OnToolReasoning(subject, toolName, text string) {
 	atc.sseWriter.WriteEvent(SSEEvent{
 		Type:    "reasoning",
 		Subject: subject,
+		Tool:    toolName,
 		Content: text,
 	})
 }
 
-func (atc *agentImp) OnWebSource(data any) {
-	if data == nil {
-		return
-	}
-
-	sources := data.([]toolimp.WebSource)
-	if sources == nil {
-		return
-	}
-
-	dst := make([]toolimp.WebSource, 0, len(sources))
-	set := make(map[string]bool, len(sources))
-
-	for _, page := range sources {
-		if page.URL == "" {
-			dst = append(dst, page)
-			continue
-		}
-
-		if set[page.URL] {
-			continue
-		}
-
-		set[page.URL] = true
-		dst = append(dst, page)
-	}
-
-	if err := atc.sseWriter.WriteEvent(SSEEvent{
-		Type:       "sources",
-		WebSources: dst,
-	}); err != nil {
-		log.Printf("failed to write web sources event: %v", err)
-	}
-}
-
-func (atc *agentImp) OnText(text string) {
+func (atc *pipelineImp) OnText(text string) {
 	if err := atc.sseWriter.WriteEvent(SSEEvent{
 		Type:    "text",
 		Content: text,
@@ -82,7 +71,7 @@ func (atc *agentImp) OnText(text string) {
 	}
 }
 
-func (ate *agentImp) OnError(err error) {
+func (ate *pipelineImp) OnError(err error) {
 	e := ate.sseWriter.WriteEvent(SSEEvent{
 		Type:    "error",
 		Message: fmt.Sprintf("%v", err),
@@ -93,7 +82,45 @@ func (ate *agentImp) OnError(err error) {
 	}
 }
 
-func (atc *agentImp) GetToolDefines() []llm.ToolDefinition {
+func (atc *pipelineImp) OnWebSource(sources []toolimp.WebSource) {
+	if err := atc.sseWriter.WriteEvent(SSEEvent{
+		Type:       "sources",
+		WebSources: sources,
+	}); err != nil {
+		log.Printf("failed to write web sources event: %v", err)
+	}
+}
+
+func (ate *pipelineImp) GetWebSearchResult() (sources []toolimp.WebSource) {
+	urlSet := make(map[string]bool, 50)
+	sources = make([]toolimp.WebSource, 0, 50)
+
+	for _, tl := range ate.tools {
+		if tl.GetName() == toolimp.WebSearchToolName {
+			if searcherTl := tl.(*toolimp.WebSearchToolImp); searcherTl != nil {
+				// 去重
+				for _, page := range searcherTl.WebPages {
+					url := page.URL
+					if url == "" {
+						sources = append(sources, page)
+						continue
+					}
+
+					if urlSet[page.URL] {
+						continue
+					}
+
+					urlSet[url] = true
+					sources = append(sources, page)
+				}
+			}
+		}
+	}
+
+	return
+}
+
+func (atc *pipelineImp) GetToolDefines() []llm.ToolDefinition {
 	toolDefs := make([]llm.ToolDefinition, 0, len(atc.tools))
 
 	for _, imp := range atc.tools {
@@ -103,45 +130,25 @@ func (atc *agentImp) GetToolDefines() []llm.ToolDefinition {
 	return toolDefs
 }
 
-func (atc *agentImp) SetArgument(toolName, argument string) error {
+func (atc *pipelineImp) Pending(toolCallID, toolName string, argument string) error {
 	if imp, ok := atc.tools[toolName]; !ok {
-		return fmt.Errorf("Unknown tool '%s'", toolName)
-	} else {
-		return imp.SetArgument(argument)
-	}
-}
-
-func (atc *agentImp) Pending(toolName string) {
-	if imp, ok := atc.tools[toolName]; !ok {
-		return
+		return fmt.Errorf("unknown tool '%s'", toolName)
+	} else if err := imp.SetArgument(argument); err != nil {
+		return fmt.Errorf("set argument fail. tool: '%s'. argument: '%s'. %w", toolName, argument, err)
 	} else if pending := imp.GetPendingText(); pending == "" {
-		return
+		return nil
 	} else {
-		atc.OnReasoning("pending", pending)
+		atc.OnToolReasoning("tool-pending", toolName, pending)
 	}
+
+	return nil
 }
 
-func (atc *agentImp) Call(toolName, callID string) (string, error) {
+func (atc *pipelineImp) Call(toolCallID, toolName string) (string, error) {
 	if imp, ok := atc.tools[toolName]; !ok {
 		return "", fmt.Errorf("unknown tool '%s'", toolName)
 	} else if result, err := imp.Execute(); err != nil {
 		return "", err
-	} else if imp.GetName() == toolimp.WebSearchToolName {
-		if result == "" {
-			return "", nil // nofound
-		}
-
-		searchImp := imp.(*toolimp.WebSearchToolImp)
-		if searchImp == nil {
-			return "", fmt.Errorf("bad tool call. type miss '%s'", toolName)
-		}
-
-		if len(searchImp.WebPages) == 0 {
-			return "", nil // nofound
-		}
-
-		atc.OnWebSource(searchImp.WebPages)
-		return result, nil
 	} else {
 		return result, nil
 	}
@@ -151,28 +158,97 @@ func (atc *agentImp) Call(toolName, callID string) (string, error) {
 // LLM Streaming Call — delegates to DeepSeekRaw
 // ============================================================
 
-// performLLMStreamingCall performs a streaming LLM call with tool support.
-// It delegates to DeepSeekRaw.PerformLLMStreamingCall, which handles the
+// callLLMWithPipeline performs a streaming LLM call with tool support.
+// It delegates to DeepSeekRaw.ChatWithPipeline, which handles the
 // tool call loop internally.
-func (h *ChatAgent) performLLMStreamingCall(
+func (h *ChatAgent) callLLMWithPipeline(
 	ctx context.Context,
+	session *session,
 	sseWriter *sse.Writer,
-	requestMsgID int64,
-	messages_in []llm.Message,
+	userMsgID int64,
+	messages []llm.Message,
 	tools []llm.ToolIMP,
-	deepThink bool,
-) (fullReply string, messages_out []llm.Message, err error) {
+	withDeepThink bool,
+) {
+	// construct pipeline
+	pipeline := MakePipeline(ctx, h, sseWriter, tools)
 
 	// Delegate to DeepSeekRaw
-	reply, reasoningContent, err := h.charLLMClient.PerformLLMStreamingCall(ctx,
-		messages, tools, h, deepThink)
-
-	// Clear the collector
-	h.webPagesCollector = nil
+	reply, reasoning, err := h.charLLMClient.ChatWithPipeline(ctx,
+		messages, &pipeline, withDeepThink)
 
 	if err != nil {
-		return "", "", pages, err
+		pipeline.OnError(err) // 显示 “哎呀！服务端出错啦！\n %v”
 	}
 
-	return reply, reasoningContent, pages, nil
+	// 获取或手工（模拟）计算本次交互消耗的 tokens
+	isEstimated := true
+	var promptTokens, completionTokens int = -1, -1
+
+	if usage := h.charLLMClient.GetUsageInfo(); usage != nil {
+		if usage.PromptTokens > 0 || usage.CompletionTokens > 0 {
+			isEstimated = false
+		}
+
+		if usage.PromptTokens > 0 {
+			promptTokens = usage.PromptTokens
+		}
+		if usage.CompletionTokens > 0 {
+			completionTokens = usage.CompletionTokens
+		}
+	}
+
+	// If the API didn't provide token counts, use simple estimation
+	if promptTokens == -1 {
+		promptTokens = toolset.TokenEstimate(mergeMessagesContent(messages))
+	}
+	if completionTokens == -1 {
+		completionTokens = toolset.TokenEstimate(reply)
+	}
+
+	usage := &Usage{
+		PromptTokens:     promptTokens,
+		CompletionTokens: completionTokens,
+		TotalTokens:      promptTokens + completionTokens,
+		IsEstimated:      isEstimated,
+	}
+
+	// Append the LLM's full reply to the user's internal history
+	//     The AI reply reuses the user message's ID (source ID)
+	if len(reply) > 0 {
+		assistantMsg := Message{
+			ID:        userMsgID, // same as user message's id
+			Role:      "assistant",
+			Content:   reply,
+			Reasoning: reasoning,
+			CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+			Usage:     usage,
+		}
+
+		// Attach web search sources so they can be restored after page refresh
+		webPages := pipeline.GetWebSearchResult()
+
+		if len(webPages) > 0 {
+			assistantMsg.Sources = pipeline.GetWebSearchResult()
+		}
+
+		appendNewResponseMessage(session, &assistantMsg)
+
+		pipeline.OnWebSource(webPages)
+	}
+
+	sseWriter.WriteEvent(SSEEvent{
+		Type:  "done",
+		Usage: usage,
+		MsgID: userMsgID,
+	})
+}
+
+func mergeMessagesContent(messages []llm.Message) string {
+	var content strings.Builder
+	for _, msg := range messages {
+		content.WriteString(msg.Content)
+	}
+
+	return content.String()
 }

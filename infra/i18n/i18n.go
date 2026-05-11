@@ -121,11 +121,7 @@ func T(messageID string, templateData ...map[string]interface{}) string {
 
 // TL returns the localized string for the given message ID in the specified language.
 // templateData is optional and can be used to fill in template placeholders.
-//
-// Example:
-//
-//	i18n.TL("zh-CN", "system_prompt")
-//	i18n.TL("en", "search_no_results")
+
 func TL(lang, messageID string, templateData ...map[string]interface{}) string {
 	localizer := getLocalizer(lang)
 

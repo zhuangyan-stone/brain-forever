@@ -3,15 +3,12 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
-	"strings"
-	"time"
 
 	"BrainOnline/infra/httpx/sse"
 	"BrainOnline/infra/i18n"
 	"BrainOnline/infra/llm"
-	"BrainOnline/internal/agent/toolcalls"
+	"BrainOnline/internal/agent/toolimp"
 )
 
 // ============================================================
@@ -24,9 +21,9 @@ import (
 // The frontend only needs to send the user's latest message each time,
 // and ChatAgent merges history with new messages before sending to the actual LLM.
 type ChatAgent struct {
-	traitSearcher toolcalls.TraitSearcher // Personal knowledge base (RAG) search
-	webSearcher   toolcalls.WebSearcher   // Web search interface
-	charLLMClient llm.LLMClient           // LLM API client
+	traitSearcher toolimp.TraitSearcher // Personal knowledge base (RAG) search
+	webSearcher   toolimp.WebSearcher   // Web search interface
+	charLLMClient llm.LLMClient         // LLM API client
 
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
@@ -35,11 +32,6 @@ type ChatAgent struct {
 	// Used for translating system prompts, tool descriptions, and other
 	// content sent to the AI API and frontend.
 	defaultLang string
-
-	// webPagesCollector collects web search page results during a streaming LLM call.
-	// It is set before performLLMStreamingCall and read after the call returns to send
-	// web sources to the frontend.
-	// webPagesCollector *[]toolcalls.WebSource
 }
 
 // Close releases underlying resources held by the ChatHandler.
@@ -52,7 +44,7 @@ func (h *ChatAgent) Close() error {
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
-func NewChatHandler(traitSearcher toolcalls.TraitSearcher, webSearcher toolcalls.WebSearcher, llmClient llm.LLMClient, cookieName string, defaultLang string) *ChatAgent {
+func NewChatHandler(traitSearcher toolimp.TraitSearcher, webSearcher toolimp.WebSearcher, llmClient llm.LLMClient, cookieName string, defaultLang string) *ChatAgent {
 	if defaultLang == "" {
 		defaultLang = "en"
 	}
@@ -185,111 +177,20 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// 6. Build tool definitions with translated descriptions.
 	// time_query tool is always available.
 	// web_search tool is only provided when WebSearchEnabled is true.
-	timeQueryToolImp := toolcalls.MakeTimeQueryTool(lang)
+	timeQueryToolImp := toolimp.MakeTimeQueryTool(lang)
 	toolsImp := []llm.ToolIMP{timeQueryToolImp}
 
 	if req.WebSearchEnabled {
-		webSearchToolImp := toolcalls.MakeWebSearchTool(r.Context(), h.webSearcher, lang)
-		toolsImp = append(toolsImp, &webSearchToolImp)
+		webSearchToolImp := toolimp.MakeWebSearchTool(r.Context(), h.webSearcher, lang)
+		toolsImp = append(toolsImp, webSearchToolImp)
 	}
 
 	// 7. Stream with tool call handling
-	var fullReply string
-	var err error
-
-	fullReply, messages, err = h.performLLMStreamingCall(r.Context(),
-		sseWriter,
+	h.callLLMWithPipeline(r.Context(), session, sseWriter,
 		req.Message.ID,
 		messages,
 		toolsImp,
 		req.DeepThink)
-
-	if err != nil {
-		sseWriter.WriteEvent(SSEEvent{
-			Type:    "error",
-			Message: fmt.Sprintf("%v", err),
-		})
-		return
-	}
-
-	// Send web search sources event (if any)
-	if len(webPages) > 0 {
-		if err := sseWriter.WriteEvent(SSEEvent{
-			Type:       "sources",
-			WebSources: webPages,
-		}); err != nil {
-			log.Printf("failed to write web sources event: %v", err)
-		}
-	}
-
-	// 7. Determine token counts from the LLM client's usage info
-	isEstimated := true
-	var promptTokens, completionTokens int = -1, -1
-
-	if usage := h.charLLMClient.GetUsageInfo(); usage != nil {
-		if usage.PromptTokens > 0 || usage.CompletionTokens > 0 {
-			isEstimated = false
-		}
-
-		if usage.PromptTokens > 0 {
-			promptTokens = usage.PromptTokens
-		}
-		if usage.CompletionTokens > 0 {
-			completionTokens = usage.CompletionTokens
-		}
-	}
-
-	// If the API didn't provide token counts, use simple estimation
-	if promptTokens == -1 {
-		var content strings.Builder
-		for _, msg := range messages {
-			content.WriteString(msg.Content)
-		}
-		promptTokens = len(content.String()) / 4
-		if promptTokens < 1 {
-			promptTokens = 1
-		}
-	}
-
-	if completionTokens == -1 {
-		completionTokens = len(fullReply) / 4
-		if completionTokens < 1 {
-			completionTokens = 1
-		}
-	}
-
-	usage := &Usage{
-		PromptTokens:     promptTokens,
-		CompletionTokens: completionTokens,
-		TotalTokens:      promptTokens + completionTokens,
-		IsEstimated:      isEstimated,
-	}
-
-	// 8. Append the LLM's full reply to the user's internal history
-	//     The AI reply reuses the user message's ID (source ID)
-	if len(fullReply) > 0 {
-		assistantMsg := Message{
-			ID:        req.Message.ID, // same as user message's id
-			Role:      "assistant",
-			Content:   fullReply,
-			Reasoning: reasoning,
-			CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
-			Usage:     usage,
-		}
-		// Attach web search sources so they can be restored after page refresh
-		if len(webPages) > 0 {
-			assistantMsg.Sources = webPages
-		}
-
-		appendNewResponseMessage(session, &assistantMsg)
-	}
-
-	// 9. Send done event
-	sseWriter.WriteEvent(SSEEvent{
-		Type:  "done",
-		Usage: usage,
-		MsgID: req.Message.ID,
-	})
 }
 
 // ============================================================

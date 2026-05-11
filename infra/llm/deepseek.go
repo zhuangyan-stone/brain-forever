@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -298,20 +299,17 @@ func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatComp
 // ReasoningContent helpers — extract reasoning_content from streaming chunks
 // ============================================================
 
-// GetReasoningContent extracts the "reasoning_content" field from a ChatCompletionChunk.
+// GetReasoningContentFromChoice extracts the "reasoning_content" field from a ChunkChoice.
 // This is a DeepSeek-specific extension to the standard OpenAI streaming format.
-func GetReasoningContent(chunk ChatCompletionChunk) string {
-	if len(chunk.Choices) == 0 {
-		return ""
-	}
-	return chunk.Choices[0].Delta.ReasoningContent
+func GetReasoningContentFromChoice(choice ChunkChoice) string {
+	return choice.Delta.ReasoningContent
 }
 
 // ============================================================
-// PerformLLMStreamingCall — high-level streaming with tool support
+// ChatWithPipeline — high-level streaming with tool support
 // ============================================================
 
-// PerformLLMStreamingCall performs a streaming LLM call with tool support.
+// ChatWithPipeline performs a streaming LLM call with tool support.
 // If the LLM calls a tool (e.g. web_search), it executes the tool via the
 // ToolExecutor, appends the tool result, and re-streams with the updated messages.
 //
@@ -327,18 +325,17 @@ func GetReasoningContent(chunk ChatCompletionChunk) string {
 //   - executor: ToolExecutor that executes tool calls (e.g., web_search)
 //
 // Returns the final assistant reply content and reasoning content.
-func (c *DeepSeekClient) PerformLLMStreamingCall(
+func (c *DeepSeekClient) ChatWithPipeline(
 	ctx context.Context,
-	callback StreamEventCallback,
 	messages []Message,
-	toolCaller ToolCaller,
-	deepThink bool,
-) (fullReply string, reasoning string, err error) {
+	pipeline Pipeline,
+	withDeepThink bool) (reply string, reasoning string, err error) {
 
 	maxToolCallIterations := c.GetMaxToolCallIterations()
 	toolCallIterations := 0
 
-	toolDefs := toolCaller.GetToolDefines()
+	// 取出所有准备给LLM看的函数定义
+	toolDefs := pipeline.GetToolDefines()
 
 	for {
 		toolCallIterations++
@@ -355,7 +352,7 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 		// Set thinking mode based on the per-request deepThink flag.
 		// ChatStreamWithOptions will respect this if already set.
 		req.Thinking = &ThinkingConfig{Type: "enabled"}
-		if !deepThink {
+		if !withDeepThink {
 			req.Thinking.Type = "disabled"
 		}
 
@@ -366,15 +363,16 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 			req.DisableToolChoice()
 		}
 
+		// 开始连接
 		stream := c.ChatStreamWithOptions(ctx, req)
 		if stream.Err() != nil {
 			return "", "", fmt.Errorf("failed to call LLM API: client not initialized")
 		}
 
-		// Collect the full assistant response (text + reasoning + tool calls)
+		// Collect the full assistant response (text/reply + reasoning + tool calls)
 		var replyBuilder strings.Builder
 		var reasoningBuilder strings.Builder
-		var toolCalls []StreamingToolCall
+		var toolCalls []StreamingToolCall // llm 发起的函数调用信息，可能有多个
 		finishReason := ""
 
 		for stream.Next() {
@@ -385,59 +383,35 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 				c.SetUsageInfo(*chunk.Usage)
 			}
 
-			for _, choice := range chunk.Choices {
-				if choice.FinishReason != "" {
-					finishReason = choice.FinishReason
-				}
+			if len(chunk.Choices) == 0 {
+				err = errors.New("chunk's choices is empty")
+				return
+			}
 
-				// Collect tool call deltas (streaming tool calls come in chunks)
-				for _, tc := range choice.Delta.ToolCalls {
-					found := false
-					for i := range toolCalls {
-						if toolCalls[i].Index == tc.Index {
-							if tc.Function.Name != "" {
-								toolCalls[i].Name = tc.Function.Name
-							}
-							if tc.Function.Arguments != "" {
-								toolCalls[i].Arguments += tc.Function.Arguments
-							}
-							if tc.ID != "" {
-								toolCalls[i].ID = tc.ID
-							}
-							if tc.Type != "" {
-								toolCalls[i].Type = tc.Type
-							}
-							found = true
-							break
-						}
-					}
-					if !found {
-						toolCalls = append(toolCalls, StreamingToolCall{
-							Index:     tc.Index,
-							ID:        tc.ID,
-							Type:      tc.Type,
-							Name:      tc.Function.Name,
-							Arguments: tc.Function.Arguments,
-						})
-					}
-				}
+			choice := chunk.Choices[0]
 
-				// Extract reasoning_content
-				reasoningContent := GetReasoningContent(chunk)
-				if reasoningContent != "" {
-					if err := callback.OnReasoning(ctx, reasoningContent); err != nil {
-						return "", "", fmt.Errorf("failed to write reasoning event. %w", err)
-					}
-					reasoningBuilder.WriteString(reasoningContent)
-				}
+			if choice.FinishReason != "" {
+				finishReason = choice.FinishReason
+			}
 
-				// Forward text content
-				if choice.Delta.Content != "" {
-					if err := callback.OnText(ctx, choice.Delta.Content); err != nil {
-						return "", "", fmt.Errorf("failed to write text event. %w", err)
-					}
-					replyBuilder.WriteString(choice.Delta.Content)
-				}
+			// Collect tool call deltas (streaming tool calls come in chunks)
+			for _, tc := range choice.Delta.ToolCalls {
+				toolCalls = mergeToolCall(toolCalls, tc)
+			}
+
+			// Extract reasoning_content
+			reasoningContent := GetReasoningContentFromChoice(choice)
+			if reasoningContent != "" {
+				pipeline.OnReasoning(reasoningContent)
+				// 收集到 reasoning
+				reasoningBuilder.WriteString(reasoningContent)
+			}
+
+			// Forward text content
+			if choice.Delta.Content != "" {
+				pipeline.OnText(choice.Delta.Content)
+				// 收集到 reply 中
+				replyBuilder.WriteString(choice.Delta.Content)
 			}
 		}
 
@@ -458,6 +432,7 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 				assistantMsg.ReasoningContent = reasoningBuilder.String()
 			}
 
+			// 往助手消息中，添加对工具的调用
 			for _, tc := range toolCalls {
 				assistantMsg.ToolCalls = append(assistantMsg.ToolCalls, ToolCall{
 					ID:   tc.ID,
@@ -469,24 +444,21 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 				})
 			}
 
-			// Append the assistant message first
+			// Append the assistant message first (before tool messages)
 			messages = append(messages, assistantMsg)
 
 			// Execute each tool call via the ToolCallser
 			for _, tc := range toolCalls {
 				resultContent := ""
 
-				if argErr := toolCaller.SetArgument(tc.Name, tc.ID, tc.Arguments); argErr != nil {
+				if pendingErr := pipeline.Pending(tc.ID, tc.Name, tc.Arguments); pendingErr != nil {
 					resultContent = i18n.T("set_tool_argument_faild", map[string]interface{}{
-						"Error": argErr,
+						"Error": pendingErr,
 					})
 				} else {
-					if callReason := toolCaller.GetCallReason(tc.Name, tc.ID); callReason != "" {
-						callback.OnReasoning(ctx, callReason)
-					}
 					// Execute the tool via the caller
 					var execErr error
-					resultContent, execErr = toolCaller.Call(ctx, tc.Name, tc.ID, tc.Arguments)
+					resultContent, execErr = pipeline.Call(tc.ID, tc.Name)
 
 					if execErr != nil {
 						resultContent = i18n.T("tool_execution_failed", map[string]interface{}{
@@ -501,7 +473,7 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 						Content:    resultContent,
 					})
 				}
-			} // end-for
+			}
 
 			// Close current stream before looping
 			stream.Close()
@@ -513,4 +485,35 @@ func (c *DeepSeekClient) PerformLLMStreamingCall(
 		// Normal completion (stop, length, etc.) — return the reply and reasoning
 		return replyBuilder.String(), reasoningBuilder.String(), nil
 	}
+}
+
+// mergeToolCall merges a streaming tool call delta into the accumulated toolCalls slice.
+// Streaming tool calls arrive in chunks; chunks with the same Index belong to the same
+// logical function call. This function either updates the existing entry (by appending
+// arguments and filling in missing fields) or appends a new entry for a first-seen Index.
+func mergeToolCall(toolCalls []StreamingToolCall, delta DeltaToolCall) []StreamingToolCall {
+	for i := range toolCalls {
+		if toolCalls[i].Index == delta.Index {
+			if delta.Function.Name != "" {
+				toolCalls[i].Name = delta.Function.Name
+			}
+			if delta.Function.Arguments != "" {
+				toolCalls[i].Arguments += delta.Function.Arguments
+			}
+			if delta.ID != "" {
+				toolCalls[i].ID = delta.ID
+			}
+			if delta.Type != "" {
+				toolCalls[i].Type = delta.Type
+			}
+			return toolCalls
+		}
+	}
+	return append(toolCalls, StreamingToolCall{
+		Index:     delta.Index,
+		ID:        delta.ID,
+		Type:      delta.Type,
+		Name:      delta.Function.Name,
+		Arguments: delta.Function.Arguments,
+	})
 }
