@@ -306,6 +306,79 @@ func GetReasoningContentFromChoice(choice ChunkChoice) string {
 }
 
 // ============================================================
+// streamChatCompletion — read all chunks from a streaming LLM response
+// ============================================================
+
+// streamChatCompletion reads all chunks from a streaming LLM response,
+// collecting the reply text, reasoning content, and any tool calls.
+// It forwards streaming content to the pipeline callbacks (OnText, OnReasoning).
+//
+// Parameters:
+//   - stream: the streaming chunk decoder to read from
+//   - pipeline: Pipeline for forwarding streaming content to the caller
+//   - onUsage: callback invoked when token usage info is available from the final chunk
+//
+// Returns:
+//   - reply: the complete assistant text content
+//   - reasoning: the complete reasoning/reasoning content
+//   - toolCalls: accumulated tool calls from streaming deltas
+//   - finishReason: the finish reason from the last chunk (e.g. "stop", "tool_calls")
+//   - err: any error encountered during streaming
+func streamChatCompletion(
+	stream *ChatCompletionChunkDecoder,
+	pipeline Pipeline,
+	onUsage func(Usage),
+) (reply string, reasoning string, toolCalls []StreamingToolCall, finishReason string, err error) {
+
+	var replyBuilder strings.Builder
+	var reasoningBuilder strings.Builder
+
+	for stream.Next() {
+		chunk := stream.CurrentChatCompletionChunk()
+
+		// Extract token usage from the final chunk
+		if chunk.Usage != nil && chunk.Usage.TotalTokens > 0 {
+			onUsage(*chunk.Usage)
+		}
+
+		if len(chunk.Choices) == 0 {
+			err = errors.New("chunk's choices is empty")
+			return
+		}
+
+		choice := chunk.Choices[0]
+
+		if choice.FinishReason != "" {
+			finishReason = choice.FinishReason
+		}
+
+		// Collect tool call deltas (streaming tool calls come in chunks)
+		for _, tc := range choice.Delta.ToolCalls {
+			toolCalls = mergeToolCall(toolCalls, tc)
+		}
+
+		// Extract reasoning_content
+		reasoningContent := GetReasoningContentFromChoice(choice)
+		if reasoningContent != "" {
+			pipeline.OnReasoning(reasoningContent)
+			reasoningBuilder.WriteString(reasoningContent)
+		}
+
+		// Forward text content
+		if choice.Delta.Content != "" {
+			pipeline.OnText(choice.Delta.Content)
+			replyBuilder.WriteString(choice.Delta.Content)
+		}
+	}
+
+	if err := stream.Err(); err != nil {
+		return "", "", nil, "", fmt.Errorf("stream error. %w", err)
+	}
+
+	return replyBuilder.String(), reasoningBuilder.String(), toolCalls, finishReason, nil
+}
+
+// ============================================================
 // ChatWithPipeline — high-level streaming with tool support
 // ============================================================
 
@@ -334,7 +407,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 	maxToolCallIterations := c.GetMaxToolCallIterations()
 	toolCallIterations := 0
 
-	// 取出所有准备给LLM看的函数定义
+	// Extract all tool definitions prepared for the LLM
 	toolDefs := pipeline.GetToolDefines()
 
 	for {
@@ -363,116 +436,28 @@ func (c *DeepSeekClient) ChatWithPipeline(
 			req.DisableToolChoice()
 		}
 
-		// 开始连接
+		// Start streaming connection
 		stream := c.ChatStreamWithOptions(ctx, req)
 		if stream.Err() != nil {
 			return "", "", fmt.Errorf("failed to call LLM API: client not initialized")
 		}
 
-		// Collect the full assistant response (text/reply + reasoning + tool calls)
-		var replyBuilder strings.Builder
-		var reasoningBuilder strings.Builder
-		var toolCalls []StreamingToolCall // llm 发起的函数调用信息，可能有多个
-		finishReason := ""
-
-		for stream.Next() {
-			chunk := stream.CurrentChatCompletionChunk()
-
-			// Extract token usage from the final chunk
-			if chunk.Usage != nil && chunk.Usage.TotalTokens > 0 {
-				c.SetUsageInfo(*chunk.Usage)
-			}
-
-			if len(chunk.Choices) == 0 {
-				err = errors.New("chunk's choices is empty")
-				return
-			}
-
-			choice := chunk.Choices[0]
-
-			if choice.FinishReason != "" {
-				finishReason = choice.FinishReason
-			}
-
-			// Collect tool call deltas (streaming tool calls come in chunks)
-			for _, tc := range choice.Delta.ToolCalls {
-				toolCalls = mergeToolCall(toolCalls, tc)
-			}
-
-			// Extract reasoning_content
-			reasoningContent := GetReasoningContentFromChoice(choice)
-			if reasoningContent != "" {
-				pipeline.OnReasoning(reasoningContent)
-				// 收集到 reasoning
-				reasoningBuilder.WriteString(reasoningContent)
-			}
-
-			// Forward text content
-			if choice.Delta.Content != "" {
-				pipeline.OnText(choice.Delta.Content)
-				// 收集到 reply 中
-				replyBuilder.WriteString(choice.Delta.Content)
-			}
-		}
-
-		if err := stream.Err(); err != nil {
-			return "", "", fmt.Errorf("stream error. %w", err)
+		// Read all chunks from the stream — collect reply, reasoning, and tool calls
+		reply, reasoning, toolCalls, finishReason, err := streamChatCompletion(stream, pipeline, c.SetUsageInfo)
+		if err != nil {
+			return "", "", err
 		}
 
 		// Check if the LLM decided to call a tool
 		if finishReason == "tool_calls" && len(toolCalls) > 0 {
-			// Build the assistant message with tool calls (for history)
-			assistantMsg := Message{
-				Role: "assistant",
-			}
-			if replyBuilder.Len() > 0 {
-				assistantMsg.Content = replyBuilder.String()
-			}
-			if reasoningBuilder.Len() > 0 {
-				assistantMsg.ReasoningContent = reasoningBuilder.String()
-			}
-
-			// 往助手消息中，添加对工具的调用
-			for _, tc := range toolCalls {
-				assistantMsg.ToolCalls = append(assistantMsg.ToolCalls, ToolCall{
-					ID:   tc.ID,
-					Type: tc.Type,
-					Function: ToolCallFunction{
-						Name:      tc.Name,
-						Arguments: tc.Arguments,
-					},
-				})
-			}
-
+			// Prepare the assistant message for tool calls (for history)
+			assistantMsg := prepareAssistantMessageForToolCalls(reply, reasoning, toolCalls)
 			// Append the assistant message first (before tool messages)
 			messages = append(messages, assistantMsg)
 
-			// Execute each tool call via the ToolCallser
-			for _, tc := range toolCalls {
-				resultContent := ""
-
-				if pendingErr := pipeline.Pending(tc.ID, tc.Name, tc.Arguments); pendingErr != nil {
-					resultContent = i18n.T("set_tool_argument_faild", map[string]interface{}{
-						"Error": pendingErr,
-					})
-				} else {
-					// Execute the tool via the caller
-					var execErr error
-					resultContent, execErr = pipeline.Call(tc.ID, tc.Name)
-
-					if execErr != nil {
-						resultContent = i18n.T("tool_execution_failed", map[string]interface{}{
-							"Error": execErr,
-						})
-					}
-
-					// Append the tool result message
-					messages = append(messages, Message{
-						Role:       "tool",
-						ToolCallID: tc.ID,
-						Content:    resultContent,
-					})
-				}
+			// Execute each tool call via the ToolCaller
+			if err := executeToolCalls(pipeline, toolCalls, &messages); err != nil {
+				return "", "", err
 			}
 
 			// Close current stream before looping
@@ -483,7 +468,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		}
 
 		// Normal completion (stop, length, etc.) — return the reply and reasoning
-		return replyBuilder.String(), reasoningBuilder.String(), nil
+		return reply, reasoning, nil
 	}
 }
 
@@ -516,4 +501,67 @@ func mergeToolCall(toolCalls []StreamingToolCall, delta DeltaToolCall) []Streami
 		Name:      delta.Function.Name,
 		Arguments: delta.Function.Arguments,
 	})
+}
+
+// prepareAssistantMessageForToolCalls constructs a Message with role "assistant" from streaming tool call results.
+// It copies the reply text, reasoning content, and converts each StreamingToolCall into a ToolCall.
+func prepareAssistantMessageForToolCalls(reply, reasoning string, toolCalls []StreamingToolCall) Message {
+	assistantMsg := Message{
+		Role: "assistant",
+	}
+	if len(reply) > 0 {
+		assistantMsg.Content = reply
+	}
+	if len(reasoning) > 0 {
+		assistantMsg.ReasoningContent = reasoning
+	}
+
+	for _, tc := range toolCalls {
+		assistantMsg.ToolCalls = append(assistantMsg.ToolCalls, ToolCall{
+			ID:   tc.ID,
+			Type: tc.Type,
+			Function: ToolCallFunction{
+				Name:      tc.Name,
+				Arguments: tc.Arguments,
+			},
+		})
+	}
+	return assistantMsg
+}
+
+// ============================================================
+// executeToolCalls — execute a batch of tool calls and append results to messages
+// ============================================================
+
+// executeToolCalls iterates over each tool call, calls Pending and Call on the
+// Pipeline, and appends the tool result messages. Errors during Pending or Call
+// are converted to user-facing error messages (via i18n) so the LLM can see them.
+func executeToolCalls(pipeline Pipeline, toolCalls []StreamingToolCall, messages *[]Message) error {
+	for _, tc := range toolCalls {
+		resultContent := ""
+
+		if pendingErr := pipeline.Pending(tc.ID, tc.Name, tc.Arguments); pendingErr != nil {
+			resultContent = i18n.T("set_tool_argument_faild", map[string]interface{}{
+				"Error": pendingErr,
+			})
+		} else {
+			// Execute the tool via the caller
+			var execErr error
+			resultContent, execErr = pipeline.Call(tc.ID, tc.Name)
+
+			if execErr != nil {
+				resultContent = i18n.T("tool_execution_failed", map[string]interface{}{
+					"Error": execErr,
+				})
+			}
+
+			// Append the tool result message
+			*messages = append(*messages, Message{
+				Role:       "tool",
+				ToolCallID: tc.ID,
+				Content:    resultContent,
+			})
+		}
+	}
+	return nil
 }

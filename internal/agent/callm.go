@@ -159,8 +159,7 @@ func (atc *pipelineImp) Call(toolCallID, toolName string) (string, error) {
 // ============================================================
 
 // callLLMWithPipeline performs a streaming LLM call with tool support.
-// It delegates to DeepSeekRaw.ChatWithPipeline, which handles the
-// tool call loop internally.
+// It delegates to DeepSeek's imp, which handles the tool call loop internally.
 func (h *ChatAgent) callLLMWithPipeline(
 	ctx context.Context,
 	session *session,
@@ -229,7 +228,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 		webPages := pipeline.GetWebSearchResult()
 
 		if len(webPages) > 0 {
-			assistantMsg.Sources = pipeline.GetWebSearchResult()
+			assistantMsg.Sources = webPages
 		}
 
 		appendNewResponseMessage(session, &assistantMsg)
