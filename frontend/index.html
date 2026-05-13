@@ -58,27 +58,78 @@
     <script src="/static/lib/turndown.min.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- 头部 -->
-        <header class="header">
-            <div class="header-left">
-                <h1>脑力永生 AI 助手</h1>
+    <!-- 左侧面板（滑入式侧栏） -->
+    <div class="left-panel">
+        <div class="left-panel-header">
+            <img class="left-panel-logo" src="/static/brain-forever.svg" alt="脑力永生">
+            <div class="left-panel-title">
+                <h1>脑力永生</h1>
                 <p class="subtitle">基于 RAG 知识库的智能对话</p>
             </div>
-            <button id="themeToggle" class="theme-toggle" title="切换主题">
-                <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-            </button>
-        </header>
+            <div class="left-panel-actions">
+                <button id="panelToggleInner" class="panel-toggle" title="收起侧栏">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="2" width="6" height="12" rx="1"/>
+                        <rect x="9" y="2" width="6" height="12" rx="1"/>
+                        <line x1="7" y1="2" x2="9" y2="2"/>
+                        <line x1="7" y1="14" x2="9" y2="14"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <button class="new-session-btn" id="newSessionBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            开启新对话
+        </button>
+    </div>
 
-        <!-- 聊天区域 -->
-        <main class="chat-container" id="chatContainer">
-            <!-- 消息由 JS 动态渲染 -->
-        </main>
+    <!-- 浮动层（左栏隐藏时显示）：logo + 标题/副标题 + 面板展开按钮 -->
+    <div class="floating-header">
+        <img class="floating-logo" src="/static/brain-forever.svg" alt="脑力永生">
+        <div class="floating-header-text">
+            <div class="floating-header-title">脑力永生</div>
+            <div class="floating-header-subtitle">基于RAG的AI工具</div>
+        </div>
+        <button id="panelToggle" class="panel-toggle" title="展开侧栏">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="2" width="6" height="12" rx="1"/>
+                <rect x="9" y="2" width="6" height="12" rx="1"/>
+                <line x1="7" y1="2" x2="9" y2="2"/>
+                <line x1="7" y1="14" x2="9" y2="14"/>
+            </svg>
+        </button>
+    </div>
 
-        <!-- 右侧刻度导航 -->
-        <nav class="tick-nav" id="tickNav"></nav>
+    <div class="layout-center">
+        <div id="app">
+            <!-- 头部：汉堡菜单按钮（窄屏） + 对话标题 + 主题切换 -->
+            <header class="header">
+                <div class="header-left">
+                    <button id="headerMenuBtn" class="header-menu-btn" title="展开侧栏">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                    <span class="header-title" id="headerTitle">欢迎开始新对话</span>
+                </div>
+                <div class="header-right">
+                    <button id="themeToggle" class="theme-toggle" title="切换主题">
+                        <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 聊天区域 -->
+            <main class="chat-container" id="chatContainer">
+                <!-- 消息由 JS 动态渲染 -->
+            </main>
 
         <!-- Toast 消息容器 -->
         <div class="toast-container" id="toastContainer"></div>
@@ -150,6 +201,11 @@
             </div>
         </footer>
     </div>
+    <nav class="tick-nav" id="tickNav"></nav>
+</div>
+
+    <!-- 右栏（预留，宽度固定 0） -->
+    <div class="right-panel"></div>
 
     <script type="module" src="/static/chat.js"></script>
 </body>

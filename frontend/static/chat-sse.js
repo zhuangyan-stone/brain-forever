@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state, resetStreamingState } from './chat-state.js';
-import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, scrollToBottom, stopSearchHintsAnimation } from './chat-ui.js';
+import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, scrollToBottom, stopSearchHintsAnimation, updateHeaderTitle } from './chat-ui.js';
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -141,6 +141,13 @@ function handleSSEEvent(event, assistantBubble) {
 
         case 'sources':
             handleSourcesEvent(event);
+            break;
+
+        case 'title':
+            // AI 生成的对话标题
+            if (event.content) {
+                updateHeaderTitle(event.content);
+            }
             break;
 
         case 'done':

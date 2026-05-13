@@ -41,7 +41,7 @@ export function setCookie(name, value, days = 365) {
 //   sendMode   — 0: Enter发送/Shift+Enter换行, 1: Enter换行/Shift+Enter发送
 //   deepThink  — 是否深度思考
 //   webSearch  — 是否智能搜索
-//   theme      — 0: 明亮, 1: 暗色, 2: 跟随系统
+//   theme      — 0: 明亮, 1: 暗色, 2: 跟随系统（保留值，主页切换仅用 0/1）
 
 const DEFAULT_SETTINGS = {
     sendMode: 0,
@@ -96,6 +96,12 @@ export const UserSettings = {
 export const state = {
     // 消息历史 [{role, content, id, usage}]
     messages: [],
+
+    // 当前对话标题（显示在 header 左侧）
+    // 欢迎状态: "欢迎开始新对话"
+    // 用户发出第一条消息: truncateTitle(第一条用户消息)
+    // AI 生成标题后: 通过 SSE title 事件更新
+    dialogTitle: '欢迎开始新对话',
 
     // 是否正在流式接收
     isStreaming: false,

@@ -4,9 +4,45 @@
     依赖：style.css（主题变量）
     ============================================================ */
 
+/* 中屏：隐藏浮动层，header 中显示汉堡菜单按钮 */
+@media (max-width: 700px) {
+    .floating-header {
+        display: none;
+    }
+    .header-menu-btn {
+        display: inline-flex;
+    }
+    /* 左栏隐藏时 header 使用默认 padding */
+    .header {
+        padding-left: 20px;
+    }
+    /* 左栏可见时 header 留出空间 */
+    .left-panel-visible .header {
+        padding-left: 230px;
+    }
+}
+
+/* 更窄：调整 header padding */
+@media (max-width: 480px) {
+    .header {
+        padding: 8px 12px;
+    }
+    .left-panel-visible .header {
+        padding-left: 230px;
+    }
+}
+
+/* 左侧栏可见时，中屏下左侧栏宽度调整 */
 @media (max-width: 600px) {
-    .header h1 {
-        font-size: 1.1rem;
+    .left-panel-visible .left-panel {
+        width: 280px;
+    }
+}
+
+/* 小屏（智能手机竖屏）：左侧栏全屏覆盖 */
+@media (max-width: 480px) {
+    .left-panel-visible .left-panel {
+        width: 100%;
     }
 
     .message .bubble {
@@ -19,5 +55,14 @@
 
     .modal-box {
         width: 90vw;
+    }
+
+    /* 小屏下刻度导航缩小间距 */
+    .tick-nav {
+        right: -36px;
+        gap: 10px;
+    }
+    .tick-nav .tick {
+        padding: 6px 4px;
     }
 }

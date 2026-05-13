@@ -260,12 +260,6 @@
     color: var(--text-primary);
 }
 
-.msg-action-btn.copy-msg-btn.copied {
-    color: var(--accent);
-    border-color: var(--accent);
-}
-
-
 /* ============================================================
     复制格式选择下拉菜单
    ============================================================ */

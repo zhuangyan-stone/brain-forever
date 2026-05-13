@@ -3,8 +3,8 @@
    ============================================================ */
 
 .tick-nav {
-    position: fixed;
-    right: 16px;
+    position: absolute;
+    right: -44px; /* 紧贴 #app 右侧，在 .layout-center 内定位 */
     top: 50%;
     transform: translateY(-50%);
     display: flex;

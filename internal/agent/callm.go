@@ -91,6 +91,13 @@ func (ate *pipelineImp) OnError(err error) {
 	}
 }
 
+func (atc *pipelineImp) OnTitle(title string) {
+	atc.sseWriter.WriteEvent(SSEEvent{
+		Type:    "title",
+		Content: title,
+	})
+}
+
 func (atc *pipelineImp) OnWebSource(sources []toolimp.WebSource) {
 	if err := atc.sseWriter.WriteEvent(SSEEvent{
 		Type:       "sources",

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>高级双栏布局 | 固定标题 + 内容区域宽度控制</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            background: #e9eef3;
+            height: 100vh;
+            overflow: hidden; /* 防止body整体滚动，内部各自滚动 */
+        }
+
+        /* 主容器：flex 行布局，全高 */
+        .app-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            width: 100%;
+            height: 100vh;
+            background: #f8fafc;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ========= 左栏样式 ========= */
+        .left-sidebar {
+            width: 400px;
+            flex-shrink: 0;
+            background: linear-gradient(145deg, #f1f5f9 0%, #e6edf4 100%);
+            border-right: 1px solid #cbd5e1;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;   /* 垂直列布局 */
+            height: 100%;
+            overflow: hidden;         /* 防止溢出 */
+        }
+
+        /* 双栏模式下的隐藏类 */
+        .left-sidebar.hidden {
+            display: none;
+        }
+
+        /* 左栏头部区（固定高度，统一行高） */
+        .sidebar-header {
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.6);
+            border-bottom: 1px solid #cbd5e1;
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;          /* 固定不压缩 */
+            min-height: 72px;         /* 与主栏标题高度一致 */
+            height: 72px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #0f172a;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .sidebar-header h2::before {
+            content: "📁";
+            font-size: 1.3rem;
+        }
+
+        /* 侧栏内部关闭按钮 */
+        .sidebar-close-btn {
+            background: rgba(0, 0, 0, 0.05);
+            border: none;
+            font-size: 1.4rem;
+            line-height: 1;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            color: #1e293b;
+        }
+
+        .sidebar-close-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+            transform: scale(0.95);
+        }
+
+        /* 左栏内容区 - 可滚动 */
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .nav-list {
+            list-style: none;
+        }
+
+        .nav-list li {
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            cursor: default;
+            font-weight: 500;
+            color: #1e293b;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .nav-list li:hover {
+            background: #eef2ff;
+            transform: translateX(4px);
+        }
+
+        /* ========= 主栏样式 ========= */
+        .main-content {
+            flex: 1;
+            min-width: 400px;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* 主栏头部（固定高度，与左栏标题区一致） */
+        .main-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: #ffffff;
+            border-bottom: 2px solid #e2e8f0;
+            flex-shrink: 0;
+            min-height: 72px;
+            height: 72px;
+        }
+
+        .menu-toggle-btn {
+            background: #f1f5f9;
+            border: none;
+            font-size: 1.6rem;
+            line-height: 1;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .menu-toggle-btn:hover {
+            background: #e2e8f0;
+            transform: scale(0.96);
+        }
+
+        .main-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #0f172a;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #1e293b, #2d3a4e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            white-space: nowrap;
+            line-height: 1.3;
+        }
+
+        /* 主栏内容区 - 滚动区域，内容宽度控制为父级(主栏除去滚动条)的80% 且居中 */
+        .main-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* 内容容器：占主栏内容区域可用宽度的80% 且居中 */
+        .content-container {
+            width: 80%;
+            margin: 0 auto;
+            max-width: 1200px;  /* 大屏幕时也不会过宽，可选 */
+            min-width: 280px;   /* 保证移动端可读 */
+        }
+
+        /* 卡片样式调整 */
+        .card {
+            background: #f9fafb;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #eef2ff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        .card p {
+            line-height: 1.5;
+            color: #334155;
+            margin-bottom: 0.75rem;
+        }
+
+        .placeholder-img {
+            background: linear-gradient(110deg, #e2e8f0 0%, #f1f5f9 100%);
+            height: 120px;
+            border-radius: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .toast-tip {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293bdd;
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 2000;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            opacity: 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        /* 状态显示小标签 */
+        .status-badge {
+            font-size: 0.8rem;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* 响应式：窄屏下主栏内容宽度可适当调整 */
+        @media (max-width: 768px) {
+            .content-container {
+                width: 95%;
+            }
+            .main-body {
+                padding: 1.5rem 1rem;
+            }
+            .main-title {
+                font-size: 1.2rem;
+                white-space: normal;
+            }
+            .menu-toggle-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1.4rem;
+            }
+            .main-header, .sidebar-header {
+                padding: 0.8rem 1rem;
+                min-height: 64px;
+                height: 64px;
+            }
+        }
+
+        /* ========= 小屏模式专用样式 (宽度 < 768px) ========= */
+        body.small-screen-mode .app-container {
+            position: relative;
+        }
+
+        /* 小屏模式 - 左栏全屏抽屉效果 */
+        body.small-screen-mode .left-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1050;
+            background: #ffffff;
+            border-right: none;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+            transform: translateX(-100%);
+            transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            display: flex !important;
+            flex-shrink: 0;
+        }
+
+        body.small-screen-mode .left-sidebar.drawer-open {
+            transform: translateX(0);
+        }
+
+        body.small-screen-mode .left-sidebar.hidden {
+            display: flex !important;
+        }
+
+        body.small-screen-mode .main-content {
+            min-width: auto;
+            width: 100%;
+        }
+
+        body.small-screen-mode .sidebar-close-btn {
+            display: inline-flex;
+        }
+
+        .sidebar-close-btn {
+            display: none;
+        }
+
+        body:not(.small-screen-mode) .sidebar-close-btn {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="appContainer">
+    <!-- 左栏 -->
+    <aside class="left-sidebar hidden" id="leftSidebar">
+        <div class="sidebar-header">
+            <h2>导航面板</h2>
+            <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="关闭侧栏">✕</button>
+        </div>
+        <div class="sidebar-content">
+            <ul class="nav-list">
+                <li>🏠 控制台总览</li>
+                <li>📊 数据分析</li>
+                <li>⚙️ 系统设置</li>
+                <li>📁 文件管理</li>
+                <li>👤 用户资料</li>
+                <li>🔔 通知中心</li>
+                <li>📈 报表统计</li>
+                <li>🔐 权限管理</li>
+            </ul>
+            <div class="placeholder-img" style="margin-top: 28px; background:#eef2ff;">
+                <span>✨ 快捷操作区 ✨</span>
+            </div>
+            <!-- 增加一些内容测试滚动 -->
+            <div style="height: 200px;"></div>
+            <div class="placeholder-img" style="background:#e2e8f0;">
+                <span>⬇️ 滚动测试区</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主栏 -->
+    <main class="main-content" id="mainContent">
+        <div class="main-header">
+            <button class="menu-toggle-btn" id="toggleSidebarBtn" aria-label="切换侧栏">☰</button>
+            <div class="main-title">✨ 高级布局 · 固定标题 + 内容区宽度80%</div>
+        </div>
+        <div class="main-body">
+            <div class="content-container">
+                <div class="card">
+                    <p><strong>📌 布局特性 (v3.0)</strong></p>
+                    <p>✅ <strong>标题高度一致</strong>：左栏与主栏标题区均为 72px (小屏64px)，垂直对齐。<br>
+                    ✅ <strong>标题固定顶部</strong>：左右两栏标题均使用 flex 列 + overflow 滚动实现，滚动时标题始终可见。<br>
+                    ✅ <strong>主栏内容宽度控制</strong>：主栏的内容区域（蓝色卡片区）宽度占<strong>主栏剩余宽度的80%</strong>，并且居中显示，使用 <code>.content-container</code> 实现。<br>
+                    ✅ <strong>智能双栏/抽屉切换</strong>：视口宽度 ≥ 768px 时为双栏模式（左栏可自动关闭/恢复）；宽度 < 768px 时为全屏抽屉侧栏，侧栏自带关闭按钮。<br>
+                    ✅ 双栏模式仍然保留：主栏最小宽度400px，左栏固定400px，窄屏自动关闭左栏并自动恢复等逻辑。</p>
+                </div>
+                <div class="card">
+                    <p><strong>🖥️ 实时状态</strong></p>
+                    <p>👉 当前视口宽度: <span id="viewportWidthSpan">—</span> px &nbsp;&nbsp;|&nbsp;&nbsp;
+                    当前模式: <span id="modeSpan">—</span> &nbsp;&nbsp;|&nbsp;&nbsp;
+                    左栏状态: <span id="leftBarStateSpan">—</span></p>
+                    <p>💡 <strong>测试滚动与宽度</strong>：滚动右侧内容区，左侧标题依然固定在顶部；右侧内容宽度为右侧可用空间的80%（可调整窗口大小观察卡片宽度的相对变化）。</p>
+                    <div class="placeholder-img">
+                        <span>📐 主栏内容区宽度 = 主栏剩余宽度 × 80%</span>
+                    </div>
+                </div>
+                <!-- 额外内容测试滚动 -->
+                <div class="card">
+                    <p><strong>📜 滚动测试区域</strong></p>
+                    <p>1. 左栏和主栏各自独立滚动，标题始终可见。<br>
+                    2. 主栏内容限制宽度，阅读体验更佳。<br>
+                    3. 在小屏模式下，打开抽屉侧栏后滚动左侧内容，标题同样固定。<br>
+                    4. 双栏自动关闭/恢复功能完整保留（宽屏模式）。</p>
+                    <p>✨ 体验：请拖动窗口宽度从 1200px 到 600px，观察双栏自动关闭以及放大后自动恢复；切换至小屏模式观察全屏抽屉。</p>
+                </div>
+                <!-- 增加高度以产生滚动 -->
+                <div style="height: 300px;"></div>
+                <div class="card">
+                    <p>🎉 底部内容，滚动测试通过。</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div id="toastMsg" class="toast-tip"></div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const appContainer = document.getElementById('appContainer');
+        const leftSidebar = document.getElementById('leftSidebar');
+        const toggleBtn = document.getElementById('toggleSidebarBtn');
+        const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+        const viewportSpan = document.getElementById('viewportWidthSpan');
+        const modeSpan = document.getElementById('modeSpan');
+        const leftBarStateSpan = document.getElementById('leftBarStateSpan');
+
+        // 布局常量
+        const LEFT_BAR_WIDTH = 400;
+        const MAIN_MIN_WIDTH = 400;
+        const MIN_CONTAINER_FOR_BOTH = LEFT_BAR_WIDTH + MAIN_MIN_WIDTH; // 800px
+        const SMALL_SCREEN_BREAKPOINT = 768;
+
+        // 状态变量
+        let isLeftVisible = false;               // 双栏模式左栏可见性
+        let autoHiddenDueToNarrow = false;       // 双栏模式自动隐藏标记
+        let isSmallScreenMode = false;            // 当前是否为小屏模式
+        let isDrawerOpen = false;                // 小屏模式下抽屉是否打开
+
+        // 辅助函数
+        function getContainerWidth() {
+            return window.innerWidth;
+        }
+
+        function showToast(message, duration = 1600) {
+            const toast = document.getElementById('toastMsg');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            if (window.toastTimer) clearTimeout(window.toastTimer);
+            window.toastTimer = setTimeout(() => {
+                toast.style.opacity = '0';
+            }, duration);
+        }
+
+        function updateStatusDisplay() {
+            const width = getContainerWidth();
+            viewportSpan.textContent = width;
+            modeSpan.textContent = isSmallScreenMode ? '📱 小屏抽屉模式' : '🖥️ 宽屏双栏模式';
+            if (isSmallScreenMode) {
+                leftBarStateSpan.textContent = isDrawerOpen ? '全屏侧栏 (打开)' : '侧栏关闭';
+            } else {
+                leftBarStateSpan.textContent = isLeftVisible ? '左栏显示 (400px)' : '左栏隐藏';
+            }
+        }
+
+        // 双栏模式 DOM 同步
+        function syncDualModeVisibility() {
+            if (isLeftVisible) {
+                leftSidebar.classList.remove('hidden');
+            } else {
+                leftSidebar.classList.add('hidden');
+            }
+            updateStatusDisplay();
+        }
+
+        // 双栏模式：强制自动关闭
+        function forceCloseLeftBarAuto() {
+            if (isLeftVisible && !isSmallScreenMode) {
+                isLeftVisible = false;
+                autoHiddenDueToNarrow = true;
+                syncDualModeVisibility();
+                showToast("📉 主栏已达最小宽度，左栏自动关闭", 1800);
+            }
+        }
+
+        // 双栏模式：尝试显示左栏
+        function attemptShowLeftBar(isUserAction = true) {
+            const width = getContainerWidth();
+            if (width >= MIN_CONTAINER_FOR_BOTH) {
+                if (!isLeftVisible) {
+                    isLeftVisible = true;
+                    syncDualModeVisibility();
+                    if (isUserAction) {
+                        autoHiddenDueToNarrow = false;
+                        showToast("✅ 左栏已展开", 1200);
+                    } else {
+                        autoHiddenDueToNarrow = false;
+                        showToast("🔄 窗口变宽，左栏自动恢复", 1800);
+                    }
+                }
+                return true;
+            } else {
+                if (isUserAction) {
+                    showToast(`⚠️ 窗口过窄 (${width}px)，需 ≥ ${MIN_CONTAINER_FOR_BOTH}px 才能展开左栏`, 2000);
+                }
+                return false;
+            }
+        }
+
+        function hideLeftBarByUser() {
+            if (isLeftVisible) {
+                isLeftVisible = false;
+                autoHiddenDueToNarrow = false;
+                syncDualModeVisibility();
+                showToast("📁 左栏已关闭", 1200);
+            }
+        }
+
+        function toggleDualMode() {
+            if (isLeftVisible) {
+                hideLeftBarByUser();
+            } else {
+                attemptShowLeftBar(true);
+            }
+        }
+
+        function enforceDualModeAutoBehavior() {
+            if (isSmallScreenMode) return;
+            const width = getContainerWidth();
+            if (isLeftVisible && width < MIN_CONTAINER_FOR_BOTH) {
+                forceCloseLeftBarAuto();
+            }
+            if (!isLeftVisible && autoHiddenDueToNarrow && width >= MIN_CONTAINER_FOR_BOTH) {
+                attemptShowLeftBar(false);
+            }
+        }
+
+        // 小屏抽屉逻辑
+        function openDrawer() {
+            if (!isSmallScreenMode) return;
+            leftSidebar.classList.add('drawer-open');
+            isDrawerOpen = true;
+            updateStatusDisplay();
+            showToast("☰ 全屏侧栏已打开", 1200);
+        }
+
+        function closeDrawer() {
+            if (!isSmallScreenMode) return;
+            leftSidebar.classList.remove('drawer-open');
+            isDrawerOpen = false;
+            updateStatusDisplay();
+        }
+
+        function toggleDrawer() {
+            if (!isSmallScreenMode) return;
+            if (isDrawerOpen) {
+                closeDrawer();
+            } else {
+                openDrawer();
+            }
+        }
+
+        // 核心模式切换（依据宽度）
+        function switchModeBasedOnWidth() {
+            const width = getContainerWidth();
+            const newIsSmall = width < SMALL_SCREEN_BREAKPOINT;
+
+            if (newIsSmall === isSmallScreenMode) {
+                if (!isSmallScreenMode) enforceDualModeAutoBehavior();
+                updateStatusDisplay();
+                return;
+            }
+
+            if (newIsSmall) {
+                // 切换至小屏模式
+                document.body.classList.add('small-screen-mode');
+                isSmallScreenMode = true;
+                // 重置双栏状态
+                isLeftVisible = false;
+                autoHiddenDueToNarrow = false;
+                leftSidebar.classList.remove('hidden');
+                closeDrawer(); // 确保抽屉关闭
+                isDrawerOpen = false;
+                updateStatusDisplay();
+                showToast(`📱 小屏模式 (宽度<${SMALL_SCREEN_BREAKPOINT}px) · 全屏侧栏`, 1800);
+            } else {
+                // 切换至宽屏模式
+                document.body.classList.remove('small-screen-mode');
+                isSmallScreenMode = false;
+                leftSidebar.classList.remove('drawer-open');
+                isDrawerOpen = false;
+                isLeftVisible = false;
+                autoHiddenDueToNarrow = false;
+                syncDualModeVisibility();
+                // 宽屏模式下检查是否需要自动关闭/恢复（基于当前宽度）
+                enforceDualModeAutoBehavior();
+                updateStatusDisplay();
+                showToast(`🖥️ 宽屏模式 (宽度≥${SMALL_SCREEN_BREAKPOINT}px) · 双栏布局`, 1800);
+            }
+        }
+
+        // 事件处理
+        let resizeTimer = null;
+        function onWindowResize() {
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                switchModeBasedOnWidth();
+                if (!isSmallScreenMode) enforceDualModeAutoBehavior();
+                updateStatusDisplay();
+                resizeTimer = null;
+            }, 60);
+        }
+
+        function onMainToggleClick() {
+            if (isSmallScreenMode) {
+                toggleDrawer();
+            } else {
+                toggleDualMode();
+                enforceDualModeAutoBehavior();
+                updateStatusDisplay();
+            }
+        }
+
+        function onSidebarCloseClick() {
+            if (isSmallScreenMode && isDrawerOpen) {
+                closeDrawer();
+            }
+        }
+
+        // 初始化
+        function init() {
+            const width = getContainerWidth();
+            if (width < SMALL_SCREEN_BREAKPOINT) {
+                document.body.classList.add('small-screen-mode');
+                isSmallScreenMode = true;
+                leftSidebar.classList.remove('hidden');
+                closeDrawer();
+                isLeftVisible = false;
+                autoHiddenDueToNarrow = false;
+            } else {
+                document.body.classList.remove('small-screen-mode');
+                isSmallScreenMode = false;
+                isLeftVisible = false;
+                autoHiddenDueToNarrow = false;
+                syncDualModeVisibility();
+            }
+            updateStatusDisplay();
+            if (!isSmallScreenMode) enforceDualModeAutoBehavior();
+
+            window.addEventListener('resize', onWindowResize);
+            toggleBtn.addEventListener('click', onMainToggleClick);
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', onSidebarCloseClick);
+            }
+            showToast("✨ 布局已加载 | 标题固定 + 内容宽度80%", 2000);
+        }
+
+        init();
+    })();
+</script>
+</body>
+</html>

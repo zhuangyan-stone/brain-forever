@@ -7,4 +7,7 @@ type SSEResponser interface {
 
 	OnText(text string)
 	OnError(err error)
+
+	// OnTitle is called when the AI generates a session title.
+	OnTitle(title string)
 }

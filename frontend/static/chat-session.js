@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state } from './chat-state.js';
-import { addMessage, showSources, showTokenUsage, showWelcomeMessage } from './chat-ui.js';
+import { addMessage, showSources, showTokenUsage, showWelcomeMessage, updateHeaderTitle } from './chat-ui.js';
 import { restoreReasoningArea } from './chat-reasoning.js';
 import { updateTickNav } from './chat-ticknav.js';
 
@@ -24,6 +24,11 @@ export async function restoreSession() {
         if (data.is_new || history.length === 0) {
             showWelcomeMessage();
             return;
+        }
+
+        // 恢复对话标题（后端从第一条用户消息截取）
+        if (data.title) {
+            updateHeaderTitle(data.title);
         }
 
         // 有历史消息，恢复显示

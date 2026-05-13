@@ -22,7 +22,7 @@ UserSettings.load();
 // ============================================================
 // 主题映射工具
 // ============================================================
-// UserSettings.theme: 0=明亮, 1=暗色, 2=跟随系统
+// UserSettings.theme: 0=明亮, 1=暗色, 2=跟随系统（保留值，未来系统设置中使用）
 const THEME_VALUES = ['light', 'dark', 'system'];
 
 function resolveTheme(theme) {
@@ -95,8 +95,8 @@ function applyTheme(themeVal) {
 applyTheme(UserSettings.theme);
 
 themeToggle.addEventListener('click', () => {
-    // 循环切换: 0→1→2→0
-    UserSettings.theme = (UserSettings.theme + 1) % 3;
+    // 主页切换仅在 亮(0) 和 暗(1) 之间切换，跳过 跟随系统(2)
+    UserSettings.theme = UserSettings.theme === 0 ? 1 : 0;
     applyTheme(UserSettings.theme);
     UserSettings.save();
 });
@@ -118,6 +118,28 @@ function updateThemeButton(themeStr) {
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
         </svg>`;
     themeToggle.title = themeStr === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
+}
+
+// ============================================================
+// 左侧面板切换
+// ============================================================
+
+const panelToggle = document.getElementById('panelToggle');
+const panelToggleInner = document.getElementById('panelToggleInner');
+const headerMenuBtn = document.getElementById('headerMenuBtn');
+
+function toggleLeftPanel() {
+    document.body.classList.toggle('left-panel-visible');
+}
+
+if (panelToggle) {
+    panelToggle.addEventListener('click', toggleLeftPanel);
+}
+if (panelToggleInner) {
+    panelToggleInner.addEventListener('click', toggleLeftPanel);
+}
+if (headerMenuBtn) {
+    headerMenuBtn.addEventListener('click', toggleLeftPanel);
 }
 
 // ============================================================
@@ -222,6 +244,37 @@ fileInput.addEventListener('change', () => {
     }
     // 重置以便重复选择同一文件
     fileInput.value = '';
+});
+
+// ============================================================
+// 开启新对话按钮
+// ============================================================
+
+const newSessionBtn = document.getElementById('newSessionBtn');
+
+newSessionBtn.addEventListener('click', async () => {
+    if (state.isStreaming) {
+        // 如果正在流式输出，先中止
+        if (state.abortController) {
+            state.abortController.abort();
+        }
+    }
+
+    try {
+        const response = await fetch('/api/session/new', {
+            method: 'POST',
+        });
+
+        if (!response.ok) {
+            console.error('创建新会话失败:', response.status);
+            return;
+        }
+
+        // 重新加载页面以重置所有状态
+        window.location.reload();
+    } catch (e) {
+        console.error('创建新会话出错:', e);
+    }
 });
 
 // ============================================================

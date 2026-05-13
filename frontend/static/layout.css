@@ -6,30 +6,160 @@
     ============================================================ */
 
 /* ============================================================
-    头部
-   ============================================================ */
+    Body — 居中 flex 容器
+    ============================================================
+    布局结构：
+      body (flex, justify-content: center)
+      ├── .left-panel (position: fixed, 脱离文档流，不影响居中)
+      ├── .layout-center (居中容器，包裹 #app + .tick-nav)
+      │   ├── #app (flex column, 主内容区)
+      │   └── .tick-nav (相对于 .layout-center 定位)
+      └── .right-panel (预留)
+    ============================================================ */
+
+body {
+    display: flex;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* 居中容器 — 包裹 #app 和刻度导航，使刻度导航相对于主内容区定位 */
+.layout-center {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    height: 100vh;
+    flex: 1;
+    max-width: 1000px; /* #app max-width(960px) + tick-nav 预留空间 */
+    position: relative;
+}
+
+/* ============================================================
+    浮动层（左栏隐藏时显示）：logo + 标题/副标题 + 面板展开按钮
+    ============================================================ */
+
+.floating-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    z-index: 100;
+}
+
+.floating-logo {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+}
+
+/* 标题/副标题容器 */
+.floating-header-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.floating-header-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.floating-header-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+/* 左侧栏可见时，隐藏浮动层（内容已移到左侧栏头部） */
+.left-panel-visible .floating-header {
+    display: none;
+}
+
+/* ============================================================
+    头部 — 汉堡菜单按钮（窄屏） + 对话标题 + 主题切换
+    ============================================================ */
 
 .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
+    padding: 8px 20px 16px;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 12px;
+}
+
+/* 左栏可见时，header 左侧留出空间避免与左栏重叠 */
+.left-panel-visible .header {
+    padding-left: 230px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex-shrink: 0;
 }
 
-.header-left h1 {
-    font-size: 1.2rem;
-    font-weight: 600;
+/* 汉堡菜单按钮（窄屏显示，宽屏隐藏） */
+.header-menu-btn {
+    display: none;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-menu-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.header-menu-btn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
     color: var(--text-primary);
 }
 
-.header-left .subtitle {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-top: 2px;
+/* 对话标题 */
+.header-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    user-select: none;
 }
 
+/* 主题切换按钮 */
 .theme-toggle {
     background: none;
     border: 1px solid var(--border);
@@ -41,6 +171,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .theme-toggle:hover {
@@ -52,6 +183,140 @@
     height: 20px;
     display: block;
     color: var(--text-primary);
+}
+
+/* 面板切换按钮（通用） */
+.panel-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.panel-toggle:hover {
+    background: var(--bg-secondary);
+}
+
+.panel-toggle svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    color: var(--text-primary);
+}
+
+/* ============================================================
+    左侧面板 — 宽度切换式侧栏
+    ============================================================ */
+
+.left-panel {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 0;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12px;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    transition: width 0.3s ease;
+    flex-shrink: 0;
+    z-index: 50;
+}
+
+/* 左侧栏可见 */
+.left-panel-visible .left-panel {
+    width: 380px;
+    min-width: 220px;
+    box-shadow: 2px 0 12px var(--shadow);
+}
+
+.left-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 4px 12px;
+    box-sizing: border-box;
+}
+
+.left-panel-logo {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+}
+
+.left-panel-title {
+    min-width: 0;
+    flex: 1;
+}
+
+.left-panel-title h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.left-panel-title .subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.left-panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* 开启新对话按钮 */
+.new-session-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    user-select: none;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px var(--shadow);
+    margin-top: 12px;
+}
+
+.new-session-btn:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+}
+
+.new-session-btn svg {
+    flex-shrink: 0;
 }
 
 /* ============================================================
@@ -252,8 +517,6 @@
     top: 0;
     left: 0;
     right: 0;
-    max-width: var(--max-width);
-    margin: 0 auto;
     width: 100%;
 }
 
@@ -291,4 +554,14 @@
 
 .chat-container::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
+}
+
+/* ============================================================
+    右栏（预留，宽度固定 0）
+    ============================================================ */
+
+.right-panel {
+    width: 0;
+    flex-shrink: 0;
+    overflow: hidden;
 }
