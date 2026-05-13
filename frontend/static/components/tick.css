@@ -57,6 +57,32 @@
     background: var(--border);
 }
 
+/* 刻度索引值 — 非 hover 状态下也可见，位于刻度线左侧 */
+/* 使用绝对定位脱离文档流，避免影响 flex 行高度，防止 hover 展开时高度跳动 */
+.tick-nav .tick .tick-index {
+    position: absolute;
+    /* right 值 = padding-right(6px) + .tick-dot 宽度(12px) + gap(8px) = 26px */
+    right: 26px;
+    font-size: 0.7rem;
+    line-height: 1;
+    color: var(--text-muted);
+    opacity: 0.6;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+}
+
+.tick-nav .tick.active .tick-index {
+    color: var(--accent);
+    opacity: 0.9;
+}
+
+/* hover 展开面板时，隐藏刻度索引值，避免与面板左侧的 .tick-label 重叠 */
+.tick-nav:hover .tick .tick-index {
+    display: none;
+}
+
 /* 刻度线 — 短横线，始终在条目右侧 */
 .tick-nav .tick .tick-dot {
     width: 12px;
@@ -176,6 +202,11 @@
     .tick-nav .tick .tick-dot {
         width: 10px;
         height: 2px;
+    }
+
+    .tick-nav .tick .tick-index {
+        font-size: 0.6rem;
+        min-width: 22px;
     }
 
     .tick-nav .tick .tick-label {

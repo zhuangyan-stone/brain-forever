@@ -114,7 +114,7 @@ export const state = {
     RENDER_INTERVAL: 120,
 
     // 最多同时显示的刻度数
-    MAX_VISIBLE_TICKS: 10,
+    MAX_VISIBLE_TICKS: 9,
 
     // 刻度滚动偏移量（0 表示从第一条开始显示）
     tickScrollOffset: 0,

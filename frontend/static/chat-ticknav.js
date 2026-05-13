@@ -63,12 +63,22 @@ export function updateTickNav() {
         tick.className = 'tick';
         tick.dataset.tickIndex = i;
 
-        // 刻度线（短横线）
+        // 刻度线（短横线）— 始终在条目右侧（flex-direction: row-reverse）
         const dot = document.createElement('span');
         dot.className = 'tick-dot';
         tick.appendChild(dot);
 
-        // 标题文本（带绝对序号，从1开始，固定三位补0）
+        // 刻度索引值 — 在非 hover 状态下也可见，位于刻度线左侧
+        // 每跳一个标一个（第1,3,5,7,9个），上下对称
+        const relPos = i - startIdx; // 当前刻度在可见范围内的相对位置（0-based）
+        const idxSpan = document.createElement('span');
+        idxSpan.className = 'tick-index';
+        if (relPos % 2 === 0) {
+            idxSpan.textContent = String(i + 1).padStart(3, '0');
+        }
+        tick.appendChild(idxSpan);
+
+        // 标题文本（带绝对序号，从1开始，固定三位补0）— hover 时显示在面板最左侧
         const label = document.createElement('span');
         label.className = 'tick-label';
         const seqNum = String(i + 1).padStart(3, '0');
