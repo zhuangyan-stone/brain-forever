@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>脑力永生 AI 助手</title>
     <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
+    <!-- 防主题闪烁：在 CSS 渲染前从 cookie 读取主题并设置 data-theme -->
+    <script>
+        (function() {
+            try {
+                var match = document.cookie.match(/(?:^|;\s*)brainforever_settings=([^;]*)/);
+                if (match) {
+                    var settings = JSON.parse(decodeURIComponent(match[1]));
+                    var theme = settings.theme;
+                    var themeStr;
+                    if (theme === 2) {
+                        themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    } else {
+                        themeStr = theme === 1 ? 'dark' : 'light';
+                    }
+                    document.documentElement.setAttribute('data-theme', themeStr);
+                }
+            } catch(e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="/static/theme.css">
     <link rel="stylesheet" href="/static/layout.css">
     <link rel="stylesheet" href="/static/input.css">
