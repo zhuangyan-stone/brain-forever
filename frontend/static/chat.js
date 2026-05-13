@@ -121,6 +121,35 @@ function updateThemeButton(themeStr) {
 }
 
 // ============================================================
+// 新建对话按钮
+// ============================================================
+
+const newChatBtn = document.getElementById('newChatBtn');
+
+newChatBtn.addEventListener('click', async () => {
+    if (state.isStreaming) {
+        if (state.abortController) {
+            state.abortController.abort();
+        }
+    }
+
+    try {
+        const response = await fetch('/api/session/new', {
+            method: 'POST',
+        });
+
+        if (!response.ok) {
+            console.error('创建新会话失败:', response.status);
+            return;
+        }
+
+        window.location.reload();
+    } catch (e) {
+        console.error('创建新会话出错:', e);
+    }
+});
+
+// ============================================================
 // 左栏切换 + 品牌迁移逻辑（参照 demo.html 实现）
 // ============================================================
 

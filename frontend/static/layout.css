@@ -68,7 +68,7 @@ body {
     height: 100%;
     overflow: hidden;
     /* 用 filter:drop-shadow 避免被 overflow:hidden 裁剪 */
-    filter: drop-shadow(1px 0 1px var(--bg-secondary));
+    /* filter: drop-shadow(1px 0 1px var(--bg-secondary)); */
     /* 宽屏模式下用 margin-left + visibility + opacity 实现平滑显隐动画 */
     margin-left: 0;
     visibility: visible;
@@ -276,7 +276,7 @@ body {
 }
 
 /* ============================================================
-    主题切换按钮（主栏标题右侧）
+    主栏标题右侧操作按钮（主题切换、新建对话等）
     ============================================================ */
 
 .theme-toggle {
