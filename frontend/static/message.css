@@ -72,6 +72,21 @@
     overflow-x: auto;
     position: relative;
     max-width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.message .bubble pre::-webkit-scrollbar {
+    width: 6px;
+}
+
+.message .bubble pre::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.message .bubble pre::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
 }
 .message .bubble pre code {
     background: none !important;
@@ -301,6 +316,21 @@
     margin: 8px 0;
     overflow-x: auto;
     overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.message .bubble .katex-display::-webkit-scrollbar {
+    width: 6px;
+}
+
+.message .bubble .katex-display::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.message .bubble .katex-display::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
 }
 
 /* 行内公式垂直对齐 */

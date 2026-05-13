@@ -179,13 +179,20 @@ export async function sendMessage() {
     // 删除欢迎消息（用户发出第一条消息时）
     const welcomeEl = chatContainer.querySelector('.welcome-message');
     if (welcomeEl) {
-        // 将输入区域移回 #app 底部
+        // 将输入区域移回 main-content 底部（其原始位置）
         const inputArea = welcomeEl.querySelector('.input-area');
         if (inputArea) {
-            document.getElementById('app').appendChild(inputArea);
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.appendChild(inputArea);
+            }
         }
         welcomeEl.remove();
-        document.getElementById('app').classList.remove('welcome-state');
+        // 移除欢迎状态标记
+        const scrollContainer = document.getElementById('scrollContainer');
+        if (scrollContainer) {
+            scrollContainer.classList.remove('welcome-state');
+        }
     }
 
     // 生成 UTC 时间

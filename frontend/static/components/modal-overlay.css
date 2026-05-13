@@ -72,6 +72,21 @@
     line-height: 1.6;
     white-space: pre-wrap;
     word-wrap: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
 }
 
 .modal-footer {

@@ -6,149 +6,138 @@
     ============================================================ */
 
 /* ============================================================
-    Body — 居中 flex 容器
-    ============================================================
-    布局结构：
-      body (flex, justify-content: center)
-      ├── .left-panel (position: fixed, 脱离文档流，不影响居中)
-      ├── .layout-center (居中容器，包裹 #app + .tick-nav)
-      │   ├── #app (flex column, 主内容区)
-      │   └── .tick-nav (相对于 .layout-center 定位)
-      └── .right-panel (预留)
+    全局重置 — 禁用 body 滚动，由内部容器控制
     ============================================================ */
 
+html, body {
+    overflow: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
+    font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+    background: var(--bg-primary);
+}
+
+/* ============================================================
+    主容器 — flex 双栏布局
+    ============================================================
+    布局结构：
+      .app-container (flex row, 100% x 100%)
+      ├── .left-sidebar (width:400px, hidden class 控制显隐)
+      │   ├── .sidebar-header (标题区, flex-shrink:0)
+      │   │   └── .left-brand-area (品牌容器, 动态渲染)
+      │   └── .sidebar-content (flex:1, overflow-y:auto, 独立滚动)
+      └── .main-content (flex:1, flex column)
+          ├── .main-header (标题区, flex-shrink:0)
+          │   ├── .main-brand-area (品牌容器, 动态渲染)
+          │   ├── .main-title (内容标题)
+          │   └── .main-header-right (主题切换等)
+          ├── .main-body (flex:1, overflow:hidden, 居中)
+          │   └── .scroll-container (width:80%, overflow-y:auto)
+          │       └── #chatContainer (原聊天容器)
+          └── .input-area (原样保留)
+    ============================================================ */
+
+.app-container {
     display: flex;
-    justify-content: center;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
 }
 
-/* 居中容器 — 包裹 #app 和刻度导航，使刻度导航相对于主内容区定位 */
-.layout-center {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    height: 100vh;
-    flex: 1;
-    max-width: 1000px; /* #app max-width(960px) + tick-nav 预留空间 */
-    position: relative;
-}
-
 /* ============================================================
-    浮动层（左栏隐藏时显示）：logo + 标题/副标题 + 面板展开按钮
+    左栏
     ============================================================ */
 
-.floating-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 12px;
-    z-index: 100;
-}
-
-.floating-logo {
-    width: 38px;
-    height: 38px;
+.left-sidebar {
+    width: 400px;
     flex-shrink: 0;
-}
-
-/* 标题/副标题容器 */
-.floating-header-text {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    /* 用 filter:drop-shadow 避免被 overflow:hidden 裁剪 */
+    filter: drop-shadow(1px 0 1px var(--bg-secondary));
+    /* 宽屏模式下用 margin-left + visibility + opacity 实现平滑显隐动画 */
+    margin-left: 0;
+    visibility: visible;
+    opacity: 1;
+    transition: margin-left 0.25s ease, opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.left-sidebar.hidden {
+    margin-left: -400px;
+    visibility: hidden;
+    opacity: 0;
+}
+
+.sidebar-header {
     flex-shrink: 0;
-}
-
-.floating-header-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.3;
-    white-space: nowrap;
-}
-
-.floating-header-subtitle {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    line-height: 1.2;
-    white-space: nowrap;
-}
-
-/* 左侧栏可见时，隐藏浮动层（内容已移到左侧栏头部） */
-.left-panel-visible .floating-header {
-    display: none;
-}
-
-/* ============================================================
-    头部 — 汉堡菜单按钮（窄屏） + 对话标题 + 主题切换
-    ============================================================ */
-
-.header {
+    min-height: 72px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 20px 16px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    width: 100%;
-    box-sizing: border-box;
+    padding: 0.75rem 1.25rem;
     gap: 12px;
 }
 
-/* 左栏可见时，header 左侧留出空间避免与左栏重叠 */
-.left-panel-visible .header {
-    padding-left: 230px;
-}
-
-.header-left {
+/* 左侧品牌区域容器 */
+.left-brand-area {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 0;
+    gap: 12px;
     flex: 1;
+    flex-wrap: wrap;
 }
 
-.header-right {
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+/* ============================================================
+    主栏
+    ============================================================ */
+
+.main-content {
+    flex: 1;
+    min-width: 400px;
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.main-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 1rem;
+    padding: 0 1.5rem;
     flex-shrink: 0;
+    min-height: 72px;
+    border-bottom: 1px solid var(--border);
 }
 
-/* 汉堡菜单按钮（窄屏显示，宽屏隐藏） */
-.header-menu-btn {
-    display: none;
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px;
-    cursor: pointer;
-    transition: background 0.2s;
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
+/* 主栏品牌区域容器 */
+.main-brand-area {
+    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
 }
 
-.header-menu-btn:hover {
-    background: var(--bg-secondary);
-}
-
-.header-menu-btn svg {
-    width: 20px;
-    height: 20px;
-    display: block;
-    color: var(--text-primary);
-}
-
-/* 对话标题 */
-.header-title {
+/* 内容标题 */
+.main-title {
     font-size: 0.95rem;
     font-weight: 500;
     color: var(--text-primary);
@@ -159,7 +148,137 @@ body {
     user-select: none;
 }
 
-/* 主题切换按钮 */
+/* 主栏标题右侧操作区 */
+.main-header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+    主栏内容区 — 80% 宽滚动容器
+    ============================================================ */
+
+.main-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    /* position: relative 不再需要（tickNav 已改用 position: fixed） */
+}
+
+.scroll-container {
+    width: 100%;
+    max-width: 980px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ============================================================
+    品牌元素样式（复用原有 .left-panel-logo / .left-panel-title 样式）
+    ============================================================ */
+
+.brand-logo {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.brand-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.brand-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================================
+    切换按钮（复用现有 .panel-toggle 风格）
+    ============================================================ */
+
+.menu-toggle-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.menu-toggle-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.menu-toggle-btn svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    color: var(--text-primary);
+}
+
+/* 左栏关闭按钮 */
+.sidebar-close-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.sidebar-close-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.sidebar-close-btn svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    color: var(--text-primary);
+}
+
+/* ============================================================
+    主题切换按钮（主栏标题右侧）
+    ============================================================ */
+
 .theme-toggle {
     background: none;
     border: 1px solid var(--border);
@@ -185,111 +304,10 @@ body {
     color: var(--text-primary);
 }
 
-/* 面板切换按钮（通用） */
-.panel-toggle {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    transition: background 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-}
-
-.panel-toggle:hover {
-    background: var(--bg-secondary);
-}
-
-.panel-toggle svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-    color: var(--text-primary);
-}
-
 /* ============================================================
-    左侧面板 — 宽度切换式侧栏
+    开启新对话按钮（左栏内）
     ============================================================ */
 
-.left-panel {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 0;
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 12px;
-    background: var(--bg-primary);
-    border-right: 1px solid var(--border);
-    transition: width 0.3s ease;
-    flex-shrink: 0;
-    z-index: 50;
-}
-
-/* 左侧栏可见 */
-.left-panel-visible .left-panel {
-    width: 380px;
-    min-width: 220px;
-    box-shadow: 2px 0 12px var(--shadow);
-}
-
-.left-panel-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 4px 12px;
-    box-sizing: border-box;
-}
-
-.left-panel-logo {
-    width: 38px;
-    height: 38px;
-    flex-shrink: 0;
-}
-
-.left-panel-title {
-    min-width: 0;
-    flex: 1;
-}
-
-.left-panel-title h1 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.left-panel-title .subtitle {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.left-panel-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-}
-
-/* 开启新对话按钮 */
 .new-session-btn {
     display: inline-flex;
     align-items: center;
@@ -320,18 +338,19 @@ body {
 }
 
 /* ============================================================
-    聊天区域
-   ============================================================ */
+    聊天区域（原样保留，仅移动位置）
+    ============================================================ */
 
 .chat-container {
     flex: 1;
-    overflow-y: auto;
+    width: 100%;
+    overflow-y: visible;  /* 由外层 .scroll-container 控制滚动 */
     padding: 16px 20px;
     scroll-behavior: smooth;
 }
 
 /* ============================================================
-    消息气泡布局
+    消息气泡布局（原样保留）
     ============================================================ */
 
 .message-group {
@@ -506,21 +525,16 @@ body {
     box-sizing: border-box;
 }
 
-/* 欢迎状态下，整个 #app 切换为垂直居中布局，
+/* 欢迎状态下，整个 .scroll-container 切换为垂直居中布局，
    使欢迎信息与底部输入框一起在页面中垂直居中 */
-#app.welcome-state {
+.scroll-container.welcome-state {
+    display: flex;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
 }
 
-#app.welcome-state .header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-}
-
-#app.welcome-state .chat-container {
+.scroll-container.welcome-state .chat-container {
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
@@ -531,29 +545,36 @@ body {
 }
 
 /* ============================================================
-    滚动条样式（Firefox 风格细滚动条）
+    滚动条样式
     ============================================================ */
 
-.chat-container {
+/* 主聊天区域：隐藏滚动条，保留滚动功能 */
+.scroll-container {
     scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.scroll-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* 左栏滚动条：Firefox 风格细滚动条 */
+.sidebar-content {
+    scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
 }
 
-.chat-container::-webkit-scrollbar {
-    width: 4px;
+.sidebar-content::-webkit-scrollbar {
+    width: 6px;
 }
 
-.chat-container::-webkit-scrollbar-track {
+.sidebar-content::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.chat-container::-webkit-scrollbar-thumb {
+.sidebar-content::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 2px;
-}
-
-.chat-container::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    border-radius: 6px;
 }
 
 /* ============================================================

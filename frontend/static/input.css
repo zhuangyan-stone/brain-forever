@@ -12,6 +12,7 @@
 .input-area {
     flex-shrink: 0;
     width: 100%;
+    max-width: 980px;
     align-self: center;
     padding: 12px 20px 16px;
     border-top: 1px solid var(--border);
@@ -302,8 +303,7 @@
     border-top: none;
     width: 100%;
     margin-top: 0;
-    margin-bottom: 0;
-    box-shadow: none;
+    margin-bottom: 0;    
 }
 
 /* 欢迎状态下输入框边框直接使用主题色（青色 --accent），聚焦时加深 */

@@ -121,26 +121,324 @@ function updateThemeButton(themeStr) {
 }
 
 // ============================================================
-// 左侧面板切换
+// 左栏切换 + 品牌迁移逻辑（参照 demo.html 实现）
 // ============================================================
 
-const panelToggle = document.getElementById('panelToggle');
-const panelToggleInner = document.getElementById('panelToggleInner');
-const headerMenuBtn = document.getElementById('headerMenuBtn');
+const leftSidebar = document.getElementById('leftSidebar');
+const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+const leftBrandContainer = document.getElementById('leftBrandContainer');
+const mainBrandContainer = document.getElementById('mainBrandContainer');
 
-function toggleLeftPanel() {
-    document.body.classList.toggle('left-panel-visible');
+const MIN_BOTH = 800;     // 宽屏左栏必须宽度≥800px才能保持双栏显示
+const SMALL_BP = 768;     // 小屏模式阈值
+
+let isLeftVisible = false;    // 宽屏模式下左栏是否可见 (hidden class 控制)
+let autoHidden = false;       // 自动隐藏标记
+let isSmallMode = false;      // 当前是否小屏模式
+let isDrawerOpen = false;     // 小屏模式下抽屉是否打开
+
+// ----- 全局切换按钮 (唯一实例，避免重复绑定) -----
+let globalToggleButton = null;
+
+// 切换按钮 SVG（复用现有 .panel-toggle 风格）
+const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="5" y1="2" x2="5" y2="14"/></svg>';
+
+// ===== 品牌文本常量（方便以后修改） =====
+const BRAND_TITLE = '脑力永生';
+const BRAND_SUBTITLE = '基于 RAG 知识库的智能对话';
+
+// 创建品牌元素（Logo + 主标题 + 副标题）
+function createBrandElement() {
+    const container = document.createElement('div');
+    container.className = 'brand-container';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '12px';
+
+    // Logo
+    const logo = document.createElement('img');
+    logo.className = 'brand-logo';
+    logo.src = '/static/brain-forever.svg';
+    logo.alt = '脑力永生';
+
+    // 标题/副标题容器
+    const textDiv = document.createElement('div');
+    textDiv.className = 'brand-text';
+
+    const title = document.createElement('h1');
+    title.className = 'brand-title';
+    title.textContent = BRAND_TITLE;
+
+    const subtitle = document.createElement('p');
+    subtitle.className = 'brand-subtitle';
+    subtitle.textContent = BRAND_SUBTITLE;
+
+    textDiv.appendChild(title);
+    textDiv.appendChild(subtitle);
+
+    container.appendChild(logo);
+    container.appendChild(textDiv);
+
+    return container;
 }
 
-if (panelToggle) {
-    panelToggle.addEventListener('click', toggleLeftPanel);
+// 创建/获取切换按钮 (单例，事件绑定一次)
+function getToggleButton() {
+    if (!globalToggleButton) {
+        globalToggleButton = document.createElement('button');
+        globalToggleButton.className = 'menu-toggle-btn';
+        globalToggleButton.setAttribute('aria-label', '切换侧边栏');
+        globalToggleButton.innerHTML = TOGGLE_BTN_SVG;
+        // 绑定统一切换逻辑
+        globalToggleButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSidebarMaster();
+        });
+    }
+    return globalToggleButton;
 }
-if (panelToggleInner) {
-    panelToggleInner.addEventListener('click', toggleLeftPanel);
+
+// 核心切换逻辑: 宽屏切换 isLeftVisible，小屏切换抽屉开关
+function toggleSidebarMaster() {
+    if (isSmallMode) {
+        // 小屏模式: 切换抽屉状态
+        if (isDrawerOpen) closeDrawer();
+        else openDrawer();
+    } else {
+        // 宽屏模式: 切换双栏显隐
+        if (isLeftVisible) hideByUser();
+        else attemptShow(true);
+    }
 }
-if (headerMenuBtn) {
-    headerMenuBtn.addEventListener('click', toggleLeftPanel);
+
+// 小屏打开抽屉
+function openDrawer() {
+    if (!isSmallMode) return;
+    leftSidebar.classList.add('drawer-open');
+    isDrawerOpen = true;
+    updateUI();
+    updateBrandLayout();
 }
+
+function closeDrawer() {
+    if (!isSmallMode) return;
+    leftSidebar.classList.remove('drawer-open');
+    isDrawerOpen = false;
+    updateUI();
+    updateBrandLayout();
+}
+
+// 宽屏显隐逻辑
+function hideByUser() {
+    if (isSmallMode) return;
+    if (isLeftVisible) {
+        isLeftVisible = false;
+        autoHidden = false;
+        syncDual();
+        updateBrandLayout();
+    }
+}
+
+function attemptShow(user = true) {
+    if (isSmallMode) return;
+    const w = getW();
+    if (w >= MIN_BOTH) {
+        if (!isLeftVisible) {
+            isLeftVisible = true;
+            syncDual();
+            updateBrandLayout();
+            if (user) { autoHidden = false; }
+            else { autoHidden = false; }
+        }
+        return true;
+    }
+    return false;
+}
+
+// 强制关闭（宽屏宽度不足时）
+function forceClose() {
+    if (isSmallMode) return;
+    if (isLeftVisible && getW() < MIN_BOTH) {
+        isLeftVisible = false;
+        autoHidden = true;
+        syncDual();
+        updateBrandLayout();
+    }
+}
+
+// 自动恢复检测
+function enforceAuto() {
+    if (isSmallMode) return;
+    const w = getW();
+    if (isLeftVisible && w < MIN_BOTH) forceClose();
+    if (!isLeftVisible && autoHidden && w >= MIN_BOTH) attemptShow(false);
+}
+
+// 同步 leftSidebar hidden 样式
+function syncDual() {
+    if (isSmallMode) return;
+    if (isLeftVisible) leftSidebar.classList.remove('hidden');
+    else leftSidebar.classList.add('hidden');
+    updateUI();
+}
+
+// 更新状态（目前仅用于调试，可扩展）
+function updateUI() {
+    // 预留：可在此更新状态显示
+}
+
+// ********** 关键: 动态品牌布局 **********
+// 规则:
+// - 宽屏模式下，isLeftVisible === true   => 品牌渲染在 leftBrandContainer
+// - 宽屏模式下，isLeftVisible === false  => 品牌渲染在 mainBrandContainer
+// - 小屏模式下，isDrawerOpen === true     => 品牌渲染在 leftBrandContainer
+// - 小屏模式下，isDrawerOpen === false    => 主栏只显示切换按钮 + 对话标题（品牌隐藏）
+function updateBrandLayout() {
+    let sidebarVisible = false;
+    if (isSmallMode) {
+        sidebarVisible = isDrawerOpen;
+    } else {
+        sidebarVisible = isLeftVisible;
+    }
+
+    const toggleButton = getToggleButton();
+    const mainHeader = document.querySelector('.main-header');
+
+    if (sidebarVisible) {
+        // 品牌展示在左侧栏头部
+        mainBrandContainer.innerHTML = '';
+        leftBrandContainer.innerHTML = '';
+        const brandElem = createBrandElement();
+        leftBrandContainer.appendChild(brandElem);
+        if (isSmallMode) {
+            // 小屏模式（抽屉打开）：左侧栏已有关闭按钮（sidebar-close-btn），
+            // 不再需要切换按钮，避免重复
+            if (toggleButton.parentNode) toggleButton.remove();
+            toggleButton.style.display = 'none';
+        } else {
+            // 宽屏模式：切换按钮放在左侧栏品牌区
+            if (toggleButton.parentNode) toggleButton.remove();
+            leftBrandContainer.appendChild(toggleButton);
+            toggleButton.style.display = 'inline-flex';
+        }
+        leftBrandContainer.style.display = 'flex';
+        leftBrandContainer.style.alignItems = 'center';
+        leftBrandContainer.style.gap = '12px';
+        leftBrandContainer.style.flex = '1';
+        leftBrandContainer.style.flexWrap = 'wrap';
+    } else {
+        // 品牌展示在主栏
+        leftBrandContainer.innerHTML = '';
+        mainBrandContainer.innerHTML = '';
+        if (isSmallMode) {
+            // 小屏模式：主栏只放切换按钮（品牌由 CSS 隐藏），
+            // 切换按钮直接插入 .main-header 最前面
+            if (toggleButton.parentNode) toggleButton.remove();
+            mainHeader.insertBefore(toggleButton, mainHeader.firstChild);
+            toggleButton.style.display = 'inline-flex';
+            mainBrandContainer.style.display = 'none';
+        } else {
+            // 宽屏模式（左栏隐藏）：品牌 + 切换按钮放在 mainBrandContainer
+            const brandElem = createBrandElement();
+            mainBrandContainer.appendChild(brandElem);
+            if (toggleButton.parentNode) toggleButton.remove();
+            mainBrandContainer.appendChild(toggleButton);
+            toggleButton.style.display = 'inline-flex';
+            mainBrandContainer.style.display = 'flex';
+            mainBrandContainer.style.alignItems = 'center';
+            mainBrandContainer.style.gap = '12px';
+        }
+    }
+}
+
+// 响应 resize 切换模式 (小屏/宽屏)
+function switchMode() {
+    const w = getW();
+    const newSmall = w < SMALL_BP;
+    if (newSmall === isSmallMode) {
+        if (!isSmallMode) enforceAuto();
+        updateUI();
+        updateBrandLayout();
+        return;
+    }
+    // 模式切换
+    if (newSmall) {
+        // 进入小屏模式
+        document.body.classList.add('small-screen-mode');
+        isSmallMode = true;
+        isLeftVisible = false;
+        autoHidden = false;
+        isDrawerOpen = false;
+        leftSidebar.classList.remove('hidden');
+        leftSidebar.classList.remove('drawer-open');
+        updateUI();
+        updateBrandLayout();
+    } else {
+        // 退出小屏模式, 进入宽屏
+        document.body.classList.remove('small-screen-mode');
+        isSmallMode = false;
+        isDrawerOpen = false;
+        leftSidebar.classList.remove('drawer-open');
+        isLeftVisible = false;
+        autoHidden = false;
+        syncDual();
+        enforceAuto();
+        updateBrandLayout();
+        updateUI();
+    }
+}
+
+function getW() { return window.innerWidth; }
+
+// 监听 sidebarCloseBtn (小屏专用关闭按钮)
+if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener('click', () => {
+        if (isSmallMode && isDrawerOpen) {
+            closeDrawer();
+        } else if (!isSmallMode) {
+            if (isLeftVisible) hideByUser();
+        }
+    });
+}
+
+// 监听窗口resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        switchMode();
+        if (!isSmallMode) {
+            enforceAuto();
+        }
+        updateUI();
+        updateBrandLayout();
+    }, 60);
+});
+
+// 初始化
+(function initSidebar() {
+    const w = getW();
+    if (w < SMALL_BP) {
+        document.body.classList.add('small-screen-mode');
+        isSmallMode = true;
+        isLeftVisible = false;
+        isDrawerOpen = false;
+        leftSidebar.classList.remove('hidden');
+        leftSidebar.classList.remove('drawer-open');
+        updateUI();
+        updateBrandLayout();
+    } else {
+        document.body.classList.remove('small-screen-mode');
+        isSmallMode = false;
+        isLeftVisible = false;
+        autoHidden = false;
+        isDrawerOpen = false;
+        syncDual();
+        enforceAuto();
+        updateBrandLayout();
+        updateUI();
+    }
+})();
 
 // ============================================================
 // 初始化：自动调整 textarea 高度
@@ -298,7 +596,7 @@ window.addEventListener('DOMContentLoaded', restoreSession);
 // ============================================================
 
 (function initInputCollapse() {
-    const chatContainer = document.getElementById('chatContainer');
+    const chatContainer = document.getElementById('scrollContainer');
     const inputArea = document.querySelector('.input-area');
     const messageInput = document.getElementById('messageInput');
 

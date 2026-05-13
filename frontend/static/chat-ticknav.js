@@ -7,9 +7,11 @@ import { truncate } from './toolsets.js';
 
 'use strict';
 
-// 获取 chatContainer 的辅助函数（避免循环依赖）
-function getChatContainer() {
-    return document.getElementById('chatContainer');
+// 获取实际滚动容器的辅助函数（避免循环依赖）
+// 注意：布局重构后，实际滚动的容器是 #scrollContainer（.scroll-container），
+// 而非 #chatContainer（.chat-container 的 overflow-y: visible，不触发 scroll 事件）。
+function getScrollContainer() {
+    return document.getElementById('scrollContainer');
 }
 
 /**
@@ -19,8 +21,8 @@ export function updateTickNav() {
     const tickNav = document.getElementById('tickNav');
     if (!tickNav) return;
 
-    // 收集所有用户消息元素
-    const chatContainer = getChatContainer();
+    // 收集所有用户消息元素（用户消息在 #chatContainer 内）
+    const chatContainer = document.getElementById('chatContainer');
     if (!chatContainer) return;
     const userMessages = chatContainer.querySelectorAll('.message.user');
     const tickCount = userMessages.length;
@@ -87,9 +89,9 @@ export function updateTickNav() {
 
         // 点击刻度滚动到对应消息，并设为活动条目
         tick.addEventListener('click', () => {
-            const chatContainer = getChatContainer();
-            if (!chatContainer) return;
-            const targetMsg = chatContainer.querySelector(`.message.user[data-msg-index="${i}"]`);
+            const scrollContainer = getScrollContainer();
+            if (!scrollContainer) return;
+            const targetMsg = scrollContainer.querySelector(`.message.user[data-msg-index="${i}"]`);
             if (targetMsg) {
                 setActiveTick(i);
                 targetMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -156,6 +158,9 @@ export function setActiveTick(index) {
 
 /**
  * updateActiveTickOnScroll 根据当前视口中的用户消息更新活动刻度
+ *
+ * 注意：使用 getScrollContainer() 获取实际滚动的容器（#scrollContainer），
+ * 而非 #chatContainer（其 overflow-y: visible，不触发 scroll 事件）。
  */
 function updateActiveTickOnScroll() {
     const tickNav = document.getElementById('tickNav');
@@ -164,38 +169,42 @@ function updateActiveTickOnScroll() {
     // 面板展开时忽略滚动
     if (tickNav.matches(':hover')) return;
 
-    const chatContainer = getChatContainer();
-    if (!chatContainer) return;
-    const userMessages = chatContainer.querySelectorAll('.message.user');
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+    const userMessages = scrollContainer.querySelectorAll('.message.user');
     if (userMessages.length === 0) return;
 
-    const containerRect = chatContainer.getBoundingClientRect();
+    const containerRect = scrollContainer.getBoundingClientRect();
     const containerTop = containerRect.top;
 
-    // 找到第一个顶部在容器顶部或以下的用户消息（即第一个完全/部分可见的消息）
+    // 找到第一个底部在容器顶部以下的用户消息（即第一个可见或部分可见的消息）。
+    // 使用 rect.bottom > containerTop 而非 rect.top >= containerTop，因为消息之间
+    // 有间距（gap/padding），rect.top 可能远大于 containerTop，导致跳过中间消息。
+    // 如果所有消息都在容器顶部以上（全部滚出），则定位到最后一个。
     let targetIdx = 0;
     for (let i = 0; i < userMessages.length; i++) {
         const rect = userMessages[i].getBoundingClientRect();
-        if (rect.top >= containerTop) {
+        if (rect.bottom > containerTop) {
             targetIdx = i;
             break;
         }
-        targetIdx = i; // 遍历到最后一个都没找到，说明全部已滚出顶部
+        // 遍历到最后一个都没找到（全部已滚出顶部），targetIdx 设为最后一个
+        targetIdx = i;
     }
 
-    // 如果当前活动消息已滚出顶部，且后面还有消息，则跳到下一个可见消息；
-    // 但如果后面已经没有消息了（即当前是最后一个），则保持不动。
+    // 如果当前活动消息已完全滚出顶部（底部也在容器顶部以上），且后面还有消息，
+    // 则跳到下一个可见消息；但如果后面已经没有消息了（即当前是最后一个），则保持不动。
     if (state.activeTickIndex >= 0 && state.activeTickIndex < userMessages.length) {
         const activeRect = userMessages[state.activeTickIndex].getBoundingClientRect();
-        if (activeRect.top < containerTop && state.activeTickIndex < userMessages.length - 1) {
-            // 当前消息已滚出顶部，且后面还有消息 → 跳到 targetIdx
+        if (activeRect.bottom <= containerTop && state.activeTickIndex < userMessages.length - 1) {
+            // 当前消息已完全滚出顶部，且后面还有消息 → 跳到 targetIdx
             if (targetIdx !== state.activeTickIndex) {
                 state.activeTickIndex = targetIdx;
                 adjustTickOffset();
                 updateTickNav();
             }
-        } else if (activeRect.top >= containerTop) {
-            // 当前消息仍然可见，更新为更精确的 targetIdx
+        } else if (activeRect.bottom > containerTop) {
+            // 当前消息仍然可见（至少底部还在视口内），更新为更精确的 targetIdx
             if (targetIdx !== state.activeTickIndex) {
                 state.activeTickIndex = targetIdx;
                 adjustTickOffset();
@@ -217,7 +226,7 @@ function updateActiveTickOnScroll() {
  * adjustTickOffset 调整 tickScrollOffset 确保活动刻度可见
  */
 function adjustTickOffset() {
-    const chatContainer = getChatContainer();
+    const chatContainer = document.getElementById('chatContainer');
     if (!chatContainer) return;
     const userMessages = chatContainer.querySelectorAll('.message.user');
     const tickCount = userMessages.length;
@@ -240,7 +249,7 @@ export function initTickNav() {
     // 刻度面板鼠标滚轮滚动 — 改变偏移量，翻动显示的刻度
     tickNav.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const chatContainer = getChatContainer();
+        const chatContainer = document.getElementById('chatContainer');
         if (!chatContainer) return;
         const userMessages = chatContainer.querySelectorAll('.message.user');
         const tickCount = userMessages.length;
@@ -264,10 +273,12 @@ export function initTickNav() {
     });
 
     // 节流包装，避免频繁触发
+    // 注意：滚动事件必须绑定在 #scrollContainer（实际滚动的容器）上，
+    // 而非 #chatContainer（其 overflow-y: visible，不触发 scroll 事件）。
     let scrollThrottleTimer = null;
-    const chatContainer = getChatContainer();
-    if (!chatContainer) return;
-    chatContainer.addEventListener('scroll', () => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+    scrollContainer.addEventListener('scroll', () => {
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
             scrollThrottleTimer = null;

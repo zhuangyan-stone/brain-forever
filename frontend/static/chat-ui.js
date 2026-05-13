@@ -11,6 +11,7 @@ import { renderMarkdown } from './chat-markdown.js';
 // DOM 元素引用（由 chat.js 初始化时设置）
 export const dom = {
     chatContainer: null,
+    scrollContainer: null,
     messageInput: null,
     sendBtn: null,
     toastContainer: null,
@@ -21,6 +22,7 @@ export const dom = {
  */
 export function initDom() {
     dom.chatContainer = document.getElementById('chatContainer');
+    dom.scrollContainer = document.getElementById('scrollContainer');
     dom.messageInput = document.getElementById('messageInput');
     dom.sendBtn = document.getElementById('sendBtn');
     dom.toastContainer = document.getElementById('toastContainer');
@@ -31,7 +33,8 @@ export function initDom() {
  */
 export function scrollToBottom() {
     requestAnimationFrame(() => {
-        dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
+        const sc = dom.scrollContainer || dom.chatContainer;
+        sc.scrollTop = sc.scrollHeight;
     });
 }
 
@@ -527,8 +530,11 @@ export function showWelcomeMessage() {
         el.appendChild(inputArea);
     }
 
-    // 标记欢迎状态
-    document.getElementById('app').classList.add('welcome-state');
+    // 标记欢迎状态（新布局下标记在 .scroll-container 上）
+    const scrollContainer = document.getElementById('scrollContainer');
+    if (scrollContainer) {
+        scrollContainer.classList.add('welcome-state');
+    }
 
     // 设置 header 标题为欢迎语
     updateHeaderTitle('欢迎开始新对话');

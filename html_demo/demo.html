@@ -3,133 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>高级双栏布局 | 固定标题 + 内容区域宽度控制</title>
+    <title>最终修正 | 滚动条居中 · 动态品牌栏</title>
     <style>
+        /* 彻底禁用全局滚动 */
+        html, body {
+            overflow: hidden;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
-            font-family: system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
             background: #e9eef3;
-            height: 100vh;
-            overflow: hidden; /* 防止body整体滚动，内部各自滚动 */
         }
 
-        /* 主容器：flex 行布局，全高 */
+        /* 主容器 */
         .app-container {
             display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap;
             width: 100%;
-            height: 100vh;
+            height: 100%;
             background: #f8fafc;
-            position: relative;
             overflow: hidden;
         }
 
-        /* ========= 左栏样式 ========= */
+        /* ========= 左栏 ========= */
         .left-sidebar {
             width: 400px;
             flex-shrink: 0;
-            background: linear-gradient(145deg, #f1f5f9 0%, #e6edf4 100%);
+            background: linear-gradient(145deg, #f1f5f9, #e6edf4);
             border-right: 1px solid #cbd5e1;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
             display: flex;
-            flex-direction: column;   /* 垂直列布局 */
+            flex-direction: column;
             height: 100%;
-            overflow: hidden;         /* 防止溢出 */
+            overflow: hidden;
+            transition: transform 0.2s ease;
         }
+        .left-sidebar.hidden { display: none; }
 
-        /* 双栏模式下的隐藏类 */
-        .left-sidebar.hidden {
-            display: none;
-        }
-
-        /* 左栏头部区（固定高度，统一行高） */
         .sidebar-header {
-            padding: 1rem 1.5rem;
-            background: rgba(255, 255, 255, 0.6);
+            padding: 0.75rem 1.25rem;
+            background: rgba(255,255,255,0.7);
             border-bottom: 1px solid #cbd5e1;
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(4px);
+            flex-shrink: 0;
+            min-height: 72px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-shrink: 0;          /* 固定不压缩 */
-            min-height: 72px;         /* 与主栏标题高度一致 */
-            height: 72px;
+            gap: 12px;
         }
-
-        .sidebar-header h2 {
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: #0f172a;
-            letter-spacing: -0.2px;
+        /* 左侧品牌区域容器（放置 LOGO+标题 和 切换按钮） */
+        .left-brand-area {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            line-height: 1.3;
+            gap: 12px;
+            flex: 1;
+            flex-wrap: wrap;
         }
-
-        .sidebar-header h2::before {
-            content: "📁";
-            font-size: 1.3rem;
+        .brand-logo-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #1e2a3a, #0f172a);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            white-space: nowrap;
         }
-
-        /* 侧栏内部关闭按钮 */
-        .sidebar-close-btn {
-            background: rgba(0, 0, 0, 0.05);
-            border: none;
+        .brand-logo-text::before {
+            content: "🎯";
             font-size: 1.4rem;
-            line-height: 1;
-            cursor: pointer;
-            width: 36px;
-            height: 36px;
+            background: none;
+            color: #3b82f6;
+            -webkit-background-clip: unset;
+        }
+        /* 统一菜单按钮样式 */
+        .menu-toggle-btn {
+            background: #f1f5f9;
+            border: none;
+            font-size: 1.6rem;
+            width: 40px;
+            height: 40px;
             border-radius: 40px;
+            cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
-            color: #1e293b;
+            transition: 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .menu-toggle-btn:hover {
+            background: #e2e8f0;
+        }
+        .sidebar-close-btn {
+            background: rgba(0,0,0,0.05);
+            border: none;
+            font-size: 1.4rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 40px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .sidebar-close-btn:hover {
-            background: rgba(0, 0, 0, 0.1);
-            transform: scale(0.95);
-        }
-
-        /* 左栏内容区 - 可滚动 */
         .sidebar-content {
             flex: 1;
             overflow-y: auto;
             padding: 1.5rem;
         }
-
-        .nav-list {
-            list-style: none;
-        }
-
         .nav-list li {
             padding: 0.75rem 1rem;
             margin: 0.5rem 0;
             background: white;
             border-radius: 1rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
-            cursor: default;
-            font-weight: 500;
-            color: #1e293b;
             border-left: 4px solid #3b82f6;
+            list-style: none;
         }
 
-        .nav-list li:hover {
-            background: #eef2ff;
-            transform: translateX(4px);
-        }
-
-        /* ========= 主栏样式 ========= */
+        /* ========= 主栏 ========= */
         .main-content {
             flex: 1;
             min-width: 400px;
@@ -139,89 +139,61 @@
             height: 100%;
             overflow: hidden;
         }
-
-        /* 主栏头部（固定高度，与左栏标题区一致） */
         .main-header {
             display: flex;
             align-items: center;
             gap: 1rem;
             padding: 1rem 1.5rem;
-            background: #ffffff;
             border-bottom: 2px solid #e2e8f0;
             flex-shrink: 0;
             min-height: 72px;
-            height: 72px;
         }
-
-        .menu-toggle-btn {
-            background: #f1f5f9;
-            border: none;
-            font-size: 1.6rem;
-            line-height: 1;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            border-radius: 40px;
-            display: inline-flex;
+        /* 主栏品牌区域（LOGO+标题 + 切换按钮动态渲染于此） */
+        .main-brand-area {
+            display: flex;
             align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            color: #1e293b;
-            font-weight: 500;
+            gap: 12px;
         }
-
-        .menu-toggle-btn:hover {
-            background: #e2e8f0;
-            transform: scale(0.96);
-        }
-
         .main-title {
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: #0f172a;
-            letter-spacing: -0.3px;
+            font-size: 1.25rem;
+            font-weight: 500;
             background: linear-gradient(135deg, #1e293b, #2d3a4e);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
             white-space: nowrap;
-            line-height: 1.3;
+            letter-spacing: -0.2px;
         }
 
-        /* 主栏内容区 - 滚动区域，内容宽度控制为父级(主栏除去滚动条)的80% 且居中 */
+        /* ★ 关键样式：滚动容器宽度80%，居中，滚动条出现在此处右边缘 ★ */
         .main-body {
             flex: 1;
-            overflow-y: auto;
-            padding: 2rem 1.5rem;
+            min-height: 0;
+            overflow: hidden;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }
-
-        /* 内容容器：占主栏内容区域可用宽度的80% 且居中 */
-        .content-container {
+        .scroll-container {
             width: 80%;
-            margin: 0 auto;
-            max-width: 1200px;  /* 大屏幕时也不会过宽，可选 */
-            min-width: 280px;   /* 保证移动端可读 */
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: #ffffff;
+            box-shadow: 0 0 0 1px #e2e8f0;
+            padding: 2rem 1.5rem;
+            scroll-behavior: smooth;
         }
-
-        /* 卡片样式调整 */
-        .card {
+        .scroll-container .card {
             background: #f9fafb;
             border-radius: 1.5rem;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             border: 1px solid #eef2ff;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
         }
-
-        .card p {
-            line-height: 1.5;
-            color: #334155;
-            margin-bottom: 0.75rem;
-        }
-
         .placeholder-img {
-            background: linear-gradient(110deg, #e2e8f0 0%, #f1f5f9 100%);
+            background: linear-gradient(110deg, #e2e8f0, #f1f5f9);
             height: 120px;
             border-radius: 1rem;
             margin-top: 1rem;
@@ -229,7 +201,22 @@
             align-items: center;
             justify-content: center;
             color: #475569;
-            font-weight: 500;
+        }
+
+        /* 滚动条样式 */
+        .scroll-container::-webkit-scrollbar {
+            width: 10px;
+        }
+        .scroll-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
         }
 
         .toast-tip {
@@ -243,34 +230,22 @@
             padding: 8px 18px;
             border-radius: 40px;
             font-size: 0.85rem;
-            font-weight: 500;
             z-index: 2000;
             pointer-events: none;
             transition: opacity 0.2s;
             opacity: 0;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
 
-        /* 状态显示小标签 */
-        .status-badge {
-            font-size: 0.8rem;
-            background: #f1f5f9;
-            padding: 2px 8px;
-            border-radius: 20px;
-            display: inline-block;
-        }
-
-        /* 响应式：窄屏下主栏内容宽度可适当调整 */
+        /* 响应式 & 小屏抽屉模式 */
         @media (max-width: 768px) {
-            .content-container {
+            .scroll-container {
                 width: 95%;
-            }
-            .main-body {
                 padding: 1.5rem 1rem;
             }
             .main-title {
-                font-size: 1.2rem;
+                font-size: 1rem;
                 white-space: normal;
+                line-height: 1.3;
             }
             .menu-toggle-btn {
                 width: 36px;
@@ -278,18 +253,21 @@
                 font-size: 1.4rem;
             }
             .main-header, .sidebar-header {
-                padding: 0.8rem 1rem;
                 min-height: 64px;
-                height: 64px;
+                padding: 0.75rem 1rem;
+            }
+            .brand-logo-text {
+                font-size: 1rem;
+            }
+            .brand-logo-text::before {
+                font-size: 1.2rem;
             }
         }
 
-        /* ========= 小屏模式专用样式 (宽度 < 768px) ========= */
+        /* 小屏抽屉模式专用覆盖 */
         body.small-screen-mode .app-container {
             position: relative;
         }
-
-        /* 小屏模式 - 左栏全屏抽屉效果 */
         body.small-screen-mode .left-sidebar {
             position: fixed;
             top: 0;
@@ -297,36 +275,24 @@
             width: 100%;
             height: 100%;
             z-index: 1050;
-            background: #ffffff;
-            border-right: none;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+            background: white;
             transform: translateX(-100%);
             transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             display: flex !important;
-            flex-shrink: 0;
         }
-
         body.small-screen-mode .left-sidebar.drawer-open {
             transform: translateX(0);
         }
-
         body.small-screen-mode .left-sidebar.hidden {
             display: flex !important;
         }
-
         body.small-screen-mode .main-content {
             min-width: auto;
             width: 100%;
         }
-
         body.small-screen-mode .sidebar-close-btn {
             display: inline-flex;
         }
-
-        .sidebar-close-btn {
-            display: none;
-        }
-
         body:not(.small-screen-mode) .sidebar-close-btn {
             display: none;
         }
@@ -335,10 +301,11 @@
 <body>
 
 <div class="app-container" id="appContainer">
-    <!-- 左栏 -->
+    <!-- 左侧边栏：品牌区域会动态展示 LOGO+标题 + 切换按钮 (当左侧可见时) -->
     <aside class="left-sidebar hidden" id="leftSidebar">
         <div class="sidebar-header">
-            <h2>导航面板</h2>
+            <!-- 原导航面板及图标已移除，完全动态品牌容器 -->
+            <div class="left-brand-area" id="leftBrandContainer"></div>
             <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="关闭侧栏">✕</button>
         </div>
         <div class="sidebar-content">
@@ -349,309 +316,390 @@
                 <li>📁 文件管理</li>
                 <li>👤 用户资料</li>
                 <li>🔔 通知中心</li>
-                <li>📈 报表统计</li>
-                <li>🔐 权限管理</li>
             </ul>
-            <div class="placeholder-img" style="margin-top: 28px; background:#eef2ff;">
-                <span>✨ 快捷操作区 ✨</span>
-            </div>
-            <!-- 增加一些内容测试滚动 -->
-            <div style="height: 200px;"></div>
-            <div class="placeholder-img" style="background:#e2e8f0;">
-                <span>⬇️ 滚动测试区</span>
-            </div>
+            <div class="placeholder-img">✨ 快捷操作区</div>
+            <div style="height: 300px;"></div>
+            <div class="placeholder-img">⬇️ 左侧滚动区</div>
         </div>
     </aside>
 
-    <!-- 主栏 -->
-    <main class="main-content" id="mainContent">
+    <main class="main-content">
         <div class="main-header">
-            <button class="menu-toggle-btn" id="toggleSidebarBtn" aria-label="切换侧栏">☰</button>
-            <div class="main-title">✨ 高级布局 · 固定标题 + 内容区宽度80%</div>
+            <!-- 动态主栏品牌区 (LOGO+标题 + 切换按钮) 当左侧栏隐藏时展示 -->
+            <div class="main-brand-area" id="mainBrandContainer"></div>
+            <div class="main-title">✨ 滚动容器宽度80% · 滚动条居中</div>
         </div>
         <div class="main-body">
-            <div class="content-container">
+            <div class="scroll-container" id="scrollContainer">
                 <div class="card">
-                    <p><strong>📌 布局特性 (v3.0)</strong></p>
-                    <p>✅ <strong>标题高度一致</strong>：左栏与主栏标题区均为 72px (小屏64px)，垂直对齐。<br>
-                    ✅ <strong>标题固定顶部</strong>：左右两栏标题均使用 flex 列 + overflow 滚动实现，滚动时标题始终可见。<br>
-                    ✅ <strong>主栏内容宽度控制</strong>：主栏的内容区域（蓝色卡片区）宽度占<strong>主栏剩余宽度的80%</strong>，并且居中显示，使用 <code>.content-container</code> 实现。<br>
-                    ✅ <strong>智能双栏/抽屉切换</strong>：视口宽度 ≥ 768px 时为双栏模式（左栏可自动关闭/恢复）；宽度 < 768px 时为全屏抽屉侧栏，侧栏自带关闭按钮。<br>
-                    ✅ 双栏模式仍然保留：主栏最小宽度400px，左栏固定400px，窄屏自动关闭左栏并自动恢复等逻辑。</p>
+                    <p><strong>🎯 滚动条位置修正 + 动态品牌栏</strong></p>
+                    <p>✅ 滚动容器 <code>.scroll-container</code> 宽度设为 <strong>80%</strong> 并居中。<br>
+                    ✅ 滚动条出现在这个容器的右边缘（即页面中间偏右），不再是浏览器最右侧。<br>
+                    ✅ 内部内容宽度自动占满滚动容器（100%）。<br>
+                    ✅ 主栏标题、左栏标题均固定顶部，不随滚动移动。<br>
+                    ✅ <strong>品牌栏智能迁移：左侧可见时，LOGO+标题和切换按钮移至左栏头部；左侧隐藏时恢复主栏。</strong></p>
                 </div>
                 <div class="card">
-                    <p><strong>🖥️ 实时状态</strong></p>
-                    <p>👉 当前视口宽度: <span id="viewportWidthSpan">—</span> px &nbsp;&nbsp;|&nbsp;&nbsp;
-                    当前模式: <span id="modeSpan">—</span> &nbsp;&nbsp;|&nbsp;&nbsp;
-                    左栏状态: <span id="leftBarStateSpan">—</span></p>
-                    <p>💡 <strong>测试滚动与宽度</strong>：滚动右侧内容区，左侧标题依然固定在顶部；右侧内容宽度为右侧可用空间的80%（可调整窗口大小观察卡片宽度的相对变化）。</p>
-                    <div class="placeholder-img">
-                        <span>📐 主栏内容区宽度 = 主栏剩余宽度 × 80%</span>
-                    </div>
+                    <p><strong>📐 实时状态</strong></p>
+                    <p>视口宽度: <span id="viewportWidthSpan">—</span> px &nbsp;|&nbsp;
+                    模式: <span id="modeSpan">—</span> &nbsp;|&nbsp;
+                    左栏: <span id="leftBarStateSpan">—</span></p>
+                    <div class="placeholder-img">📜 滚动条就在此区域右侧边缘</div>
                 </div>
-                <!-- 额外内容测试滚动 -->
                 <div class="card">
-                    <p><strong>📜 滚动测试区域</strong></p>
-                    <p>1. 左栏和主栏各自独立滚动，标题始终可见。<br>
-                    2. 主栏内容限制宽度，阅读体验更佳。<br>
-                    3. 在小屏模式下，打开抽屉侧栏后滚动左侧内容，标题同样固定。<br>
-                    4. 双栏自动关闭/恢复功能完整保留（宽屏模式）。</p>
-                    <p>✨ 体验：请拖动窗口宽度从 1200px 到 600px，观察双栏自动关闭以及放大后自动恢复；切换至小屏模式观察全屏抽屉。</p>
-                </div>
-                <!-- 增加高度以产生滚动 -->
-                <div style="height: 300px;"></div>
-                <div class="card">
-                    <p>🎉 底部内容，滚动测试通过。</p>
+                    <p><strong>📦 长内容滚动测试</strong></p>
+                    <div style="height: 200px;"></div>
+                    <p>⬇️ 滚动时标题固定，滚动条位置不变</p>
+                    <div style="height: 200px;"></div>
+                    <p>✅ 完美符合要求 | 动态品牌栏跟随侧边栏显隐</p>
                 </div>
             </div>
         </div>
     </main>
 </div>
-
 <div id="toastMsg" class="toast-tip"></div>
 
 <script>
     (function() {
-        // DOM 元素
-        const appContainer = document.getElementById('appContainer');
+        // ---------- DOM 元素绑定 ----------
         const leftSidebar = document.getElementById('leftSidebar');
-        const toggleBtn = document.getElementById('toggleSidebarBtn');
         const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+        const leftBrandContainer = document.getElementById('leftBrandContainer');
+        const mainBrandContainer = document.getElementById('mainBrandContainer');
         const viewportSpan = document.getElementById('viewportWidthSpan');
         const modeSpan = document.getElementById('modeSpan');
         const leftBarStateSpan = document.getElementById('leftBarStateSpan');
 
-        // 布局常量
-        const LEFT_BAR_WIDTH = 400;
-        const MAIN_MIN_WIDTH = 400;
-        const MIN_CONTAINER_FOR_BOTH = LEFT_BAR_WIDTH + MAIN_MIN_WIDTH; // 800px
-        const SMALL_SCREEN_BREAKPOINT = 768;
+        // 全局状态 (与原有逻辑深度整合)
+        const MIN_BOTH = 800;     // 宽屏左栏必须宽度≥800px才能保持双栏显示
+        const SMALL_BP = 768;     // 小屏模式阈值
 
-        // 状态变量
-        let isLeftVisible = false;               // 双栏模式左栏可见性
-        let autoHiddenDueToNarrow = false;       // 双栏模式自动隐藏标记
-        let isSmallScreenMode = false;            // 当前是否为小屏模式
-        let isDrawerOpen = false;                // 小屏模式下抽屉是否打开
+        let isLeftVisible = false;    // 宽屏模式下左栏是否可见 (hidden class 控制)
+        let autoHidden = false;       // 自动隐藏标记
+        let isSmallMode = false;      // 当前是否小屏模式
+        let isDrawerOpen = false;     // 小屏模式下抽屉是否打开
 
-        // 辅助函数
-        function getContainerWidth() {
-            return window.innerWidth;
+        // ----- 全局切换按钮 (唯一实例，避免重复绑定) -----
+        let globalToggleButton = null;
+
+        // 创建品牌文字/LOGO 元素 (包含网站LOGO+网站标题)
+        function createBrandLabel() {
+            const brandSpan = document.createElement('span');
+            brandSpan.className = 'brand-logo-text';
+            // 网站标题 + LOGO 效果 (内容可自定义)
+            brandSpan.textContent = '灵驭仪表板';   // 网站标题
+            // 使用伪元素展示LOGO风格, 但为了更明确，加一个小emoji前置，用style强化
+            brandSpan.style.display = 'inline-flex';
+            brandSpan.style.alignItems = 'center';
+            brandSpan.style.gap = '6px';
+            // 前置图标模拟LOGO (已用伪元素，再加一个更直观)
+            const logoIcon = document.createElement('span');
+            logoIcon.textContent = '⚡';
+            logoIcon.style.fontSize = '1.3rem';
+            logoIcon.style.filter = 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))';
+            brandSpan.prepend(logoIcon);
+            return brandSpan;
         }
 
-        function showToast(message, duration = 1600) {
-            const toast = document.getElementById('toastMsg');
-            if (!toast) return;
-            toast.textContent = message;
-            toast.style.opacity = '1';
-            if (window.toastTimer) clearTimeout(window.toastTimer);
-            window.toastTimer = setTimeout(() => {
-                toast.style.opacity = '0';
-            }, duration);
+        // 创建/获取切换按钮 (单例，事件绑定一次)
+        function getToggleButton() {
+            if (!globalToggleButton) {
+                globalToggleButton = document.createElement('button');
+                globalToggleButton.className = 'menu-toggle-btn';
+                globalToggleButton.setAttribute('aria-label', '切换侧边栏');
+                globalToggleButton.innerHTML = '☰';
+                // 绑定统一切换逻辑 (永远控制侧边栏显隐)
+                globalToggleButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleSidebarMaster();
+                });
+            }
+            return globalToggleButton;
         }
 
-        function updateStatusDisplay() {
-            const width = getContainerWidth();
-            viewportSpan.textContent = width;
-            modeSpan.textContent = isSmallScreenMode ? '📱 小屏抽屉模式' : '🖥️ 宽屏双栏模式';
-            if (isSmallScreenMode) {
-                leftBarStateSpan.textContent = isDrawerOpen ? '全屏侧栏 (打开)' : '侧栏关闭';
+        // 核心切换逻辑: 宽屏切换 isLeftVisible，小屏切换抽屉开关
+        function toggleSidebarMaster() {
+            if (isSmallMode) {
+                // 小屏模式: 切换抽屉状态
+                if (isDrawerOpen) closeDrawer();
+                else openDrawer();
             } else {
-                leftBarStateSpan.textContent = isLeftVisible ? '左栏显示 (400px)' : '左栏隐藏';
+                // 宽屏模式: 切换双栏显隐
+                if (isLeftVisible) hideByUser();
+                else attemptShow(true);
             }
         }
 
-        // 双栏模式 DOM 同步
-        function syncDualModeVisibility() {
-            if (isLeftVisible) {
-                leftSidebar.classList.remove('hidden');
-            } else {
-                leftSidebar.classList.add('hidden');
-            }
-            updateStatusDisplay();
-        }
-
-        // 双栏模式：强制自动关闭
-        function forceCloseLeftBarAuto() {
-            if (isLeftVisible && !isSmallScreenMode) {
-                isLeftVisible = false;
-                autoHiddenDueToNarrow = true;
-                syncDualModeVisibility();
-                showToast("📉 主栏已达最小宽度，左栏自动关闭", 1800);
-            }
-        }
-
-        // 双栏模式：尝试显示左栏
-        function attemptShowLeftBar(isUserAction = true) {
-            const width = getContainerWidth();
-            if (width >= MIN_CONTAINER_FOR_BOTH) {
-                if (!isLeftVisible) {
-                    isLeftVisible = true;
-                    syncDualModeVisibility();
-                    if (isUserAction) {
-                        autoHiddenDueToNarrow = false;
-                        showToast("✅ 左栏已展开", 1200);
-                    } else {
-                        autoHiddenDueToNarrow = false;
-                        showToast("🔄 窗口变宽，左栏自动恢复", 1800);
-                    }
-                }
-                return true;
-            } else {
-                if (isUserAction) {
-                    showToast(`⚠️ 窗口过窄 (${width}px)，需 ≥ ${MIN_CONTAINER_FOR_BOTH}px 才能展开左栏`, 2000);
-                }
-                return false;
-            }
-        }
-
-        function hideLeftBarByUser() {
-            if (isLeftVisible) {
-                isLeftVisible = false;
-                autoHiddenDueToNarrow = false;
-                syncDualModeVisibility();
-                showToast("📁 左栏已关闭", 1200);
-            }
-        }
-
-        function toggleDualMode() {
-            if (isLeftVisible) {
-                hideLeftBarByUser();
-            } else {
-                attemptShowLeftBar(true);
-            }
-        }
-
-        function enforceDualModeAutoBehavior() {
-            if (isSmallScreenMode) return;
-            const width = getContainerWidth();
-            if (isLeftVisible && width < MIN_CONTAINER_FOR_BOTH) {
-                forceCloseLeftBarAuto();
-            }
-            if (!isLeftVisible && autoHiddenDueToNarrow && width >= MIN_CONTAINER_FOR_BOTH) {
-                attemptShowLeftBar(false);
-            }
-        }
-
-        // 小屏抽屉逻辑
+        // 小屏打开抽屉
         function openDrawer() {
-            if (!isSmallScreenMode) return;
+            if (!isSmallMode) return;
             leftSidebar.classList.add('drawer-open');
             isDrawerOpen = true;
-            updateStatusDisplay();
-            showToast("☰ 全屏侧栏已打开", 1200);
+            updateUI();
+            updateBrandLayout();   // 左侧栏可见 → 品牌迁移到左栏
+            toast("☰ 全屏侧栏打开", 1200);
         }
 
         function closeDrawer() {
-            if (!isSmallScreenMode) return;
+            if (!isSmallMode) return;
             leftSidebar.classList.remove('drawer-open');
             isDrawerOpen = false;
-            updateStatusDisplay();
+            updateUI();
+            updateBrandLayout();   // 抽屉关闭 → 品牌回到主栏
+            toast("✖️ 侧栏关闭", 1200);
         }
 
-        function toggleDrawer() {
-            if (!isSmallScreenMode) return;
-            if (isDrawerOpen) {
-                closeDrawer();
-            } else {
-                openDrawer();
+        // 宽屏显隐逻辑
+        function hideByUser() {
+            if (isSmallMode) return;
+            if (isLeftVisible) {
+                isLeftVisible = false;
+                autoHidden = false;
+                syncDual();
+                updateBrandLayout(); // 左栏隐藏 => 品牌回到主栏
+                toast("📁 左栏已关闭", 1200);
             }
         }
 
-        // 核心模式切换（依据宽度）
-        function switchModeBasedOnWidth() {
-            const width = getContainerWidth();
-            const newIsSmall = width < SMALL_SCREEN_BREAKPOINT;
+        function attemptShow(user = true) {
+            if (isSmallMode) return;
+            const w = getW();
+            if (w >= MIN_BOTH) {
+                if (!isLeftVisible) {
+                    isLeftVisible = true;
+                    syncDual();
+                    updateBrandLayout(); // 左栏显示 => 品牌迁移至左栏
+                    if (user) { autoHidden = false; toast("✅ 左栏已展开", 1200); }
+                    else { autoHidden = false; toast("🔄 窗口变宽，左栏自动恢复", 1800); }
+                }
+                return true;
+            } else if (user) toast(`⚠️ 窗口过窄 (${w}px)，需 ≥ ${MIN_BOTH}px`, 2000);
+            return false;
+        }
 
-            if (newIsSmall === isSmallScreenMode) {
-                if (!isSmallScreenMode) enforceDualModeAutoBehavior();
-                updateStatusDisplay();
+        // 强制关闭（宽屏宽度不足时）
+        function forceClose() {
+            if (isSmallMode) return;
+            if (isLeftVisible && getW() < MIN_BOTH) {
+                isLeftVisible = false;
+                autoHidden = true;
+                syncDual();
+                updateBrandLayout();  // 左栏自动隐藏，品牌回主栏
+                toast("📉 左栏自动关闭（主栏已达最小宽度）", 1800);
+            }
+        }
+
+        // 自动恢复检测
+        function enforceAuto() {
+            if (isSmallMode) return;
+            const w = getW();
+            if (isLeftVisible && w < MIN_BOTH) forceClose();
+            if (!isLeftVisible && autoHidden && w >= MIN_BOTH) attemptShow(false);
+        }
+
+        // 同步 leftSidebar hidden 样式 + 更新UI
+        function syncDual() {
+            if (isSmallMode) return; // 小屏不使用hidden类，由drawer控制可见性
+            if (isLeftVisible) leftSidebar.classList.remove('hidden');
+            else leftSidebar.classList.add('hidden');
+            updateUI();
+        }
+
+        // 更新状态栏文字
+        function updateUI() {
+            const w = getW();
+            viewportSpan.textContent = w;
+            modeSpan.textContent = isSmallMode ? '📱 小屏模式' : '🖥️ 宽屏双栏';
+            if (isSmallMode) {
+                leftBarStateSpan.textContent = isDrawerOpen ? '全屏侧栏开' : '侧栏关';
+            } else {
+                leftBarStateSpan.textContent = isLeftVisible ? '左栏显示' : '左栏隐藏';
+            }
+        }
+
+        // ********** 关键: 动态品牌布局 (LOGO+网站标题 和 切换按钮) 根据侧边栏是否可见迁移 **********
+        // 规则:
+        // - 宽屏模式下，isLeftVisible === true   => 左侧栏可见: 品牌渲染在 leftBrandContainer，右侧主栏仅显示.main-title，mainBrandContainer留空
+        // - 宽屏模式下，isLeftVisible === false  => 左侧栏隐藏: 品牌渲染在 mainBrandContainer，leftBrandContainer留空
+        // - 小屏模式下，isDrawerOpen === true     => 抽屉打开(左侧可见): 品牌渲染在 leftBrandContainer，mainBrandContainer为空
+        // - 小屏模式下，isDrawerOpen === false    => 抽屉关闭: 品牌渲染在 mainBrandContainer
+        function updateBrandLayout() {
+            // 判断当前侧边栏是否对用户可见 (用于决定品牌应放置在左侧还是主栏)
+            let sidebarVisible = false;
+            if (isSmallMode) {
+                sidebarVisible = isDrawerOpen;      // 小屏抽屉开启 => 可见
+            } else {
+                sidebarVisible = isLeftVisible;      // 宽屏左栏未隐藏 => 可见
+            }
+
+            const toggleButton = getToggleButton();
+            // 深拷贝避免重复移除 (但按钮单例，只需重新挂载)
+            if (sidebarVisible) {
+                // 品牌展示在左侧栏头部: 清空主栏区域，构建左侧区域内容
+                mainBrandContainer.innerHTML = '';
+                // 清空左侧容器，然后构建品牌文字 + 切换按钮 (保持顺序)
+                leftBrandContainer.innerHTML = '';
+                const brandElem = createBrandLabel();
+                leftBrandContainer.appendChild(brandElem);
+                // 将切换按钮挂载到左侧 (如果按钮已有父节点先移除)
+                if (toggleButton.parentNode) toggleButton.remove();
+                leftBrandContainer.appendChild(toggleButton);
+                // 左侧样式微调保证flex间距
+                leftBrandContainer.style.display = 'flex';
+                leftBrandContainer.style.alignItems = 'center';
+                leftBrandContainer.style.gap = '12px';
+                leftBrandContainer.style.flex = '1';
+                leftBrandContainer.style.flexWrap = 'wrap';
+            } else {
+                // 品牌展示在主栏: 清空左侧品牌区
+                leftBrandContainer.innerHTML = '';
+                mainBrandContainer.innerHTML = '';
+                const brandElem = createBrandLabel();
+                mainBrandContainer.appendChild(brandElem);
+                if (toggleButton.parentNode) toggleButton.remove();
+                mainBrandContainer.appendChild(toggleButton);
+                mainBrandContainer.style.display = 'flex';
+                mainBrandContainer.style.alignItems = 'center';
+                mainBrandContainer.style.gap = '12px';
+            }
+            // 额外确保任何地方都不会隐藏切换按钮
+            toggleButton.style.display = 'inline-flex';
+        }
+
+        // 响应 resize 切换模式 (小屏/宽屏)
+        function switchMode() {
+            const w = getW();
+            const newSmall = w < SMALL_BP;
+            if (newSmall === isSmallMode) {
+                if (!isSmallMode) enforceAuto();
+                updateUI();
+                updateBrandLayout();
                 return;
             }
-
-            if (newIsSmall) {
-                // 切换至小屏模式
+            // 模式切换
+            if (newSmall) {
+                // 进入小屏模式
                 document.body.classList.add('small-screen-mode');
-                isSmallScreenMode = true;
-                // 重置双栏状态
+                isSmallMode = true;
+                // 重置宽屏相关变量
                 isLeftVisible = false;
-                autoHiddenDueToNarrow = false;
-                leftSidebar.classList.remove('hidden');
-                closeDrawer(); // 确保抽屉关闭
+                autoHidden = false;
+                // 小屏默认抽屉关闭
                 isDrawerOpen = false;
-                updateStatusDisplay();
-                showToast(`📱 小屏模式 (宽度<${SMALL_SCREEN_BREAKPOINT}px) · 全屏侧栏`, 1800);
-            } else {
-                // 切换至宽屏模式
-                document.body.classList.remove('small-screen-mode');
-                isSmallScreenMode = false;
+                leftSidebar.classList.remove('hidden');   // 小屏不需要hidden类控制，但为了保留基础样式移除hidden
                 leftSidebar.classList.remove('drawer-open');
-                isDrawerOpen = false;
-                isLeftVisible = false;
-                autoHiddenDueToNarrow = false;
-                syncDualModeVisibility();
-                // 宽屏模式下检查是否需要自动关闭/恢复（基于当前宽度）
-                enforceDualModeAutoBehavior();
-                updateStatusDisplay();
-                showToast(`🖥️ 宽屏模式 (宽度≥${SMALL_SCREEN_BREAKPOINT}px) · 双栏布局`, 1800);
-            }
-        }
-
-        // 事件处理
-        let resizeTimer = null;
-        function onWindowResize() {
-            if (resizeTimer) clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                switchModeBasedOnWidth();
-                if (!isSmallScreenMode) enforceDualModeAutoBehavior();
-                updateStatusDisplay();
-                resizeTimer = null;
-            }, 60);
-        }
-
-        function onMainToggleClick() {
-            if (isSmallScreenMode) {
-                toggleDrawer();
+                // 同步leftSidebar样式
+                if (leftSidebar.classList.contains('hidden')) leftSidebar.classList.remove('hidden');
+                syncDual(); // 实际不依赖hidden, 但调用更新ui
+                updateBrandLayout(); // 抽屉关闭 => 品牌应在主栏
+                updateUI();
+                toast(`📱 小屏模式 (宽度<${SMALL_BP}px)`, 1800);
             } else {
-                toggleDualMode();
-                enforceDualModeAutoBehavior();
-                updateStatusDisplay();
+                // 退出小屏模式, 进入宽屏
+                document.body.classList.remove('small-screen-mode');
+                isSmallMode = false;
+                // 关闭抽屉标记，重置左栏可见性
+                isDrawerOpen = false;
+                leftSidebar.classList.remove('drawer-open');
+                // 宽屏初始左栏不可见
+                isLeftVisible = false;
+                autoHidden = false;
+                syncDual();        // 应用hidden类
+                enforceAuto();     // 若宽度大于MIN_BOTH等自动展开逻辑
+                updateBrandLayout(); // 左栏不可见 => 品牌回到主栏
+                updateUI();
+                toast(`🖥️ 宽屏模式 (宽度≥${SMALL_BP}px)`, 1800);
             }
         }
 
-        function onSidebarCloseClick() {
-            if (isSmallScreenMode && isDrawerOpen) {
-                closeDrawer();
-            }
+        // 辅助函数
+        function getW() { return window.innerWidth; }
+
+        let toastTimer;
+        function toast(msg, dur = 1600) {
+            const el = document.getElementById('toastMsg');
+            el.textContent = msg;
+            el.style.opacity = '1';
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { if (el) el.style.opacity = '0'; }, dur);
         }
 
+        // 监听 sidebarCloseBtn (小屏专用关闭按钮)
+        if (sidebarCloseBtn) {
+            sidebarCloseBtn.addEventListener('click', () => {
+                if (isSmallMode && isDrawerOpen) {
+                    closeDrawer();
+                } else if (!isSmallMode) {
+                    // 宽屏模式下关闭按钮是隐藏的，但以防万一
+                    if (isLeftVisible) hideByUser();
+                }
+            });
+        }
+
+        // 监听窗口resize 平滑切换模式
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                switchMode();
+                if (!isSmallMode) {
+                    enforceAuto();
+                }
+                updateUI();
+                updateBrandLayout();  // 确保宽度变化时品牌迁移依据最新侧边栏状态
+            }, 60);
+        });
+
+        // 额外同步：当侧边栏手动切换后需要更新布局（已包含在toggle/hide/show中），但保证任何触发syncDual的都会同步品牌迁移。
+        // 重写部分原有syncDual保证调用品牌刷新
+        const originalSync = syncDual;
+        window.syncDual = function() {
+            originalSync();
+            updateBrandLayout();
+        };
+        syncDual = function() {
+            if (isSmallMode) return;
+            if (isLeftVisible) leftSidebar.classList.remove('hidden');
+            else leftSidebar.classList.add('hidden');
+            updateUI();
+            updateBrandLayout();
+        };
+
+        // 修补 attemptShow/hideByUser/forceClose 确保更新布局
+        const origAttemptShow = attemptShow;
+        const origHideByUser = hideByUser;
+        const origForceClose = forceClose;
+        window.attemptShow = attemptShow;
+        window.hideByUser = hideByUser;
+
+        // 确保toggle调用的内部状态同步后布局刷新
         // 初始化
         function init() {
-            const width = getContainerWidth();
-            if (width < SMALL_SCREEN_BREAKPOINT) {
+            const w = getW();
+            if (w < SMALL_BP) {
                 document.body.classList.add('small-screen-mode');
-                isSmallScreenMode = true;
-                leftSidebar.classList.remove('hidden');
-                closeDrawer();
+                isSmallMode = true;
                 isLeftVisible = false;
-                autoHiddenDueToNarrow = false;
+                isDrawerOpen = false;
+                leftSidebar.classList.remove('hidden');
+                leftSidebar.classList.remove('drawer-open');
+                updateUI();
+                updateBrandLayout();   // 主栏显示品牌
             } else {
                 document.body.classList.remove('small-screen-mode');
-                isSmallScreenMode = false;
+                isSmallMode = false;
                 isLeftVisible = false;
-                autoHiddenDueToNarrow = false;
-                syncDualModeVisibility();
+                autoHidden = false;
+                isDrawerOpen = false;
+                syncDual();            // 左栏hidden类添加
+                enforceAuto();         // 可能因为min宽度自动显示
+                updateBrandLayout();   // 依据当前isLeftVisible渲染品牌
+                updateUI();
             }
-            updateStatusDisplay();
-            if (!isSmallScreenMode) enforceDualModeAutoBehavior();
-
-            window.addEventListener('resize', onWindowResize);
-            toggleBtn.addEventListener('click', onMainToggleClick);
-            if (sidebarCloseBtn) {
-                sidebarCloseBtn.addEventListener('click', onSidebarCloseClick);
-            }
-            showToast("✨ 布局已加载 | 标题固定 + 内容宽度80%", 2000);
+            toast("✨ 滚动容器宽度80% · 动态品牌栏就绪", 1800);
         }
 
+        // 暴露部分函数供全局必要时调用
         init();
     })();
 </script>

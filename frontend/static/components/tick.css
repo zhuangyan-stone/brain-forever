@@ -3,8 +3,11 @@
    ============================================================ */
 
 .tick-nav {
-    position: absolute;
-    right: -44px; /* 紧贴 #app 右侧，在 .layout-center 内定位 */
+    /* 使用 fixed 定位，相对于视口固定，与 scrollContainer 完全无关，
+       不受输入面板折叠/展开、滚动等任何 scrollContainer 变化影响 */
+    position: fixed;
+    /* 固定在页面最右侧，保留一点边距 */
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
@@ -22,6 +25,29 @@
     /* 预占 border 空间，防止 hover 时增加 border 导致高度变化 */
     border: 1px solid transparent;
     transition: min-width 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, padding 0.25s ease;
+}
+
+/*
+ * 通过 ::before 伪元素向左扩展 hover 触发区域，
+ * 覆盖到刻度线（.tick-dot）+ 刻度值（.tick-index）的宽度范围，
+ * 使鼠标在这些元素上时也能触发面板展开。
+ *
+ * 原理：.tick-nav 本身 pointer-events: none，但 ::before 设为
+ * pointer-events: auto，鼠标进入该区域时事件冒泡到 .tick-nav，
+ * 触发 :hover 状态。::before 作为第一个子元素，自然位于内容下方，
+ * 不会干扰 .tick 等子元素的点击交互。
+ *
+ * 伪元素本身透明不可见，不改变面板视觉表现。
+ */
+.tick-nav::before {
+    content: '';
+    position: absolute;
+    /* 从面板右边缘向左延伸约 60px，覆盖刻度线和数字区域 */
+    right: 0;
+    top: 0;
+    width: 60px;
+    height: 100%;
+    pointer-events: auto;  /* 捕获鼠标事件，冒泡触发 .tick-nav:hover */
 }
 
 /* 鼠标悬浮时面板向左展开 */
