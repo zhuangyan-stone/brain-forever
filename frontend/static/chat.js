@@ -223,33 +223,40 @@ window.addEventListener('DOMContentLoaded', restoreSession);
 
     // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----
     //     优先级：AI 正在回答时始终折叠 > 滚动到底部展开 > 刻度变化折叠
+    //     注意：必须节流（200ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
+    //     （150ms 节流）更新 activeTickIndex 之后再执行，否则检测不到刻度变化。
+    let scrollThrottleTimer = null;
     chatContainer.addEventListener('scroll', () => {
-        const currentTickIndex = state.activeTickIndex;
+        if (scrollThrottleTimer) return;
+        scrollThrottleTimer = setTimeout(() => {
+            scrollThrottleTimer = null;
 
-        // 最高优先级：AI 正在回答时始终折叠输入面板
-        if (state.isStreaming) {
-            collapseInputArea();
-            return;
-        }
+            const currentTickIndex = state.activeTickIndex;
 
-        // 检测是否已滚动到底部（向下无可再滚）
-        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 8;
+            // 最高优先级：AI 正在回答时始终折叠输入面板
+            if (state.isStreaming) {
+                collapseInputArea();
+                return;
+            }
 
-        if (isAtBottom) {
-            // 滚动到底部时自动展开
-            restoreInputArea();
-        } else {
-            // 刻度变化时折叠，并记住新刻度
-            if (currentTickIndex !== lastActiveTickIndex) {
-                lastActiveTickIndex = currentTickIndex;
-                // 已折叠时不再重复触发
-                if (!isCollapsed) {
-                    collapseInputArea();
+            // 检测是否已滚动到底部（向下无可再滚）
+            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 8;
+
+            if (isAtBottom) {
+                // 滚动到底部时自动展开
+                restoreInputArea();
+            } else {
+                // 刻度变化时折叠，并记住新刻度
+                if (currentTickIndex !== lastActiveTickIndex) {
+                    lastActiveTickIndex = currentTickIndex;
+                    // 已折叠时不再重复触发
+                    if (!isCollapsed) {
+                        collapseInputArea();
+                    }
                 }
             }
-        }
+        }, 200);
     });
-
 
     // ---- 恢复条件 1：输入框获得焦点 ----
     messageInput.addEventListener('focus', restoreInputArea);
