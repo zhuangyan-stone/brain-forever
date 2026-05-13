@@ -169,7 +169,7 @@ export function addMessage(role, content, isStreaming = false) {
         // 为消息组添加左上角删除按钮
         const groupDeleteBtn = document.createElement('button');
         groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
-        groupDeleteBtn.title = '删除本轮对话';
+        groupDeleteBtn.title = '删除本组对话';
         groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
         groupDeleteBtn.disabled = state.isStreaming;
         group.appendChild(groupDeleteBtn);
@@ -191,7 +191,7 @@ export function addMessage(role, content, isStreaming = false) {
             // 为消息组添加左上角删除按钮
             const groupDeleteBtn = document.createElement('button');
             groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
-            groupDeleteBtn.title = '删除本轮对话';
+            groupDeleteBtn.title = '删除本组消息';
             groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
             groupDeleteBtn.disabled = state.isStreaming;
             group.appendChild(groupDeleteBtn);
