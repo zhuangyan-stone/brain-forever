@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"BrainOnline/infra/httpx"
-	"BrainOnline/infra/i18n"
-	"BrainOnline/internal/agent"
-	"BrainOnline/internal/config"
-	"BrainOnline/internal/store"
+	"BrainForever/infra/httpx"
+	"BrainForever/infra/i18n"
+	"BrainForever/internal/agent"
+	"BrainForever/internal/config"
+	"BrainForever/internal/store"
 )
 
 // ============================================================
@@ -134,7 +134,7 @@ func main() {
 		}
 	}()
 
-	fmt.Printf("\n=== BrainOnline Agent Server ===\n")
+	fmt.Printf("\n=== 脑力永生 Agent Server ===\n")
 	fmt.Printf("Listening on: http://%s\n", addr)
 	fmt.Printf("API endpoint: http://%s/api/chat\n", addr)
 	fmt.Printf("Frontend: http://%s\n", addr)

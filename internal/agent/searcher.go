@@ -3,9 +3,9 @@ package agent
 import (
 	"context"
 
-	"BrainOnline/infra/searcher"
-	"BrainOnline/internal/agent/toolimp"
-	"BrainOnline/internal/store"
+	"BrainForever/infra/searcher"
+	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/store"
 )
 
 // ============================================================

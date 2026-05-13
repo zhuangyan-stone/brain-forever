@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"BrainOnline/infra/httpx"
-	"BrainOnline/infra/i18n"
+	"BrainForever/infra/httpx"
+	"BrainForever/infra/i18n"
 )
 
 // ============================================================

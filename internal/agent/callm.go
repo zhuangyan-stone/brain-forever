@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"BrainOnline/infra/httpx/sse"
-	"BrainOnline/infra/i18n"
-	"BrainOnline/infra/llm"
-	"BrainOnline/internal/agent/toolimp"
-	"BrainOnline/toolset"
+	"BrainForever/infra/httpx/sse"
+	"BrainForever/infra/i18n"
+	"BrainForever/infra/llm"
+	"BrainForever/internal/agent/toolimp"
+	"BrainForever/toolset"
 )
 
 // ============================================================

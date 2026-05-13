@@ -1,6 +1,6 @@
 @echo off
 REM ============================================
-REM BrainOnline Build Script
+REM BrainForever Build Script
 REM Sets CGO and GCC path, then builds
 REM ============================================
 
@@ -12,7 +12,7 @@ set "PATH=C:\msys64\ucrt64\bin;%PATH%"
 REM Enable CGO
 set "CGO_ENABLED=1"
 
-echo === BrainOnline Builder ===
+echo === BrainForever Builder ===
 echo.
 
 REM Tidy dependencies

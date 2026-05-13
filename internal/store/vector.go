@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"BrainOnline/infra/embedder"
+	"BrainForever/infra/embedder"
 
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/jmoiron/sqlx"

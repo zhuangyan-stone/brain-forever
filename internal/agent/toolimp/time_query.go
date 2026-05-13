@@ -1,8 +1,8 @@
 package toolimp
 
 import (
-	"BrainOnline/infra/i18n"
-	"BrainOnline/infra/llm"
+	"BrainForever/infra/i18n"
+	"BrainForever/infra/llm"
 	"encoding/json"
 	"fmt"
 	"time"

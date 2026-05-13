@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"BrainOnline/infra/httpx"
+	"BrainForever/infra/httpx"
 )
 
 // DashScopeEmbedder converts text to vectors via Alibaba Cloud DashScope API

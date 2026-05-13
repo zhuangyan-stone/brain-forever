@@ -1,5 +1,5 @@
 // ============================================================
-// BrainOnline AI 助手 — 主入口
+// 脑力永生 AI 助手 — 主入口
 // 导入各功能模块并完成初始化
 // ============================================================
 
@@ -63,7 +63,7 @@ webSearchBtn.addEventListener('click', () => {
 const themeToggle = document.getElementById('themeToggle');
 
 // 从 localStorage 读取已保存的主题，首次使用默认为 'light'（亮色）
-const savedTheme = localStorage.getItem('brainonline-theme') || 'light';
+const savedTheme = localStorage.getItem('brainforever-theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 updateThemeButton(savedTheme);
 switchHighlightTheme(savedTheme);
@@ -72,7 +72,7 @@ themeToggle.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme') || 'dark';
     const next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('brainonline-theme', next);
+    localStorage.setItem('brainforever-theme', next);
     updateThemeButton(next);
     switchHighlightTheme(next);
 });

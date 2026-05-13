@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# BrainOnline Build Script (Linux/macOS)
+# BrainForever Build Script (Linux/macOS)
 # Sets CGO, then builds
 # ============================================
 
@@ -9,7 +9,7 @@ set -e
 # Enable CGO
 export CGO_ENABLED=1
 
-echo "=== BrainOnline Builder ==="
+echo "=== BrainForever Builder ==="
 echo ""
 
 # Tidy dependencies

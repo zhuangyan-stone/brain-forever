@@ -13,8 +13,8 @@
 /**
  * Cookie 名称常量
  */
-const COOKIE_DEEP_THINK = 'brainonline_deep_think';
-const COOKIE_WEB_SEARCH = 'brainonline_web_search';
+const COOKIE_DEEP_THINK = 'brainforever_deep_think';
+const COOKIE_WEB_SEARCH = 'brainforever_web_search';
 
 /**
  * 读取指定名称的 cookie 值

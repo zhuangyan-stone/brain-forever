@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"BrainOnline/infra/httpx/sse"
-	"BrainOnline/infra/i18n"
-	"BrainOnline/infra/llm"
-	"BrainOnline/internal/agent/toolimp"
+	"BrainForever/infra/httpx/sse"
+	"BrainForever/infra/i18n"
+	"BrainForever/infra/llm"
+	"BrainForever/internal/agent/toolimp"
 )
 
 // ============================================================

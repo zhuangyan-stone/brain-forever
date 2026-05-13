@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"BrainOnline/infra/httpx/sse"
+	"BrainForever/infra/httpx/sse"
 )
 
 // ============================================================

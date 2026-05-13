@@ -6,12 +6,12 @@ import (
 	"log"
 	"os"
 
-	"BrainOnline/infra/embedder"
-	"BrainOnline/infra/llm"
-	"BrainOnline/infra/searcher"
-	"BrainOnline/internal/agent/toolimp"
-	"BrainOnline/internal/config"
-	"BrainOnline/internal/store"
+	"BrainForever/infra/embedder"
+	"BrainForever/infra/llm"
+	"BrainForever/infra/searcher"
+	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/config"
+	"BrainForever/internal/store"
 )
 
 // ============================================================

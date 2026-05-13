@@ -473,7 +473,7 @@ export function showWelcomeMessage() {
 
     const el = document.createElement('div');
     el.className = 'welcome-message';
-    el.textContent = '你好！我是 BrainOnline AI 助手，基于知识库的智能对话系统。请问有什么可以帮助你的？';
+    el.textContent = '你好！我是脑力永生 AI 助手，基于知识库的智能对话系统。请问有什么可以帮助你的？';
     dom.chatContainer.appendChild(el);
 
     // 将输入区域移动到欢迎消息内部，使二者作为一个整体居中
