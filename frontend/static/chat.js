@@ -1,5 +1,5 @@
 // ============================================================
-// 脑力永生 AI 助手 — 主入口
+// 脑力永恒 AI 助手 — 主入口
 // 导入各功能模块并完成初始化
 // ============================================================
 
@@ -158,7 +158,7 @@ const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
 const leftBrandContainer = document.getElementById('leftBrandContainer');
 const mainBrandContainer = document.getElementById('mainBrandContainer');
 
-const MIN_BOTH = 800;     // 宽屏左栏必须宽度≥800px才能保持双栏显示
+const MIN_BOTH = 920;     // 宽屏左栏必须宽度≥800px才能保持双栏显示
 const SMALL_BP = 768;     // 小屏模式阈值
 
 let isLeftVisible = false;    // 宽屏模式下左栏是否可见 (hidden class 控制)
@@ -173,7 +173,7 @@ let globalToggleButton = null;
 const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="2" width="14" height="12" rx="1"/><line x1="5" y1="2" x2="5" y2="14"/></svg>';
 
 // ===== 品牌文本常量（方便以后修改） =====
-const BRAND_TITLE = '脑力永生';
+const BRAND_TITLE = '脑力永恒';
 const BRAND_SUBTITLE = '基于 RAG 知识库的智能对话';
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
@@ -188,7 +188,7 @@ function createBrandElement() {
     const logo = document.createElement('img');
     logo.className = 'brand-logo';
     logo.src = '/static/brain-forever.svg';
-    logo.alt = '脑力永生';
+    logo.alt = '脑力永恒';
 
     // 标题/副标题容器
     const textDiv = document.createElement('div');

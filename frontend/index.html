@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>脑力永生 AI 助手</title>
+    <title>脑力永恒 AI 助手</title>
     <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
     <!-- 防主题闪烁：在 CSS 渲染前从 cookie 读取主题并设置 data-theme -->
     <script>
@@ -58,6 +58,18 @@
     <script src="/static/lib/turndown.min.js"></script>
 </head>
 <body>
+    <!-- 隐藏的 SVG 定义区，供各按钮通过 <use> 引用 -->
+    <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;">
+        <defs>
+            <svg id="icon-new-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <!-- 聊天气泡，左下角尖角，内含 + 号 -->
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+        </defs>
+    </svg>
+
     <div class="app-container" id="appContainer">
         <!-- 左栏 -->
         <aside class="left-sidebar hidden" id="leftSidebar">
@@ -73,8 +85,7 @@
             <div class="sidebar-content" id="sidebarContent">
                 <button class="new-session-btn" id="newSessionBtn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <use href="#icon-new-chat"/>
                     </svg>
                     开启新对话
                 </button>
@@ -87,12 +98,9 @@
                 <div class="main-brand-area" id="mainBrandContainer"></div>
                 <span class="main-title" id="headerTitle">欢迎开始新对话</span>
                 <div class="main-header-right">
-                    <button id="newChatBtn" class="theme-toggle" title="新建对话">
+                    <button id="newChatBtn" class="theme-toggle" title="开启新对话">
                         <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <!-- 聊天气泡，左下角尖角，内含 + 号 -->
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                            <line x1="12" y1="8" x2="12" y2="16"/>
-                            <line x1="8" y1="12" x2="16" y2="12"/>
+                            <use href="#icon-new-chat"/>
                         </svg>
                     </button>
                     <button id="themeToggle" class="theme-toggle" title="切换主题">

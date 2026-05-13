@@ -1,5 +1,5 @@
 /* ============================================================
-    脑力永生 AI 助手 — 核心布局样式
+    脑力永恒 AI 助手 — 核心布局样式
     ============================================================
     依赖：theme.css（主题变量）
     作用域：全局布局
@@ -187,6 +187,13 @@ body {
     width: 38px;
     height: 38px;
     flex-shrink: 0;
+    border-radius: 16px;
+}
+
+/* 暗色模式下为 logo 添加白色背景，让红色线条清晰可见 */
+[data-theme="dark"] .brand-logo {
+    background: #ffffff;
+    padding: 4px;
 }
 
 .brand-text {
@@ -309,22 +316,24 @@ body {
     ============================================================ */
 
 .new-session-btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 16px;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 24px;
     border-radius: 999px;
     border: 1.5px solid var(--border);
     background: var(--bg-secondary);
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 0.82rem;
+    font-size: 1.23rem;
     font-family: inherit;
     transition: all 0.2s ease;
     user-select: none;
     white-space: nowrap;
     box-shadow: 0 1px 4px var(--shadow);
-    margin-top: 12px;
+    margin: 0 auto 0;
+    width: fit-content;
 }
 
 .new-session-btn:hover {
@@ -335,6 +344,8 @@ body {
 
 .new-session-btn svg {
     flex-shrink: 0;
+    width: 24px;
+    height: 24px;
 }
 
 /* ============================================================
