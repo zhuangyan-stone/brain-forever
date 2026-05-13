@@ -1,0 +1,209 @@
+/* ============================================================
+    深度思考（Reasoning）状态区域 — 在 AI 回复气泡上方显示
+   ============================================================ */
+
+.reasoning-area {
+    margin: 0 0 4px 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    display: none; /* 默认隐藏，active 时显示 */
+}
+
+.reasoning-area.active {
+    display: block;
+}
+
+.reasoning-area.done {
+    display: block;
+    opacity: 0.85;
+}
+
+/* 标题区域 — 独立区域，宽度与内容绑定 */
+.reasoning-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px 0 12px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    max-width: 100%;
+}
+
+/* AI 角色徽章 — 合并到 reasoning-header 中，替代独立的 role-label */
+.reasoning-role-badge {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+
+.reasoning-header:hover .reasoning-toggle {
+    opacity: 1;
+}
+
+.reasoning-icon {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.reasoning-title {
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.reasoning-area.done .reasoning-title {
+    color: var(--text-secondary);
+}
+
+/* 折叠/展开切换按钮 — 放在最前面，与 sources-panel 的箭头风格一致 */
+.reasoning-toggle {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+
+/* 默认（折叠状态）：▶ 不旋转 — 与 sources-panel 的 collapsed 一致 */
+.reasoning-toggle {
+    transform: rotate(0deg);
+}
+
+/* 展开状态：▶ 旋转 90° 变为 ▼ — 与 sources-panel 的 expanded 一致 */
+.reasoning-area:not(.collapsed) .reasoning-toggle {
+    transform: rotate(90deg);
+}
+
+/* 折叠状态：隐藏内容区域 */
+.reasoning-area.collapsed .reasoning-content {
+    display: none;
+}
+
+.reasoning-area.collapsed {
+    border-color: var(--border);
+    opacity: 0.7;
+}
+
+.reasoning-content {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    /* 移除 max-height 限制，随内容增长 */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding: 4px 12px 8px 12px;
+}
+
+/* reasoning 内容中的 Markdown 段落 — 仅直接子节点有左边框 */
+.reasoning-content > p {
+    margin: 4px 0 12px 4px;
+    border-left: 1px dotted #a0a1a7;
+    padding: 0 0 0 8px;
+}
+.reasoning-content > p:last-child {
+    margin-bottom: 0;
+}
+
+/* reasoning 内容中的列表 — 与段落文本左对齐 */
+.reasoning-content ul,
+.reasoning-content ol {
+    padding-left: 28px;
+    margin: 2px 0 4px 0;
+}
+.reasoning-content li {
+    margin-bottom: 2px;
+}
+
+/* reasoning 内容中的标题 — 紧凑 */
+.reasoning-content h1,
+.reasoning-content h2,
+.reasoning-content h3,
+.reasoning-content h4 {
+    margin: 8px 0 4px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.reasoning-content h1 { font-size: 1rem; }
+.reasoning-content h2 { font-size: 0.95rem; }
+.reasoning-content h3 { font-size: 0.9rem; }
+.reasoning-content h4 { font-size: 0.85rem; }
+
+/* reasoning 内容中的代码块 — 紧凑 */
+.reasoning-content pre {
+    margin: 4px 0;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+}
+.reasoning-content code {
+    font-size: 0.82em;
+}
+
+/* reasoning 内容中的引用块 — 紧凑，无左边框（blockquote 本身用于缩进/引用，不需要额外的 border-left） */
+.reasoning-content blockquote {
+    margin: 4px 0;
+    padding: 4px 10px;
+    border-left: none;
+}
+
+/* reasoning 内容中的水平线 — 紧凑 */
+.reasoning-content hr {
+    margin: 6px 0;
+}
+
+/* reasoning 内容中的表格 — 紧凑 */
+.reasoning-content table {
+    margin: 4px 0;
+    font-size: 0.8rem;
+}
+.reasoning-content th,
+.reasoning-content td {
+    padding: 3px 8px;
+}
+
+/* 思考中动画 — 标题脉冲 */
+.reasoning-area.active .reasoning-title {
+    animation: reasoningPulse 1.8s ease-in-out infinite;
+}
+
+/* ============================================================
+    联网搜索提示 — 在 AI 回复气泡上方显示搜索状态
+    搜索也被视为 AI 思考过程的一部分
+   ============================================================ */
+
+.web-search-hint {
+    font-size: 0.8rem;
+    color: var(--accent);
+    padding: 4px 0 2px 16px;
+    opacity: 0.8;
+    animation: searchHintPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes searchHintPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ============================================================
+    tool-pending 工具调用提示行 — 在 reasoning 内容区中显示
+   ============================================================ */
+
+/* tool-pending 使用 blockquote 渲染，这里调整其样式使其更紧凑 */
+.reasoning-content blockquote {
+    margin: 2px 0;
+    padding: 2px 8px 2px 12px;
+    font-size: 0.82rem;
+    border-left: none;
+    opacity: 0.9;
+}
+
+/* tool-pending 行中的图标 */
+.reasoning-content blockquote .tool-pending-icon {
+    font-style: normal;
+    margin-right: 4px;
+}
+
+@keyframes reasoningPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}

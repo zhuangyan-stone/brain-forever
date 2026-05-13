@@ -3,7 +3,7 @@
 // 导入各功能模块并完成初始化
 // ============================================================
 
-import { state } from './chat-state.js';
+import { state, loadDeepThinkFromCookie, saveDeepThinkToCookie, loadWebSearchFromCookie, saveWebSearchToCookie } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
 import { initDom, dom, showWelcomeMessage } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
@@ -35,16 +35,25 @@ function toggleButton(btn, active) {
     btn.dataset.active = active ? 'true' : 'false';
 }
 
+// ---- 从 cookie 恢复按钮状态 ----
+state.deepThinkActive = loadDeepThinkFromCookie();
+toggleButton(deepThinkBtn, state.deepThinkActive);
+
+state.webSearchActive = loadWebSearchFromCookie();
+toggleButton(webSearchBtn, state.webSearchActive);
+
 // 深度思考按钮点击
 deepThinkBtn.addEventListener('click', () => {
     state.deepThinkActive = !state.deepThinkActive;
     toggleButton(deepThinkBtn, state.deepThinkActive);
+    saveDeepThinkToCookie(state.deepThinkActive);
 });
 
 // 智能搜索按钮点击
 webSearchBtn.addEventListener('click', () => {
     state.webSearchActive = !state.webSearchActive;
     toggleButton(webSearchBtn, state.webSearchActive);
+    saveWebSearchToCookie(state.webSearchActive);
 });
 
 // ============================================================
@@ -212,19 +221,35 @@ window.addEventListener('DOMContentLoaded', restoreSession);
         inputArea.classList.remove('collapsed');
     }
 
-    // ---- 滚动检测：当滚动刻度变化时折叠 ----
+    // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----
+    //     优先级：AI 正在回答时始终折叠 > 滚动到底部展开 > 刻度变化折叠
     chatContainer.addEventListener('scroll', () => {
         const currentTickIndex = state.activeTickIndex;
 
-        // 刻度变化时折叠，并记住新刻度
-        if (currentTickIndex !== lastActiveTickIndex) {
-            lastActiveTickIndex = currentTickIndex;
-            // 已折叠时不再重复触发
-            if (!isCollapsed) {
-                collapseInputArea();
+        // 最高优先级：AI 正在回答时始终折叠输入面板
+        if (state.isStreaming) {
+            collapseInputArea();
+            return;
+        }
+
+        // 检测是否已滚动到底部（向下无可再滚）
+        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 8;
+
+        if (isAtBottom) {
+            // 滚动到底部时自动展开
+            restoreInputArea();
+        } else {
+            // 刻度变化时折叠，并记住新刻度
+            if (currentTickIndex !== lastActiveTickIndex) {
+                lastActiveTickIndex = currentTickIndex;
+                // 已折叠时不再重复触发
+                if (!isCollapsed) {
+                    collapseInputArea();
+                }
             }
         }
     });
+
 
     // ---- 恢复条件 1：输入框获得焦点 ----
     messageInput.addEventListener('focus', restoreInputArea);
