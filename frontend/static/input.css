@@ -42,6 +42,7 @@
 
 /* 输入框包装 — 使用项目统一圆角 */
 .input-wrapper {
+    position: relative;
     display: flex;
     align-items: flex-end;
     background: var(--bg-input);
@@ -70,6 +71,20 @@
 
 .message-input::placeholder {
     color: var(--text-muted);
+}
+
+/* 输入框右下角换行提示 */
+.newline-hint {
+    position: absolute;
+    right: 8px;
+    bottom: 4px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    user-select: none;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity 0.2s;
 }
 
 /* 滑块开关 */

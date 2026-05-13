@@ -7,19 +7,15 @@
 'use strict';
 
 // ============================================================
-// Cookie 工具函数 — 持久化用户偏好（深度思考 / 智能搜索）
+// Cookie 工具函数
 // ============================================================
 
-/**
- * Cookie 名称常量
- */
-const COOKIE_DEEP_THINK = 'brainforever_deep_think';
-const COOKIE_WEB_SEARCH = 'brainforever_web_search';
+const COOKIE_USER_SETTINGS = 'brainforever_settings';
 
 /**
  * 读取指定名称的 cookie 值
  * @param {string} name - cookie 名称
- * @returns {string|null} cookie 值，不存在则返回 null
+ * @returns {string|null}
  */
 export function getCookie(name) {
     const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + encodeURIComponent(name) + '=([^;]*)'));
@@ -38,41 +34,60 @@ export function setCookie(name, value, days = 365) {
         '; expires=' + expires + '; path=/';
 }
 
-/**
- * 从 cookie 恢复深度思考状态，返回 boolean
- * @returns {boolean}
- */
-export function loadDeepThinkFromCookie() {
-    const val = getCookie(COOKIE_DEEP_THINK);
-    if (val === null) return false; // 默认关闭
-    return val === 'true';
-}
+// ============================================================
+// UserSettings — 统一用户配置（JSON 序列化到单个 cookie）
+// ============================================================
+// 字段说明：
+//   sendMode   — 0: Enter发送/Shift+Enter换行, 1: Enter换行/Shift+Enter发送
+//   deepThink  — 是否深度思考
+//   webSearch  — 是否智能搜索
+//   theme      — 0: 明亮, 1: 暗色, 2: 跟随系统
 
-/**
- * 将深度思考状态保存到 cookie
- * @param {boolean} active
- */
-export function saveDeepThinkToCookie(active) {
-    setCookie(COOKIE_DEEP_THINK, active ? 'true' : 'false');
-}
+const DEFAULT_SETTINGS = {
+    sendMode: 0,
+    deepThink: false,
+    webSearch: true,
+    theme: 0,
+};
 
-/**
- * 从 cookie 恢复智能搜索状态，返回 boolean
- * @returns {boolean}
- */
-export function loadWebSearchFromCookie() {
-    const val = getCookie(COOKIE_WEB_SEARCH);
-    if (val === null) return true; // 默认开启
-    return val === 'true';
-}
+export const UserSettings = {
+    /** 当前运行时设置（内存副本） */
+    sendMode: DEFAULT_SETTINGS.sendMode,
+    deepThink: DEFAULT_SETTINGS.deepThink,
+    webSearch: DEFAULT_SETTINGS.webSearch,
+    theme: DEFAULT_SETTINGS.theme,
 
-/**
- * 将智能搜索状态保存到 cookie
- * @param {boolean} active
- */
-export function saveWebSearchToCookie(active) {
-    setCookie(COOKIE_WEB_SEARCH, active ? 'true' : 'false');
-}
+    /**
+     * 从 cookie 加载设置，合并到内存
+     */
+    load() {
+        try {
+            const raw = getCookie(COOKIE_USER_SETTINGS);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                this.sendMode = typeof parsed.sendMode === 'number' ? parsed.sendMode : DEFAULT_SETTINGS.sendMode;
+                this.deepThink = typeof parsed.deepThink === 'boolean' ? parsed.deepThink : DEFAULT_SETTINGS.deepThink;
+                this.webSearch = typeof parsed.webSearch === 'boolean' ? parsed.webSearch : DEFAULT_SETTINGS.webSearch;
+                this.theme = typeof parsed.theme === 'number' ? parsed.theme : DEFAULT_SETTINGS.theme;
+            }
+        } catch (_) {
+            // cookie 损坏时使用默认值
+        }
+    },
+
+    /**
+     * 将当前设置序列化保存到 cookie
+     */
+    save() {
+        const data = {
+            sendMode: this.sendMode,
+            deepThink: this.deepThink,
+            webSearch: this.webSearch,
+            theme: this.theme,
+        };
+        setCookie(COOKIE_USER_SETTINGS, JSON.stringify(data));
+    },
+};
 
 /**
  * 全局状态对象
@@ -88,10 +103,10 @@ export const state = {
     // 用于取消请求的 AbortController
     abortController: null,
 
-    // 深度思考按钮状态
+    // 深度思考按钮状态（同步自 UserSettings.deepThink）
     deepThinkActive: false,
 
-    // 智能搜索按钮状态
+    // 智能搜索按钮状态（同步自 UserSettings.webSearch）
     webSearchActive: true,
 
     // 当前会话的快照：发送消息时锁定，SSE 处理期间基于此判断
@@ -111,7 +126,7 @@ export const state = {
     renderTimer: null,
 
     // 渲染节流间隔（毫秒）
-    RENDER_INTERVAL: 120,
+    RENDER_INTERVAL: 240,
 
     // 最多同时显示的刻度数
     MAX_VISIBLE_TICKS: 9,
@@ -120,6 +135,7 @@ export const state = {
     tickScrollOffset: 0,
 
     // 发送模式状态: false = Enter发送/Shift+Enter换行, true = Enter换行/Shift+Enter发送
+    // 由 UserSettings.sendMode 驱动（0→false, 1→true）
     sendModeAlternate: false,
 };
 

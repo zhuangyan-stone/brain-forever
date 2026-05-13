@@ -3,7 +3,7 @@
 // 导入各功能模块并完成初始化
 // ============================================================
 
-import { state, loadDeepThinkFromCookie, saveDeepThinkToCookie, loadWebSearchFromCookie, saveWebSearchToCookie } from './chat-state.js';
+import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
 import { initDom, dom, showWelcomeMessage } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
@@ -13,6 +13,25 @@ import { initDeleteModal } from './chat-delete.js';
 import { restoreSession } from './chat-session.js';
 
 'use strict';
+
+// ============================================================
+// 从 cookie 加载用户设置
+// ============================================================
+UserSettings.load();
+
+// ============================================================
+// 主题映射工具
+// ============================================================
+// UserSettings.theme: 0=明亮, 1=暗色, 2=跟随系统
+const THEME_VALUES = ['light', 'dark', 'system'];
+
+function resolveTheme(theme) {
+    if (theme === 2) {
+        // 跟随系统
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return THEME_VALUES[theme] || 'light';
+}
 
 // ============================================================
 // 初始化 DOM 引用
@@ -35,25 +54,27 @@ function toggleButton(btn, active) {
     btn.dataset.active = active ? 'true' : 'false';
 }
 
-// ---- 从 cookie 恢复按钮状态 ----
-state.deepThinkActive = loadDeepThinkFromCookie();
+// ---- 从 UserSettings 恢复按钮状态 ----
+state.deepThinkActive = UserSettings.deepThink;
 toggleButton(deepThinkBtn, state.deepThinkActive);
 
-state.webSearchActive = loadWebSearchFromCookie();
+state.webSearchActive = UserSettings.webSearch;
 toggleButton(webSearchBtn, state.webSearchActive);
 
 // 深度思考按钮点击
 deepThinkBtn.addEventListener('click', () => {
     state.deepThinkActive = !state.deepThinkActive;
     toggleButton(deepThinkBtn, state.deepThinkActive);
-    saveDeepThinkToCookie(state.deepThinkActive);
+    UserSettings.deepThink = state.deepThinkActive;
+    UserSettings.save();
 });
 
 // 智能搜索按钮点击
 webSearchBtn.addEventListener('click', () => {
     state.webSearchActive = !state.webSearchActive;
     toggleButton(webSearchBtn, state.webSearchActive);
-    saveWebSearchToCookie(state.webSearchActive);
+    UserSettings.webSearch = state.webSearchActive;
+    UserSettings.save();
 });
 
 // ============================================================
@@ -62,23 +83,26 @@ webSearchBtn.addEventListener('click', () => {
 
 const themeToggle = document.getElementById('themeToggle');
 
-// 从 localStorage 读取已保存的主题，首次使用默认为 'light'（亮色）
-const savedTheme = localStorage.getItem('brainforever-theme') || 'light';
-document.documentElement.setAttribute('data-theme', savedTheme);
-updateThemeButton(savedTheme);
-switchHighlightTheme(savedTheme);
+/** 应用主题到页面 */
+function applyTheme(themeVal) {
+    const themeStr = resolveTheme(themeVal);
+    document.documentElement.setAttribute('data-theme', themeStr);
+    updateThemeButton(themeStr);
+    switchHighlightTheme(themeStr);
+}
+
+// 初始化主题
+applyTheme(UserSettings.theme);
 
 themeToggle.addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('brainforever-theme', next);
-    updateThemeButton(next);
-    switchHighlightTheme(next);
+    // 循环切换: 0→1→2→0
+    UserSettings.theme = (UserSettings.theme + 1) % 3;
+    applyTheme(UserSettings.theme);
+    UserSettings.save();
 });
 
-function updateThemeButton(theme) {
-    themeToggle.innerHTML = theme === 'dark'
+function updateThemeButton(themeStr) {
+    themeToggle.innerHTML = themeStr === 'dark'
         ? `<svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>`
@@ -93,7 +117,7 @@ function updateThemeButton(theme) {
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.32"/>
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
         </svg>`;
-    themeToggle.title = theme === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
+    themeToggle.title = themeStr === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
 }
 
 // ============================================================
@@ -105,6 +129,11 @@ const sendBtn = document.getElementById('sendBtn');
 const sendModeToggle = document.getElementById('sendModeToggle');
 const sendModeLabel = document.getElementById('sendModeLabel');
 
+// ---- 从 UserSettings 恢复发送模式 ----
+// sendMode: 0=Enter发送, 1=Enter换行
+state.sendModeAlternate = UserSettings.sendMode === 1;
+sendModeToggle.checked = state.sendModeAlternate;
+
 messageInput.addEventListener('input', () => {
     messageInput.style.height = 'auto';
     messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
@@ -112,22 +141,47 @@ messageInput.addEventListener('input', () => {
 
 // 发送模式标签文本
 const SEND_MODE_LABELS = {
-    normal: '回车键发送，Shift+回车键换行',
-    alternate: '回车键换行，Shift+回车键发送'
+    normal: "回车键发送 ⇄ Shift+回车键",
+    alternate: "Shift+回车键'发送 ⇄ 回车键"
 };
+
+// 换行提示文本
+const NEWLINE_HINT_LABELS = {
+    normal: '换行：Shift+回车键',
+    alternate: '换行：回车键'
+};
+
+const newlineHint = document.getElementById('newlineHint');
 
 // 更新发送模式标签
 function updateSendModeLabel() {
     sendModeLabel.textContent = state.sendModeAlternate
         ? SEND_MODE_LABELS.alternate
         : SEND_MODE_LABELS.normal;
+    // 同步更新换行提示
+    if (newlineHint) {
+        newlineHint.textContent = state.sendModeAlternate
+            ? NEWLINE_HINT_LABELS.alternate
+            : NEWLINE_HINT_LABELS.normal;
+    }
 }
 
 // 滑块切换发送模式
 sendModeToggle.addEventListener('change', () => {
     state.sendModeAlternate = sendModeToggle.checked;
     updateSendModeLabel();
+    UserSettings.sendMode = state.sendModeAlternate ? 1 : 0;
+    UserSettings.save();
 });
+
+// 点击标签文本也可切换发送模式
+sendModeLabel.addEventListener('click', () => {
+    sendModeToggle.checked = !sendModeToggle.checked;
+    sendModeToggle.dispatchEvent(new Event('change'));
+});
+
+// 初始化发送模式标签（从 JS 常量设置初始文本，避免 HTML 中重复定义）
+updateSendModeLabel();
 
 // 键盘发送/换行逻辑
 messageInput.addEventListener('keydown', (e) => {
@@ -245,6 +299,11 @@ window.addEventListener('DOMContentLoaded', restoreSession);
             if (isAtBottom) {
                 // 滚动到底部时自动展开
                 restoreInputArea();
+
+                // 展开后页面高度可能变化（输入面板展开），延迟再滚一次到底部
+                setTimeout(() => {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 500);
             } else {
                 // 刻度变化时折叠，并记住新刻度
                 if (currentTickIndex !== lastActiveTickIndex) {
