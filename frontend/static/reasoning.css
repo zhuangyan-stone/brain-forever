@@ -97,7 +97,7 @@
 
 /* reasoning 内容中的 Markdown 段落 — 仅直接子节点有左边框 */
 .reasoning-content > p {
-    margin: 4px 0 12px 4px;
+    margin: 4px 0 4px 4px;
     border-left: 1px dotted #a0a1a7;
     padding: 0 0 0 8px;
 }
