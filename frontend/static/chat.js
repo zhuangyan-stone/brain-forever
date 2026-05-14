@@ -214,8 +214,8 @@ const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
 const leftBrandContainer = document.getElementById('leftBrandContainer');
 const mainBrandContainer = document.getElementById('mainBrandContainer');
 
-const MIN_BOTH = 920;     // 宽屏左栏必须宽度≥800px才能保持双栏显示
-const SMALL_BP = 768;     // 小屏模式阈值
+const MIN_BOTH = 920;     // 宽屏左栏必须宽度≥920px才能保持双栏显示
+const SMALL_BP = 920;     // 小屏模式阈值（与 MIN_BOTH 一致，避免 iPad 竖屏落入灰色地带）
 
 let isLeftVisible = false;    // 宽屏模式下左栏是否可见 (hidden class 控制)
 let autoHidden = false;       // 自动隐藏标记
@@ -230,7 +230,7 @@ const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColo
 
 // ===== 品牌文本常量（方便以后修改） =====
 const BRAND_TITLE = '脑力永恒';
-const BRAND_SUBTITLE = '“养”另外一个你';
+const BRAND_SUBTITLE = '为自己养个分身';
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
 function createBrandElement() {
