@@ -82,6 +82,28 @@
     padding-top: 6px;
 }
 
+/* ---- 触摸滑动容器 ---- */
+
+.sources-items-container {
+    overflow: hidden;
+    touch-action: pan-y;       /* 允许垂直滚动，捕获水平滑动手势 */
+    user-select: none;         /* 防止滑动时选中文本 */
+    -webkit-user-select: none;
+}
+
+/* 滑动内层：三栏并排，通过 translateX 切换 */
+.sources-slider {
+    display: flex;
+    width: 300%;
+    will-change: transform;    /* GPU 加速 */
+}
+
+.sources-slider-pane {
+    width: 50%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
 /* ---- 来源条目 ---- */
 
 .sources-panel .source-item {
@@ -175,6 +197,30 @@
 @media (max-width: 420px) {
     .source-site-badge {
         display: none;
+    }
+}
+
+/* ---- 来源内容预览（小屏缩短） ---- */
+
+.source-content-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+}
+
+@media (max-width: 480px) {
+    .source-content-preview {
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+}
+
+@media (max-width: 380px) {
+    .source-content-preview {
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
     }
 }
 

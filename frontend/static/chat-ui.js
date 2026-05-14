@@ -341,10 +341,39 @@ export function showSources(sources, type) {
         body.className = 'sources-body';
         body.style.display = 'none'; // 默认折叠
 
-        // 容器：用于存放当前页的条目，切换页时清空重建
+        // 容器：用于存放当前页的条目（内含 slider 实现滑动动效）
         const itemsContainer = document.createElement('div');
         itemsContainer.className = 'sources-items-container';
         body.appendChild(itemsContainer);
+
+        // 滑动内层容器：三栏，左=上一页，中=当前页，右=下一页
+        // width: 300%，每栏 33.33%
+        // translateX(-33.33%) → 显示中栏（当前页）
+        // translateX(-66.66%) → 显示右栏（下一页）
+        // translateX(0) → 显示左栏（上一页）
+        const slider = document.createElement('div');
+        slider.className = 'sources-slider';
+        slider.style.width = '300%';
+        slider.style.display = 'flex';
+        itemsContainer.appendChild(slider);
+
+        // 左栏（上一页）
+        const paneLeft = document.createElement('div');
+        paneLeft.className = 'sources-slider-pane';
+        paneLeft.style.width = '33.33%';
+        slider.appendChild(paneLeft);
+
+        // 中栏（当前页）
+        const paneCenter = document.createElement('div');
+        paneCenter.className = 'sources-slider-pane';
+        paneCenter.style.width = '33.33%';
+        slider.appendChild(paneCenter);
+
+        // 右栏（下一页）
+        const paneRight = document.createElement('div');
+        paneRight.className = 'sources-slider-pane';
+        paneRight.style.width = '33.33%';
+        slider.appendChild(paneRight);
 
         // 分页圆点导航（底部居中）
         const dotsNav = document.createElement('div');
@@ -352,89 +381,288 @@ export function showSources(sources, type) {
         body.appendChild(dotsNav);
 
         /**
-         * 渲染指定页码的条目和圆点状态
+         * 构建单个 source 条目的 DOM 元素
          */
-        function renderPage(page) {
-            currentPage = page;
+        function createSourceItem(src) {
+            console.log('[sources-panel] source item:', { title: src.title, content: src.content, publish_date: src.publish_date, url: src.url, site_name: src.site_name });
+            const item = document.createElement('div');
+            item.className = 'source-item';
 
-            // 清空条目容器
-            itemsContainer.innerHTML = '';
+            // 清理标题：去除标题中重复的网站名称以及搜索引擎附加的 "（发布时间：XXXX）" 后缀
+            let cleanTitle = src.title || '';
+            cleanTitle = cleanTitle.replace(/[（(]发布时间：.*?[）)]/g, '').trim();
+            const siteName = src.site_name || '';
+            if (siteName) {
+                if (cleanTitle.startsWith(siteName)) {
+                    cleanTitle = cleanTitle.slice(siteName.length);
+                }
+                if (cleanTitle.endsWith(siteName)) {
+                    cleanTitle = cleanTitle.slice(0, -siteName.length);
+                }
+                cleanTitle = cleanTitle.replace(/^[\s\-_:—：]+|[\s\-_:—：]+$/g, '');
+            }
+            if (!cleanTitle) {
+                cleanTitle = src.title ? src.title.replace(/[（(]发布时间：.*?[）)]/g, '').trim() : '';
+            }
 
+            let siteBadgeHtml = '';
+            if (src.site_icon || src.site_name) {
+                const iconHtml = src.site_icon
+                    ? `<img class="source-site-icon" src="${escapeHtml(src.site_icon)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+                    : '';
+                const nameHtml = src.site_name
+                    ? `<span class="source-site-name">${escapeHtml(src.site_name)}</span>`
+                    : '';
+                if (iconHtml || nameHtml) {
+                    siteBadgeHtml = `<span class="source-site-badge">${iconHtml}${nameHtml}</span>`;
+                }
+            }
+
+            const titleHtml = src.url
+                ? `<a class="source-title source-link" href="${escapeHtml(src.url)}" target="_blank" rel="noopener">${escapeHtml(cleanTitle)}</a>`
+                : `<span class="source-title">${escapeHtml(cleanTitle)}</span>`;
+
+            const publishHtml = src.publish_date
+                ? `<span style="color:var(--text-muted);font-size:0.75rem;display:block;margin-top:4px">[发布于：${escapeHtml(src.publish_date)}]</span>`
+                : '';
+
+            item.innerHTML = `
+                <div class="source-title-row">
+                    ${titleHtml}
+                    ${siteBadgeHtml}
+                </div>
+                ${publishHtml}
+                ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)" class="source-content-preview">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
+            `;
+            return item;
+        }
+
+        /**
+         * 填充 slider 的左栏（上一页）
+         */
+        function fillPaneLeft(page) {
+            paneLeft.innerHTML = '';
+            if (page !== null && page >= 0 && page < totalPages) {
+                const start = page * PAGE_SIZE;
+                const end = Math.min(start + PAGE_SIZE, sources.length);
+                const pageSources = sources.slice(start, end);
+                pageSources.forEach(src => paneLeft.appendChild(createSourceItem(src)));
+            }
+        }
+
+        /**
+         * 填充 slider 的中栏（当前页）
+         */
+        function fillPaneCenter(page) {
+            paneCenter.innerHTML = '';
             const start = page * PAGE_SIZE;
             const end = Math.min(start + PAGE_SIZE, sources.length);
             const pageSources = sources.slice(start, end);
+            pageSources.forEach(src => paneCenter.appendChild(createSourceItem(src)));
+        }
 
-            pageSources.forEach((src) => {
-                console.log('[sources-panel] source item:', { title: src.title, content: src.content, publish_date: src.publish_date, url: src.url, site_name: src.site_name });
-                const item = document.createElement('div');
-                item.className = 'source-item';
+        /**
+         * 填充 slider 的右栏（下一页）
+         */
+        function fillPaneRight(page) {
+            paneRight.innerHTML = '';
+            if (page !== null && page >= 0 && page < totalPages) {
+                const start = page * PAGE_SIZE;
+                const end = Math.min(start + PAGE_SIZE, sources.length);
+                const pageSources = sources.slice(start, end);
+                pageSources.forEach(src => paneRight.appendChild(createSourceItem(src)));
+            }
+        }
 
-                // 清理标题：去除标题中重复的网站名称以及搜索引擎附加的 "（发布时间：XXXX）" 后缀
-                let cleanTitle = src.title || '';
-                // 先去除 "（发布时间：XXXX）" 或 "(发布时间：XXXX)" 后缀
-                cleanTitle = cleanTitle.replace(/[（(]发布时间：.*?[）)]/g, '').trim();
-                const siteName = src.site_name || '';
-                if (siteName) {
-                    if (cleanTitle.startsWith(siteName)) {
-                        cleanTitle = cleanTitle.slice(siteName.length);
-                    }
-                    if (cleanTitle.endsWith(siteName)) {
-                        cleanTitle = cleanTitle.slice(0, -siteName.length);
-                    }
-                    cleanTitle = cleanTitle.replace(/^[\s\-_:—：]+|[\s\-_:—：]+$/g, '');
-                }
-                if (!cleanTitle) {
-                    cleanTitle = src.title ? src.title.replace(/[（(]发布时间：.*?[）)]/g, '').trim() : '';
-                }
+        /**
+         * 填充三栏：左=prevPage，中=currentPage，右=nextPage
+         * 自动处理边界（null = 空栏）
+         */
+        function fillTriple(current, prev, next) {
+            fillPaneLeft(prev);
+            fillPaneCenter(current);
+            fillPaneRight(next);
+        }
 
-                let siteBadgeHtml = '';
-                if (src.site_icon || src.site_name) {
-                    const iconHtml = src.site_icon
-                        ? `<img class="source-site-icon" src="${escapeHtml(src.site_icon)}" alt="" loading="lazy" onerror="this.style.display='none'">`
-                        : '';
-                    const nameHtml = src.site_name
-                        ? `<span class="source-site-name">${escapeHtml(src.site_name)}</span>`
-                        : '';
-                    if (iconHtml || nameHtml) {
-                        siteBadgeHtml = `<span class="source-site-badge">${iconHtml}${nameHtml}</span>`;
-                    }
-                }
+        /**
+         * 获取当前页的前一页和后一页
+         * @returns {{prev: number|null, next: number|null}}
+         */
+        function getNeighborPages(page) {
+            return {
+                prev: page > 0 ? page - 1 : null,
+                next: page < totalPages - 1 ? page + 1 : null
+            };
+        }
 
-                // URL 为空时，标题不加链接效果（纯文本显示）
-                const titleHtml = src.url
-                    ? `<a class="source-title source-link" href="${escapeHtml(src.url)}" target="_blank" rel="noopener">${escapeHtml(cleanTitle)}</a>`
-                    : `<span class="source-title">${escapeHtml(cleanTitle)}</span>`;
-
-                // 发布时间格式化为 [发布于：XXXX]
-                const publishHtml = src.publish_date
-                    ? `<span style="color:var(--text-muted);font-size:0.75rem;display:block;margin-top:4px">[发布于：${escapeHtml(src.publish_date)}]</span>`
-                    : '';
-
-                item.innerHTML = `
-                    <div class="source-title-row">
-                        ${titleHtml}
-                        ${siteBadgeHtml}
-                    </div>
-                    ${publishHtml}
-                    ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
-                `;
-                itemsContainer.appendChild(item);
-            });
-
-            // 重建圆点导航（仅当有多页时显示）
+        /**
+         * 更新圆点导航状态
+         */
+        function updateDots(page) {
             dotsNav.innerHTML = '';
             if (totalPages > 1) {
                 for (let i = 0; i < totalPages; i++) {
                     const dot = document.createElement('span');
-                    dot.className = 'sources-pagination-dot' + (i === currentPage ? ' active' : '');
+                    dot.className = 'sources-pagination-dot' + (i === page ? ' active' : '');
                     dot.dataset.page = i;
                     dot.addEventListener('click', () => {
-                        renderPage(i);
+                        slideToPage(i);
                     });
                     dotsNav.appendChild(dot);
                 }
             }
         }
+
+        /**
+         * 滑动到指定页（带动画）
+         * 三栏布局：
+         *   translateX(-33.33%) → 显示中栏（当前页）
+         *   translateX(-66.66%) → 显示右栏（下一页）
+         *   translateX(0) → 显示左栏（上一页）
+         */
+        function slideToPage(page) {
+            if (page === currentPage) return;
+            const goingForward = page > currentPage;
+
+            // 预渲染三栏：左=page-1，中=page，右=page+1
+            const np = getNeighborPages(page);
+            fillTriple(page, np.prev, np.next);
+
+            if (goingForward) {
+                // ---- 向后翻（下一页） ----
+                // 当前显示中栏（currentPage），目标显示中栏（page）
+                // 但中栏现在是 page 的内容，所以需要先显示左栏（page-1=currentPage）
+                // 然后动画到中栏（page）
+                // 先把 slider 定位到显示左栏（=currentPage）
+                slider.style.transition = 'none';
+                slider.style.transform = 'translateX(0)';
+                void slider.offsetHeight;
+                // 动画到中栏（=page）
+                slider.style.transition = 'transform 0.25s ease-out';
+                slider.style.transform = 'translateX(-33.33%)';
+            } else {
+                // ---- 向前翻（上一页） ----
+                // 当前显示中栏（currentPage），目标显示中栏（page）
+                // 先把 slider 定位到显示右栏（=currentPage）
+                slider.style.transition = 'none';
+                slider.style.transform = 'translateX(-66.66%)';
+                void slider.offsetHeight;
+                // 动画到中栏（=page）
+                slider.style.transition = 'transform 0.25s ease-out';
+                slider.style.transform = 'translateX(-33.33%)';
+            }
+
+            // 动画结束后更新状态
+            setTimeout(() => {
+                currentPage = page;
+                const np2 = getNeighborPages(page);
+                fillTriple(page, np2.prev, np2.next);
+                slider.style.transition = 'none';
+                slider.style.transform = 'translateX(-33.33%)';
+                updateDots(page);
+            }, 280);
+        }
+
+        /**
+         * 渲染指定页码（无动画，直接设置）
+         */
+        function renderPage(page) {
+            currentPage = page;
+            const np = getNeighborPages(page);
+            fillTriple(page, np.prev, np.next);
+            slider.style.transition = 'none';
+            slider.style.transform = 'translateX(-33.33%)';
+            updateDots(page);
+        }
+
+        // ---- 触摸滑动翻页（带手指跟随动效） ----
+        // 三栏布局下，translateX 百分比相对于 slider 自身宽度（300% 容器宽度）
+        // translateX(p%) 移动距离 = p/100 * slider宽度 = p/100 * 容器宽度 * 3
+        // 要跟随手指移动 dx 像素：dx = p/100 * containerWidth * 3 → p = dx/containerWidth * 33.33
+        // 基准位置：translateX(-33.33%) → 显示中栏（当前页）
+        // 左滑（下一页）：从 -33.33% 向 -66.66% 移动 → 右栏滑入
+        // 右滑（上一页）：从 -33.33% 向 0 移动 → 左栏滑入
+        let touchStartX = 0;
+        let isSwiping = false;
+        let isAnimating = false;
+
+        itemsContainer.addEventListener('touchstart', (e) => {
+            if (isAnimating) return;
+            touchStartX = e.changedTouches[0].screenX;
+            isSwiping = false;
+        }, { passive: true });
+
+        itemsContainer.addEventListener('touchmove', (e) => {
+            if (isAnimating) return;
+            const dx = e.changedTouches[0].screenX - touchStartX;
+            if (Math.abs(dx) > 3) {
+                isSwiping = true;
+            }
+            if (!isSwiping) return;
+
+            // 三栏已预渲染好，直接计算跟随偏移
+            // 基准 translateX(-33.33%)，左滑减偏移，右滑加偏移
+            if (dx < 0 && currentPage < totalPages - 1) {
+                // ---- 左滑（下一页）：从 -33.33% 向 -66.66% 移动 ----
+                // 偏移范围 -33.33% ~ -60%（留余量给 touchend 的 -66.66%）
+                const offset = Math.max(-33.33 + dx / itemsContainer.offsetWidth * 33.33, -60);
+                slider.style.transition = 'none';
+                slider.style.transform = `translateX(${offset}%)`;
+            } else if (dx > 0 && currentPage > 0) {
+                // ---- 右滑（上一页）：从 -33.33% 向 0 移动 ----
+                // 偏移范围 -33.33% ~ -5%（留余量给 touchend 的 0）
+                const offset = Math.min(-33.33 + dx / itemsContainer.offsetWidth * 33.33, -5);
+                slider.style.transition = 'none';
+                slider.style.transform = `translateX(${offset}%)`;
+            } else {
+                return;
+            }
+        }, { passive: true });
+
+        itemsContainer.addEventListener('touchend', (e) => {
+            if (!isSwiping || isAnimating) return;
+            isAnimating = true;
+
+            const dx = e.changedTouches[0].screenX - touchStartX;
+            const threshold = itemsContainer.offsetWidth * 0.15;
+
+            if (dx < -threshold && currentPage < totalPages - 1) {
+                // ---- 左滑翻到下一页 ----
+                // 从当前位置动画到 -66.66%（显示右栏=下一页）
+                slider.style.transition = 'transform 0.25s ease-out';
+                slider.style.transform = 'translateX(-66.66%)';
+                setTimeout(() => {
+                    currentPage = currentPage + 1;
+                    const np = getNeighborPages(currentPage);
+                    fillTriple(currentPage, np.prev, np.next);
+                    slider.style.transition = 'none';
+                    slider.style.transform = 'translateX(-33.33%)';
+                    updateDots(currentPage);
+                    isAnimating = false;
+                }, 280);
+            } else if (dx > threshold && currentPage > 0) {
+                // ---- 右滑翻到上一页 ----
+                // 从当前位置动画到 0（显示左栏=上一页）
+                slider.style.transition = 'transform 0.25s ease-out';
+                slider.style.transform = 'translateX(0)';
+                setTimeout(() => {
+                    currentPage = currentPage - 1;
+                    const np = getNeighborPages(currentPage);
+                    fillTriple(currentPage, np.prev, np.next);
+                    slider.style.transition = 'none';
+                    slider.style.transform = 'translateX(-33.33%)';
+                    updateDots(currentPage);
+                    isAnimating = false;
+                }, 280);
+            } else {
+                // 未超过阈值 → 回弹到中栏
+                slider.style.transition = 'transform 0.2s ease-out';
+                slider.style.transform = 'translateX(-33.33%)';
+                setTimeout(() => {
+                    isAnimating = false;
+                }, 250);
+            }
+        }, { passive: true });
 
         // 初始渲染第 0 页
         renderPage(0);
