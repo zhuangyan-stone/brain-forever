@@ -131,6 +131,74 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 	return &req
 }
 
+// OnGetSessionTitle handles GET /api/session/title requests.
+// It reads the "title" query parameter as the original title,
+// takes the first 10 messages (5 rounds) from the session history,
+// sends them to the LLM to generate a new concise title,
+// and returns the new title as JSON. On error or empty LLM response, returns the original title.
+func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
+	// Only accept GET
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Read the original title from query parameter
+	originalTitle := r.URL.Query().Get("title")
+
+	// Determine the language for this request.
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+	if lang == "" {
+		lang = h.defaultLang
+	}
+
+	// Resolve sessionID from cookie
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	session.mu.Lock()
+	history := make([]Message, 0, len(session.history))
+	history = append(history, session.history...)
+	session.mu.Unlock()
+
+	// Take at most the first 10 messages (5 rounds of Q&A)
+	const maxMsgs = 10
+	if len(history) > maxMsgs {
+		history = history[:maxMsgs]
+	}
+
+	// Build the LLM prompt with i18n support
+	systemPrompt := i18n.TL(lang, "session_title_prompt")
+	llmMsgs := toRawMessages(history)
+	messages := make([]llm.Message, 0, 1+len(llmMsgs))
+	messages = append(messages, llm.Message{Role: "system", Content: systemPrompt})
+	messages = append(messages, llmMsgs...)
+
+	// Call LLM (non-streaming)
+	resp, err := h.charLLMClient.Chat(r.Context(), messages)
+	if err != nil {
+		// On error, return the original title
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"title": originalTitle})
+		return
+	}
+
+	// Extract the reply content
+	newTitle := ""
+	if len(resp.Choices) > 0 {
+		newTitle = resp.Choices[0].Message.Content
+	}
+
+	// If LLM returned empty content, fall back to original title
+	if newTitle == "" {
+		newTitle = originalTitle
+	}
+
+	// Return the new title as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"title": newTitle})
+}
+
 // OnNewMessage handles POST /api/chat requests
 func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// 1. Resolve request

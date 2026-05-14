@@ -8,6 +8,25 @@ import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
 
+/**
+ * 调用后端 /api/session/title 接口，让 AI 为当前对话生成标题。
+ * 仅在首次收到助手回复时调用。
+ * @param {string} originalTitle - 原标题（用户第一条消息的截取）
+ */
+async function fetchSessionTitle(originalTitle) {
+    try {
+        const response = await fetch('/api/session/title?title=' + encodeURIComponent(originalTitle));
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.title) {
+            updateHeaderTitle(data.title);
+        }
+    } catch (e) {
+        // 静默失败，不干扰用户
+        console.warn('获取对话标题失败:', e);
+    }
+}
+
 'use strict';
 
 /**
@@ -308,6 +327,17 @@ export async function sendMessage() {
         if (reasoningContentEl && reasoningContentEl.renderTimer) {
             clearTimeout(reasoningContentEl.renderTimer);
             reasoningContentEl.renderTimer = null;
+        }
+
+        // 如果是第一组消息（用户的第一条消息 + 助手的第一次回复），
+        // 调用后端 AI 生成对话标题
+        if (state.messages.length === 2) {
+            // 原标题：用户的第一条消息内容（截取前 30 字）
+            const firstUserMsg = state.messages.find(m => m.role === 'user');
+            const originalTitle = firstUserMsg ? firstUserMsg.content.slice(0, 30) : '';
+            if (originalTitle) {
+                fetchSessionTitle(originalTitle);
+            }
         }
     }
 }

@@ -24,3 +24,6 @@ other = "让我看一下当前时间……"
 
 [server_error]
 other = "哎呀！服务端出错啦！\n{{.Error}}"
+
+[session_title_prompt]
+other = "请基于以下用户与LLM之间的对话内容，为本轮对话取一个标题，长度控制在30个汉字以内。"

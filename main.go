@@ -90,6 +90,7 @@ func main() {
 	mux.Handle("/api/chat", http.HandlerFunc(chatHandler.OnNewMessage))
 	mux.Handle("/api/session", http.HandlerFunc(chatHandler.OnRestoreSession))
 	mux.Handle("/api/session/new", http.HandlerFunc(chatHandler.OnNewSession))
+	mux.Handle("/api/session/title", http.HandlerFunc(chatHandler.OnGetSessionTitle))
 	mux.Handle("/api/history", http.HandlerFunc(chatHandler.OnDeleteMessage))
 
 	// Health check endpoint

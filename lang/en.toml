@@ -24,3 +24,6 @@ other = "Let me check the current time..."
 
 [server_error]
 other = "Oops! Server error!\n{{.Error}}"
+
+[session_title_prompt]
+other = "Based on the following conversation between the user and the LLM, generate a title for this dialogue. Keep it within 15 words."

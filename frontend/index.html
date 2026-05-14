@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>脑力永恒 AI 助手</title>
     <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
-    <!-- 防主题闪烁：在 CSS 渲染前从 cookie 读取主题并设置 data-theme -->
+    <!-- 防主题闪烁：在 CSS 渲染前从 localStorage 读取主题并设置 data-theme -->
     <script>
         (function() {
             try {
-                var match = document.cookie.match(/(?:^|;\s*)brainforever_settings=([^;]*)/);
-                if (match) {
-                    var settings = JSON.parse(decodeURIComponent(match[1]));
+                var raw = localStorage.getItem('brainforever_settings');
+                if (raw) {
+                    var settings = JSON.parse(raw);
                     var theme = settings.theme;
                     var themeStr;
                     if (theme === 2) {
