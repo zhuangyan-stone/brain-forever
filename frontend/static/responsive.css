@@ -37,6 +37,18 @@ body.small-screen-mode .main-content {
     width: 100%;
 }
 
+/* 小屏模式下滚动容器宽度占满 */
+body.small-screen-mode .scroll-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* 小屏欢迎模式下聊天容器宽度占满 */
+body.small-screen-mode .scroll-container.welcome-state .chat-container {
+    width: 100%;
+    max-width: 100%;
+}
+
 /* 小屏模式下主栏隐藏品牌区域（Logo + 品牌名 + 副标题），
    只保留切换按钮和对话标题 */
 body.small-screen-mode .main-brand-area {
@@ -51,6 +63,40 @@ body:not(.small-screen-mode) .sidebar-close-btn {
     display: none;
 }
 
+/* 小屏模式下输入面板的切换按钮（深度思考/智能搜索）只显示图标，隐藏文字 */
+body.small-screen-mode .toggle-btn span {
+    display: none;
+}
+
+/* 小屏模式下 header 栏按钮内层图标统一 20×20，padding 6 */
+body.small-screen-mode .menu-toggle-btn,
+body.small-screen-mode .new-chat-btn {
+    padding: 6px;
+    justify-content: center;
+    width: auto;
+    height: auto;
+}
+
+body.small-screen-mode .menu-toggle-btn svg,
+body.small-screen-mode .new-chat-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* 小屏模式下新对话按钮加上边框 */
+body.small-screen-mode .new-chat-btn {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+body.small-screen-mode .new-chat-label {
+    display: none;
+}
+
+body.small-screen-mode .new-chat-label {
+    display: none;
+}
+
 /* ============================================================
     中屏及以下调整
     ============================================================ */
@@ -60,6 +106,10 @@ body:not(.small-screen-mode) .sidebar-close-btn {
         width: 100%;
         max-width: 100%;
         padding: 0 12px;
+    }
+
+    .chat-container {
+        padding: 16px 12px;
     }
 
     .main-header,
@@ -74,10 +124,6 @@ body:not(.small-screen-mode) .sidebar-close-btn {
         line-height: 1.3;
     }
 
-    .menu-toggle-btn {
-        width: 36px;
-        height: 36px;
-    }
 
     .brand-title {
         font-size: 1rem;

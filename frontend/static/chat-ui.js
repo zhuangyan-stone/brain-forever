@@ -488,7 +488,7 @@ export function showWelcomeMessage() {
 
     const el = document.createElement('div');
     el.className = 'welcome-message';
-    el.textContent = '你好！我是脑力永恒 AI 助手，基于知识库的智能对话系统。请问有什么可以帮助你的？';
+    el.textContent = '你好！我是脑力永恒AI助手，多聊，多交流，我会更懂你';
     dom.chatContainer.appendChild(el);
 
     // 将输入区域移动到欢迎消息内部，使二者作为一个整体居中
