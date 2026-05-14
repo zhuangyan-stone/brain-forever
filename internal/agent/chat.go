@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
@@ -164,18 +165,31 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	history = append(history, session.history...)
 	session.mu.Unlock()
 
-	// Take at most the first 10 messages (5 rounds of Q&A)
-	const maxMsgs = 10
+	// Take at most the first 5 messages
+	const maxMsgs = 5
 	if len(history) > maxMsgs {
 		history = history[:maxMsgs]
 	}
 
 	// Build the LLM prompt with i18n support
 	systemPrompt := i18n.TL(lang, "session_title_prompt")
-	llmMsgs := toRawMessages(history)
-	messages := make([]llm.Message, 0, 1+len(llmMsgs))
+	var contentBuilder strings.Builder
+
+	contentBuilder.WriteString(i18n.TL(lang, "following_is_a_conversation"))
+
+	for _, msg := range history {
+		if msg.Role == "user" {
+			contentBuilder.WriteString("A: ")
+		} else if msg.Role == "assistant" {
+			contentBuilder.WriteString("B: ")
+		}
+		contentBuilder.WriteString(msg.Content)
+		contentBuilder.WriteString("\n")
+	}
+
+	messages := make([]llm.Message, 0, 2)
 	messages = append(messages, llm.Message{Role: "system", Content: systemPrompt})
-	messages = append(messages, llmMsgs...)
+	messages = append(messages, llm.Message{Role: "user", Content: contentBuilder.String()})
 
 	newTitle := ""
 

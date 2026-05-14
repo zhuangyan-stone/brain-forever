@@ -26,4 +26,7 @@ other = "Let me check the current time..."
 other = "Oops! Server error!\n{{.Error}}"
 
 [session_title_prompt]
-other = "Based on the following conversation between the user and the LLM, generate a title for this dialogue. Keep it within 15 words."
+other = "You are a title generation assistant. Based on the conversation content provided by the user, generate a concise and accurate title. The title should be within 20 words. Output the title directly without any extra explanation."
+
+[following_is_a_conversation]
+other = "The following is a conversation, in which A and B refer to the two speakers."
