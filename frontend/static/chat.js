@@ -121,16 +121,14 @@ function updateThemeButton(themeStr) {
 }
 
 // ============================================================
-// 新建对话按钮
+// startNewSession — 开启新对话（无刷新 SPA 方式）
+// 清空当前会话的所有历史消息，进入欢迎状态
 // ============================================================
 
-const newChatBtn = document.getElementById('newChatBtn');
-
-newChatBtn.addEventListener('click', async () => {
-    if (state.isStreaming) {
-        if (state.abortController) {
-            state.abortController.abort();
-        }
+async function startNewSession() {
+    // 如果正在流式输出，先中止
+    if (state.isStreaming && state.abortController) {
+        state.abortController.abort();
     }
 
     try {
@@ -143,11 +141,69 @@ newChatBtn.addEventListener('click', async () => {
             return;
         }
 
-        window.location.reload();
+        // ---- 无刷新重置前端状态 ----
+
+        // 1. 清空消息状态及相关计数器
+        state.messages = [];
+        state.userMsgCount = 0;
+        state.activeTickIndex = -1;
+        state.tickScrollOffset = 0;
+        state.currentGroup = null;
+        state.accumulatedMarkdown = '';
+        if (state.renderTimer) {
+            clearTimeout(state.renderTimer);
+            state.renderTimer = null;
+        }
+
+        // 2. 移除所有消息 DOM 节点（.message-group）
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
+        }
+
+        // 3. 移除已有的欢迎消息（如果有）
+        const existingWelcome = document.querySelector('.welcome-message');
+        if (existingWelcome) {
+            // 将 input-area 移回原来的位置（main-body 之后）
+            const inputArea = existingWelcome.querySelector('.input-area');
+            if (inputArea) {
+                const mainBody = document.getElementById('mainBody');
+                if (mainBody && mainBody.nextElementSibling?.classList?.contains('input-area')) {
+                    // input-area 已经在正确位置，不需要移动
+                } else if (mainBody) {
+                    // 将 input-area 插入到 mainBody 之后
+                    mainBody.parentNode.insertBefore(inputArea, mainBody.nextSibling);
+                }
+            }
+            existingWelcome.remove();
+        }
+
+        // 4. 清空刻度导航
+        const tickNav = document.getElementById('tickNav');
+        if (tickNav) {
+            tickNav.innerHTML = '';
+        }
+
+        // 5. 移除 welcome-state 标记
+        const scrollContainer = document.getElementById('scrollContainer');
+        if (scrollContainer) {
+            scrollContainer.classList.remove('welcome-state');
+        }
+
+        // 6. 重新显示欢迎消息（会设置标题为"欢迎开始新对话"）
+        showWelcomeMessage();
     } catch (e) {
         console.error('创建新会话出错:', e);
     }
-});
+}
+
+// ============================================================
+// 新建对话按钮（主栏顶部图标）
+// ============================================================
+
+const newChatBtn = document.getElementById('newChatBtn');
+
+newChatBtn.addEventListener('click', startNewSession);
 
 // ============================================================
 // 左栏切换 + 品牌迁移逻辑（参照 demo.html 实现）
@@ -217,6 +273,7 @@ function getToggleButton() {
         globalToggleButton = document.createElement('button');
         globalToggleButton.className = 'menu-toggle-btn';
         globalToggleButton.setAttribute('aria-label', '切换侧边栏');
+        globalToggleButton.title = '切换侧边栏';
         globalToggleButton.innerHTML = TOGGLE_BTN_SVG;
         // 绑定统一切换逻辑
         globalToggleButton.addEventListener('click', (e) => {
@@ -332,6 +389,8 @@ function updateBrandLayout() {
 
     const toggleButton = getToggleButton();
     const mainHeader = document.querySelector('.main-header');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const sidebarNewChatArea = document.getElementById('sidebarNewChatArea');
 
     if (sidebarVisible) {
         // 品牌展示在左侧栏头部
@@ -355,6 +414,13 @@ function updateBrandLayout() {
         leftBrandContainer.style.gap = '12px';
         leftBrandContainer.style.flex = '1';
         leftBrandContainer.style.flexWrap = 'wrap';
+
+        // 新对话按钮移到侧边栏 header（切换按钮右侧）
+        if (newChatBtn && sidebarNewChatArea) {
+            if (newChatBtn.parentNode) newChatBtn.remove();
+            sidebarNewChatArea.appendChild(newChatBtn);
+            newChatBtn.style.display = 'inline-flex';
+        }
     } else {
         // 品牌展示在主栏
         leftBrandContainer.innerHTML = '';
@@ -377,7 +443,16 @@ function updateBrandLayout() {
             mainBrandContainer.style.alignItems = 'center';
             mainBrandContainer.style.gap = '12px';
         }
+
+        // 新对话按钮移回主栏 header（mainBrandContainer 之后，main-title 之前）
+        if (newChatBtn && mainHeader) {
+            if (newChatBtn.parentNode) newChatBtn.remove();
+            const mainTitle = document.getElementById('headerTitle');
+            mainHeader.insertBefore(newChatBtn, mainTitle);
+            newChatBtn.style.display = 'inline-flex';
+        }
     }
+
 }
 
 // 响应 resize 切换模式 (小屏/宽屏)
@@ -491,7 +566,7 @@ messageInput.addEventListener('input', () => {
 // 发送模式标签文本
 const SEND_MODE_LABELS = {
     normal: "回车键发送 ⇄ Shift+回车键",
-    alternate: "Shift+回车键'发送 ⇄ 回车键"
+    alternate: "Shift+回车键发送 ⇄ 回车键"
 };
 
 // 换行提示文本
@@ -571,37 +646,6 @@ fileInput.addEventListener('change', () => {
     }
     // 重置以便重复选择同一文件
     fileInput.value = '';
-});
-
-// ============================================================
-// 开启新对话按钮
-// ============================================================
-
-const newSessionBtn = document.getElementById('newSessionBtn');
-
-newSessionBtn.addEventListener('click', async () => {
-    if (state.isStreaming) {
-        // 如果正在流式输出，先中止
-        if (state.abortController) {
-            state.abortController.abort();
-        }
-    }
-
-    try {
-        const response = await fetch('/api/session/new', {
-            method: 'POST',
-        });
-
-        if (!response.ok) {
-            console.error('创建新会话失败:', response.status);
-            return;
-        }
-
-        // 重新加载页面以重置所有状态
-        window.location.reload();
-    } catch (e) {
-        console.error('创建新会话出错:', e);
-    }
 });
 
 // ============================================================

@@ -146,34 +146,6 @@ export function showTokenUsage(assistantBubble, usage) {
 }
 
 /**
- * truncateTitle 截取字符串作为对话标题（最多 50 个字符）
- * 同时折叠空白/换行为单个空格
- * @param {string} s
- * @returns {string}
- */
-function truncateTitle(s) {
-    // 折叠空白和换行
-    let result = '';
-    let space = false;
-    for (const ch of s) {
-        if (ch === '\n' || ch === '\r' || ch === '\t' || ch === ' ') {
-            if (!space) {
-                result += ' ';
-                space = true;
-            }
-        } else {
-            result += ch;
-            space = false;
-        }
-    }
-    const trimmed = result.trim();
-    if (trimmed.length > 50) {
-        return trimmed.slice(0, 50) + '…';
-    }
-    return trimmed;
-}
-
-/**
  * addMessage 添加消息气泡到聊天区域
  * 用户消息（role='user'）会创建新的 .message-group 包裹层；
  * 助手消息（role='assistant'）追加到当前 .message-group 内。
@@ -191,11 +163,6 @@ export function addMessage(role, content, isStreaming = false) {
     if (role === 'user') {
         div.dataset.msgIndex = state.userMsgCount;
         state.userMsgCount++;
-
-        // 如果是第一条用户消息（userMsgCount === 1），更新 header 标题
-        if (state.userMsgCount === 1) {
-            updateHeaderTitle(truncateTitle(content));
-        }
 
         // 创建新的消息组包裹层，添加到聊天区域
         const group = document.createElement('div');

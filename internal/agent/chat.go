@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"BrainForever/infra/httpx/sse"
@@ -136,6 +137,8 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 // takes the first 10 messages (5 rounds) from the session history,
 // sends them to the LLM to generate a new concise title,
 // and returns the new title as JSON. On error or empty LLM response, returns the original title.
+// The generated title is also saved to session.Title so that subsequent page refreshes
+// (OnRestoreSession) will use the saved title instead of re-deriving it.
 func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	// Only accept GET
 	if r.Method != http.MethodGet {
@@ -174,18 +177,15 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	messages = append(messages, llm.Message{Role: "system", Content: systemPrompt})
 	messages = append(messages, llmMsgs...)
 
+	newTitle := ""
+
 	// Call LLM (non-streaming)
 	resp, err := h.charLLMClient.Chat(r.Context(), messages)
-	if err != nil {
-		// On error, return the original title
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"title": originalTitle})
-		return
-	}
 
-	// Extract the reply content
-	newTitle := ""
-	if len(resp.Choices) > 0 {
+	if err != nil {
+		log.Printf("Make char-llm client fail. %v", err)
+	} else if len(resp.Choices) > 0 {
+		// Extract the reply content
 		newTitle = resp.Choices[0].Message.Content
 	}
 
@@ -193,6 +193,9 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	if newTitle == "" {
 		newTitle = originalTitle
 	}
+
+	// Save the generated title to session so it survives page refresh
+	session.SetTitle(newTitle)
 
 	// Return the new title as JSON
 	w.Header().Set("Content-Type", "application/json")

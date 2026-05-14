@@ -19,18 +19,24 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 	sessionID, isNew := h.getSessionID(w, r)
 
 	var history []Message
-
-	if !isNew {
-		history = h.sessionManager.GetHistory(sessionID)
-	}
-
-	// Derive session title from the first user message content
 	title := ""
+
 	if !isNew {
-		for _, msg := range history {
-			if msg.Role == "user" {
-				title = truncateTitle(msg.Content)
-				break
+		// Get a snapshot of history (copy) — lock is released inside GetHistory
+		var session *session
+		history, session = h.sessionManager.GetHistory(sessionID)
+
+		if history == nil || session == nil {
+			history = []Message{}
+		} else if savedTitle := session.GetTitle(); savedTitle != "" {
+			title = savedTitle
+		} else {
+			for _, msg := range history {
+				if msg.Role == "user" {
+					title = truncateTitle(msg.Content)
+					session.SetTitle(title)
+					break
+				}
 			}
 		}
 	}

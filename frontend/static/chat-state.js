@@ -77,8 +77,8 @@ export const state = {
 
     // 当前对话标题（显示在 header 左侧）
     // 欢迎状态: "欢迎开始新对话"
-    // 用户发出第一条消息: truncateTitle(第一条用户消息)
-    // AI 生成标题后: 通过 SSE title 事件更新
+    // 用户发出第一条消息后: 通过 GET /api/session/title 由后端 AI 生成
+    // 页面刷新时: 由后端 OnRestoreSession 返回已保存的 session.Title
     dialogTitle: '欢迎开始新对话',
 
     // 是否正在流式接收

@@ -77,6 +77,23 @@ type session struct {
 	mu           sync.Mutex
 	history      []Message // The user's complete chat history
 	lastActivity time.Time // Last activity time, used by GC for cleanup
+	title        string    // Session title, generated from the first user message content
+}
+
+func (s *session) GetTitle() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.title
+}
+
+func (s *session) SetTitle(newTitle string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if newTitle != s.title {
+		s.title = newTitle
+	}
 }
 
 // SessionManager manages all user sessions
@@ -125,12 +142,12 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 
 // GetHistory returns a read-only copy of the session's chat history.
 // Returns nil if the session does not exist.
-func (sm *SessionManager) GetHistory(sessionID string) []Message {
+func (sm *SessionManager) GetHistory(sessionID string) ([]Message, *session) {
 	sm.mu.RLock()
 	s, ok := sm.sessions[sessionID]
 	sm.mu.RUnlock()
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	s.mu.Lock()
@@ -138,7 +155,7 @@ func (sm *SessionManager) GetHistory(sessionID string) []Message {
 	s.lastActivity = time.Now()
 	cp := make([]Message, len(s.history))
 	copy(cp, s.history)
-	return cp
+	return cp, s
 }
 
 // Cleanup removes the session for the given sessionID (optional)
