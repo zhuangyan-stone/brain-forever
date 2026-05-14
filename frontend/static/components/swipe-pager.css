@@ -1,0 +1,58 @@
+/* ============================================================
+   SwipePager — 通用触摸滑动翻页组件
+   ============================================================
+   依赖：theme.css（主题变量）
+   ============================================================ */
+
+/* ---- 滑动容器 ---- */
+
+.swipe-container {
+    overflow: hidden;
+    touch-action: pan-y;       /* 允许垂直滚动，捕获水平滑动手势 */
+    user-select: none;         /* 防止滑动时选中文本 */
+    -webkit-user-select: none;
+}
+
+/* ---- 滑动内层：三栏并排，通过 translateX 切换 ---- */
+
+.swipe-slider {
+    display: flex;
+    width: 300%;
+    will-change: transform;    /* GPU 加速 */
+}
+
+.swipe-pane {
+    width: 33.33%;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+/* ---- 分页圆点导航 ---- */
+
+.swipe-pagination-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 4px 0;
+}
+
+.swipe-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.35;
+    cursor: pointer;
+    transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.swipe-dot:hover {
+    opacity: 0.7;
+}
+
+.swipe-dot.active {
+    opacity: 1;
+    background: var(--accent);
+}

@@ -5,6 +5,7 @@
 import { escapeHtml, truncate } from './toolsets.js';
 import { state } from './chat-state.js';
 import { renderMarkdown } from './chat-markdown.js';
+import { SwipePager } from './components/swipe-pager.js';
 
 'use strict';
 
@@ -328,7 +329,6 @@ export function showSources(sources, type) {
         sources = withUrl.concat(withoutUrl);
         const PAGE_SIZE = 5;
         const totalPages = Math.ceil(sources.length / PAGE_SIZE);
-        let currentPage = 0;
 
         const title = document.createElement('div');
         title.className = 'sources-title sources-collapsible';
@@ -345,40 +345,6 @@ export function showSources(sources, type) {
         const itemsContainer = document.createElement('div');
         itemsContainer.className = 'sources-items-container';
         body.appendChild(itemsContainer);
-
-        // 滑动内层容器：三栏，左=上一页，中=当前页，右=下一页
-        // width: 300%，每栏 33.33%
-        // translateX(-33.33%) → 显示中栏（当前页）
-        // translateX(-66.66%) → 显示右栏（下一页）
-        // translateX(0) → 显示左栏（上一页）
-        const slider = document.createElement('div');
-        slider.className = 'sources-slider';
-        slider.style.width = '300%';
-        slider.style.display = 'flex';
-        itemsContainer.appendChild(slider);
-
-        // 左栏（上一页）
-        const paneLeft = document.createElement('div');
-        paneLeft.className = 'sources-slider-pane';
-        paneLeft.style.width = '33.33%';
-        slider.appendChild(paneLeft);
-
-        // 中栏（当前页）
-        const paneCenter = document.createElement('div');
-        paneCenter.className = 'sources-slider-pane';
-        paneCenter.style.width = '33.33%';
-        slider.appendChild(paneCenter);
-
-        // 右栏（下一页）
-        const paneRight = document.createElement('div');
-        paneRight.className = 'sources-slider-pane';
-        paneRight.style.width = '33.33%';
-        slider.appendChild(paneRight);
-
-        // 分页圆点导航（底部居中）
-        const dotsNav = document.createElement('div');
-        dotsNav.className = 'sources-pagination-dots';
-        body.appendChild(dotsNav);
 
         /**
          * 构建单个 source 条目的 DOM 元素
@@ -437,235 +403,23 @@ export function showSources(sources, type) {
             return item;
         }
 
-        /**
-         * 填充 slider 的左栏（上一页）
-         */
-        function fillPaneLeft(page) {
-            paneLeft.innerHTML = '';
-            if (page !== null && page >= 0 && page < totalPages) {
-                const start = page * PAGE_SIZE;
+        // ---- 使用 SwipePager 组件替代内联触摸翻页逻辑 ----
+        const pager = new SwipePager(itemsContainer, {
+            totalPages: totalPages,
+            renderPage: (pane, pageIndex) => {
+                pane.innerHTML = '';
+                if (pageIndex === null || pageIndex < 0 || pageIndex >= totalPages) return;
+                const start = pageIndex * PAGE_SIZE;
                 const end = Math.min(start + PAGE_SIZE, sources.length);
-                const pageSources = sources.slice(start, end);
-                pageSources.forEach(src => paneLeft.appendChild(createSourceItem(src)));
-            }
-        }
-
-        /**
-         * 填充 slider 的中栏（当前页）
-         */
-        function fillPaneCenter(page) {
-            paneCenter.innerHTML = '';
-            const start = page * PAGE_SIZE;
-            const end = Math.min(start + PAGE_SIZE, sources.length);
-            const pageSources = sources.slice(start, end);
-            pageSources.forEach(src => paneCenter.appendChild(createSourceItem(src)));
-        }
-
-        /**
-         * 填充 slider 的右栏（下一页）
-         */
-        function fillPaneRight(page) {
-            paneRight.innerHTML = '';
-            if (page !== null && page >= 0 && page < totalPages) {
-                const start = page * PAGE_SIZE;
-                const end = Math.min(start + PAGE_SIZE, sources.length);
-                const pageSources = sources.slice(start, end);
-                pageSources.forEach(src => paneRight.appendChild(createSourceItem(src)));
-            }
-        }
-
-        /**
-         * 填充三栏：左=prevPage，中=currentPage，右=nextPage
-         * 自动处理边界（null = 空栏）
-         */
-        function fillTriple(current, prev, next) {
-            fillPaneLeft(prev);
-            fillPaneCenter(current);
-            fillPaneRight(next);
-        }
-
-        /**
-         * 获取当前页的前一页和后一页
-         * @returns {{prev: number|null, next: number|null}}
-         */
-        function getNeighborPages(page) {
-            return {
-                prev: page > 0 ? page - 1 : null,
-                next: page < totalPages - 1 ? page + 1 : null
-            };
-        }
-
-        /**
-         * 更新圆点导航状态
-         */
-        function updateDots(page) {
-            dotsNav.innerHTML = '';
-            if (totalPages > 1) {
-                for (let i = 0; i < totalPages; i++) {
-                    const dot = document.createElement('span');
-                    dot.className = 'sources-pagination-dot' + (i === page ? ' active' : '');
-                    dot.dataset.page = i;
-                    dot.addEventListener('click', () => {
-                        slideToPage(i);
-                    });
-                    dotsNav.appendChild(dot);
+                for (let i = start; i < end; i++) {
+                    pane.appendChild(createSourceItem(sources[i]));
                 }
-            }
-        }
-
-        /**
-         * 滑动到指定页（带动画）
-         * 三栏布局：
-         *   translateX(-33.33%) → 显示中栏（当前页）
-         *   translateX(-66.66%) → 显示右栏（下一页）
-         *   translateX(0) → 显示左栏（上一页）
-         */
-        function slideToPage(page) {
-            if (page === currentPage) return;
-            const goingForward = page > currentPage;
-
-            // 预渲染三栏：左=page-1，中=page，右=page+1
-            const np = getNeighborPages(page);
-            fillTriple(page, np.prev, np.next);
-
-            if (goingForward) {
-                // ---- 向后翻（下一页） ----
-                // 当前显示中栏（currentPage），目标显示中栏（page）
-                // 但中栏现在是 page 的内容，所以需要先显示左栏（page-1=currentPage）
-                // 然后动画到中栏（page）
-                // 先把 slider 定位到显示左栏（=currentPage）
-                slider.style.transition = 'none';
-                slider.style.transform = 'translateX(0)';
-                void slider.offsetHeight;
-                // 动画到中栏（=page）
-                slider.style.transition = 'transform 0.25s ease-out';
-                slider.style.transform = 'translateX(-33.33%)';
-            } else {
-                // ---- 向前翻（上一页） ----
-                // 当前显示中栏（currentPage），目标显示中栏（page）
-                // 先把 slider 定位到显示右栏（=currentPage）
-                slider.style.transition = 'none';
-                slider.style.transform = 'translateX(-66.66%)';
-                void slider.offsetHeight;
-                // 动画到中栏（=page）
-                slider.style.transition = 'transform 0.25s ease-out';
-                slider.style.transform = 'translateX(-33.33%)';
-            }
-
-            // 动画结束后更新状态
-            setTimeout(() => {
-                currentPage = page;
-                const np2 = getNeighborPages(page);
-                fillTriple(page, np2.prev, np2.next);
-                slider.style.transition = 'none';
-                slider.style.transform = 'translateX(-33.33%)';
-                updateDots(page);
-            }, 280);
-        }
-
-        /**
-         * 渲染指定页码（无动画，直接设置）
-         */
-        function renderPage(page) {
-            currentPage = page;
-            const np = getNeighborPages(page);
-            fillTriple(page, np.prev, np.next);
-            slider.style.transition = 'none';
-            slider.style.transform = 'translateX(-33.33%)';
-            updateDots(page);
-        }
-
-        // ---- 触摸滑动翻页（带手指跟随动效） ----
-        // 三栏布局下，translateX 百分比相对于 slider 自身宽度（300% 容器宽度）
-        // translateX(p%) 移动距离 = p/100 * slider宽度 = p/100 * 容器宽度 * 3
-        // 要跟随手指移动 dx 像素：dx = p/100 * containerWidth * 3 → p = dx/containerWidth * 33.33
-        // 基准位置：translateX(-33.33%) → 显示中栏（当前页）
-        // 左滑（下一页）：从 -33.33% 向 -66.66% 移动 → 右栏滑入
-        // 右滑（上一页）：从 -33.33% 向 0 移动 → 左栏滑入
-        let touchStartX = 0;
-        let isSwiping = false;
-        let isAnimating = false;
-
-        itemsContainer.addEventListener('touchstart', (e) => {
-            if (isAnimating) return;
-            touchStartX = e.changedTouches[0].screenX;
-            isSwiping = false;
-        }, { passive: true });
-
-        itemsContainer.addEventListener('touchmove', (e) => {
-            if (isAnimating) return;
-            const dx = e.changedTouches[0].screenX - touchStartX;
-            if (Math.abs(dx) > 3) {
-                isSwiping = true;
-            }
-            if (!isSwiping) return;
-
-            // 三栏已预渲染好，直接计算跟随偏移
-            // 基准 translateX(-33.33%)，左滑减偏移，右滑加偏移
-            if (dx < 0 && currentPage < totalPages - 1) {
-                // ---- 左滑（下一页）：从 -33.33% 向 -66.66% 移动 ----
-                // 偏移范围 -33.33% ~ -60%（留余量给 touchend 的 -66.66%）
-                const offset = Math.max(-33.33 + dx / itemsContainer.offsetWidth * 33.33, -60);
-                slider.style.transition = 'none';
-                slider.style.transform = `translateX(${offset}%)`;
-            } else if (dx > 0 && currentPage > 0) {
-                // ---- 右滑（上一页）：从 -33.33% 向 0 移动 ----
-                // 偏移范围 -33.33% ~ -5%（留余量给 touchend 的 0）
-                const offset = Math.min(-33.33 + dx / itemsContainer.offsetWidth * 33.33, -5);
-                slider.style.transition = 'none';
-                slider.style.transform = `translateX(${offset}%)`;
-            } else {
-                return;
-            }
-        }, { passive: true });
-
-        itemsContainer.addEventListener('touchend', (e) => {
-            if (!isSwiping || isAnimating) return;
-            isAnimating = true;
-
-            const dx = e.changedTouches[0].screenX - touchStartX;
-            const threshold = itemsContainer.offsetWidth * 0.15;
-
-            if (dx < -threshold && currentPage < totalPages - 1) {
-                // ---- 左滑翻到下一页 ----
-                // 从当前位置动画到 -66.66%（显示右栏=下一页）
-                slider.style.transition = 'transform 0.25s ease-out';
-                slider.style.transform = 'translateX(-66.66%)';
-                setTimeout(() => {
-                    currentPage = currentPage + 1;
-                    const np = getNeighborPages(currentPage);
-                    fillTriple(currentPage, np.prev, np.next);
-                    slider.style.transition = 'none';
-                    slider.style.transform = 'translateX(-33.33%)';
-                    updateDots(currentPage);
-                    isAnimating = false;
-                }, 280);
-            } else if (dx > threshold && currentPage > 0) {
-                // ---- 右滑翻到上一页 ----
-                // 从当前位置动画到 0（显示左栏=上一页）
-                slider.style.transition = 'transform 0.25s ease-out';
-                slider.style.transform = 'translateX(0)';
-                setTimeout(() => {
-                    currentPage = currentPage - 1;
-                    const np = getNeighborPages(currentPage);
-                    fillTriple(currentPage, np.prev, np.next);
-                    slider.style.transition = 'none';
-                    slider.style.transform = 'translateX(-33.33%)';
-                    updateDots(currentPage);
-                    isAnimating = false;
-                }, 280);
-            } else {
-                // 未超过阈值 → 回弹到中栏
-                slider.style.transition = 'transform 0.2s ease-out';
-                slider.style.transform = 'translateX(-33.33%)';
-                setTimeout(() => {
-                    isAnimating = false;
-                }, 250);
-            }
-        }, { passive: true });
-
-        // 初始渲染第 0 页
-        renderPage(0);
+            },
+            showDots: true,
+            dotsClass: 'sources-pagination-dots',
+            dotClass: 'sources-pagination-dot',
+        });
+        pager.mount(0);
 
         section.appendChild(body);
 
