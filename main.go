@@ -136,7 +136,7 @@ func main() {
 		}
 	}()
 
-	fmt.Printf("\n=== 脑力永生 Agent Server ===\n")
+	fmt.Printf("\n=== 脑力永恒 Agent Server ===\n")
 	fmt.Printf("Listening on: http://%s\n", addr)
 	fmt.Printf("API endpoint: http://%s/api/chat\n", addr)
 	fmt.Printf("Frontend: http://%s\n", addr)
