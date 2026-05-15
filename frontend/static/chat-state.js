@@ -23,7 +23,7 @@ const LS_KEY_SETTINGS = 'brainforever_settings';
 
 const DEFAULT_SETTINGS = {
     sendMode: 0,
-    deepThink: false,
+    deepThink: true,
     webSearch: true,
     theme: 0,
 };
