@@ -4,6 +4,7 @@
 
 import { escapeHtml } from './toolsets.js';
 import { state } from './chat-state.js';
+import { ICON_COPY } from './svg_icons.js';
 
 'use strict';
 
@@ -76,13 +77,22 @@ function highlightCodeBlocks(html) {
         const langClass = Array.from(el.classList).find(cls => cls.startsWith('language-'));
         if (langClass) {
             const lang = langClass.replace('language-', '');
-            try {
-                // 使用 highlight.js 进行语法高亮
-                el.innerHTML = hljs.highlight(el.textContent, { language: lang }).value;
-                // 添加语言标签属性
-                pre.setAttribute('data-lang', lang);
-            } catch (e) {
-                // 如果 highlight.js 不支持该语言，使用自动检测
+            // 先检查 highlight.js 是否已注册该语言，避免控制台打印
+            // "Could not find the language 'xxx'" 警告
+            if (hljs.getLanguage(lang)) {
+                try {
+                    el.innerHTML = hljs.highlight(el.textContent, { language: lang }).value;
+                    pre.setAttribute('data-lang', lang);
+                } catch (_) {
+                    // 高亮失败，fallback 到自动检测
+                    try {
+                        el.innerHTML = hljs.highlightAuto(el.textContent).value;
+                    } catch (_) {
+                        // 回退：不做高亮
+                    }
+                }
+            } else {
+                // 语言未注册（如 powershell、dockerfile 等），使用自动检测
                 try {
                     el.innerHTML = hljs.highlightAuto(el.textContent).value;
                 } catch (_) {
@@ -114,9 +124,10 @@ function addCopyButton(pre) {
     if (pre.querySelector('.copy-btn')) return;
 
     const btn = document.createElement('button');
-    btn.className = 'copy-btn';
-    btn.textContent = '复制 ▾';
+    btn.className = 'copy-btn code-copy-btn';
+    btn.title = '复制代码块';
     btn.disabled = state.isStreaming; // 流式输出时禁用
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 Markdown</span>';
 
     pre.appendChild(btn);
 }
@@ -126,7 +137,7 @@ function addCopyButton(pre) {
  * @param {HTMLElement} bubbleElement
  */
 export function enableCopyButtons(bubbleElement) {
-    bubbleElement.querySelectorAll('.copy-btn').forEach((btn) => {
+    bubbleElement.querySelectorAll('.copy-btn.code-copy-btn').forEach((btn) => {
         btn.disabled = false;
     });
 }

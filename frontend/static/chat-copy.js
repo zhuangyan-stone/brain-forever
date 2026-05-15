@@ -10,12 +10,71 @@ import { showDeleteModal } from './chat-delete.js';
 
 'use strict';
 
+// ============================================================
+// localStorage 键名
+// ============================================================
+const LS_KEY_DEFAULT_FORMAT = 'brainforever_default_copy_format';
+
+// ============================================================
+// 默认复制格式状态
+// ============================================================
+// 可选值: 'plain', 'markdown', 'html'
+const FORMAT_NAMES = {
+    plain: '纯文本',
+    markdown: 'Markdown',
+    html: 'HTML',
+};
+
+/** 当前默认复制格式，初始为 markdown */
+let defaultFormat = loadDefaultFormat();
+
+/**
+ * 从 localStorage 加载默认复制格式
+ * @returns {'plain'|'markdown'|'html'}
+ */
+function loadDefaultFormat() {
+    try {
+        const saved = localStorage.getItem(LS_KEY_DEFAULT_FORMAT);
+        if (saved && FORMAT_NAMES[saved]) {
+            return saved;
+        }
+    } catch (_) {
+        // localStorage 不可用时使用默认值
+    }
+    return 'markdown';
+}
+
+/**
+ * 将默认复制格式保存到 localStorage
+ */
+function saveDefaultFormat() {
+    try {
+        localStorage.setItem(LS_KEY_DEFAULT_FORMAT, defaultFormat);
+    } catch (_) {
+        // localStorage 不可用时忽略
+    }
+}
+
+/**
+ * 更新所有复制按钮上的格式标签文字
+ */
+function updateAllCopyBtnLabels() {
+    const label = getDefaultFormatLabel();
+    document.querySelectorAll('.copy-msg-btn .copy-btn-label').forEach(el => {
+        el.textContent = `复制为 ${label}`;
+    });
+    document.querySelectorAll('.copy-btn.code-copy-btn .copy-btn-label').forEach(el => {
+        el.textContent = `复制为 ${label}`;
+    });
+}
+
 /**
  * showDropdownMenu 在目标按钮下方显示一个下拉菜单
  * @param {HTMLElement} anchor - 触发菜单的按钮元素
- * @param {Array<{label:string, action:()=>void}>} items - 菜单项列表
+ * @param {Array<{label:string, formatKey:string, isDefault:boolean}>} items - 菜单项
  * @param {object} [opts]
  * @param {string} [opts.position='bottom'] - 菜单弹出位置
+ * @param {{text:string, markdown:string, html:string}} [opts.content] - 内容数据，用于菜单项点击时重新复制
  */
 function showDropdownMenu(anchor, items, opts) {
     // 移除已有的下拉菜单
@@ -28,11 +87,16 @@ function showDropdownMenu(anchor, items, opts) {
     items.forEach((item) => {
         const option = document.createElement('div');
         option.className = 'copy-dropdown-item';
+        if (item.isDefault) {
+            option.classList.add('default');
+        }
         option.textContent = item.label;
+        option.dataset.formatKey = item.formatKey;
         option.addEventListener('click', (e) => {
             e.stopPropagation();
             menu.remove();
-            item.action();
+            // 菜单项点击处理：由 handleMenuItemClick 统一处理
+            handleMenuItemClick(item.formatKey, opts && opts.content);
         });
         menu.appendChild(option);
     });
@@ -66,20 +130,126 @@ function showDropdownMenu(anchor, items, opts) {
 }
 
 /**
- * 生成一个下拉菜单项，用于复制指定格式的内容
- * @param {() => Promise<boolean>} copyFn - 执行复制操作的异步函数，返回是否成功
- * @param {string} formatName - 格式名称（如 "纯文本"、"Markdown"、"HTML"）
- * @returns {{label:string, action:()=>void}}
+ * 处理菜单项点击
+ * @param {string} formatKey - 'plain' | 'markdown' | 'html'
+ * @param {{text:string, markdown:string, html:string}|null} content
  */
-function makeCopyMenuItem(copyFn, formatName) {
+function handleMenuItemClick(formatKey, content) {
+    const formatName = FORMAT_NAMES[formatKey] || 'Markdown';
+
+    // 如果用户选的是当前默认格式（且是 markdown），不实际复制，只弹成功提示
+    if (formatKey === defaultFormat) {
+        showToast(`✓ 已复制（${formatName}）`, 'success', 2000);
+        return;
+    }
+
+    // 用户选了其他格式：更新默认格式并持久化
+    defaultFormat = formatKey;
+    saveDefaultFormat();
+    updateAllCopyBtnLabels();
+
+    // 执行新格式的复制
+    if (content) {
+        let copyPromise;
+        switch (formatKey) {
+            case 'plain':
+                copyPromise = copyPlainText(content.text);
+                break;
+            case 'html':
+                copyPromise = copyHtml(content.html);
+                break;
+            case 'markdown':
+            default:
+                copyPromise = copyMarkdown(content.markdown);
+                break;
+        }
+        copyPromise.then(ok => {
+            showToast(ok ? `✓ 已复制（${formatName}）` : `复制失败（${formatName}）`, ok ? 'success' : 'error', 2000);
+        });
+    }
+}
+
+/**
+ * 生成菜单项配置
+ * @param {string} formatKey - 'plain' | 'markdown' | 'html'
+ * @returns {{label:string, formatKey:string, isDefault:boolean}}
+ */
+function makeMenuItem(formatKey) {
     return {
-        label: `复制为 ${formatName}`,
-        action: () => {
-            copyFn().then(ok => {
-                showToast(ok ? `✓ 已复制（${formatName}）` : `复制失败（${formatName}）`, ok ? 'success' : 'error', 2000);
-            });
-        },
+        label: `复制为 ${FORMAT_NAMES[formatKey]}`,
+        formatKey: formatKey,
+        isDefault: formatKey === defaultFormat,
     };
+}
+
+/**
+ * 获取消息的纯文本、Markdown 源和 HTML
+ * @param {HTMLElement} messageEl - .message 元素
+ * @returns {{text:string, markdown:string, html:string}}
+ */
+function getMessageContent(messageEl) {
+    const bubble = messageEl.querySelector('.bubble');
+    const text = bubble ? bubble.textContent : '';
+    const html = bubble ? bubble.innerHTML : '';
+
+    // 获取原始 Markdown 源
+    const group = messageEl.closest('.message-group');
+    const msgId = group ? group.dataset.msgId : null;
+    const isUser = messageEl.classList.contains('user');
+    const role = isUser ? 'user' : 'assistant';
+    let markdown = null;
+    if (msgId) {
+        const msg = state.messages.find(m => String(m.id) === msgId && m.role === role);
+        if (msg && msg.content) {
+            markdown = msg.content;
+        }
+    }
+    if (!markdown) {
+        if (isUser) {
+            markdown = text;
+        } else {
+            markdown = html ? htmlToMarkdown(html) : text;
+        }
+    }
+
+    return { text, markdown, html };
+}
+
+/**
+ * 获取代码块内容的纯文本、Markdown 和 HTML
+ * @param {HTMLElement} pre - <pre> 元素
+ * @returns {{text:string, markdown:string, html:string}}
+ */
+function getCodeBlockContent(pre) {
+    const code = pre.querySelector('code');
+    const text = code ? code.textContent : '';
+    const lang = pre.getAttribute('data-lang') || '';
+    const markdown = lang
+        ? '```' + lang + '\n' + text + '\n```'
+        : '```\n' + text + '\n```';
+    const codeEl = pre.querySelector('code');
+    const highlightedHtml = codeEl ? codeEl.innerHTML : '';
+    const html = highlightedHtml
+        ? `<pre><code${lang ? ` class="language-${lang}"` : ''}>${highlightedHtml}</code></pre>`
+        : '';
+    return { text, markdown, html };
+}
+
+/**
+ * 执行默认复制操作（根据 defaultFormat）
+ * @param {{text:string, markdown:string, html:string}} content
+ * @returns {Promise<boolean>}
+ */
+async function doDefaultCopy(content) {
+    switch (defaultFormat) {
+        case 'plain':
+            return await copyPlainText(content.text);
+        case 'html':
+            return await copyHtml(content.html);
+        case 'markdown':
+        default:
+            return await copyMarkdown(content.markdown);
+    }
 }
 
 /**
@@ -89,43 +259,29 @@ export function initCopyHandlers() {
     const chatContainer = document.getElementById('chatContainer');
     if (!chatContainer) return;
 
-    // 事件委托：复制按钮点击处理（代码块复制）
-    // 在 chatContainer 上监听 click 事件，通过事件委托处理所有 .copy-btn 的点击
-    // 这样即使 innerHTML 被替换，事件也不会丢失
+    // 事件委托：代码块复制按钮点击处理
     chatContainer.addEventListener('click', (e) => {
-        const btn = e.target.closest('.copy-btn');
+        const btn = e.target.closest('.copy-btn.code-copy-btn');
         if (!btn) return;
 
-        // 找到所属的 <pre> 代码块
         const pre = btn.closest('pre');
         if (!pre) return;
 
-        // 获取代码块的纯文本内容（忽略高亮标签）
-        const code = pre.querySelector('code');
-        const text = code ? code.textContent : '';
-        if (!text) return;
+        const content = getCodeBlockContent(pre);
+        if (!content.text) return;
 
-        // 获取语言
-        const lang = pre.getAttribute('data-lang') || '';
+        // 先执行默认复制
+        doDefaultCopy(content).then(ok => {
+            const name = getDefaultFormatLabel();
+            showToast(ok ? `✓ 已复制（${name}）` : `复制失败（${name}）`, ok ? 'success' : 'error', 2000);
+        });
 
-        // 构建 Markdown 格式（代码围栏）
-        const markdown = lang
-            ? '```' + lang + '\n' + text + '\n```'
-            : '```\n' + text + '\n```';
-
-        // 构建干净的 HTML 格式（只包含代码块本身，不含复制按钮等 UI 元素）
-        const codeEl = pre.querySelector('code');
-        const highlightedHtml = codeEl ? codeEl.innerHTML : '';
-        const html = highlightedHtml
-            ? `<pre><code${lang ? ` class="language-${lang}"` : ''}>${highlightedHtml}</code></pre>`
-            : '';
-
-        // 显示下拉菜单
+        // 再弹出菜单
         showDropdownMenu(btn, [
-            makeCopyMenuItem(() => copyPlainText(text), '纯文本'),
-            makeCopyMenuItem(() => copyMarkdown(markdown), 'Markdown'),
-            makeCopyMenuItem(() => copyHtml(html), 'HTML'),
-        ], { position: 'top' });
+            makeMenuItem('plain'),
+            makeMenuItem('markdown'),
+            makeMenuItem('html'),
+        ], { position: 'top', content: content });
     });
 
     // 事件委托：消息操作按钮（复制消息 / 删除消息）
@@ -136,42 +292,22 @@ export function initCopyHandlers() {
             e.stopPropagation();
             const messageEl = copyMsgBtn.closest('.message');
             if (!messageEl) return;
-            const bubble = messageEl.querySelector('.bubble');
-            const text = bubble ? bubble.textContent : '';
-            if (!text) return;
 
-            // 获取渲染后的 HTML
-            const html = bubble ? bubble.innerHTML : '';
+            const content = getMessageContent(messageEl);
+            if (!content.text) return;
 
-            // 获取原始 Markdown 源
-            // 从 message-group 获取 data-msg-id（同一组的 user 和 assistant 共享同一 ID）
-            const group = messageEl.closest('.message-group');
-            const msgId = group ? group.dataset.msgId : null;
-            const isUser = messageEl.classList.contains('user');
-            const role = isUser ? 'user' : 'assistant';
-            let markdown = null;
-            if (msgId) {
-                const msg = state.messages.find(m => String(m.id) === msgId && m.role === role);
-                if (msg && msg.content) {
-                    markdown = msg.content;
-                }
-            }
-            // 如果 messages 中找不到，回退策略
-            if (!markdown) {
-                if (isUser) {
-                    // 用户消息：原始输入即纯文本/简单 Markdown，直接用 textContent
-                    markdown = text;
-                } else {
-                    // 助手消息：用 Turndown 从 HTML 反向转换
-                    markdown = html ? htmlToMarkdown(html) : text;
-                }
-            }
+            // 先执行默认复制
+            doDefaultCopy(content).then(ok => {
+                const name = getDefaultFormatLabel();
+                showToast(ok ? `✓ 已复制（${name}）` : `复制失败（${name}）`, ok ? 'success' : 'error', 2000);
+            });
 
+            // 再弹出菜单
             showDropdownMenu(copyMsgBtn, [
-                makeCopyMenuItem(() => copyPlainText(text), '纯文本'),
-                makeCopyMenuItem(() => copyMarkdown(markdown), 'Markdown'),
-                makeCopyMenuItem(() => copyHtml(html), 'HTML'),
-            ]);
+                makeMenuItem('plain'),
+                makeMenuItem('markdown'),
+                makeMenuItem('html'),
+            ], { content: content });
             return;
         }
 
@@ -197,4 +333,34 @@ export function initCopyHandlers() {
             return;
         }
     });
+
+    // 初始化时更新所有复制按钮标签，以匹配 localStorage 中保存的默认格式
+    updateAllCopyBtnLabels();
+}
+
+/**
+ * 获取当前默认格式的显示名称（导出供其他模块使用）
+ * @returns {string}
+ */
+export function getDefaultFormatLabel() {
+    return FORMAT_NAMES[defaultFormat] || 'Markdown';
+}
+
+/**
+ * 设置默认复制格式
+ * @param {'plain'|'markdown'|'html'} format
+ */
+export function setDefaultFormat(format) {
+    if (FORMAT_NAMES[format]) {
+        defaultFormat = format;
+        updateAllCopyBtnLabels();
+    }
+}
+
+/**
+ * 获取当前默认复制格式
+ * @returns {'plain'|'markdown'|'html'}
+ */
+export function getDefaultFormat() {
+    return defaultFormat;
 }

@@ -6,6 +6,8 @@ import { escapeHtml, truncate } from './toolsets.js';
 import { state } from './chat-state.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
+import { getDefaultFormatLabel } from './chat-copy.js';
+import { ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE } from './svg_icons.js';
 
 'use strict';
 
@@ -47,9 +49,9 @@ export function setInputEnabled(enabled) {
     dom.messageInput.disabled = !enabled;
     dom.sendBtn.disabled = !enabled;
     if (enabled) {
-        dom.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/></svg>`;
+        dom.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20">${ICON_SEND}</svg>`;
     } else {
-        dom.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" style="animation:spin 1s linear infinite"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" fill="currentColor"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z" fill="var(--bg-input)"/></svg>`;
+        dom.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" style="animation:spin 1s linear infinite">${ICON_SPINNER}</svg>`;
     }
 }
 
@@ -174,7 +176,7 @@ export function addMessage(role, content, isStreaming = false) {
         const groupDeleteBtn = document.createElement('button');
         groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
         groupDeleteBtn.title = '删除本组对话';
-        groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+        groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
         groupDeleteBtn.disabled = state.isStreaming;
         group.appendChild(groupDeleteBtn);
 
@@ -195,8 +197,8 @@ export function addMessage(role, content, isStreaming = false) {
             // 为消息组添加左上角删除按钮
             const groupDeleteBtn = document.createElement('button');
             groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
-            groupDeleteBtn.title = '删除本组消息';
-            groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+            groupDeleteBtn.title = '删除本组对话';
+            groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
             groupDeleteBtn.disabled = state.isStreaming;
             group.appendChild(groupDeleteBtn);
 
@@ -238,7 +240,7 @@ export function addMessage(role, content, isStreaming = false) {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'msg-action-btn copy-msg-btn';
     copyBtn.title = '复制当前消息内容';
-    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 ' + getDefaultFormatLabel() + '</span>';
     actions.appendChild(copyBtn);
 
     inner.appendChild(actions);
@@ -282,7 +284,7 @@ export function showSources(sources, type) {
     }
 
     // 强制搜索按钮的 globe 图标（缩小版）
-    const globeIconSvg = '<svg class="sources-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+    const globeIconSvg = '<svg class="sources-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_GLOBE + '</svg>';
 
     const section = document.createElement('div');
     section.className = 'sources-section';

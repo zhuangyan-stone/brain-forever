@@ -125,33 +125,40 @@
     background: rgba(25, 118, 210, 0.06);
 }
 
-/* 代码块复制按钮（hover 时显示） */
-.message .bubble pre .copy-btn {
+/* 代码块复制按钮（hover 时显示，复用 msg-action-btn 样式） */
+.message .bubble pre .copy-btn.code-copy-btn {
     position: absolute;
     top: 6px;
     right: 6px;
+    left: auto;
+    width: auto;
+    height: auto;
     padding: 2px 8px;
-    font-size: 0.9rem;
+    font-size: 0.78rem;
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(79, 195, 247, 0.08);
     border: 1px solid var(--border);
     border-radius: 4px;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.4;
 }
-.message .bubble pre:hover .copy-btn {
+.message .bubble pre:hover .copy-btn.code-copy-btn {
     opacity: 1;
 }
-.message .bubble pre .copy-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+.message .bubble pre .copy-btn.code-copy-btn:hover {
+    background: rgba(79, 195, 247, 0.18);
     color: var(--text-primary);
 }
-.message .bubble pre .copy-btn:disabled {
+.message .bubble pre .copy-btn.code-copy-btn:disabled {
     cursor: not-allowed;
     opacity: 0.3 !important;
 }
-.message .bubble pre .copy-btn:disabled:hover {
+.message .bubble pre .copy-btn.code-copy-btn:disabled:hover {
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-muted);
 }
@@ -266,13 +273,23 @@
 
 /* 复制按钮 */
 .msg-action-btn.copy-msg-btn {
-    background: var(--bg-secondary);
+    background: rgba(79, 195, 247, 0.08);
     color: var(--text-muted);
+    width: auto;
+    height: auto;
+    padding: 2px 8px;
+    gap: 4px;
+    font-size: 0.78rem;
 }
 
 .msg-action-btn.copy-msg-btn:hover {
-    background: var(--border);
+    background: rgba(79, 195, 247, 0.18);
     color: var(--text-primary);
+}
+
+.copy-btn-label {
+    font-size: 0.78rem;
+    white-space: nowrap;
 }
 
 /* ============================================================
@@ -368,6 +385,11 @@
     align-items: center;
     gap: 8px;
     transition: background 0.12s;
+}
+
+.copy-dropdown-item.default {
+    font-weight: 700;
+    color: var(--accent);
 }
 
 .copy-dropdown-item:hover {
