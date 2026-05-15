@@ -11,7 +11,7 @@
 
 .input-area {
     flex-shrink: 0;
-    width: 100%;
+    width: calc(100% - 40px);
     max-width: 940px;
     align-self: center;
     padding: 12px 20px 16px;
