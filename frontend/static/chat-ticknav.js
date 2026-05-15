@@ -50,8 +50,7 @@ export function updateTickNav() {
     // 顶部箭头 — 仅当需要滚动且还有上方刻度时显示
     if (needsScroll) {
         const topArrow = document.createElement('div');
-        topArrow.className = 'tick-arrow' + (hasPrev ? '' : ' tick-arrow-disabled');
-        topArrow.textContent = '▲';
+        topArrow.className = 'tick-arrow tick-arrow-up' + (hasPrev ? '' : ' tick-arrow-disabled');
         topArrow.title = '向上翻动';
         topArrow.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -119,8 +118,7 @@ export function updateTickNav() {
     // 底部箭头 — 仅当需要滚动且还有下方刻度时显示
     if (needsScroll) {
         const bottomArrow = document.createElement('div');
-        bottomArrow.className = 'tick-arrow' + (hasNext ? '' : ' tick-arrow-disabled');
-        bottomArrow.textContent = '▼';
+        bottomArrow.className = 'tick-arrow tick-arrow-down' + (hasNext ? '' : ' tick-arrow-disabled');
         bottomArrow.title = '向下翻动';
         bottomArrow.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -307,10 +305,16 @@ export function initTickNav() {
         updateTickNav();
     });
 
-    // 面板消失时：根据当前滚动位置重新计算活动刻度，而不是简单清除
+    // 面板消失时：根据当前滚动位置重新计算活动刻度，并确保 tickScrollOffset 包含活动刻度
     tickNav.addEventListener('mouseleave', () => {
-        // 直接调用 updateActiveTickOnScroll 根据滚动位置重新计算活动刻度
+        // 先根据滚动位置重新计算活动刻度
         updateActiveTickOnScroll();
+        // 强制调整 tickScrollOffset，确保活动刻度在面板可见范围内。
+        // 当用户仅滚动面板（未滚动主内容）时，updateActiveTickOnScroll 中
+        // targetIdx === activeTickIndex 会导致 adjustTickOffset 不被执行，
+        // 导致 tickScrollOffset 保持偏移后的值，下次打开面板时活动刻度不可见。
+        adjustTickOffset();
+        updateTickNav();
     });
 
     // 滚动事件处理：节流执行 updateActiveTickOnScroll + debounce 触发待高亮动画
