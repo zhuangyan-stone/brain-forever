@@ -118,13 +118,13 @@ export const state = {
     renderTimer: null,
 
     // 渲染节流间隔（毫秒）
-    RENDER_INTERVAL: 240,
+    RENDER_INTERVAL: 180,
 
     // 最多同时显示的刻度数
     MAX_VISIBLE_TICKS: 9,
-// 刻度滚动偏移量（0 表示从第一条开始显示）
-tickScrollOffset: 0,
-
+    
+    // 刻度滚动偏移量（0 表示从第一条开始显示）
+    tickScrollOffset: 0,
 
     // 发送模式状态: false = Enter发送/Shift+Enter换行, true = Enter换行/Shift+Enter发送
     // 由 UserSettings.sendMode 驱动（0→false, 1→true）
