@@ -178,9 +178,10 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	contentBuilder.WriteString(i18n.TL(lang, "following_is_a_conversation"))
 
 	for _, msg := range history {
-		if msg.Role == "user" {
+		switch msg.Role {
+		case "user":
 			contentBuilder.WriteString("A: ")
-		} else if msg.Role == "assistant" {
+		case "assistant":
 			contentBuilder.WriteString("B: ")
 		}
 		contentBuilder.WriteString(msg.Content)
