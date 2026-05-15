@@ -57,6 +57,19 @@ func (h *ChatAgent) getSessionID(w http.ResponseWriter, r *http.Request) (string
 	return sessionID, true
 }
 
+// refreshSession writes the given sessionID into the cookie with a fresh MaxAge,
+// effectively refreshing the session cookie expiry without generating a new ID.
+func (h *ChatAgent) refreshSession(w http.ResponseWriter, sessionID string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     h.cookieName,
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7, // Expires in 7 days
+	})
+}
+
 // resolveSessionID is a convenience wrapper around getSessionID that discards the isNew flag.
 // Use this when you only need the sessionID string and don't care whether it's new.
 func (h *ChatAgent) resolveSessionID(w http.ResponseWriter, r *http.Request) string {

@@ -22,12 +22,12 @@ func (h *ChatAgent) OnNewSession(w http.ResponseWriter, r *http.Request) {
 	// Read current session ID from cookie
 	sessionID, isNew := h.getSessionID(w, r)
 
-	// If a session already existed, clean it up immediately and generate a new one
+	// If a session already existed, clean it up immediately and refresh the cookie
 	if !isNew {
 		h.sessionManager.Remove(sessionID)
 
-		// Generate a new session ID (no cookie yet, so getSessionID will create one)
-		sessionID, _ = h.getSessionID(w, r)
+		// Refresh the cookie MaxAge to avoid premature expiry
+		h.refreshSession(w, sessionID)
 	}
 
 	// Create a new empty session in the session manager
