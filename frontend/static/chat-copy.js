@@ -121,11 +121,25 @@ function showDropdownMenu(anchor, items, opts) {
         if (!menu.contains(ev.target) && ev.target !== anchor) {
             menu.remove();
             document.removeEventListener('click', closeHandler, true);
+            document.removeEventListener('scroll', scrollHandler, true);
         }
     };
     // 延迟绑定，避免立即触发
     setTimeout(() => {
         document.addEventListener('click', closeHandler, true);
+    }, 0);
+
+    // 页面滚动时自动关闭菜单（用户未点击任何菜单项时）
+    const scrollHandler = () => {
+        if (document.body.contains(menu)) {
+            menu.remove();
+            document.removeEventListener('click', closeHandler, true);
+            document.removeEventListener('scroll', scrollHandler, true);
+        }
+    };
+    // 延迟绑定，避免因初始渲染触发的 scroll 事件误关闭
+    setTimeout(() => {
+        document.addEventListener('scroll', scrollHandler, true);
     }, 0);
 }
 
