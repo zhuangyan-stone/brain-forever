@@ -11,30 +11,23 @@ import (
 
 // OnNewSession handles POST /api/session/new — generates a new session ID,
 // sets a new cookie, and returns the new session info.
-// The old session's history is effectively abandoned (GC will clean it up later).
+// The old session is immediately cleaned up from the session manager
+// to avoid holding abandoned session data in memory for days.
 func (h *ChatAgent) OnNewSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Generate a new session ID and write it to cookie
-	// getSessionID with a fresh cookie forces a new session
+	// Read current session ID from cookie
 	sessionID, isNew := h.getSessionID(w, r)
 
-	// If the session already existed (cookie was present), we still need to
-	// force-generate a new one. Overwrite the cookie with a brand new session ID.
+	// If a session already existed, clean it up immediately and generate a new one
 	if !isNew {
-		// Force a new session by generating a fresh ID and setting a new cookie
-		sessionID = generateSessionID()
-		http.SetCookie(w, &http.Cookie{
-			Name:     h.cookieName,
-			Value:    sessionID,
-			Path:     "/",
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-			MaxAge:   86400 * 7, // Expires in 7 days
-		})
+		h.sessionManager.Remove(sessionID)
+
+		// Generate a new session ID (no cookie yet, so getSessionID will create one)
+		sessionID, _ = h.getSessionID(w, r)
 	}
 
 	// Create a new empty session in the session manager
