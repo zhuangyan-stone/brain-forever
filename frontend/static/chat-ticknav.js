@@ -21,6 +21,12 @@ export function updateTickNav() {
     const tickNav = document.getElementById('tickNav');
     if (!tickNav) return;
 
+    // 面板锁定期间（用户点击刻度后的平滑滚动期间）：
+    // 允许 DOM 重建以支持面板翻页（滚轮、箭头），
+    // 因为锁定展开态下刻度值被 CSS 隐藏（display: none），不会闪烁。
+    // 但被动路径（SSE 完成、删除消息等）触发的重建也不会导致可见闪烁，
+    // 因为刻度值同样被 CSS 隐藏。
+
     // 收集所有用户消息元素（用户消息在 #chatContainer 内）
     const chatContainer = document.getElementById('chatContainer');
     if (!chatContainer) return;
@@ -75,11 +81,11 @@ export function updateTickNav() {
         tick.appendChild(dot);
 
         // 刻度索引值 — 在非 hover 状态下也可见，位于刻度线左侧
-        // 每跳一个标一个（第1,3,5,7,9个），上下对称
-        const relPos = i - startIdx; // 当前刻度在可见范围内的相对位置（0-based）
+        // 以当前活动刻度为中心，按距当前刻度的距离跳格显示：
+        // dist=0（当前刻度）总是显示，dist=1 隐藏，dist=2 显示，dist=3 隐藏……
         const idxSpan = document.createElement('span');
         idxSpan.className = 'tick-index';
-        if (relPos % 2 === 0) {
+        if (dist % 2 === 0) {
             idxSpan.textContent = String(i + 1).padStart(2, '0');
         }
         tick.appendChild(idxSpan);
@@ -97,16 +103,18 @@ export function updateTickNav() {
             if (!scrollContainer) return;
             const targetMsg = scrollContainer.querySelector(`.message.user[data-msg-index="${i}"]`);
             if (targetMsg) {
+                // 立即更新面板活动状态（高亮、dist、刻度值），让用户获得即时视觉反馈
                 setActiveTick(i);
+                // 记录目标索引，锁定面板保持展开态，利用展开态 CSS 隐藏刻度值，
+                // 避免滚动过程中刻度值频繁显/隐闪烁
+                state.targetTickIndex = i;
+                tickNav.classList.add('tick-nav-locked');
                 targetMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                // 等待平滑滚动完成后给用户气泡添加高亮动画
+                // 面板解锁由 updateActiveTickOnScroll 在检测到目标消息进入视口时自动完成，
+                // 不再使用固定延时，以支持任意距离的平滑滚动
                 const bubble = targetMsg.querySelector('.bubble');
                 if (bubble) {
                     bubble.classList.remove('highlight');
-                    // 平滑滚动约需 400ms，延迟触发确保用户能看到动画
-                    setTimeout(() => {
-                        bubble.classList.add('highlight');
-                    }, 420);
                 }
             }
         });
@@ -157,9 +165,21 @@ export function setActiveTick(index) {
     const ticks = tickNav.querySelectorAll('.tick');
     ticks.forEach((t) => {
         const tickIdx = parseInt(t.dataset.tickIndex, 10);
-        t.classList.toggle('active', tickIdx === index);
+        const isActive = tickIdx === index;
+        t.classList.toggle('active', isActive);
         // 更新距当前活动刻度的距离，用于渐进式透明度
         t.dataset.dist = Math.abs(tickIdx - index);
+
+        // 同步更新刻度序号：以当前活动刻度为中心，按距当前刻度的距离跳格显示
+        const idxSpan = t.querySelector('.tick-index');
+        if (idxSpan) {
+            const dist = Math.abs(tickIdx - index);
+            if (dist % 2 === 0) {
+                idxSpan.textContent = String(tickIdx + 1).padStart(2, '0');
+            } else {
+                idxSpan.textContent = '';
+            }
+        }
     });
 }
 
@@ -173,13 +193,42 @@ function updateActiveTickOnScroll() {
     const tickNav = document.getElementById('tickNav');
     if (!tickNav) return;
 
-    // 面板展开时忽略滚动
-    if (tickNav.matches(':hover')) return;
-
     const scrollContainer = getScrollContainer();
     if (!scrollContainer) return;
     const userMessages = scrollContainer.querySelectorAll('.message.user');
     if (userMessages.length === 0) return;
+
+    // 面板被锁定（用户点击刻度后的平滑滚动期间）
+    // 注意：此检测必须在 :hover 检查之前，因为锁定状态下鼠标可能停留在面板上，
+    // 如果先检查 :hover 会直接 return，导致锁定检测永远不会执行，面板无法解锁。
+    if (tickNav.classList.contains('tick-nav-locked')) {
+        // 检测目标消息（targetTickIndex）是否已进入视口
+        const targetIdx = state.targetTickIndex;
+        if (targetIdx >= 0 && targetIdx < userMessages.length) {
+            const targetRect = userMessages[targetIdx].getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
+            // 双向检测：向下滚动时目标顶部进入视口底部，向上滚动时目标底部进入视口顶部
+            const arrived = targetRect.top < containerRect.bottom
+                        && targetRect.bottom > containerRect.top;
+            if (arrived) {
+                // 更新活动刻度为目标索引
+                state.activeTickIndex = targetIdx;
+                state.targetTickIndex = -1;
+                tickNav.classList.remove('tick-nav-locked');
+                // 触发高亮动画
+                const bubble = userMessages[targetIdx].querySelector('.bubble');
+                if (bubble) {
+                    bubble.classList.remove('highlight');
+                    setTimeout(() => {
+                        bubble.classList.add('highlight');
+                    }, 20);
+                }
+                // 重建刻度导航以反映新的活动刻度
+                updateTickNav();
+            }
+        }
+        return;
+    }
 
     const containerRect = scrollContainer.getBoundingClientRect();
     const containerTop = containerRect.top;

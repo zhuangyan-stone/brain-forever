@@ -102,6 +102,10 @@ export const state = {
     // 当前活动刻度的索引，-1 表示无活动刻度
     activeTickIndex: -1,
 
+    // 用户点击刻度后的目标索引，用于平滑滚动到位后精确解锁面板
+    // 与 activeTickIndex 分离，避免滚动过程中被中间过渡值覆盖
+    targetTickIndex: -1,
+
     // 当前消息组，用于将同一问答对的 user + assistant 包裹在 .message-group 内
     currentGroup: null,
 
@@ -114,9 +118,9 @@ export const state = {
 
     // 最多同时显示的刻度数
     MAX_VISIBLE_TICKS: 9,
+// 刻度滚动偏移量（0 表示从第一条开始显示）
+tickScrollOffset: 0,
 
-    // 刻度滚动偏移量（0 表示从第一条开始显示）
-    tickScrollOffset: 0,
 
     // 发送模式状态: false = Enter发送/Shift+Enter换行, true = Enter换行/Shift+Enter发送
     // 由 UserSettings.sendMode 驱动（0→false, 1→true）

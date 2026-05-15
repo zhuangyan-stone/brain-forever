@@ -51,13 +51,16 @@
 }
 
 /* 鼠标悬浮时面板向左展开 */
-.tick-nav:hover {
+.tick-nav:hover,
+.tick-nav.tick-nav-locked {
     min-width: 320px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     box-shadow: 0 8px 32px var(--shadow);
     padding: 8px 6px 8px 12px; /* 右 padding 保持 6px 不变，刻度线不移动 */
     pointer-events: auto;
+    /* 面板展开后，flex gap 区域（item 之间的间隔）显示禁止光标 */
+    cursor: not-allowed;
 }
 
 .tick-nav .tick {
@@ -105,7 +108,8 @@
 }
 
 /* hover 展开面板时，隐藏刻度索引值，避免与面板左侧的 .tick-label 重叠 */
-.tick-nav:hover .tick .tick-index {
+.tick-nav:hover .tick .tick-index,
+.tick-nav.tick-nav-locked .tick .tick-index {
     display: none;
 }
 
@@ -192,7 +196,8 @@
     transform: translateY(-50%);
 }
 
-.tick-nav:hover .tick .tick-label {
+.tick-nav:hover .tick .tick-label,
+.tick-nav.tick-nav-locked .tick .tick-label {
     display: block;
 }
 
@@ -224,7 +229,8 @@
     margin: -7px 0;
 }
 
-.tick-nav:hover .tick-arrow {
+.tick-nav:hover .tick-arrow,
+.tick-nav.tick-nav-locked .tick-arrow {
     display: flex;
 }
 
@@ -256,7 +262,8 @@
         padding: 6px 4px;
     }
 
-    .tick-nav:hover {
+    .tick-nav:hover,
+    .tick-nav.tick-nav-locked {
         min-width: 200px;
         padding: 6px 8px;
     }
