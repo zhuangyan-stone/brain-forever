@@ -65,6 +65,10 @@ export function updateTickNav() {
         tick.className = 'tick';
         tick.dataset.tickIndex = i;
 
+        // 计算距当前活动刻度的距离，用于渐进式透明度
+        const dist = state.activeTickIndex >= 0 ? Math.abs(i - state.activeTickIndex) : 0;
+        tick.dataset.dist = dist;
+
         // 刻度线（短横线）— 始终在条目右侧（flex-direction: row-reverse）
         const dot = document.createElement('span');
         dot.className = 'tick-dot';
@@ -152,7 +156,10 @@ export function setActiveTick(index) {
     if (!tickNav) return;
     const ticks = tickNav.querySelectorAll('.tick');
     ticks.forEach((t) => {
-        t.classList.toggle('active', parseInt(t.dataset.tickIndex, 10) === index);
+        const tickIdx = parseInt(t.dataset.tickIndex, 10);
+        t.classList.toggle('active', tickIdx === index);
+        // 更新距当前活动刻度的距离，用于渐进式透明度
+        t.dataset.dist = Math.abs(tickIdx - index);
     });
 }
 
