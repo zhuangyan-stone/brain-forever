@@ -158,8 +158,8 @@ func (sm *SessionManager) GetHistory(sessionID string) ([]Message, *session) {
 	return cp, s
 }
 
-// Cleanup removes the session for the given sessionID (optional)
-func (sm *SessionManager) Cleanup(sessionID string) {
+// Remove removes the session for the given sessionID (optional)
+func (sm *SessionManager) Remove(sessionID string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
