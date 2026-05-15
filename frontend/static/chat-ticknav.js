@@ -55,7 +55,7 @@ export function updateTickNav() {
         topArrow.title = '向上翻动';
         topArrow.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!hasPrev) return;
+            if (state.tickScrollOffset <= 0) return;
             state.tickScrollOffset--;
             updateTickNav();
         });
@@ -71,10 +71,6 @@ export function updateTickNav() {
         tick.className = 'tick';
         tick.dataset.tickIndex = i;
 
-        // 计算距当前活动刻度的距离，用于渐进式透明度
-        const dist = state.activeTickIndex >= 0 ? Math.abs(i - state.activeTickIndex) : 0;
-        tick.dataset.dist = dist;
-
         // 刻度线（短横线）— 始终在条目右侧（flex-direction: row-reverse）
         const dot = document.createElement('span');
         dot.className = 'tick-dot';
@@ -83,11 +79,9 @@ export function updateTickNav() {
         // 刻度索引值 — 在非 hover 状态下也可见，位于刻度线左侧
         // 以当前活动刻度为中心，按距当前刻度的距离跳格显示：
         // dist=0（当前刻度）总是显示，dist=1 隐藏，dist=2 显示，dist=3 隐藏……
+        // 注意：此处不设置 data-dist 和刻度值文本，由后续 setActiveTick 统一处理
         const idxSpan = document.createElement('span');
         idxSpan.className = 'tick-index';
-        if (dist % 2 === 0) {
-            idxSpan.textContent = String(i + 1).padStart(2, '0');
-        }
         tick.appendChild(idxSpan);
 
         // 标题文本（带绝对序号，从1开始，固定三位补0）— hover 时显示在面板最左侧
@@ -130,7 +124,10 @@ export function updateTickNav() {
         bottomArrow.title = '向下翻动';
         bottomArrow.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!hasNext) return;
+            const chatContainer = document.getElementById('chatContainer');
+            if (!chatContainer) return;
+            const maxOffset = chatContainer.querySelectorAll('.message.user').length - state.MAX_VISIBLE_TICKS;
+            if (state.tickScrollOffset >= maxOffset) return;
             state.tickScrollOffset++;
             updateTickNav();
         });
@@ -167,13 +164,13 @@ export function setActiveTick(index) {
         const tickIdx = parseInt(t.dataset.tickIndex, 10);
         const isActive = tickIdx === index;
         t.classList.toggle('active', isActive);
+        const dist = Math.abs(tickIdx - index);
         // 更新距当前活动刻度的距离，用于渐进式透明度
-        t.dataset.dist = Math.abs(tickIdx - index);
+        t.dataset.dist = dist;
 
         // 同步更新刻度序号：以当前活动刻度为中心，按距当前刻度的距离跳格显示
         const idxSpan = t.querySelector('.tick-index');
         if (idxSpan) {
-            const dist = Math.abs(tickIdx - index);
             if (dist % 2 === 0) {
                 idxSpan.textContent = String(tickIdx + 1).padStart(2, '0');
             } else {
@@ -215,14 +212,9 @@ function updateActiveTickOnScroll() {
                 state.activeTickIndex = targetIdx;
                 state.targetTickIndex = -1;
                 tickNav.classList.remove('tick-nav-locked');
-                // 触发高亮动画
-                const bubble = userMessages[targetIdx].querySelector('.bubble');
-                if (bubble) {
-                    bubble.classList.remove('highlight');
-                    setTimeout(() => {
-                        bubble.classList.add('highlight');
-                    }, 20);
-                }
+                // 不立即触发高亮动画，而是标记为待高亮，
+                // 等滚动完全停止后再触发（由 scrollDebounceTimer 处理）
+                state.pendingHighlightIndex = targetIdx;
                 // 重建刻度导航以反映新的活动刻度
                 updateTickNav();
             }
@@ -248,33 +240,27 @@ function updateActiveTickOnScroll() {
         targetIdx = i;
     }
 
-    // 如果当前活动消息已完全滚出顶部（底部也在容器顶部以上），且后面还有消息，
-    // 则跳到下一个可见消息；但如果后面已经没有消息了（即当前是最后一个），则保持不动。
-    if (state.activeTickIndex >= 0 && state.activeTickIndex < userMessages.length) {
+    // 决定是否需要更新活动刻度：
+    // - 无活动消息 → 更新
+    // - 活动消息已滚出顶部且后面还有消息 → 更新到下一个可见消息
+    // - 活动消息仍然可见 → 更新为更精确的 targetIdx
+    // - 活动消息已滚出顶部但已是最后一条 → 保持不动（targetIdx 会等于 activeTickIndex）
+    let shouldUpdate = false;
+    if (state.activeTickIndex < 0 || state.activeTickIndex >= userMessages.length) {
+        shouldUpdate = true;
+    } else {
         const activeRect = userMessages[state.activeTickIndex].getBoundingClientRect();
         if (activeRect.bottom <= containerTop && state.activeTickIndex < userMessages.length - 1) {
-            // 当前消息已完全滚出顶部，且后面还有消息 → 跳到 targetIdx
-            if (targetIdx !== state.activeTickIndex) {
-                state.activeTickIndex = targetIdx;
-                adjustTickOffset();
-                updateTickNav();
-            }
+            shouldUpdate = true;
         } else if (activeRect.bottom > containerTop) {
-            // 当前消息仍然可见（至少底部还在视口内），更新为更精确的 targetIdx
-            if (targetIdx !== state.activeTickIndex) {
-                state.activeTickIndex = targetIdx;
-                adjustTickOffset();
-                updateTickNav();
-            }
+            shouldUpdate = true;
         }
-        // 否则（已滚出顶部但无下一组）：保持 activeTickIndex 不变
-    } else {
-        // 没有活动消息，直接用 targetIdx
-        if (targetIdx !== state.activeTickIndex) {
-            state.activeTickIndex = targetIdx;
-            adjustTickOffset();
-            updateTickNav();
-        }
+    }
+
+    if (shouldUpdate && targetIdx !== state.activeTickIndex) {
+        state.activeTickIndex = targetIdx;
+        adjustTickOffset();
+        updateTickNav();
     }
 }
 
@@ -327,17 +313,47 @@ export function initTickNav() {
         updateActiveTickOnScroll();
     });
 
-    // 节流包装，避免频繁触发
+    // 滚动事件处理：节流执行 updateActiveTickOnScroll + debounce 触发待高亮动画
     // 注意：滚动事件必须绑定在 #scrollContainer（实际滚动的容器）上，
     // 而非 #chatContainer（其 overflow-y: visible，不触发 scroll 事件）。
     let scrollThrottleTimer = null;
+    let scrollDebounceTimer = null;
+    const HIGHLIGHT_DEBOUNCE_MS = 300; // 滚动停止后等待 300ms 再触发高亮
     const scrollContainer = getScrollContainer();
     if (!scrollContainer) return;
     scrollContainer.addEventListener('scroll', () => {
-        if (scrollThrottleTimer) return;
-        scrollThrottleTimer = setTimeout(() => {
-            scrollThrottleTimer = null;
-            updateActiveTickOnScroll();
-        }, 150);
+        // 节流：每 150ms 最多执行一次 updateActiveTickOnScroll
+        if (!scrollThrottleTimer) {
+            scrollThrottleTimer = setTimeout(() => {
+                scrollThrottleTimer = null;
+                updateActiveTickOnScroll();
+            }, 150);
+        }
+        // debounce：每次滚动都重置计时器，滚动停止 HIGHLIGHT_DEBOUNCE_MS 后触发待高亮
+        if (scrollDebounceTimer) {
+            clearTimeout(scrollDebounceTimer);
+        }
+        scrollDebounceTimer = setTimeout(() => {
+            scrollDebounceTimer = null;
+            // 滚动已停止，检查是否有待高亮的目标消息
+            if (state.pendingHighlightIndex >= 0) {
+                const scrollContainer = getScrollContainer();
+                if (scrollContainer) {
+                    const userMessages = scrollContainer.querySelectorAll('.message.user');
+                    const idx = state.pendingHighlightIndex;
+                    state.pendingHighlightIndex = -1;
+                    if (idx >= 0 && idx < userMessages.length) {
+                        const bubble = userMessages[idx].querySelector('.bubble');
+                        if (bubble) {
+                            bubble.classList.remove('highlight');
+                            // 用 requestAnimationFrame 确保 DOM 更新后再添加 class
+                            requestAnimationFrame(() => {
+                                bubble.classList.add('highlight');
+                            });
+                        }
+                    }
+                }
+            }
+        }, HIGHLIGHT_DEBOUNCE_MS);
     });
 }

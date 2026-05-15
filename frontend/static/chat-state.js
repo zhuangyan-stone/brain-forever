@@ -106,6 +106,10 @@ export const state = {
     // 与 activeTickIndex 分离，避免滚动过程中被中间过渡值覆盖
     targetTickIndex: -1,
 
+    // 待高亮消息索引：目标消息进入视口后不立即触发高亮动画，
+    // 而是标记此值，等滚动完全停止后再触发（由 scrollDebounceTimer 处理）
+    pendingHighlightIndex: -1,
+
     // 当前消息组，用于将同一问答对的 user + assistant 包裹在 .message-group 内
     currentGroup: null,
 
