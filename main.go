@@ -13,8 +13,10 @@ import (
 
 	"BrainForever/infra/httpx"
 	"BrainForever/infra/i18n"
+	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent"
 	"BrainForever/internal/config"
+	"BrainForever/internal/logger"
 	"BrainForever/internal/store"
 )
 
@@ -28,6 +30,12 @@ func main() {
 	// ============================================================
 
 	cfg := config.Config{
+		Logger: config.LoggerConfig{
+			File:  "log/brain-forever.log",
+			Level: "TRACE",
+			Lang:  0,
+		},
+
 		Embedder: config.EmbedderConfig{
 			Provider:  os.Getenv("EMBEDDER_PROVIDER"),
 			Dimension: 2048,
@@ -46,15 +54,25 @@ func main() {
 		},
 	}
 
+	if err := logger.CreateTheLogger(zylog.NameToLevel(cfg.Logger.Level), cfg.Logger.File, zylog.Language(cfg.Logger.Lang)); err != nil {
+		log.Fatalf("create the logger fail. %v", err)
+	}
+
+	theLogger := logger.TheLogger()
+
+	// first log
+	theLogger.Infof("the logger is created with level. level %s. file %s", cfg.Logger.Level, cfg.Logger.File)
+
 	// ============================================================
 	// Initialize user store (separate user.db)
 	// ============================================================
 	userStore, err := store.NewUserStore("./users.db")
 	if err != nil {
-		log.Fatalf("failed to initialize user store: %v", err)
+		theLogger.Fatalf("failed to initialize user store: %v", err)
+	} else {
+		theLogger.Infof("users storage created.")
 	}
 	defer userStore.Close()
-	fmt.Printf("✓ User store initialized (users.db)\n")
 
 	// ============================================================
 	// Determine default language for i18n from environment variable
@@ -63,7 +81,9 @@ func main() {
 	if defaultLang == "" {
 		defaultLang = "zh-CN" // Default to Chinese for Chinese users
 	}
+
 	i18n.SetDefaultLanguage(defaultLang)
+	theLogger.Infof("default lang set to %s", defaultLang)
 
 	// ============================================================
 	// Create a signal-aware context: auto-cancels on SIGINT/SIGTERM
@@ -76,10 +96,11 @@ func main() {
 	// ============================================================
 	chatHandler, err := agent.InitAgent(ctx, cfg, "brain_go_session", defaultLang)
 	if err != nil {
-		log.Fatalf("failed to initialize agent: %v", err)
+		theLogger.Fatalf("failed to initialize agent: %v", err)
 		return
 	}
 	defer chatHandler.Close()
+	theLogger.Infof("AI agent (Brain-Forever) is now active")
 
 	// ============================================================
 	// Setup routes

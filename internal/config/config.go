@@ -13,10 +13,18 @@ package config
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
+	Logger      LoggerConfig
 	Embedder    EmbedderConfig
 	VectorStore VectorStoreConfig
 	ChatLLM     ChatLLMConfig
 	WebSearch   WebSearchConfig
+}
+
+// LoggerConfig configures the golbal logger
+type LoggerConfig struct {
+	File  string
+	Level string // TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+	Lang  int    // 0 en, 1 zh
 }
 
 // EmbedderConfig configures the text embedding provider.
