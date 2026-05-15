@@ -128,7 +128,7 @@ func main() {
 	mux.Handle("/", fs)
 
 	// Start HTTP Server
-	addr := ":8080"
+	addr := "0.0.0.0:8080"
 	if envAddr := os.Getenv("PROXY_ADDR"); envAddr != "" {
 		addr = envAddr
 	}
@@ -157,17 +157,16 @@ func main() {
 		}
 	}()
 
-	fmt.Printf("\n=== 脑力永恒 Agent Server ===\n")
-	fmt.Printf("Listening on: http://%s\n", addr)
-	fmt.Printf("API endpoint: http://%s/api/chat\n", addr)
-	fmt.Printf("Frontend: http://%s\n", addr)
-	fmt.Printf("Health check: http://%s/api/health\n", addr)
-	fmt.Println("Press Ctrl+C to stop the server")
+	theLogger.Infof("aget server listening on: http://%s", addr)
+	theLogger.Infof("frontend: http://%s", addr)
+
+	theLogger.Infof("press Ctrl+C to stop the server")
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("server failed to start: %v", err)
+		theLogger.Fatalf("server failed to start: %v", err)
+		return
 	}
 
 	// Wait for all cleanup to complete
-	fmt.Println("Server shut down gracefully")
+	theLogger.Infof("Server shut down gracefully")
 }
