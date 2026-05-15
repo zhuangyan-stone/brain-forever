@@ -115,14 +115,14 @@
     font-size: 0.72rem;
     font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
     color: var(--text-muted);
-    background: rgba(79, 195, 247, 0.08);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
     border-radius: 8px 0 8px 0;
     letter-spacing: 0.5px;
     text-transform: lowercase;
 }
 
 [data-theme="light"] .message .bubble pre[data-lang]::before {
-    background: rgba(25, 118, 210, 0.06);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 /* 代码块复制按钮（hover 时显示，复用 msg-action-btn 样式） */
@@ -136,7 +136,7 @@
     padding: 2px 8px;
     font-size: 0.78rem;
     color: var(--text-muted);
-    background: rgba(79, 195, 247, 0.08);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
     border: 1px solid var(--border);
     border-radius: 4px;
     cursor: pointer;
@@ -145,21 +145,21 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    line-height: 1.4;
+    line-height: 1.2;
 }
 .message .bubble pre:hover .copy-btn.code-copy-btn {
     opacity: 1;
 }
 .message .bubble pre .copy-btn.code-copy-btn:hover {
-    background: rgba(79, 195, 247, 0.18);
-    color: var(--text-primary);
+    background: color-mix(in srgb, var(--accent-hover) 20%, transparent);
+    color: var(--accent-hover);
 }
 .message .bubble pre .copy-btn.code-copy-btn:disabled {
     cursor: not-allowed;
     opacity: 0.3 !important;
 }
 .message .bubble pre .copy-btn.code-copy-btn:disabled:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
     color: var(--text-muted);
 }
 
@@ -264,7 +264,7 @@
     font-size: 0.7rem;
     transition: background 0.2s, transform 0.1s;
     padding: 0;
-    line-height: 1;
+    line-height: 1.2;
 }
 
 .msg-action-btn:active {
@@ -273,7 +273,7 @@
 
 /* 复制按钮 */
 .msg-action-btn.copy-msg-btn {
-    background: rgba(79, 195, 247, 0.08);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
     color: var(--text-muted);
     width: auto;
     height: auto;
@@ -283,8 +283,8 @@
 }
 
 .msg-action-btn.copy-msg-btn:hover {
-    background: rgba(79, 195, 247, 0.18);
-    color: var(--text-primary);
+    background: color-mix(in srgb, var(--accent-hover) 20%, transparent);
+    color: var(--accent-hover);
 }
 
 .copy-btn-label {
