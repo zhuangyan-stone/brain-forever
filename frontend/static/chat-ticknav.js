@@ -76,14 +76,14 @@ export function updateTickNav() {
         const idxSpan = document.createElement('span');
         idxSpan.className = 'tick-index';
         if (relPos % 2 === 0) {
-            idxSpan.textContent = String(i + 1).padStart(3, '0');
+            idxSpan.textContent = String(i + 1).padStart(2, '0');
         }
         tick.appendChild(idxSpan);
 
         // 标题文本（带绝对序号，从1开始，固定三位补0）— hover 时显示在面板最左侧
         const label = document.createElement('span');
         label.className = 'tick-label';
-        const seqNum = String(i + 1).padStart(3, '0');
+        const seqNum = String(i + 1).padStart(2, '0');
         label.textContent = seqNum + '. ' + title;
         tick.appendChild(label);
 
@@ -265,11 +265,10 @@ export function initTickNav() {
         updateTickNav();
     });
 
-    // 面板消失时清除活动状态
+    // 面板消失时：根据当前滚动位置重新计算活动刻度，而不是简单清除
     tickNav.addEventListener('mouseleave', () => {
-        if (state.activeTickIndex >= 0) {
-            setActiveTick(-1);
-        }
+        // 直接调用 updateActiveTickOnScroll 根据滚动位置重新计算活动刻度
+        updateActiveTickOnScroll();
     });
 
     // 节流包装，避免频繁触发
