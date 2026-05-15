@@ -214,6 +214,9 @@ let isDrawerOpen = false;     // 小屏模式下抽屉是否打开
 // ----- 全局切换按钮 (唯一实例，避免重复绑定) -----
 let globalToggleButton = null;
 
+// ----- 全局竖向分隔线 (唯一实例) -----
+let globalHeaderDivider = null;
+
 // 切换按钮 SVG（复用现有 .panel-toggle 风格）
 const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_TOGGLE + '</svg>';
 
@@ -271,6 +274,15 @@ function getToggleButton() {
         });
     }
     return globalToggleButton;
+}
+
+// 创建/获取竖向分隔线 (单例)
+function getHeaderDivider() {
+    if (!globalHeaderDivider) {
+        globalHeaderDivider = document.createElement('div');
+        globalHeaderDivider.className = 'header-divider';
+    }
+    return globalHeaderDivider;
 }
 
 // 核心切换逻辑: 宽屏切换 isLeftVisible，小屏切换抽屉开关
@@ -381,6 +393,9 @@ function updateBrandLayout() {
     const newChatBtn = document.getElementById('newChatBtn');
     const sidebarNewChatArea = document.getElementById('sidebarNewChatArea');
 
+    // ----- 竖向分隔线管理 -----
+    const divider = getHeaderDivider();
+
     if (sidebarVisible) {
         // 品牌展示在左侧栏头部
         mainBrandContainer.innerHTML = '';
@@ -410,6 +425,9 @@ function updateBrandLayout() {
             sidebarNewChatArea.appendChild(newChatBtn);
             newChatBtn.style.display = 'inline-flex';
         }
+
+        // 侧栏可见时移除竖向分隔线
+        if (divider.parentNode) divider.remove();
     } else {
         // 品牌展示在主栏
         leftBrandContainer.innerHTML = '';
@@ -421,6 +439,10 @@ function updateBrandLayout() {
             mainHeader.insertBefore(toggleButton, mainHeader.firstChild);
             toggleButton.style.display = 'inline-flex';
             mainBrandContainer.style.display = 'none';
+
+            // 在切换按钮之后插入竖向分隔线
+            if (divider.parentNode) divider.remove();
+            mainHeader.insertBefore(divider, toggleButton.nextSibling);
         } else {
             // 宽屏模式（左栏隐藏）：品牌 + 切换按钮放在 mainBrandContainer
             const brandElem = createBrandElement();
@@ -431,6 +453,10 @@ function updateBrandLayout() {
             mainBrandContainer.style.display = 'flex';
             mainBrandContainer.style.alignItems = 'center';
             mainBrandContainer.style.gap = '12px';
+
+            // 在 mainBrandContainer 之后插入竖向分隔线
+            if (divider.parentNode) divider.remove();
+            mainHeader.insertBefore(divider, mainBrandContainer.nextSibling);
         }
 
         // 新对话按钮移回主栏 header（mainBrandContainer 之后，main-title 之前）
