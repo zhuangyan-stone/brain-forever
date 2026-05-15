@@ -1,3 +1,6 @@
+# --- log ---
+log/
+*.log
 # --- Build artifacts ---
 __debug_bin*
 brain.exe
