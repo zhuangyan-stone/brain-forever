@@ -327,7 +327,6 @@ body {
     height: 24px;
     background: var(--border);
     flex-shrink: 0;
-    margin-right: 4px;
 }
 
 /* ============================================================
@@ -351,6 +350,26 @@ body {
     user-select: none;
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+.new-chat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: -9px;
 }
 
 .new-chat-btn:hover {

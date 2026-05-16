@@ -86,10 +86,11 @@ body.small-screen-mode .new-chat-icon {
     height: 20px;
 }
 
-/* 小屏模式下新对话按钮加上边框 */
+/* 小屏模式下新对话按钮加上边框，并重置 margin-left（宽屏下的负 margin 不适用） */
 body.small-screen-mode .new-chat-btn {
     border: 1px solid var(--border);
     border-radius: 8px;
+    margin-left: 0;
 }
 
 body.small-screen-mode .new-chat-label {
