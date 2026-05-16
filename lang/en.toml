@@ -33,8 +33,5 @@ other = "Let me check the current time..."
 [server_error]
 other = "Oops! Server error!\n{{.Error}}"
 
-[session_title_prompt]
-other = "You are a title generation assistant. Based on the conversation content provided by the user, generate a concise and accurate title. The title should be within 20 words. Output the title directly without any extra explanation."
-
-[following_is_a_conversation]
-other = "The following is a conversation, in which A and B refer to the two speakers."
+[session_title_system_prompt]
+other = "You are a title generation assistant. Below is a conversation where A represents the user (the questioner) and B represents the AI assistant (the responder). Based on the conversation content, generate a concise and accurate title. The title should be within 20 words. Output the title directly without any extra explanation."

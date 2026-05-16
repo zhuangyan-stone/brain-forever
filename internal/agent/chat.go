@@ -172,10 +172,8 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build the LLM prompt with i18n support
-	systemPrompt := i18n.TL(lang, "session_title_prompt")
+	systemPrompt := i18n.TL(lang, "session_title_system_prompt")
 	var contentBuilder strings.Builder
-
-	contentBuilder.WriteString(i18n.TL(lang, "following_is_a_conversation"))
 
 	for _, msg := range history {
 		switch msg.Role {
@@ -204,8 +202,12 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 		newTitle = resp.Choices[0].Message.Content
 	}
 
-	// If LLM returned empty content, fall back to original title
-	if newTitle == "" {
+	// Validate the generated title:
+	// - If LLM returned empty content, fall back to original title
+	// - If the generated title is unreasonably long (>50 chars), the LLM likely
+	//   failed to generate a concise title; discard it and use the original title instead.
+	const maxTitleLen = 50
+	if newTitle == "" || len([]rune(newTitle)) > maxTitleLen {
 		newTitle = originalTitle
 	}
 
