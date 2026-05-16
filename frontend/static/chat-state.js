@@ -81,6 +81,13 @@ export const state = {
     // 页面刷新时: 由后端 OnRestoreSession 返回已保存的 session.Title
     dialogTitle: '欢迎开始新对话',
 
+    // 标题修改状态
+    // 0: 原始标题（新对话为"新对话"）
+    // 1: AI 修改标题
+    // 2: 用户手动修改标题
+    // 状态只能从低往高变，不能从高往低变
+    titleState: 0,
+
     // 是否正在流式接收
     isStreaming: false,
 

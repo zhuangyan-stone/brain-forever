@@ -31,6 +31,11 @@ export async function restoreSession() {
             updateHeaderTitle(data.title);
         }
 
+        // 恢复标题修改状态
+        if (typeof data.title_state === 'number') {
+            state.titleState = data.title_state;
+        }
+
         // 有历史消息，恢复显示
         for (const msg of history) {
             const msgDiv = addMessage(msg.role, msg.content);

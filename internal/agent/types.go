@@ -72,12 +72,26 @@ type Usage struct {
 // Session management — isolates user chat history by sessionID
 // ============================================================
 
+// TitleState represents the state of the session title modification.
+//
+//	0: original title (default, "新对话" for new sessions)
+//	1: AI-modified title
+//	2: user-modified title
+type TitleState int
+
+const (
+	TitleStateOriginal     TitleState = iota // 0: original title
+	TitleStateAIModified                     // 1: AI-modified title
+	TitleStateUserModified                   // 2: user-modified title
+)
+
 // session represents an individual user's session
 type session struct {
 	mu           sync.Mutex
-	history      []Message // The user's complete chat history
-	lastActivity time.Time // Last activity time, used by GC for cleanup
-	title        string    // Session title, generated from the first user message content
+	history      []Message  // The user's complete chat history
+	lastActivity time.Time  // Last activity time, used by GC for cleanup
+	title        string     // Session title, generated from the first user message content
+	titleState   TitleState // Title modification state
 }
 
 func (s *session) GetTitle() string {
@@ -94,6 +108,27 @@ func (s *session) SetTitle(newTitle string) {
 	if newTitle != s.title {
 		s.title = newTitle
 	}
+}
+
+func (s *session) GetTitleState() TitleState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.titleState
+}
+
+// SetTitleState sets the title modification state.
+// The state can only move forward (0→1, 0→2, 1→2), never backward.
+// Returns true if the state was updated, false if the new state is lower than the current state.
+func (s *session) SetTitleState(newState TitleState) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if newState > s.titleState {
+		s.titleState = newState
+		return true
+	}
+	return false
 }
 
 // SessionManager manages all user sessions

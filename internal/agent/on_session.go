@@ -20,6 +20,7 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 
 	var history []Message
 	title := ""
+	titleState := int(TitleStateOriginal)
 
 	if !isNew {
 		// Get a snapshot of history (copy) — lock is released inside GetHistory
@@ -28,24 +29,28 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 
 		if history == nil || session == nil {
 			history = []Message{}
-		} else if savedTitle := session.GetTitle(); savedTitle != "" {
-			title = savedTitle
 		} else {
-			for _, msg := range history {
-				if msg.Role == "user" {
-					title = truncateTitle(msg.Content)
-					session.SetTitle(title)
-					break
+			titleState = int(session.GetTitleState())
+			if savedTitle := session.GetTitle(); savedTitle != "" {
+				title = savedTitle
+			} else {
+				for _, msg := range history {
+					if msg.Role == "user" {
+						title = truncateTitle(msg.Content)
+						session.SetTitle(title)
+						break
+					}
 				}
 			}
 		}
 	}
 
 	resp := map[string]interface{}{
-		"session_id": sessionID,
-		"is_new":     isNew,
-		"history":    history,
-		"title":      title,
+		"session_id":  sessionID,
+		"is_new":      isNew,
+		"history":     history,
+		"title":       title,
+		"title_state": titleState,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

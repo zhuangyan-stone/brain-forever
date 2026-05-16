@@ -135,11 +135,14 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 
 // OnGetSessionTitle handles GET /api/session/title requests.
 // It reads the "title" query parameter as the original title,
-// takes the first 10 messages (5 rounds) from the session history,
+// takes the first 5 messages from the session history,
 // sends them to the LLM to generate a new concise title,
 // and returns the new title as JSON. On error or empty LLM response, returns the original title.
 // The generated title is also saved to session.Title so that subsequent page refreshes
 // (OnRestoreSession) will use the saved title instead of re-deriving it.
+// The title_state is also returned to indicate the title modification state:
+//
+//	0: original title, 1: AI-modified title, 2: user-modified title.
 func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	// Only accept GET
 	if r.Method != http.MethodGet {
@@ -165,8 +168,8 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	history = append(history, session.history...)
 	session.mu.Unlock()
 
-	// Take at most the first 5 messages
-	const maxMsgs = 5
+	// Take at most the first 6 messages
+	const maxMsgs = 6
 	if len(history) > maxMsgs {
 		history = history[:maxMsgs]
 	}
@@ -191,6 +194,7 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	messages = append(messages, llm.Message{Role: "user", Content: contentBuilder.String()})
 
 	newTitle := ""
+	titleChanged := false
 
 	// Call LLM (non-streaming)
 	resp, err := h.charLLMClient.Chat(r.Context(), messages)
@@ -211,12 +215,20 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 		newTitle = originalTitle
 	}
 
-	// Save the generated title to session so it survives page refresh
-	session.SetTitle(newTitle)
+	// Only update session title and state if the new title differs from the original
+	if newTitle != originalTitle {
+		session.SetTitle(newTitle)
+		// State can only move forward: 0→1 (AI-modified)
+		session.SetTitleState(TitleStateAIModified)
+		titleChanged = true
+	}
 
 	// Return the new title as JSON
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"title": newTitle})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"title":   newTitle,
+		"changed": titleChanged,
+	})
 }
 
 // OnNewMessage handles POST /api/chat requests

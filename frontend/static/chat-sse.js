@@ -9,20 +9,48 @@ import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
 
 /**
- * 调用后端 /api/session/title 接口，让 AI 为当前对话生成标题。
- * 仅在首次收到助手回复时调用。
+ * 标题修改状态常量
+ */
+const TITLE_STATE = {
+    ORIGINAL: 0,  // 原始标题
+    AI: 1,        // AI 修改
+    USER: 2,      // 用户手动修改
+};
+
+/**
+ * 异步调用后端 /api/session/title 接口，让 AI 为当前对话生成标题。
+ *
+ * 调用条件：
+ *   - titleState === 0（原始标题）
+ *   - 对话未超过 3 轮（一轮指 AI 的一次成功回复）
+ *
+ * 调用结果：
+ *   - 成功且标题改变 → titleState 改为 1（AI 修改）
+ *   - 失败或标题未变 → titleState 保持 0，下一轮继续尝试
+ *
  * @param {string} originalTitle - 原标题（用户第一条消息的截取）
+ * @returns {Promise<void>}
  */
 async function fetchSessionTitle(originalTitle) {
+    // 如果标题状态不是原始标题（已被 AI 或用户修改过），不再请求
+    if (state.titleState !== TITLE_STATE.ORIGINAL) {
+        return;
+    }
+
     try {
         const response = await fetch('/api/session/title?title=' + encodeURIComponent(originalTitle));
         if (!response.ok) return;
         const data = await response.json();
-        if (data.title) {
+
+        if (data.title && data.changed === true) {
+            // AI 成功生成了新标题，更新标题和状态
             updateHeaderTitle(data.title);
+            // 状态从 0 → 1（AI 修改）
+            state.titleState = TITLE_STATE.AI;
         }
+        // 如果 changed === false（标题未变或出错），状态保持 0，下一轮继续尝试
     } catch (e) {
-        // 静默失败，不干扰用户
+        // 静默失败，不干扰用户；状态保持 0，下一轮继续尝试
         console.warn('获取对话标题失败:', e);
     }
 }
@@ -160,13 +188,6 @@ function handleSSEEvent(event, assistantBubble) {
 
         case 'sources':
             handleSourcesEvent(event);
-            break;
-
-        case 'title':
-            // AI 生成的对话标题
-            if (event.content) {
-                updateHeaderTitle(event.content);
-            }
             break;
 
         case 'done':
@@ -329,13 +350,15 @@ export async function sendMessage() {
             reasoningContentEl.renderTimer = null;
         }
 
-        // 如果是第一组消息（用户的第一条消息 + 助手的第一次回复），
-        // 调用后端 AI 生成对话标题
-        if (state.messages.length === 2) {
+        // ---- 标题自动修改逻辑 ----
+        // 条件：标题状态为原始标题（0），且对话未超过 3 轮
+        // 一轮指一对 user+assistant 消息，所以消息总数 ≤ 6 即不超过 3 轮
+        if (state.titleState === TITLE_STATE.ORIGINAL && state.messages.length <= 6) {
             // 原标题：用户的第一条消息内容（截取前 30 字）
             const firstUserMsg = state.messages.find(m => m.role === 'user');
             const originalTitle = firstUserMsg ? firstUserMsg.content.slice(0, 30) : '';
             if (originalTitle) {
+                // 异步调用，不阻塞后续操作
                 fetchSessionTitle(originalTitle);
             }
         }
