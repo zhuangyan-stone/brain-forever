@@ -16,6 +16,14 @@
     z-index: 100;
     pointer-events: none; /* 让刻度本身不阻挡点击，但子元素可点击 */
 
+    /* 无刻度时隐藏，避免欢迎状态下 hover 触发空面板展开 */
+    display: none;
+}
+
+/* 有刻度条目时才显示 */
+.tick-nav:has(.tick) {
+    display: flex;
+
     /* 面板样式：平时窄窄一条只显示刻度线 */
     background: transparent;
     border-radius: 10px;
