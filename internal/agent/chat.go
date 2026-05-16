@@ -86,10 +86,10 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 		lastMsg := session.history[len(session.history)-1]
 		lastID = lastMsg.ID
 
-		// 这里还要检查，最后一个消息，是不是也是用户消息！
-		// 当AI在还在思考或回复过程中被“掐断”，我们就得不到助手消息，
-		//  于是最后一个消息将是用户消息
-		// 此时我们需要手工补充一个助手消息。
+		// Also check if the last message is a user message!
+		// When the AI is interrupted mid-thought or mid-response, we won't get an assistant message,
+		// so the last message will be a user message.
+		// In this case, we need to manually append an assistant message.
 		if lastMsg.Role == "user" {
 			assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
 			session.history = append(session.history, assistantMsg)
