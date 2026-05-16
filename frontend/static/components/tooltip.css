@@ -1,0 +1,27 @@
+/* ============================================================
+    脑力永恒 AI 助手 — 自定义 Tooltip 样式
+    替代浏览器原生 title 属性，绕过 Edge on Linux 渲染 bug
+    ============================================================ */
+
+.tooltip {
+    position: fixed;
+    z-index: 99999;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    background: var(--tooltip-bg, #333);
+    color: var(--tooltip-text, #fff);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tooltip.visible {
+    opacity: 1;
+}

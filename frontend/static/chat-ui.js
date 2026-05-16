@@ -4,10 +4,11 @@
 
 import { escapeHtml, truncate } from './toolsets.js';
 import { state } from './chat-state.js';
+import { addTitleToHistory, putSessionTitle } from './chat-api.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
 import { getDefaultFormatLabel } from './chat-copy.js';
-import { ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE } from './svg_icons.js';
+import { ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE, ICON_ARROW_UP_DOWN } from './svg_icons.js';
 
 'use strict';
 
@@ -135,7 +136,7 @@ export function showTokenUsage(assistantBubble, usage) {
     const text = `提示 ${usage.prompt_tokens} + 生成 ${usage.completion_tokens} = ${usage.total_tokens}`;
 
     if (usage.is_estimated) {
-        info.title = '当前大模型未返回 token 消耗数据，此处为估算值，供参考';
+        info.dataset.tooltip = '当前大模型未返回 token 消耗数据，此处为估算值，供参考';
         info.innerHTML = `词元消耗：<span class="token-estimated-icon">⚠</span> ${text} <span class="token-estimated-label">(估算)</span>`;
     } else {
         info.textContent = `词元消耗：${text}`;
@@ -175,7 +176,7 @@ export function addMessage(role, content, isStreaming = false) {
         // 为消息组添加左上角删除按钮
         const groupDeleteBtn = document.createElement('button');
         groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
-        groupDeleteBtn.title = '删除本组对话';
+        groupDeleteBtn.dataset.tooltip = '删除本组对话';
         groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
         groupDeleteBtn.disabled = state.isStreaming;
         group.appendChild(groupDeleteBtn);
@@ -197,7 +198,7 @@ export function addMessage(role, content, isStreaming = false) {
             // 为消息组添加左上角删除按钮
             const groupDeleteBtn = document.createElement('button');
             groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
-            groupDeleteBtn.title = '删除本组对话';
+            groupDeleteBtn.dataset.tooltip = '删除本组对话';
             groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
             groupDeleteBtn.disabled = state.isStreaming;
             group.appendChild(groupDeleteBtn);
@@ -239,7 +240,7 @@ export function addMessage(role, content, isStreaming = false) {
     // 复制按钮
     const copyBtn = document.createElement('button');
     copyBtn.className = 'msg-action-btn copy-msg-btn';
-    copyBtn.title = '复制当前消息内容';
+    copyBtn.dataset.tooltip = '复制当前消息内容';
     copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 ' + getDefaultFormatLabel() + '</span>';
     actions.appendChild(copyBtn);
 
@@ -452,6 +453,155 @@ function toggleSourcesSection(titleEl, bodyEl) {
 }
 
 /**
+ * 标题下拉菜单的全局引用，用于关闭
+ */
+let titleDropdownEl = null;
+
+/**
+ * 关闭标题下拉菜单
+ */
+function closeTitleDropdown() {
+    if (titleDropdownEl) {
+        titleDropdownEl.remove();
+        titleDropdownEl = null;
+    }
+}
+
+/**
+ * 切换标题下拉菜单的显示/隐藏
+ */
+function toggleTitleDropdown() {
+    // 如果菜单已打开，关闭它
+    if (titleDropdownEl) {
+        closeTitleDropdown();
+        return;
+    }
+
+    const titleHistory = state.titleHistory;
+    if (titleHistory.length < 2) return;
+
+    const headerTitle = document.getElementById('headerTitle');
+    if (!headerTitle) return;
+
+    // 创建下拉菜单
+    const dropdown = document.createElement('div');
+    dropdown.className = 'title-dropdown';
+    dropdown.setAttribute('role', 'menu');
+
+    // 添加所有标题项
+    titleHistory.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'title-dropdown-item';
+        item.setAttribute('role', 'menuitem');
+
+        // 当前标题前面打勾
+        const isCurrent = t === state.dialogTitle;
+        item.innerHTML = isCurrent
+            ? '<span class="title-dropdown-check">✓</span> ' + escapeHtml(t)
+            : '<span class="title-dropdown-check"></span> ' + escapeHtml(t);
+
+        if (isCurrent) {
+            item.classList.add('title-dropdown-item-current');
+        }
+
+        // 点击切换标题
+        item.addEventListener('click', async () => {
+            if (t === state.dialogTitle) {
+                closeTitleDropdown();
+                return;
+            }
+            // 先关闭菜单
+            closeTitleDropdown();
+            // 向后端发送 PUT 请求更新标题
+            const ok = await putSessionTitle(t);
+            if (ok) {
+                // 更新本地标题
+                updateHeaderTitle(t);
+            }
+        });
+
+        dropdown.appendChild(item);
+    });
+
+    // 定位下拉菜单：在 headerTitle 下方
+    const rect = headerTitle.getBoundingClientRect();
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = (rect.bottom + 4) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.minWidth = Math.max(rect.width, 180) + 'px';
+
+    document.body.appendChild(dropdown);
+    titleDropdownEl = dropdown;
+
+    // 点击外部关闭
+    setTimeout(() => {
+        document.addEventListener('click', onDocClickForDropdown);
+    }, 0);
+}
+
+/**
+ * 文档点击关闭下拉菜单
+ */
+function onDocClickForDropdown(e) {
+    if (titleDropdownEl && !titleDropdownEl.contains(e.target)) {
+        closeTitleDropdown();
+        document.removeEventListener('click', onDocClickForDropdown);
+    }
+}
+
+/**
+ * 创建标题下拉按钮（三个小点）
+ * @returns {HTMLElement|null}
+ *
+ * 【注意】Ubuntu + Edge 下浏览器原生 title tooltip 会触发整个窗口闪烁，
+ * 暂时注释掉此功能以绕过该浏览器 bug。
+ */
+function createTitleDropdownBtn() {
+    return null;
+    // const titleHistory = state.titleHistory;
+    // if (titleHistory.length < 2) return null;
+    //
+    // const btn = document.createElement('button');
+    // btn.className = 'title-dropdown-btn';
+    // btn.title = '切换对话标题';
+    // btn.innerHTML = '<svg class="title-arrow-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_ARROW_UP_DOWN + '</svg>';
+    // btn.addEventListener('click', (e) => {
+    //     e.stopPropagation();
+    //     toggleTitleDropdown();
+    // });
+    // return btn;
+}
+
+/**
+ * 更新标题下拉按钮的显示状态（根据 titleHistory 长度）
+ *
+ * 【注意】Ubuntu + Edge 下浏览器原生 title tooltip 会触发整个窗口闪烁，
+ * 暂时注释掉此功能以绕过该浏览器 bug。
+ */
+function updateTitleDropdownBtn() {
+    // 功能已暂时禁用，参见 createTitleDropdownBtn()
+    // const existingBtn = document.querySelector('.title-dropdown-btn');
+    // const headerTitle = document.getElementById('headerTitle');
+    // if (!headerTitle) return;
+    //
+    // const titleHistory = state.titleHistory;
+    // if (titleHistory.length >= 2) {
+    //     if (!existingBtn) {
+    //         const btn = createTitleDropdownBtn();
+    //         if (btn) {
+    //             headerTitle.insertAdjacentElement('afterend', btn);
+    //         }
+    //     }
+    // } else {
+    //     if (existingBtn) {
+    //         existingBtn.remove();
+    //     }
+    //     // 如果菜单打开，关闭它
+    //     closeTitleDropdown();
+    // }
+}
+
+/**
  * updateHeaderTitle 更新 header 左侧的对话标题
  * @param {string} title
  */
@@ -460,7 +610,16 @@ export function updateHeaderTitle(title) {
     if (el) {
         el.textContent = title;
     }
+    // 标题有变化时记录到历史
+    if (title !== state.dialogTitle) {
+        addTitleToHistory(title);
+    }
     state.dialogTitle = title;
+
+    // 更新下拉按钮的显示状态
+    // 【注意】Ubuntu + Edge 下浏览器原生 title tooltip 会触发整个窗口闪烁，
+    // 暂时注释掉此功能以绕过该浏览器 bug。
+    // updateTitleDropdownBtn();
 }
 
 /**

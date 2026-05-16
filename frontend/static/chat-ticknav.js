@@ -51,7 +51,7 @@ export function updateTickNav() {
     if (needsScroll) {
         const topArrow = document.createElement('div');
         topArrow.className = 'tick-arrow tick-arrow-up' + (hasPrev ? '' : ' tick-arrow-disabled');
-        topArrow.title = '向上翻动';
+        topArrow.dataset.tooltip = '向上翻动';
         topArrow.addEventListener('click', (e) => {
             e.stopPropagation();
             if (state.tickScrollOffset <= 0) return;
@@ -119,7 +119,7 @@ export function updateTickNav() {
     if (needsScroll) {
         const bottomArrow = document.createElement('div');
         bottomArrow.className = 'tick-arrow tick-arrow-down' + (hasNext ? '' : ' tick-arrow-disabled');
-        bottomArrow.title = '向下翻动';
+        bottomArrow.dataset.tooltip = '向下翻动';
         bottomArrow.addEventListener('click', (e) => {
             e.stopPropagation();
             const chatContainer = document.getElementById('chatContainer');

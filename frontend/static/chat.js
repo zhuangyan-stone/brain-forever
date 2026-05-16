@@ -7,6 +7,7 @@ import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
 import { initDom, dom, showWelcomeMessage } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
+import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './chat-delete.js';
@@ -38,6 +39,7 @@ function resolveTheme(theme) {
 // 初始化 DOM 引用
 // ============================================================
 initDom();
+initTooltip();
 
 // ============================================================
 // 切换按钮状态（深度思考 / 智能搜索）
@@ -106,7 +108,7 @@ function updateThemeButton(themeStr) {
     themeToggle.innerHTML = themeStr === 'dark'
         ? `<svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_MOON}</svg>`
         : `<svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SUN}</svg>`;
-    themeToggle.title = themeStr === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
+    themeToggle.dataset.tooltip = themeStr === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
 }
 
 // ============================================================
@@ -139,6 +141,7 @@ async function startNewSession() {
         state.tickScrollOffset = 0;
         state.currentGroup = null;
         state.accumulatedMarkdown = '';
+        state.titleHistory = [];
         if (state.renderTimer) {
             clearTimeout(state.renderTimer);
             state.renderTimer = null;
@@ -265,7 +268,7 @@ function getToggleButton() {
         globalToggleButton = document.createElement('button');
         globalToggleButton.className = 'menu-toggle-btn';
         globalToggleButton.setAttribute('aria-label', '切换侧边栏');
-        globalToggleButton.title = '切换侧边栏';
+        globalToggleButton.dataset.tooltip = '切换侧边栏';
         globalToggleButton.innerHTML = TOGGLE_BTN_SVG;
         // 绑定统一切换逻辑
         globalToggleButton.addEventListener('click', (e) => {

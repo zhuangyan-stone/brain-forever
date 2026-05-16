@@ -89,3 +89,46 @@ export async function fetchSessionTitle(originalTitle) {
         console.warn('获取对话标题失败:', e);
     }
 }
+
+/**
+ * addTitleToHistory 将标题添加到历史记录中。
+ * 添加前会循环检查是否与已有标题重复，不重复才添加。
+ * 每当标题有变化时调用此函数。
+ *
+ * @param {string} title - 要添加的标题
+ */
+export function addTitleToHistory(title) {
+	if (!title) return;
+	// 循环检查是否与已有标题重复
+	for (const t of state.titleHistory) {
+		if (t === title) {
+			return; // 重复，不添加
+		}
+	}
+	state.titleHistory.push(title);
+}
+
+/**
+ * putSessionTitle 向后端发送 PUT 请求更新 session 标题。
+ * 成功后标记 titleState 为用户修改（2），并更新本地标题。
+ * @param {string} title - 新标题
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function putSessionTitle(title) {
+	if (!title) return false;
+	try {
+		const response = await fetch('/api/session/title?title=' + encodeURIComponent(title), {
+			method: 'PUT',
+		});
+		if (!response.ok) {
+			console.warn('更新标题失败:', response.status);
+			return false;
+		}
+		// 成功后标记为用户修改
+		state.titleState = TITLE_STATE.USER;
+		return true;
+	} catch (e) {
+		console.warn('更新标题出错:', e);
+		return false;
+	}
+}

@@ -50,7 +50,7 @@ export function createReasoningArea(assistantBubble) {
     const titleText = '正在思考……';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
-            <span class="reasoning-toggle" title="折叠思考过程">▶</span>
+            <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>
             <span class="reasoning-icon">🤖</span>
             <span class="reasoning-role-badge">AI</span>
             <span class="reasoning-title">${titleText}</span>
@@ -97,7 +97,7 @@ export function toggleReasoningCollapse(headerEl) {
         // 使用 ▶ 作为基础字符，展开时通过 CSS transform: rotate(90deg) 变为 ▼
         // 折叠时 transform: rotate(0deg) 保持 ▶ — 与 sources-panel 完全一致
         toggleBtn.textContent = '▶';
-        toggleBtn.title = isCollapsed ? '展开思考内容' : '折叠思考内容';
+        toggleBtn.dataset.tooltip = isCollapsed ? '展开思考内容' : '折叠思考内容';
     }
 }
 
@@ -198,7 +198,7 @@ export function restoreReasoningArea(assistantBubble, reasoningText) {
     const titleText = '思考完成';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
-            <span class="reasoning-toggle" title="折叠思考过程">▶</span>
+            <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>
             <span class="reasoning-icon">🤖</span>
             <span class="reasoning-role-badge">AI</span>
             <span class="reasoning-title">${titleText}</span>

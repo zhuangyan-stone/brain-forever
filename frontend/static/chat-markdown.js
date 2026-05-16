@@ -125,7 +125,7 @@ function addCopyButton(pre) {
 
     const btn = document.createElement('button');
     btn.className = 'copy-btn code-copy-btn';
-    btn.title = '复制代码块';
+    btn.dataset.tooltip = '复制代码块';
     btn.disabled = state.isStreaming; // 流式输出时禁用
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 Markdown</span>';
 

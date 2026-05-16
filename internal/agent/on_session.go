@@ -121,3 +121,40 @@ func (h *ChatAgent) OnNewSession(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+// ============================================================
+// PutSessionTitle handler — PUT /api/session/title?title=XXX
+// ============================================================
+
+// OnPutSessionTitle handles PUT /api/session/title — updates the session title
+// and marks the title state as user-modified.
+// Query parameter: title — the new title to set.
+// Returns HTTP 200 on success.
+func (h *ChatAgent) OnPutSessionTitle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Read the new title from query parameter
+	newTitle := r.URL.Query().Get("title")
+	if newTitle == "" {
+		http.Error(w, "title query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	// Resolve sessionID from cookie
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	// Update the session title
+	session.SetTitle(newTitle)
+	// Mark as user-modified (state 2)
+	session.SetTitleState(TitleStateUserModified)
+
+	// Return simple 200 OK
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+	})
+}

@@ -39,6 +39,14 @@
     /* 通用 */
     --radius:           12px;
     --max-width:        960px;
+
+    /* Tooltip */
+    --tooltip-bg:       #616161;
+    --tooltip-text:     #ffffff;
+
+    /* Tooltip */
+    --tooltip-bg:       #2d2d2d;
+    --tooltip-text:     #e0e0e0;
 }
 
 /* ---------- 亮色主题 ---------- */
