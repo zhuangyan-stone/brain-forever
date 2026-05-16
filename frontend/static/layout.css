@@ -155,6 +155,20 @@ body {
     user-select: none;
 }
 
+/* 宽屏模式下，对话标题前加一个大大的左双引号 */
+body:not(.small-screen-mode) .main-title:not(:empty)::before {
+    content: '\201C';
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    opacity: 0.35;
+    margin-right: 4px;
+    vertical-align: middle;
+    line-height: 0;
+    position: relative;
+    top: -0.1em;
+}
+
 /* 主栏标题右侧操作区 */
 .main-header-right {
     margin-left: auto;
