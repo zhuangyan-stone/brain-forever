@@ -677,8 +677,6 @@ attachBtn.addEventListener('click', () => {
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length > 0) {
         // 目前仅做选择演示，后续可扩展上传逻辑
-        const names = Array.from(fileInput.files).map(f => f.name).join(', ');
-        console.log('已选择文件:', names);
     }
     // 重置以便重复选择同一文件
     fileInput.value = '';
@@ -796,5 +794,4 @@ window.addEventListener('DOMContentLoaded', restoreSession);
         sendBtn.addEventListener('click', restoreInputArea);
     }
 
-    console.log('[input-collapse] 输入面板自动折叠功能已初始化（基于滚动刻度变化）');
 })();

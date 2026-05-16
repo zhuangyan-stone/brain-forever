@@ -153,7 +153,7 @@ function handleSSEEvent(event, assistantBubble) {
             break;
 
         default:
-            console.log('未知事件类型:', event.type);
+            console.warn('未知事件类型:', event.type);
     }
 }
 
@@ -285,7 +285,7 @@ export async function sendMessage() {
 
     } catch (err) {
         if (err.name === 'AbortError') {
-            console.log('请求已取消');
+            // 请求已取消，不做处理
         } else {
             console.error('请求失败:', err);
             showError(assistantBubble, err.message);
