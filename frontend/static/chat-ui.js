@@ -488,7 +488,7 @@ export function showWelcomeMessage() {
     }
 
     // 设置 header 标题为欢迎语
-    updateHeaderTitle('欢迎开始新对话');
+    updateHeaderTitle('');
 }
 
 /**

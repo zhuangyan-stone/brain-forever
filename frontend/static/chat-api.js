@@ -15,6 +15,40 @@ export const TITLE_STATE = {
 };
 
 /**
+ * truncateTitle 截取字符串作为对话标题。
+ * 与后端 internal/agent/on_session.go 中的 truncateTitle 逻辑一致：
+ *   - 折叠空白字符（换行、制表符、空格）为单个空格
+ *   - 限制最多 50 个字符，超长加 "…"
+ *
+ * @param {string} s - 原始字符串
+ * @returns {string} 截取后的标题
+ */
+export function truncateTitle(s) {
+    if (!s) return '';
+    // 折叠空白字符
+    let result = '';
+    let space = false;
+    for (const ch of s) {
+        if (ch === '\n' || ch === '\r' || ch === '\t' || ch === ' ') {
+            if (!space) {
+                result += ' ';
+                space = true;
+            }
+        } else {
+            result += ch;
+            space = false;
+        }
+    }
+    // 去除首尾空格
+    result = result.trim();
+    // 限制最多 50 个字符
+    if (result.length > 50) {
+        return result.slice(0, 50) + '…';
+    }
+    return result;
+}
+
+/**
  * 异步调用后端 /api/session/title 接口，让 AI 为当前对话生成标题。
  *
  * 调用条件：

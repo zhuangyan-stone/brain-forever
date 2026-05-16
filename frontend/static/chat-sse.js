@@ -7,7 +7,7 @@ import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSource
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { TITLE_STATE, fetchSessionTitle } from './chat-api.js';
+import { TITLE_STATE, fetchSessionTitle, truncateTitle } from './chat-api.js';
 
 'use strict';
 
@@ -197,6 +197,15 @@ export async function sendMessage() {
     const userEntry = { role: 'user', content, id: 0, created_at: createdAt };
     state.messages.push(userEntry);
 
+    // 如果当前没有标题（新对话首次发送消息），从第一条用户消息截取标题
+    if (!state.dialogTitle) {
+        const title = truncateTitle(content);
+        if (title) {
+            updateHeaderTitle(title);
+            state.titleState = TITLE_STATE.ORIGINAL;
+        }
+    }
+
     // 更新刻度导航
     updateTickNav();
 
@@ -309,13 +318,12 @@ export async function sendMessage() {
         // 一轮指一对 user+assistant 消息，所以消息总数 ≤ 6 即不超过 3 轮
         // 前三轮每次 AI 回复后都尝试优化标题，让 AI 基于更多对话内容生成更准确的标题
         if (state.titleState !== TITLE_STATE.USER && state.messages.length <= 6) {
-            // 原标题：用户的第一条消息内容（截取前 30 字）
-            const firstUserMsg = state.messages.find(m => m.role === 'user');
-            const originalTitle = firstUserMsg ? firstUserMsg.content.slice(0, 30) : '';
-            if (originalTitle) {
-                // 异步调用，不阻塞后续操作
-                fetchSessionTitle(originalTitle);
-            }
+            // 原标题：使用当前已有的标题（可能是 AI 已修改过的），而不是重新从第一条消息截取
+            // 这样后端可以基于当前标题判断是否需要更新
+            // 如果 dialogTitle 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
+            const originalTitle = state.dialogTitle || '';
+            // 异步调用，不阻塞后续操作
+            fetchSessionTitle(originalTitle);
         }
     }
 }
