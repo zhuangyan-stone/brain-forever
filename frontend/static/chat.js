@@ -433,12 +433,33 @@ function updateBrandLayout() {
         leftBrandContainer.innerHTML = '';
         mainBrandContainer.innerHTML = '';
         if (isSmallMode) {
-            // 小屏模式：主栏只放切换按钮（品牌由 CSS 隐藏），
-            // 切换按钮直接插入 .main-header 最前面
+            // 小屏模式（抽屉关闭）：
+            // - 顺序：logo -> 切换按钮 -> 分隔线 -> 新对话 -> 标题
+            // - 中屏（>480px）时 mainBrandContainer 显示一个 32×32 logo
+            // - 超小屏（≤480px）时由 CSS 隐藏 mainBrandContainer
+
+            // 先把 mainBrandContainer（含 logo）放到最前面
+            if (mainBrandContainer.parentNode) mainBrandContainer.remove();
+            mainHeader.insertBefore(mainBrandContainer, mainHeader.firstChild);
+            mainBrandContainer.innerHTML = '';
+            mainBrandContainer.style.display = 'flex';
+            mainBrandContainer.style.alignItems = 'center';
+            mainBrandContainer.style.gap = '0';
+
+            // 创建仅含 logo 的品牌元素（32×32，无文字）
+            const logoOnly = document.createElement('img');
+            logoOnly.className = 'brand-logo brand-logo-compact';
+            logoOnly.src = '/static/brain-forever.svg';
+            logoOnly.alt = '脑力永恒';
+            logoOnly.style.width = '32px';
+            logoOnly.style.height = '32px';
+            logoOnly.style.borderRadius = '12px';
+            mainBrandContainer.appendChild(logoOnly);
+
+            // 切换按钮放在 mainBrandContainer 之后
             if (toggleButton.parentNode) toggleButton.remove();
-            mainHeader.insertBefore(toggleButton, mainHeader.firstChild);
+            mainHeader.insertBefore(toggleButton, mainBrandContainer.nextSibling);
             toggleButton.style.display = 'inline-flex';
-            mainBrandContainer.style.display = 'none';
 
             // 在切换按钮之后插入竖向分隔线
             if (divider.parentNode) divider.remove();

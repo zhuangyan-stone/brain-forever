@@ -49,10 +49,13 @@ body.small-screen-mode .scroll-container.welcome-state .chat-container {
     max-width: 100%;
 }
 
-/* 小屏模式下主栏隐藏品牌区域（Logo + 品牌名 + 副标题），
-   只保留切换按钮和对话标题 */
-body.small-screen-mode .main-brand-area {
-    display: none !important;
+/* 超小屏（手机竖屏）模式下主栏隐藏品牌区域（Logo + 品牌名 + 副标题），
+   只保留切换按钮和对话标题；
+   中屏（481~920px）时 main-brand-area 内只放一个 32×32 logo，由 JS 控制 */
+@media (max-width: 480px) {
+    body.small-screen-mode .main-brand-area {
+        display: none !important;
+    }
 }
 
 body.small-screen-mode .sidebar-close-btn {
@@ -159,5 +162,10 @@ body.small-screen-mode .new-chat-label {
     }
     .tick-nav .tick {
         padding: 6px 4px;
+    }
+
+    /* 超小屏（手机竖屏）下 main-header 中不显示紧凑 logo */
+    body.small-screen-mode .brand-logo-compact {
+        display: none !important;
     }
 }
