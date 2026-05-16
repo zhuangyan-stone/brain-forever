@@ -60,17 +60,13 @@ func truncateTitle(s string) string {
 	var result []rune
 	space := false
 	for _, r := range runes {
-		if r == '\n' || r == '\r' || r == '\t' {
+		switch r {
+		case '\n', '\r', '\t', ' ':
 			if !space {
 				result = append(result, ' ')
 				space = true
 			}
-		} else if r == ' ' {
-			if !space {
-				result = append(result, ' ')
-				space = true
-			}
-		} else {
+		default:
 			result = append(result, r)
 			space = false
 		}
