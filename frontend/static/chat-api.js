@@ -97,6 +97,16 @@ export async function fetchSessionTitle(originalTitle) {
                         // 用户取消：不做任何修改，状态保持当前值
                         // 下一轮仍可继续尝试推荐
                     },
+                    onReject: async (newTitle) => {
+                        // 用户点击"无需推荐"：将标题状态标记为用户修改（2），
+                        // 这样后续 fetchSessionTitle 检测到 state.titleState >= TITLE_STATE.AI
+                        // 就不会再请求推荐标题了
+                        state.titleState = TITLE_STATE.USER;
+                        // 同步到后端：用原标题 PUT 保存，标记为用户修改
+                        // 这样后端也会记住这个状态，刷新页面后不再推荐
+                        const currentTitle = document.querySelector('.header-title')?.textContent || newTitle;
+                        await putSessionTitle(currentTitle, TITLE_STATE.USER);
+                    },
                 }
             );
         }

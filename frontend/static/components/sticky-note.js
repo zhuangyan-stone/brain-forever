@@ -141,10 +141,11 @@ function restoreNote(note) {
  * @param {object} [options] - 可选配置
  * @param {function} [options.onApply] - 应用标题的回调（定时到点或用户点击"试试"时调用），参数为 title
  * @param {function} [options.onDismiss] - 用户取消时的回调，参数为 title
+ * @param {function} [options.onReject] - 用户点击"无需推荐"时的回调，参数为 title
  * @returns {HTMLElement} 创建的便利贴 DOM 元素
  */
 export function showStickyNote(message, title, options = {}) {
-    const { onApply, onDismiss } = options;
+    const { onApply, onDismiss, onReject } = options;
 
     const ctn = getContainer();
 
@@ -221,6 +222,30 @@ export function showStickyNote(message, title, options = {}) {
     // 按钮行
     const actionsEl = document.createElement('div');
     actionsEl.className = 'sticky-note-actions';
+
+    // "无需推荐" 按钮（红色警告色，放在最左边）
+    const rejectBtn = document.createElement('button');
+    rejectBtn.className = 'sticky-note-btn sticky-note-btn-reject';
+    rejectBtn.textContent = '无需推荐';
+    rejectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // 取消定时器
+        clearInterval(progressInterval);
+        clearTimeout(autoAcceptTimer);
+        // 离场动画后移除
+        note.classList.add('leaving');
+        note.addEventListener('animationend', () => {
+            note.remove();
+            if (ctn.children.length === 0) {
+                ctn.remove();
+                container = null;
+            }
+        }, { once: true });
+        if (typeof onReject === 'function') {
+            onReject(title);
+        }
+    });
+    actionsEl.appendChild(rejectBtn);
 
     // "✗ 不要" 按钮
     const dismissBtn = document.createElement('button');

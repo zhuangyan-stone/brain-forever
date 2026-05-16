@@ -12,8 +12,8 @@
     flex-direction: column;
     gap: 12px;
     pointer-events: none; /* 容器本身不拦截事件，让内部元素处理 */
-    max-width: 280px;
-    min-width: 220px;
+    max-width: 320px;
+    min-width: 260px;
     /* right 值由 JS 动态计算，以在右侧空白区域居中 */
 }
 
@@ -263,19 +263,20 @@
 /* 按钮行 */
 .sticky-note-actions {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 /* 按钮通用样式 — 参考"深度思考"按钮风格 */
 .sticky-note-btn {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 14px;
+    gap: 4px;
+    padding: 4px 10px;
     border-radius: 999px;       /* 大圆角，与 toggle-btn 一致 */
     border: 1.5px solid var(--border);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-family: inherit;
     font-weight: 500;
     cursor: pointer;
@@ -283,6 +284,7 @@
     user-select: none;
     background: transparent;
     color: var(--text-secondary);
+    white-space: nowrap;
 }
 
 .sticky-note-btn:hover {
@@ -311,6 +313,21 @@
     background: var(--bg-secondary);
     border-color: var(--text-muted);
     color: var(--text-primary);
+}
+
+/* "无需推荐" 按钮 — 红色警告色，靠左对齐 */
+/* 复用 theme.css 中定义的 --error-* 主题变量，自动适配暗色/亮色主题 */
+.sticky-note-btn-reject {
+    background: var(--error-bg);
+    color: var(--error-text);
+    border-color: var(--error-border);
+    margin-right: auto;
+}
+
+.sticky-note-btn-reject:hover {
+    background: color-mix(in srgb, var(--error-text) 18%, transparent);
+    border-color: var(--error-text);
+    color: var(--error-text);
 }
 
 /* "就 它" 按钮 — 保留深度思考按钮选中背景 */
