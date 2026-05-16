@@ -62,18 +62,41 @@ func NewChatHandler(traitSearcher toolimp.TraitSearcher, webSearcher toolimp.Web
 	}
 }
 
+func makeAssistantBrokenMessage(lang string, id int64) Message {
+	brokenMsg := i18n.TL(lang, "assistant_broken_message")
+
+	return Message{
+		ID:        id,
+		Role:      "assistant",
+		Content:   brokenMsg,
+		CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+	}
+}
+
 // Enqueue a new message for request, assign an ID
-func appendNewRequestMessage(session *session, reqMsg *Message) {
+func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 	if reqMsg.ID != 0 {
 		panic(fmt.Sprintf("new request message's ID is not 0, but %d", reqMsg.ID))
 	}
 
+	var lastID int64 = 0
+
 	// Assign new ID if ID==0 (frontend no longer manages IDs)
 	if len(session.history) > 0 {
-		reqMsg.ID = session.history[len(session.history)-1].ID + 1
-	} else {
-		reqMsg.ID = 1
+		lastMsg := session.history[len(session.history)-1]
+		lastID = lastMsg.ID
+
+		// 这里还要检查，最后一个消息，是不是也是用户消息！
+		// 当AI在还在思考或回复过程中被“掐断”，我们就得不到助手消息，
+		//  于是最后一个消息将是用户消息
+		// 此时我们需要手工补充一个助手消息。
+		if lastMsg.Role == "user" {
+			assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
+			session.history = append(session.history, assistantMsg)
+		}
 	}
+
+	reqMsg.ID = lastID + 1
 
 	// Append to history
 	session.history = append(session.history, *reqMsg)
@@ -249,18 +272,18 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	session.mu.Lock()
 	defer session.mu.Unlock()
 
-	// 3. Add the message to the history and assign it a unique ID
-	appendNewRequestMessage(session, &req.Message)
-
-	if req.Message.ID <= 0 {
-		panic("new message's ID is zero still after append to history")
-	}
-
-	// 4. Determine the language for this request.
+	// 3. Determine the language for this request.
 	// Priority: request header Accept-Language > handler defaultLang > "en"
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
 		lang = h.defaultLang
+	}
+
+	// 4. Add the message to the history and assign it a unique ID
+	appendNewRequestMessage(session, &req.Message, lang)
+
+	if req.Message.ID <= 0 {
+		panic("new message's ID is zero still after append to history")
 	}
 
 	// 5. Create SSE writer

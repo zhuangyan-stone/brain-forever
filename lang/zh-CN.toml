@@ -32,5 +32,8 @@ other = "让我看一下当前时间……"
 [server_error]
 other = "哎呀！服务端出错啦！\n{{.Error}}"
 
+[assistant_broken_message]
+other = "AI 回复过程被强行中断，我将直接忽略用户上面的那个提问。"
+
 [session_title_system_prompt]
 other = "你是一个标题生成助手。下面我会提供一段对话内容，其中 A 代表用户（提问方），B 代表 AI 助手（回答方）。请根据对话内容，生成一个简洁、准确的标题，长度严格控制在20个汉字以内。直接输出标题即可，不要多余的解释。"
