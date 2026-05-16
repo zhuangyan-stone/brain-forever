@@ -157,47 +157,42 @@ function handleSSEEvent(event, assistantBubble) {
     }
 }
 
+// ============================================================
+// 辅助函数 — 发送前准备
+// ============================================================
+
 /**
- * sendMessage 发送用户消息并启动 SSE 流式接收
+ * 删除欢迎消息，将输入区域移回 main-content 底部
+ * @param {HTMLElement} chatContainer
  */
-export async function sendMessage() {
-    const messageInput = document.getElementById('messageInput');
-    const chatContainer = document.getElementById('chatContainer');
-    const content = messageInput.value.trim();
-    if (!content || state.isStreaming) return;
-
-    // 清空输入框
-    messageInput.value = '';
-    messageInput.style.height = 'auto';
-
-    // 删除欢迎消息（用户发出第一条消息时）
+function removeWelcomeMessage(chatContainer) {
     const welcomeEl = chatContainer.querySelector('.welcome-message');
-    if (welcomeEl) {
-        // 将输入区域移回 main-content 底部（其原始位置）
-        const inputArea = welcomeEl.querySelector('.input-area');
-        if (inputArea) {
-            const mainContent = document.querySelector('.main-content');
-            if (mainContent) {
-                mainContent.appendChild(inputArea);
-            }
-        }
-        welcomeEl.remove();
-        // 移除欢迎状态标记
-        const scrollContainer = document.getElementById('scrollContainer');
-        if (scrollContainer) {
-            scrollContainer.classList.remove('welcome-state');
+    if (!welcomeEl) return;
+
+    const inputArea = welcomeEl.querySelector('.input-area');
+    if (inputArea) {
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.appendChild(inputArea);
         }
     }
+    welcomeEl.remove();
 
-    // 生成 UTC 时间
-    const createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'); // UTC, e.g. "2026-05-02T16:30:00Z"
+    const scrollContainer = document.getElementById('scrollContainer');
+    if (scrollContainer) {
+        scrollContainer.classList.remove('welcome-state');
+    }
+}
 
-    // 添加用户消息到界面（ID 由后端分配，先传 0）
-    const userDiv = addMessage('user', content);
-    const userEntry = { role: 'user', content, id: 0, created_at: createdAt };
-    state.messages.push(userEntry);
+/**
+ * 添加用户消息到界面和状态，首次消息自动设置标题
+ * @param {string} content
+ * @param {string} createdAt  ISO 格式时间戳
+ */
+function addUserMessage(content, createdAt) {
+    addMessage('user', content);
+    state.messages.push({ role: 'user', content, id: 0, created_at: createdAt });
 
-    // 如果当前没有标题（新对话首次发送消息），从第一条用户消息截取标题
     if (!state.dialogTitle) {
         const title = truncateTitle(content);
         if (title) {
@@ -205,6 +200,40 @@ export async function sendMessage() {
             state.titleState = TITLE_STATE.ORIGINAL;
         }
     }
+}
+
+/**
+ * 启用中断按钮
+ */
+function enableStopButton() {
+    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
+    if (stopStreamingBtn) {
+        stopStreamingBtn.disabled = false;
+    }
+}
+
+/**
+ * 发送前准备：验证输入、清理 UI、初始化状态
+ * @returns {{ content: string, createdAt: string, assistantBubble: HTMLElement } | null}
+ */
+function prepareChat() {
+    const messageInput = document.getElementById('messageInput');
+    const chatContainer = document.getElementById('chatContainer');
+    const content = messageInput.value.trim();
+    if (!content || state.isStreaming) return null;
+
+    // 清空输入框
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+
+    // 删除欢迎消息
+    removeWelcomeMessage(chatContainer);
+
+    // 生成 UTC 时间
+    const createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+    // 添加用户消息
+    addUserMessage(content, createdAt);
 
     // 更新刻度导航
     updateTickNav();
@@ -215,115 +244,230 @@ export async function sendMessage() {
     // 创建空的 assistant 消息占位
     const assistantBubble = addMessage('assistant', '', true);
     state.isStreaming = true;
-    // 禁用所有删除按钮（流式请求进行中禁止删除）
     updateDeleteButtons();
+
+    // 启用中断按钮
+    enableStopButton();
 
     // 创建 AbortController
     state.abortController = new AbortController();
 
-    try {
-        // 锁定本轮会话的深度思考状态（防止流式过程中用户乱点按钮导致状态漂移）
-        state.sessionDeepThinkingEnabled = state.deepThinkActive;
+    return { content, createdAt, assistantBubble };
+}
 
-        // 发送请求 — 只传用户最新的一句话，历史由后端维护
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: { id: 0, role: 'user', content: content, created_at: createdAt },
-                stream: true,
-                deep_think: state.deepThinkActive,
-                web_search_enabled: state.webSearchActive
-            }),
-            signal: state.abortController.signal
-        });
+// ============================================================
+// 辅助函数 — SSE 流读取
+// ============================================================
 
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`服务器错误 [${response.status}]: ${errText}`);
-        }
+/**
+ * 读取 SSE 流数据，按行解析并分发事件
+ * @param {Response} response
+ * @param {HTMLElement} assistantBubble
+ */
+async function readSSEBuffer(response, assistantBubble) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
 
-        // 读取 SSE 流
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        buffer += decoder.decode(value, { stream: true });
 
-            buffer += decoder.decode(value, { stream: true });
+        // 按行分割
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // 保留未完成的行
 
-            // 按行分割
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || ''; // 保留未完成的行
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data: ')) continue;
 
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-                const jsonStr = trimmed.slice(6);
-                try {
-                    const event = JSON.parse(jsonStr);
-                    handleSSEEvent(event, assistantBubble);
-                } catch (e) {
-                    console.warn('解析 SSE 事件失败:', jsonStr);
-                }
-            }
-        }
-
-        // 处理 buffer 中剩余的数据
-        if (buffer.trim().startsWith('data: ')) {
-            const jsonStr = buffer.trim().slice(6);
+            const jsonStr = trimmed.slice(6);
             try {
                 const event = JSON.parse(jsonStr);
                 handleSSEEvent(event, assistantBubble);
             } catch (e) {
-                console.warn('解析剩余 SSE 事件失败:', jsonStr);
+                console.warn('解析 SSE 事件失败:', jsonStr);
             }
         }
+    }
 
-    } catch (err) {
-        if (err.name === 'AbortError') {
-            // 请求已取消，不做处理
-        } else {
-            console.error('请求失败:', err);
-            showError(assistantBubble, err.message);
+    // 处理 buffer 中剩余的数据
+    if (buffer.trim().startsWith('data: ')) {
+        const jsonStr = buffer.trim().slice(6);
+        try {
+            const event = JSON.parse(jsonStr);
+            handleSSEEvent(event, assistantBubble);
+        } catch (e) {
+            console.warn('解析剩余 SSE 事件失败:', jsonStr);
         }
-    } finally {
-        state.isStreaming = false;
-        state.abortController = null;
-        setInputEnabled(true);
-        updateDeleteButtons();
-        messageInput.focus();
+    }
+}
 
-        // 移除 streaming 类
-        const contentDiv = assistantBubble.querySelector('.bubble');
-        if (contentDiv) {
-            contentDiv.classList.remove('streaming');
+/**
+ * 发起 fetch 请求并读取 SSE 流
+ * @param {HTMLElement} assistantBubble
+ * @param {string} content
+ * @param {string} createdAt
+ */
+async function fetchStream(assistantBubble, content, createdAt) {
+    // 锁定本轮会话的深度思考状态（防止流式过程中用户乱点按钮导致状态漂移）
+    state.sessionDeepThinkingEnabled = state.deepThinkActive;
+
+    // 发送请求 — 只传用户最新的一句话，历史由后端维护
+    const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message: { id: 0, role: 'user', content, created_at: createdAt },
+            stream: true,
+            deep_think: state.deepThinkActive,
+            web_search_enabled: state.webSearchActive
+        }),
+        signal: state.abortController.signal
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`服务器错误 [${response.status}]: ${errText}`);
+    }
+
+    await readSSEBuffer(response, assistantBubble);
+}
+
+// ============================================================
+// 辅助函数 — 错误处理
+// ============================================================
+
+/**
+ * 处理 AbortError：更新 reasoning 区域状态，空气泡显示中断提示
+ * @param {HTMLElement} assistantBubble
+ */
+function handleAbortError(assistantBubble) {
+    // 请求已取消：将 reasoning 标题改为"AI 思路已被掐断"
+    const area = assistantBubble.querySelector('.reasoning-area.active');
+    if (area) {
+        const titleEl = area.querySelector('.reasoning-title');
+        if (titleEl) {
+            titleEl.textContent = 'AI 思路已被掐断';
         }
-
-        // 清理渲染状态（防止取消请求后定时器残留）
-        resetStreamingState();
-
-        // 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
-        const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
+        area.classList.remove('active');
+        area.classList.add('done');
+        // 清理 reasoning 节流渲染定时器
+        const reasoningContentEl = area.querySelector('.reasoning-content');
         if (reasoningContentEl && reasoningContentEl.renderTimer) {
             clearTimeout(reasoningContentEl.renderTimer);
             reasoningContentEl.renderTimer = null;
         }
+    }
+    // 如果 assistant 气泡为空（尚未收到任何 text 事件），显示中断提示
+    const contentDiv = assistantBubble.querySelector('.bubble');
+    if (contentDiv && !contentDiv.textContent.trim()) {
+        contentDiv.innerHTML = '⏹ 已中断';
+        contentDiv.classList.remove('streaming');
+        assistantBubble.classList.add('interrupted');
+    }
+}
 
-        // ---- 标题自动修改逻辑 ----
-        // 条件：标题未被用户手动修改（titleState !== 2），且对话未超过 3 轮
-        // 一轮指一对 user+assistant 消息，所以消息总数 ≤ 6 即不超过 3 轮
-        // 前三轮每次 AI 回复后都尝试优化标题，让 AI 基于更多对话内容生成更准确的标题
-        if (state.titleState !== TITLE_STATE.USER && state.messages.length <= 6) {
-            // 原标题：使用当前已有的标题（可能是 AI 已修改过的），而不是重新从第一条消息截取
-            // 这样后端可以基于当前标题判断是否需要更新
-            // 如果 dialogTitle 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
-            const originalTitle = state.dialogTitle || '';
-            // 异步调用，不阻塞后续操作
-            fetchSessionTitle(originalTitle);
-        }
+/**
+ * 处理流式请求错误
+ * @param {Error} err
+ * @param {HTMLElement} assistantBubble
+ */
+function handleStreamError(err, assistantBubble) {
+    if (err.name === 'AbortError') {
+        // 标记为中断，cleanupAfterStream 据此跳过标题自动修改等操作
+        state._wasAborted = true;
+        handleAbortError(assistantBubble);
+    } else {
+        console.error('请求失败:', err);
+        showError(assistantBubble, err.message);
+    }
+}
+
+// ============================================================
+// 辅助函数 — 流结束清理
+// ============================================================
+
+/**
+ * 标题自动修改：前三轮每次 AI 回复后尝试优化标题
+ * @param {boolean} wasAborted  是否被用户中断
+ */
+function autoUpdateTitle(wasAborted) {
+    // 条件：
+    //   - 未被中断（AI 回复被掐断时不取标题，因为回复不完整）
+    //   - 标题未被用户手动修改（titleState !== 2）
+    //   - 对话未超过 3 轮（一轮指一对 user+assistant 消息，消息总数 ≤ 6）
+    // 前三轮每次 AI 回复后都尝试优化标题，让 AI 基于更多对话内容生成更准确的标题
+    if (wasAborted || state.titleState === TITLE_STATE.USER || state.messages.length > 6) return;
+
+    // 原标题：使用当前已有的标题（可能是 AI 已修改过的），而不是重新从第一条消息截取
+    // 这样后端可以基于当前标题判断是否需要更新
+    // 如果 dialogTitle 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
+    const originalTitle = state.dialogTitle || '';
+    // 异步调用，不阻塞后续操作
+    fetchSessionTitle(originalTitle);
+}
+
+/**
+ * 流结束清理：重置状态、恢复 UI、清理定时器、自动修改标题
+ * @param {HTMLElement} assistantBubble
+ * @param {boolean} wasAborted  是否被用户中断
+ */
+function cleanupAfterStream(assistantBubble, wasAborted) {
+    // 清理中断标记（默认 false，确保每次 sendMessage 调用都有干净的初始值）
+    state._wasAborted = false;
+    state.isStreaming = false;
+    state.abortController = null;
+    setInputEnabled(true);
+    updateDeleteButtons();
+    document.getElementById('messageInput').focus();
+
+    // 流式结束：禁用中断按钮（变为灰色）
+    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
+    if (stopStreamingBtn) {
+        stopStreamingBtn.disabled = true;
+    }
+
+    // 移除 streaming 类
+    const contentDiv = assistantBubble.querySelector('.bubble');
+    if (contentDiv) {
+        contentDiv.classList.remove('streaming');
+    }
+
+    // 清理渲染状态（防止取消请求后定时器残留）
+    resetStreamingState();
+
+    // 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
+    const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
+    if (reasoningContentEl && reasoningContentEl.renderTimer) {
+        clearTimeout(reasoningContentEl.renderTimer);
+        reasoningContentEl.renderTimer = null;
+    }
+
+    // 标题自动修改
+    autoUpdateTitle(wasAborted);
+}
+
+// ============================================================
+// 主入口
+// ============================================================
+
+/**
+ * sendMessage 发送用户消息并启动 SSE 流式接收
+ */
+export async function sendMessage() {
+    const chatData = prepareChat();
+    if (!chatData) return;
+
+    const { content, createdAt, assistantBubble } = chatData;
+
+    try {
+        await fetchStream(assistantBubble, content, createdAt);
+    } catch (err) {
+        handleStreamError(err, assistantBubble);
+    } finally {
+        cleanupAfterStream(assistantBubble, !!state._wasAborted);
     }
 }

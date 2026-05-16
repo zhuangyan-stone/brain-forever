@@ -1,11 +1,13 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
@@ -195,8 +197,13 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	newTitle := ""
 	titleChanged := false
 
-	// Call LLM (non-streaming)
-	resp, err := h.charLLMClient.Chat(r.Context(), messages)
+	// Call LLM (non-streaming) with a 50-second timeout.
+	// Title generation is a lightweight task; if it takes longer than 50s,
+	// the LLM is likely stuck in a thinking loop, so we time out and
+	// fall back to the original title.
+	titleCtx, titleCancel := context.WithTimeout(r.Context(), 50*time.Second)
+	defer titleCancel()
+	resp, err := h.charLLMClient.Chat(titleCtx, messages)
 
 	if err != nil {
 		log.Printf("Make char-llm client fail. %v", err)

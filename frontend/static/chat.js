@@ -669,7 +669,27 @@ messageInput.addEventListener('keydown', (e) => {
     }
 });
 
-sendBtn.addEventListener('click', sendMessage);
+// 发送按钮：流式输出中点击停止，否则发送消息
+sendBtn.addEventListener('click', () => {
+    if (state.isStreaming) {
+        // 正在流式输出：停止生成
+        if (state.abortController) {
+            state.abortController.abort();
+        }
+    } else {
+        sendMessage();
+    }
+});
+
+// 折叠状态下的中断按钮（输入框右侧红色方块）
+const stopStreamingBtn = document.getElementById('stopStreamingBtn');
+if (stopStreamingBtn) {
+    stopStreamingBtn.addEventListener('click', () => {
+        if (state.abortController) {
+            state.abortController.abort();
+        }
+    });
+}
 
 // 附件按钮 — 点击弹出文件选择框
 const attachBtn = document.getElementById('attachBtn');
@@ -734,6 +754,7 @@ window.addEventListener('DOMContentLoaded', restoreSession);
     const chatContainer = document.getElementById('scrollContainer');
     const inputArea = document.querySelector('.input-area');
     const messageInput = document.getElementById('messageInput');
+    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
 
     if (!chatContainer || !inputArea || !messageInput) return;
 
@@ -745,11 +766,16 @@ window.addEventListener('DOMContentLoaded', restoreSession);
 
     /**
      * 折叠输入面板（隐藏 send-mode-corner 和 input-footer）
+     * 折叠时始终显示中断按钮（非流式时 disabled 灰色，流式时红色可点击）
      */
     function collapseInputArea() {
         if (isCollapsed) return;
         isCollapsed = true;
         inputArea.classList.add('collapsed');
+        // 折叠时始终显示中断按钮，非流式时 disabled
+        if (stopStreamingBtn) {
+            stopStreamingBtn.disabled = !state.isStreaming;
+        }
     }
 
     /**
@@ -759,6 +785,10 @@ window.addEventListener('DOMContentLoaded', restoreSession);
         if (!isCollapsed) return;
         isCollapsed = false;
         inputArea.classList.remove('collapsed');
+        // 恢复时隐藏中断按钮
+        if (stopStreamingBtn) {
+            stopStreamingBtn.disabled = true;
+        }
     }
 
     // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----

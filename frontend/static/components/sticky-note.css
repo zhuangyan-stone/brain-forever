@@ -212,6 +212,7 @@
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    line-clamp: 3;               /* 标准属性，与 -webkit-line-clamp 配合实现兼容性 */
     overflow: hidden;
     padding: 6px 8px;
     margin: 6px 0 10px;

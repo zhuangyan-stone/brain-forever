@@ -143,6 +143,12 @@
                         autofocus
                     ></textarea>
                     <span class="newline-hint" id="newlineHint"></span>
+                    <!-- 折叠状态下的中断按钮（折叠时始终显示，非流式时 disabled 灰色） -->
+                    <button id="stopStreamingBtn" class="stop-streaming-btn" disabled data-tooltip="停止生成">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                            <rect x="6" y="6" width="12" height="12" rx="2"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="input-footer">
                     <div class="input-footer-left">
