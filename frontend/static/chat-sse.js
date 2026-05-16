@@ -397,10 +397,10 @@ function handleStreamError(err, assistantBubble) {
 function autoUpdateTitle(wasAborted) {
     // 条件：
     //   - 未被中断（AI 回复被掐断时不取标题，因为回复不完整）
-    //   - 标题未被用户手动修改（titleState !== 2）
+    //   - 标题未被修改过（titleState >= 1 表示已被 AI 或用户修改，不再请求）
     //   - 对话未超过 3 轮（一轮指一对 user+assistant 消息，消息总数 ≤ 6）
     // 前三轮每次 AI 回复后都尝试优化标题，让 AI 基于更多对话内容生成更准确的标题
-    if (wasAborted || state.titleState === TITLE_STATE.USER || state.messages.length > 6) return;
+    if (wasAborted || state.titleState >= TITLE_STATE.AI || state.messages.length > 6) return;
 
     // 原标题：使用当前已有的标题（可能是 AI 已修改过的），而不是重新从第一条消息截取
     // 这样后端可以基于当前标题判断是否需要更新

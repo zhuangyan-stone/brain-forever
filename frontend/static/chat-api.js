@@ -64,8 +64,9 @@ export function truncateTitle(s) {
  * @returns {Promise<void>}
  */
 export async function fetchSessionTitle(originalTitle) {
-    // 如果标题已被用户手动修改过（titleState === 2），不再覆盖
-    if (state.titleState === TITLE_STATE.USER) {
+    // 如果标题已被修改过（AI 修改或用户手动修改），不再请求
+    // 状态只能从低往高变（0→1, 0→2, 1→2），>= 1 即表示已非原始状态
+    if (state.titleState >= TITLE_STATE.AI) {
         return;
     }
 
