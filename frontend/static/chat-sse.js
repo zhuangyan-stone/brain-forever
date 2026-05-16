@@ -21,19 +21,19 @@ const TITLE_STATE = {
  * 异步调用后端 /api/session/title 接口，让 AI 为当前对话生成标题。
  *
  * 调用条件：
- *   - titleState === 0（原始标题）
+ *   - titleState !== 2（用户手动修改过的标题不再覆盖）
  *   - 对话未超过 3 轮（一轮指 AI 的一次成功回复）
  *
  * 调用结果：
  *   - 成功且标题改变 → titleState 改为 1（AI 修改）
- *   - 失败或标题未变 → titleState 保持 0，下一轮继续尝试
+ *   - 失败或标题未变 → titleState 保持当前值，下一轮继续尝试
  *
  * @param {string} originalTitle - 原标题（用户第一条消息的截取）
  * @returns {Promise<void>}
  */
 async function fetchSessionTitle(originalTitle) {
-    // 如果标题状态不是原始标题（已被 AI 或用户修改过），不再请求
-    if (state.titleState !== TITLE_STATE.ORIGINAL) {
+    // 如果标题已被用户手动修改过（titleState === 2），不再覆盖
+    if (state.titleState === TITLE_STATE.USER) {
         return;
     }
 
@@ -351,9 +351,10 @@ export async function sendMessage() {
         }
 
         // ---- 标题自动修改逻辑 ----
-        // 条件：标题状态为原始标题（0），且对话未超过 3 轮
+        // 条件：标题未被用户手动修改（titleState !== 2），且对话未超过 3 轮
         // 一轮指一对 user+assistant 消息，所以消息总数 ≤ 6 即不超过 3 轮
-        if (state.titleState === TITLE_STATE.ORIGINAL && state.messages.length <= 6) {
+        // 前三轮每次 AI 回复后都尝试优化标题，让 AI 基于更多对话内容生成更准确的标题
+        if (state.titleState !== TITLE_STATE.USER && state.messages.length <= 6) {
             // 原标题：用户的第一条消息内容（截取前 30 字）
             const firstUserMsg = state.messages.find(m => m.role === 'user');
             const originalTitle = firstUserMsg ? firstUserMsg.content.slice(0, 30) : '';
