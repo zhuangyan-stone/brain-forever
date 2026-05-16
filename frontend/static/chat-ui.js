@@ -4,11 +4,10 @@
 
 import { escapeHtml, truncate } from './toolsets.js';
 import { state } from './chat-state.js';
-import { addTitleToHistory, putSessionTitle } from './chat-api.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
 import { getDefaultFormatLabel } from './chat-copy.js';
-import { ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE, ICON_ARROW_UP_DOWN } from './svg_icons.js';
+import { ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE } from './svg_icons.js';
 
 'use strict';
 
@@ -353,7 +352,6 @@ export function showSources(sources, type) {
          * 构建单个 source 条目的 DOM 元素
          */
         function createSourceItem(src) {
-            console.log('[sources-panel] source item:', { title: src.title, content: src.content, publish_date: src.publish_date, url: src.url, site_name: src.site_name });
             const item = document.createElement('div');
             item.className = 'source-item';
 
@@ -377,7 +375,7 @@ export function showSources(sources, type) {
             let siteBadgeHtml = '';
             if (src.site_icon || src.site_name) {
                 const iconHtml = src.site_icon
-                    ? `<img class="source-site-icon" src="${escapeHtml(src.site_icon)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+                    ? `<img class="source-site-icon" src="${escapeHtml(src.site_icon)}" alt="" onerror="this.style.display='none'" decoding="async">`
                     : '';
                 const nameHtml = src.site_name
                     ? `<span class="source-site-name">${escapeHtml(src.site_name)}</span>`
@@ -453,173 +451,42 @@ function toggleSourcesSection(titleEl, bodyEl) {
 }
 
 /**
- * 标题下拉菜单的全局引用，用于关闭
- */
-let titleDropdownEl = null;
-
-/**
- * 关闭标题下拉菜单
- */
-function closeTitleDropdown() {
-    if (titleDropdownEl) {
-        titleDropdownEl.remove();
-        titleDropdownEl = null;
-    }
-}
-
-/**
- * 切换标题下拉菜单的显示/隐藏
- */
-function toggleTitleDropdown() {
-    // 如果菜单已打开，关闭它
-    if (titleDropdownEl) {
-        closeTitleDropdown();
-        return;
-    }
-
-    const titleHistory = state.titleHistory;
-    if (titleHistory.length < 2) return;
-
-    const headerTitle = document.getElementById('headerTitle');
-    if (!headerTitle) return;
-
-    // 创建下拉菜单
-    const dropdown = document.createElement('div');
-    dropdown.className = 'title-dropdown';
-    dropdown.setAttribute('role', 'menu');
-
-    // 添加所有标题项
-    titleHistory.forEach(t => {
-        const item = document.createElement('div');
-        item.className = 'title-dropdown-item';
-        item.setAttribute('role', 'menuitem');
-
-        // 当前标题前面打勾
-        const isCurrent = t === state.dialogTitle;
-        item.innerHTML = isCurrent
-            ? '<span class="title-dropdown-check">✓</span> ' + escapeHtml(t)
-            : '<span class="title-dropdown-check"></span> ' + escapeHtml(t);
-
-        if (isCurrent) {
-            item.classList.add('title-dropdown-item-current');
-        }
-
-        // 点击切换标题
-        item.addEventListener('click', async () => {
-            if (t === state.dialogTitle) {
-                closeTitleDropdown();
-                return;
-            }
-            // 先关闭菜单
-            closeTitleDropdown();
-            // 向后端发送 PUT 请求更新标题
-            const ok = await putSessionTitle(t);
-            if (ok) {
-                // 更新本地标题
-                updateHeaderTitle(t);
-            }
-        });
-
-        dropdown.appendChild(item);
-    });
-
-    // 定位下拉菜单：在 headerTitle 下方
-    const rect = headerTitle.getBoundingClientRect();
-    dropdown.style.position = 'fixed';
-    dropdown.style.top = (rect.bottom + 4) + 'px';
-    dropdown.style.left = rect.left + 'px';
-    dropdown.style.minWidth = Math.max(rect.width, 180) + 'px';
-
-    document.body.appendChild(dropdown);
-    titleDropdownEl = dropdown;
-
-    // 点击外部关闭
-    setTimeout(() => {
-        document.addEventListener('click', onDocClickForDropdown);
-    }, 0);
-}
-
-/**
- * 文档点击关闭下拉菜单
- */
-function onDocClickForDropdown(e) {
-    if (titleDropdownEl && !titleDropdownEl.contains(e.target)) {
-        closeTitleDropdown();
-        document.removeEventListener('click', onDocClickForDropdown);
-    }
-}
-
-/**
- * 创建标题下拉按钮（三个小点）
- * @returns {HTMLElement|null}
- *
- * 【注意】Ubuntu + Edge 下浏览器原生 title tooltip 会触发整个窗口闪烁，
- * 暂时注释掉此功能以绕过该浏览器 bug。
- */
-function createTitleDropdownBtn() {
-    return null;
-    // const titleHistory = state.titleHistory;
-    // if (titleHistory.length < 2) return null;
-    //
-    // const btn = document.createElement('button');
-    // btn.className = 'title-dropdown-btn';
-    // btn.title = '切换对话标题';
-    // btn.innerHTML = '<svg class="title-arrow-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_ARROW_UP_DOWN + '</svg>';
-    // btn.addEventListener('click', (e) => {
-    //     e.stopPropagation();
-    //     toggleTitleDropdown();
-    // });
-    // return btn;
-}
-
-/**
- * 更新标题下拉按钮的显示状态（根据 titleHistory 长度）
- *
- * 【注意】Ubuntu + Edge 下浏览器原生 title tooltip 会触发整个窗口闪烁，
- * 暂时注释掉此功能以绕过该浏览器 bug。
- */
-function updateTitleDropdownBtn() {
-    // 功能已暂时禁用，参见 createTitleDropdownBtn()
-    // const existingBtn = document.querySelector('.title-dropdown-btn');
-    // const headerTitle = document.getElementById('headerTitle');
-    // if (!headerTitle) return;
-    //
-    // const titleHistory = state.titleHistory;
-    // if (titleHistory.length >= 2) {
-    //     if (!existingBtn) {
-    //         const btn = createTitleDropdownBtn();
-    //         if (btn) {
-    //             headerTitle.insertAdjacentElement('afterend', btn);
-    //         }
-    //     }
-    // } else {
-    //     if (existingBtn) {
-    //         existingBtn.remove();
-    //     }
-    //     // 如果菜单打开，关闭它
-    //     closeTitleDropdown();
-    // }
-}
-
-/**
  * updateHeaderTitle 更新 header 左侧的对话标题
  * @param {string} title
  */
 export function updateHeaderTitle(title) {
     const el = document.getElementById('headerTitle');
     if (el) {
-        el.textContent = title;
-    }
-    // 标题有变化时记录到历史
-    if (title !== state.dialogTitle) {
-        addTitleToHistory(title);
+        // 标题有变化时触发滑动动画
+        if (title !== el.textContent) {
+            // 移除动画类以重置动画
+            el.classList.remove('animate');
+            // 强制回流以重新触发动画
+            void el.offsetWidth;
+            el.textContent = title;
+            el.classList.add('animate');
+        } else {
+            el.textContent = title;
+        }
     }
     state.dialogTitle = title;
 
-    // 更新下拉按钮的显示状态
-    // 【注意】Ubuntu + Edge 下浏览器原生 title tooltip 会触发整个窗口闪烁，
-    // 暂时注释掉此功能以绕过该浏览器 bug。
-    // updateTitleDropdownBtn();
+    // 标题历史记录个数 > 1 时，添加可点击样式
+    updateTitleHistoryStyle();
+}
+
+/**
+ * updateTitleHistoryStyle 根据标题历史记录个数更新标题样式
+ * 当历史记录个数 > 1 时，添加 border-bottom、padding-bottom 和 cursor:pointer，
+ * 并设置 tooltip 提示"点击可修改"。
+ */
+export function updateTitleHistoryStyle() {
+    const el = document.getElementById('headerTitle');
+    if (!el) return;
+
+    // 标题始终可点击修改
+    el.classList.add('has-history');
+    el.setAttribute('data-tooltip', '点击可修改');
 }
 
 /**

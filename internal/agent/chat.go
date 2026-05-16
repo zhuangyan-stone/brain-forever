@@ -138,11 +138,10 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 // takes the first 5 messages from the session history,
 // sends them to the LLM to generate a new concise title,
 // and returns the new title as JSON. On error or empty LLM response, returns the original title.
-// The generated title is also saved to session.Title so that subsequent page refreshes
-// (OnRestoreSession) will use the saved title instead of re-deriving it.
-// The title_state is also returned to indicate the title modification state:
 //
-//	0: original title, 1: AI-modified title, 2: user-modified title.
+// NOTE: This handler does NOT save the generated title to the session.
+// The title is only saved when the user explicitly accepts it via PUT /api/session/title.
+// This ensures the backend does not modify session state before user confirmation.
 func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	// Only accept GET
 	if r.Method != http.MethodGet {
@@ -215,11 +214,8 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 		newTitle = originalTitle
 	}
 
-	// Only update session title and state if the new title differs from the original
+	// Determine if the title changed (for the response only, no session mutation)
 	if newTitle != originalTitle {
-		session.SetTitle(newTitle)
-		// State can only move forward: 0→1 (AI-modified)
-		session.SetTitleState(TitleStateAIModified)
 		titleChanged = true
 	}
 

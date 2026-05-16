@@ -4,6 +4,7 @@
 
 import { state } from './chat-state.js';
 import { updateHeaderTitle } from './chat-ui.js';
+import { showStickyNote } from './components/sticky-note.js';
 
 /**
  * 标题修改状态常量
@@ -78,10 +79,25 @@ export async function fetchSessionTitle(originalTitle) {
             if (state.titleState === TITLE_STATE.USER) {
                 return;
             }
-            // AI 成功生成了新标题，更新标题和状态
-            updateHeaderTitle(data.title);
-            // 状态从 0 → 1（AI 修改）
-            state.titleState = TITLE_STATE.AI;
+
+            // ---- 显示便利贴让用户选择 ----
+            showStickyNote(
+                'AI 推荐标题',
+                data.title,
+                {
+                    onApply: async (newTitle) => {
+                        // 定时到点或用户点击"试试"：更新标题，标记为 AI 修改
+                        updateHeaderTitle(newTitle);
+                        state.titleState = TITLE_STATE.AI;
+                        // 同步到后端：用户已确认接受，调用 PUT 保存，标记为机改
+                        await putSessionTitle(newTitle, TITLE_STATE.AI);
+                    },
+                    onDismiss: (newTitle) => {
+                        // 用户取消：不做任何修改，状态保持当前值
+                        // 下一轮仍可继续尝试推荐
+                    },
+                }
+            );
         }
         // 如果 changed === false（标题未变或出错），状态保持当前值，下一轮继续尝试
     } catch (e) {
@@ -91,41 +107,26 @@ export async function fetchSessionTitle(originalTitle) {
 }
 
 /**
- * addTitleToHistory 将标题添加到历史记录中。
- * 添加前会循环检查是否与已有标题重复，不重复才添加。
- * 每当标题有变化时调用此函数。
- *
- * @param {string} title - 要添加的标题
- */
-export function addTitleToHistory(title) {
-	if (!title) return;
-	// 循环检查是否与已有标题重复
-	for (const t of state.titleHistory) {
-		if (t === title) {
-			return; // 重复，不添加
-		}
-	}
-	state.titleHistory.push(title);
-}
-
-/**
  * putSessionTitle 向后端发送 PUT 请求更新 session 标题。
- * 成功后标记 titleState 为用户修改（2），并更新本地标题。
+ * 成功后标记 titleState 为指定状态，并更新本地标题。
  * @param {string} title - 新标题
+ * @param {number} [titleState=TITLE_STATE.USER] - 标题修改状态，默认用户修改（2）
  * @returns {Promise<boolean>} 是否成功
  */
-export async function putSessionTitle(title) {
+export async function putSessionTitle(title, titleState = TITLE_STATE.USER) {
 	if (!title) return false;
 	try {
-		const response = await fetch('/api/session/title?title=' + encodeURIComponent(title), {
+		const url = '/api/session/title?title=' + encodeURIComponent(title) +
+			'&state=' + encodeURIComponent(titleState);
+		const response = await fetch(url, {
 			method: 'PUT',
 		});
 		if (!response.ok) {
 			console.warn('更新标题失败:', response.status);
 			return false;
 		}
-		// 成功后标记为用户修改
-		state.titleState = TITLE_STATE.USER;
+		// 成功后标记为指定状态
+		state.titleState = titleState;
 		return true;
 	} catch (e) {
 		console.warn('更新标题出错:', e);

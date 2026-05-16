@@ -1,0 +1,129 @@
+/* ============================================================
+    脑力永恒 AI 助手 — 对话框公共样式
+    ============================================================
+    所有模态对话框共享的基础样式。
+    依赖：theme.css（主题变量）
+    各对话框的专有样式放在各自的 CSS 文件中。
+    ============================================================ */
+
+/* ---- 遮罩层 ---- */
+.dialog-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog-overlay.show {
+    display: flex;
+}
+
+/* ---- 对话框容器 ---- */
+.dialog-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 480px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px var(--shadow);
+    animation: fadeIn 0.2s ease;
+}
+
+/* ---- 头部 ---- */
+.dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.dialog-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.dialog-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.dialog-close-btn:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+/* ---- 内容区 ---- */
+.dialog-body {
+    padding: 16px 20px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.dialog-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dialog-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dialog-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+}
+
+/* ---- 底部按钮区 ---- */
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 20px 16px;
+}
+
+/* ---- 通用按钮 ---- */
+.dialog-btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: inherit;
+}
+
+.dialog-btn-cancel {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+}
+
+.dialog-btn-cancel:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+/* ---- 淡入动画 ---- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+}

@@ -133,9 +133,6 @@ export const state = {
     // 刻度滚动偏移量（0 表示从第一条开始显示）
     tickScrollOffset: 0,
 
-    // 当前会话的历史标题列表（按时间顺序，不重复）
-    titleHistory: [],
-
     // 发送模式状态: false = Enter发送/Shift+Enter换行, true = Enter换行/Shift+Enter发送
     // 由 UserSettings.sendMode 驱动（0→false, 1→true）
     sendModeAlternate: false,

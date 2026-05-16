@@ -31,11 +31,13 @@
     <link rel="stylesheet" href="/static/message.css">
     <link rel="stylesheet" href="/static/components/swipe-pager.css">
     <link rel="stylesheet" href="/static/components/sources-panel.css">
+    <link rel="stylesheet" href="/static/components/dialog.css">
     <link rel="stylesheet" href="/static/components/modal-overlay.css">
     <link rel="stylesheet" href="/static/responsive.css">
     <link rel="stylesheet" href="/static/components/toast.css">
     <link rel="stylesheet" href="/static/components/tick.css">
     <link rel="stylesheet" href="/static/components/tooltip.css">
+    <link rel="stylesheet" href="/static/components/sticky-note.css">
     <!-- highlight.js — 代码语法高亮（暗色主题） -->
     <!-- CDN 备用: https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css -->
     <link rel="stylesheet" href="/static/lib/styles/atom-one-dark.min.css" id="hljs-theme-dark" disabled>
@@ -52,7 +54,7 @@
     <script src="/static/lib/marked.min.js"></script>
     <!-- KaTeX — 数学公式渲染 -->
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="/static/lib/styles/katex.min.css">
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js -->
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
     <!-- marked-katex-extension — marked 的 KaTeX 扩展插件 -->
@@ -180,17 +182,17 @@
     <!-- Toast 消息容器 -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- 删除确认模态框 -->
-    <div class="modal-overlay" id="deleteModal">
-        <div class="modal-box">
-            <div class="modal-header">
+    <!-- 删除确认对话框 -->
+    <div class="dialog-overlay" id="deleteModal">
+        <div class="dialog-box">
+            <div class="dialog-header">
                 <h3 id="modalTitle">是否删除以下对话？</h3>
-                <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+                <button class="dialog-close-btn" id="modalCloseBtn">&times;</button>
             </div>
-            <div class="modal-body" id="modalBody"></div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-cancel" id="modalCancelBtn">取消</button>
-                <button class="modal-btn modal-btn-delete" id="modalConfirmBtn">确认删除</button>
+            <div class="dialog-body" id="modalBody"></div>
+            <div class="dialog-footer">
+                <button class="dialog-btn dialog-btn-cancel" id="modalCancelBtn">取消</button>
+                <button class="dialog-btn dialog-btn-delete" id="modalConfirmBtn">确认删除</button>
             </div>
         </div>
     </div>

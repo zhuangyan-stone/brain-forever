@@ -1,0 +1,331 @@
+/* ============================================================
+   sticky-note.css — 便利贴式标题推荐组件
+   固定在右侧空白区域居中显示
+   ============================================================ */
+
+/* 便利贴容器 — 固定在右侧空白区域居中 */
+.sticky-note-container {
+    position: fixed;
+    top: 88px;           /* 从 header 下方开始 */
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none; /* 容器本身不拦截事件，让内部元素处理 */
+    max-width: 280px;
+    min-width: 220px;
+    /* right 值由 JS 动态计算，以在右侧空白区域居中 */
+}
+
+/* 单张便利贴 */
+.sticky-note {
+    pointer-events: auto;  /* 便利贴本身可交互 */
+    background: var(--sticky-note-bg, #ffffff);
+    color: var(--sticky-note-text, #3e3e3e);
+    border-radius: 12px;
+    padding: 16px 16px 12px;
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    font-size: 1rem;
+    line-height: 1.5;
+    /* 便利贴轻微旋转效果 */
+    transform: rotate(-0.5deg);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, padding 0.3s ease;
+    /* 入场动画 */
+    animation: stickyNoteEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ========== 折叠状态 ========== */
+.sticky-note.collapsed {
+    padding: 10px 16px;
+    cursor: pointer;
+    transform: rotate(0deg);
+    box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.12),
+        0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.sticky-note.collapsed .sticky-note-message,
+.sticky-note.collapsed .sticky-note-title,
+.sticky-note.collapsed .sticky-note-actions,
+.sticky-note.collapsed .sticky-note-restore {
+    display: none;
+}
+
+.sticky-note.collapsed .sticky-note-collapsed-title {
+    display: block;
+}
+
+/* 折叠后只显示的标题行 */
+.sticky-note-collapsed-title {
+    display: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--sticky-note-text, #3e3e3e);
+    padding-right: 28px;  /* 为关闭按钮留空间 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+/* 折叠状态的入场动画 */
+@keyframes stickyNoteCollapse {
+    0% {
+        opacity: 1;
+        transform: rotate(-0.5deg) scale(1);
+        padding: 16px 16px 12px;
+    }
+    100% {
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
+        padding: 10px 16px;
+    }
+}
+
+.sticky-note.collapsing {
+    animation: stickyNoteCollapse 0.3s ease forwards;
+}
+
+/* 右上角关闭按钮（对称小叉 SVG） */
+.sticky-note-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--sticky-note-text, #3e3e3e);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.35;
+    transition: opacity 0.15s ease, background 0.15s ease;
+    padding: 0;
+    user-select: none;
+    z-index: 1;
+}
+
+.sticky-note-close:hover {
+    opacity: 0.7;
+    background: rgba(128, 128, 128, 0.12);
+}
+
+.sticky-note-close svg {
+    display: block;
+}
+
+/* ========== 恢复最大化按钮（方框图标） ========== */
+/* 默认隐藏，仅在折叠后才显示 */
+.sticky-note-restore {
+    display: none;
+    position: absolute;
+    top: 6px;
+    right: 34px;          /* 紧挨在关闭按钮左边 */
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--sticky-note-text, #3e3e3e);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.35;
+    transition: opacity 0.15s ease, background 0.15s ease;
+    padding: 0;
+    user-select: none;
+    z-index: 1;
+}
+
+.sticky-note-restore:hover {
+    opacity: 0.7;
+    background: rgba(128, 128, 128, 0.12);
+}
+
+.sticky-note-restore svg {
+    display: block;
+}
+
+/* 折叠后显示恢复按钮 */
+.sticky-note.collapsed .sticky-note-restore {
+    display: flex;
+}
+
+/* 暗色主题下的便利贴 */
+[data-theme="dark"] .sticky-note {
+    --sticky-note-bg: #2d2d2d;
+    --sticky-note-text: #d4d4d4;
+}
+
+/* 亮色主题下的便利贴 */
+[data-theme="light"] .sticky-note {
+    --sticky-note-bg: #ffffff;
+    --sticky-note-text: #3e3e3e;
+}
+
+/* 入场动画：从右侧滑入并轻微旋转 */
+@keyframes stickyNoteEnter {
+    0% {
+        opacity: 0;
+        transform: translateX(40px) rotate(-1deg);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) rotate(-0.5deg);
+    }
+}
+
+/* 离场动画 */
+@keyframes stickyNoteLeave {
+    0% {
+        opacity: 1;
+        transform: translateX(0) rotate(-0.5deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(60px) rotate(-2deg);
+    }
+}
+
+.sticky-note.leaving {
+    animation: stickyNoteLeave 0.25s ease-in forwards;
+}
+
+/* 便利贴标题（推荐消息） */
+.sticky-note-message {
+    margin-top: -8px;
+    margin-bottom: 10px;
+    font-weight: 500;
+    padding-right: 50px;  /* 为右上角关闭按钮+恢复按钮留出空间 */
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* 推荐的新标题 — 突出显示 */
+.sticky-note-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    padding: 6px 8px;
+    margin: 6px 0 10px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-left: 3px solid var(--accent, #57C3C3);
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+[data-theme="dark"] .sticky-note-title {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* 定时进度条 — 在 actions 区之上 */
+.sticky-note-progress {
+    height: 4px;
+    background: var(--border, #e0e0e0);
+    border-radius: 2px;
+    margin: 8px 0 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.sticky-note-progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #57C3C3, #3DA8A8);
+    transition: width 0.1s linear;
+}
+
+[data-theme="dark"] .sticky-note-progress {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .sticky-note-progress-fill {
+    background: linear-gradient(90deg, #57C3C3, #3DA8A8);
+}
+
+/* 折叠状态下隐藏进度条 */
+.sticky-note.collapsed .sticky-note-progress {
+    display: none;
+}
+
+/* 按钮行 */
+.sticky-note-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+}
+
+/* 按钮通用样式 — 参考"深度思考"按钮风格 */
+.sticky-note-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border-radius: 999px;       /* 大圆角，与 toggle-btn 一致 */
+    border: 1.5px solid var(--border);
+    font-size: 0.82rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.sticky-note-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.sticky-note-btn:active {
+    transform: scale(0.95);
+}
+
+/* "不 要" 按钮 — 白色背景 */
+.sticky-note-btn-dismiss {
+    background: #ffffff;
+    color: var(--text-secondary);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .sticky-note-btn-dismiss {
+    background: #2d2d2d;
+    color: var(--text-secondary);
+}
+
+.sticky-note-btn-dismiss:hover {
+    background: var(--bg-secondary);
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+/* "就 它" 按钮 — 保留深度思考按钮选中背景 */
+.sticky-note-btn-accept {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+}
+
+.sticky-note-btn-accept:hover {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    border-color: var(--accent-hover);
+    color: var(--accent-hover);
+}
+
+/* 小屏模式下隐藏便利贴 */
+body.small-screen-mode .sticky-note-container {
+    display: none;
+}

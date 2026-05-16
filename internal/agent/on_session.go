@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 // ============================================================
@@ -123,12 +124,16 @@ func (h *ChatAgent) OnNewSession(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// PutSessionTitle handler — PUT /api/session/title?title=XXX
+// PutSessionTitle handler — PUT /api/session/title?title=XXX&state=N
 // ============================================================
 
 // OnPutSessionTitle handles PUT /api/session/title — updates the session title
-// and marks the title state as user-modified.
-// Query parameter: title — the new title to set.
+// and marks the title state.
+// Query parameters:
+//
+//	title — the new title to set (required)
+//	state — title modification state: 0=original, 1=AI-modified, 2=user-modified (default: 2)
+//
 // Returns HTTP 200 on success.
 func (h *ChatAgent) OnPutSessionTitle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
@@ -143,14 +148,30 @@ func (h *ChatAgent) OnPutSessionTitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Read the optional state parameter (default: user-modified)
+	stateStr := r.URL.Query().Get("state")
+	titleState := TitleStateUserModified // default
+	if stateStr != "" {
+		if v, err := strconv.Atoi(stateStr); err == nil {
+			switch v {
+			case 0:
+				titleState = TitleStateOriginal
+			case 1:
+				titleState = TitleStateAIModified
+			case 2:
+				titleState = TitleStateUserModified
+			}
+		}
+	}
+
 	// Resolve sessionID from cookie
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	// Update the session title
 	session.SetTitle(newTitle)
-	// Mark as user-modified (state 2)
-	session.SetTitleState(TitleStateUserModified)
+	// Set the title state as specified
+	session.SetTitleState(titleState)
 
 	// Return simple 200 OK
 	w.Header().Set("Content-Type", "application/json")

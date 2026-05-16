@@ -155,6 +155,33 @@ body {
     user-select: none;
 }
 
+/* 标题历史记录个数 > 1 时，显示可点击样式 */
+.main-title.has-history {
+    border-bottom: 1px solid #000;
+    padding-bottom: 1px;
+    cursor: pointer;
+}
+
+/* 标题切换动画：从下往上滑动到中线位置往上一点，再回落 */
+@keyframes titleSlideBounce {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    50% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.main-title.animate {
+    animation: titleSlideBounce 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* 宽屏模式下，对话标题前加一个大大的左双引号 */
 body:not(.small-screen-mode) .main-title:not(:empty)::before {
     content: '\275D';
@@ -656,80 +683,3 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     overflow: hidden;
 }
 
-/* ============================================================
-    标题下拉菜单按钮（上下双箭头）
-    ============================================================ */
-
-.title-dropdown-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-    margin-left: 2px;
-    flex-shrink: 0;
-    transition: background 0.2s;
-    vertical-align: middle;
-    line-height: 1;
-}
-
-.title-dropdown-btn:hover {
-    background: var(--bg-secondary);
-}
-
-.title-arrow-icon {
-    display: block;
-    color: var(--text-secondary);
-}
-
-/* ============================================================
-    标题下拉菜单
-    ============================================================ */
-
-.title-dropdown {
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    padding: 4px 0;
-    z-index: 1000;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.title-dropdown-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: background 0.15s;
-}
-
-.title-dropdown-item:hover {
-    background: var(--bg-secondary);
-}
-
-.title-dropdown-item-current {
-    font-weight: 600;
-}
-
-.title-dropdown-check {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    flex-shrink: 0;
-    font-size: 0.8rem;
-    color: var(--accent);
-}

@@ -5,13 +5,14 @@
 
 import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
-import { initDom, dom, showWelcomeMessage } from './chat-ui.js';
+import { initDom, dom, showWelcomeMessage, updateTitleHistoryStyle } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './chat-delete.js';
 import { restoreSession } from './chat-session.js';
+import { clearAllStickyNotes } from './components/sticky-note.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE } from './svg_icons.js';
 
 'use strict';
@@ -141,7 +142,6 @@ async function startNewSession() {
         state.tickScrollOffset = 0;
         state.currentGroup = null;
         state.accumulatedMarkdown = '';
-        state.titleHistory = [];
         if (state.renderTimer) {
             clearTimeout(state.renderTimer);
             state.renderTimer = null;
@@ -182,7 +182,10 @@ async function startNewSession() {
             scrollContainer.classList.remove('welcome-state');
         }
 
-        // 6. 重新显示欢迎消息（会设置标题为"欢迎开始新对话"）
+        // 6. 清除所有便利贴（新会话不需要旧的标题推荐）
+        clearAllStickyNotes();
+
+        // 7. 重新显示欢迎消息（会设置标题为"欢迎开始新对话"）
         showWelcomeMessage();
     } catch (e) {
         console.error('创建新会话出错:', e);
@@ -692,6 +695,29 @@ fileInput.addEventListener('change', () => {
 // 初始化刻度导航事件绑定
 initTickNav();
 
+// ============================================================
+// 测试便利贴定位：点击对话标题弹出测试便利贴
+// ============================================================
+(async function initStickyNoteTest() {
+    const headerTitle = document.getElementById('headerTitle');
+    if (!headerTitle) return;
+    const { showStickyNote } = await import('./components/sticky-note.js');
+    headerTitle.addEventListener('click', () => {
+        showStickyNote(
+            '🧪 测试便利贴定位',
+            '这是一个测试用的推荐标题，用于验证右侧空白区域居中效果',
+            {
+                onAccept: (title) => {
+                    console.log('测试：接受了标题', title);
+                },
+                onDismiss: (title) => {
+                    console.log('测试：拒绝了标题', title);
+                },
+            }
+        );
+    });
+})();
+
 // 初始化复制按钮和消息操作按钮的事件委托
 initCopyHandlers();
 
@@ -701,7 +727,6 @@ initDeleteModal();
 // 页面加载后先恢复会话
 window.addEventListener('DOMContentLoaded', restoreSession);
 
-// ============================================================
 // 输入面板自动折叠 — 滚动刻度变化时折叠，聚焦/输入时恢复
 // ============================================================
 
