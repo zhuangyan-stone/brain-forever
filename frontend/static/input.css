@@ -352,6 +352,11 @@
     transition: padding 0.25s ease;
 }
 
+/* 折叠时隐藏换行提示 */
+.input-area.collapsed .newline-hint {
+    display: none;
+}
+
 .input-area.collapsed .message-input {
     max-height: 60px;
     font-size: 0.9rem;
