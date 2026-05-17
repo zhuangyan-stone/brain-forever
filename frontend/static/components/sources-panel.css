@@ -94,8 +94,13 @@
     border-left: 3px solid var(--accent);
 }
 
+[data-theme="dark"] .sources-panel .source-item {
+    background: rgba(255, 255, 255, 0.06);
+    color: #d4d4d4;
+}
+
 [data-theme="light"] .sources-panel .source-item {
-    background: rgba(25, 118, 210, 0.04);
+    background: #ffffff;
 }
 
 .sources-panel .source-item .source-title {
@@ -186,6 +191,10 @@
     -webkit-line-clamp: 3;
     line-clamp: 3;
     overflow: hidden;
+}
+
+[data-theme="dark"] .source-content-preview {
+    color: #b0b0b0 !important;
 }
 
 @media (max-width: 480px) {
