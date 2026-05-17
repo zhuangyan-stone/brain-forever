@@ -35,7 +35,7 @@ let resizeObserver = null;
 
 /**
  * 获取或创建便利贴容器 DOM 元素。
- * 容器使用 position:fixed 固定在页面右侧空白区域居中。
+ * 容器使用 position:fixed 右对齐到对话框（scrollContainer）右边沿。
  * @returns {HTMLElement}
  */
 function getContainer() {
@@ -70,35 +70,29 @@ function initPositionWatcher() {
 }
 
 /**
- * 更新便利贴容器的位置，使其在右侧空白区域居中。
- * 右侧空白区域 = .main-content 中 .scroll-container 右侧的空白。
+ * 更新便利贴容器的位置，使其右边缘位于 main-body 右边沿左侧 64px 处，
+ * 为右侧的刻度导航（tick-nav）留出刻度线和刻度值的显示空间。
  */
 function updatePosition() {
     if (!container) return;
-    const mainContent = document.querySelector('.main-content');
-    const scrollContainer = document.getElementById('scrollContainer');
-    if (!mainContent || !scrollContainer) {
+    const mainBody = document.querySelector('.main-body');
+    if (!mainBody) {
         // 兜底：固定在右侧
         container.style.right = '16px';
         container.style.transform = '';
         return;
     }
 
-    const mcRect = mainContent.getBoundingClientRect();
-    const scRect = scrollContainer.getBoundingClientRect();
-
-    // 右侧空白区域的中心点（相对于视口左边缘）
-    const rightBlankCenter = (scRect.right + mcRect.right) / 2;
-
-    // 视口宽度
+    const mbRect = mainBody.getBoundingClientRect();
     const vw = window.innerWidth;
 
-    // right 值 = 视口右边缘到右侧空白区域中心的距离
-    const rightVal = vw - rightBlankCenter;
+    // right 值 = 视口右边缘到 (main-body 右边沿 - 64px) 的距离
+    // 这样便利贴的右边缘就位于 main-body 右边沿左侧 64px 处
+    const rightVal = vw - (mbRect.right - 64);
 
     container.style.right = rightVal + 'px';
-    // 用 transform 将容器自身中心对齐到该点
-    container.style.transform = 'translateX(50%)';
+    // 移除旧的居中 transform
+    container.style.transform = '';
 }
 
 /**

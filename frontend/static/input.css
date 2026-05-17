@@ -341,7 +341,8 @@
 }
 
 .input-area.collapsed .send-mode-corner,
-.input-area.collapsed .input-footer {
+.input-area.collapsed .input-footer,
+.input-area.collapsed .newline-hint {
     display: none;
 }
 
