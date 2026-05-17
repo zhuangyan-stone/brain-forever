@@ -153,13 +153,16 @@ body {
     text-overflow: ellipsis;
     min-width: 0;
     user-select: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1px;
 }
 
-/* 标题历史记录个数 > 1 时，显示可点击样式 */
-.main-title.has-history {
-    border-bottom: 1px solid #000;
-    padding-bottom: 1px;
-    cursor: pointer;
+/* 对话标题下边框线：亮色主题用纯黑，暗色主题用纯白 */
+[data-theme="light"] .main-title {
+    border-bottom-color: var(--pure-black);
+}
+[data-theme="dark"] .main-title {
+    border-bottom-color: var(--pure-white);
 }
 
 /* 标题切换动画：从下往上滑动到中线位置往上一点，再回落 */
