@@ -496,6 +496,8 @@ export function showWelcomeMessage() {
     const inputArea = document.querySelector('.input-area');
     if (inputArea) {
         el.appendChild(inputArea);
+        // 欢迎状态必须显示完整输入面板，移除折叠状态
+        inputArea.classList.remove('collapsed');
     }
 
     // 标记欢迎状态（新布局下标记在 .scroll-container 上）

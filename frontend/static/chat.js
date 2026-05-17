@@ -214,6 +214,14 @@ async function startNewSession() {
 
         // 7. 重新显示欢迎消息（会设置标题为"欢迎开始新对话"）
         showWelcomeMessage();
+
+        // 8. 确保输入面板展开并同步内部折叠状态
+        //    showWelcomeMessage 中已移除 collapsed 类，但 IIFE 闭包中的 isCollapsed
+        //    变量可能仍为 true，通过触发 focus 事件让 restoreInputArea 同步状态
+        const msgInput = document.getElementById('messageInput');
+        if (msgInput) {
+            msgInput.focus();
+        }
     } catch (e) {
         console.error('创建新会话出错:', e);
     }
