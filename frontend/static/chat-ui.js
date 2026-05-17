@@ -478,23 +478,6 @@ export function updateHeaderTitle(title) {
         }
     }
     state.dialogTitle = title;
-
-    // 标题历史记录个数 > 1 时，添加可点击样式
-    updateTitleHistoryStyle();
-}
-
-/**
- * updateTitleHistoryStyle 根据标题历史记录个数更新标题样式
- * 当历史记录个数 > 1 时，添加 border-bottom、padding-bottom 和 cursor:pointer，
- * 并设置 tooltip 提示"点击可修改"。
- */
-export function updateTitleHistoryStyle() {
-    const el = document.getElementById('headerTitle');
-    if (!el) return;
-
-    // 标题始终可点击修改
-    el.classList.add('has-history');
-    el.setAttribute('data-tooltip', '点击可修改');
 }
 
 /**

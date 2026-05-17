@@ -5,7 +5,7 @@
 
 import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
-import { initDom, dom, showWelcomeMessage, updateTitleHistoryStyle, updateHeaderTitle, showToast } from './chat-ui.js';
+import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';

@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state } from './chat-state.js';
-import { addMessage, showSources, showTokenUsage, showWelcomeMessage, updateHeaderTitle, updateTitleHistoryStyle } from './chat-ui.js';
+import { addMessage, showSources, showTokenUsage, showWelcomeMessage, updateHeaderTitle } from './chat-ui.js';
 import { restoreReasoningArea } from './chat-reasoning.js';
 import { updateTickNav } from './chat-ticknav.js';
 
@@ -35,9 +35,6 @@ export async function restoreSession() {
         if (typeof data.title_state === 'number') {
             state.titleState = data.title_state;
         }
-
-        // 恢复完成后更新标题历史样式
-        updateTitleHistoryStyle();
 
         // 有历史消息，恢复显示
         for (const msg of history) {
