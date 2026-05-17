@@ -71,7 +71,7 @@ function updateAllCopyBtnLabels() {
 /**
  * showDropdownMenu 在目标按钮下方显示一个下拉菜单
  * @param {HTMLElement} anchor - 触发菜单的按钮元素
- * @param {Array<{label:string, formatKey:string, isDefault:boolean}>} items - 菜单项
+ * @param {Array<{label:string, formatKey:string}>} items - 菜单项
  * @param {object} [opts]
  * @param {string} [opts.position='bottom'] - 菜单弹出位置
  * @param {{text:string, markdown:string, html:string}} [opts.content] - 内容数据，用于菜单项点击时重新复制
@@ -87,9 +87,6 @@ function showDropdownMenu(anchor, items, opts) {
     items.forEach((item) => {
         const option = document.createElement('div');
         option.className = 'copy-dropdown-item';
-        if (item.isDefault) {
-            option.classList.add('default');
-        }
         option.textContent = item.label;
         option.dataset.formatKey = item.formatKey;
         option.addEventListener('click', (e) => {
@@ -151,13 +148,7 @@ function showDropdownMenu(anchor, items, opts) {
 function handleMenuItemClick(formatKey, content) {
     const formatName = FORMAT_NAMES[formatKey] || 'Markdown';
 
-    // 如果用户选的是当前默认格式（且是 markdown），不实际复制，只弹成功提示
-    if (formatKey === defaultFormat) {
-        showToast(`✓ 已复制（${formatName}）`, 'success', 2000);
-        return;
-    }
-
-    // 用户选了其他格式：更新默认格式并持久化
+    // 菜单中已不显示当前默认格式，所以点击任何菜单项都是切换格式
     defaultFormat = formatKey;
     saveDefaultFormat();
     updateAllCopyBtnLabels();
@@ -184,16 +175,17 @@ function handleMenuItemClick(formatKey, content) {
 }
 
 /**
- * 生成菜单项配置
- * @param {string} formatKey - 'plain' | 'markdown' | 'html'
- * @returns {{label:string, formatKey:string, isDefault:boolean}}
+ * 获取非当前默认格式的菜单项列表（当前格式不在菜单中显示）
+ * @returns {Array<{label:string, formatKey:string}>}
  */
-function makeMenuItem(formatKey) {
-    return {
-        label: `复制为 ${FORMAT_NAMES[formatKey]}`,
-        formatKey: formatKey,
-        isDefault: formatKey === defaultFormat,
-    };
+function getMenuItems() {
+    const allFormats = ['plain', 'markdown', 'html'];
+    return allFormats
+        .filter(key => key !== defaultFormat)
+        .map(formatKey => ({
+            label: `复制为 ${FORMAT_NAMES[formatKey]}`,
+            formatKey: formatKey,
+        }));
 }
 
 /**
@@ -290,12 +282,8 @@ export function initCopyHandlers() {
             showToast(ok ? `✓ 已复制（${name}）` : `复制失败（${name}）`, ok ? 'success' : 'error', 2000);
         });
 
-        // 再弹出菜单
-        showDropdownMenu(btn, [
-            makeMenuItem('plain'),
-            makeMenuItem('markdown'),
-            makeMenuItem('html'),
-        ], { position: 'top', content: content });
+        // 再弹出菜单（当前默认格式不显示在菜单中）
+        showDropdownMenu(btn, getMenuItems(), { position: 'top', content: content });
     });
 
     // 事件委托：消息操作按钮（复制消息 / 删除消息）
@@ -316,12 +304,8 @@ export function initCopyHandlers() {
                 showToast(ok ? `✓ 已复制（${name}）` : `复制失败（${name}）`, ok ? 'success' : 'error', 2000);
             });
 
-            // 再弹出菜单
-            showDropdownMenu(copyMsgBtn, [
-                makeMenuItem('plain'),
-                makeMenuItem('markdown'),
-                makeMenuItem('html'),
-            ], { content: content });
+            // 再弹出菜单（当前默认格式不显示在菜单中）
+            showDropdownMenu(copyMsgBtn, getMenuItems(), { content: content });
             return;
         }
 

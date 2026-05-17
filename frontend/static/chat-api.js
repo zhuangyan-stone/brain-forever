@@ -61,12 +61,14 @@ export function truncateTitle(s) {
  *   - 失败或标题未变 → titleState 保持当前值，下一轮继续尝试
  *
  * @param {string} originalTitle - 原标题（用户第一条消息的截取）
+ * @param {boolean} [force=false] - 是否强制请求（忽略 titleState 守卫条件），用于用户手动点击 AI 标题按钮
  * @returns {Promise<void>}
  */
-export async function fetchSessionTitle(originalTitle) {
+export async function fetchSessionTitle(originalTitle, force = false) {
     // 如果标题已被修改过（AI 修改或用户手动修改），不再请求
     // 状态只能从低往高变（0→1, 0→2, 1→2），>= 1 即表示已非原始状态
-    if (state.titleState >= TITLE_STATE.AI) {
+    // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制请求 AI 重新生成
+    if (!force && state.titleState >= TITLE_STATE.AI) {
         return;
     }
 

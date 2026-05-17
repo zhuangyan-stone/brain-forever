@@ -192,8 +192,8 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	history = append(history, session.history...)
 	session.mu.Unlock()
 
-	// Take at most the first 6 messages
-	const maxMsgs = 6
+	// Take at most the first 24 messages
+	const maxMsgs = 24
 	if len(history) > maxMsgs {
 		history = history[:maxMsgs]
 	}

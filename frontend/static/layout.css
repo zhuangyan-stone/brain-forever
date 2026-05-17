@@ -1,5 +1,5 @@
 /* ============================================================
-    脑力永恒 AI 助手 — 核心布局样式
+    脑子在线 AI 助手 — 核心布局样式
     ============================================================
     依赖：theme.css（主题变量）
     作用域：全局布局
@@ -272,34 +272,51 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 /* ============================================================
-    切换按钮（复用现有 .panel-toggle 风格）
+    小图标按钮基础样式（20×20 容器，14×14 内容区）
     ============================================================ */
 
-.menu-toggle-btn {
+.small-icon-btn {
     background: none;
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 2px;
     cursor: pointer;
-    font-size: 1.1rem;
-    transition: background 0.2s;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 20px;
     height: 20px;
     flex-shrink: 0;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.menu-toggle-btn:hover {
-    background: var(--bg-secondary);
+.small-icon-btn:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border-color: var(--accent);
+}
+
+.small-icon-btn:hover svg {
+    color: var(--accent);
+}
+
+.small-icon-btn svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+    color: var(--text-primary);
+}
+
+/* ============================================================
+    切换按钮
+    ============================================================ */
+
+.menu-toggle-btn {
+    font-size: 1.1rem;
 }
 
 .menu-toggle-btn svg {
     width: 16px;
     height: 16px;
-    display: block;
-    color: var(--text-primary);
 }
 
 /* 左栏关闭按钮 */
@@ -349,7 +366,12 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 .theme-toggle:hover {
-    background: var(--bg-secondary);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border-color: var(--accent);
+}
+
+.theme-toggle:hover .theme-icon {
+    color: var(--accent);
 }
 
 .theme-icon {
@@ -415,6 +437,32 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 
 .new-chat-btn:hover {
     background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+}
+
+/* ============================================================
+    AI 循环按钮 — 位于对话标题右侧，仅宽屏可见
+    ============================================================ */
+
+/* 标题为空时隐藏按钮（欢迎页不显示） */
+.main-title:empty + .ai-title-btn {
+    display: none;
+}
+
+.ai-title-btn {
+    opacity: 0.7;
+}
+
+.ai-title-btn:hover {
+    opacity: 1;
+}
+
+.ai-title-icon {
+    display: block;
+    color: var(--text-secondary);
+}
+
+.ai-title-btn:hover .ai-title-icon {
     color: var(--accent);
 }
 

@@ -1,5 +1,5 @@
 /* ============================================================
-    脑力永恒 AI 助手 — 消息气泡样式（原 markdown.css）
+    脑子在线 AI 助手 — 消息气泡样式（原 markdown.css）
     ============================================================
     依赖：style.css（主题变量）
     作用域：.message .bubble 内部
@@ -398,11 +398,6 @@
     align-items: center;
     gap: 8px;
     transition: background 0.12s;
-}
-
-.copy-dropdown-item.default {
-    font-weight: 700;
-    color: var(--accent);
 }
 
 .copy-dropdown-item:hover {

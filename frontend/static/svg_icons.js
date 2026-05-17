@@ -91,3 +91,13 @@ export const ICON_ARROW_UP_DOWN =
 export const ICON_TOGGLE =
     '<rect x="1" y="2" width="14" height="12" rx="1"/>' +
     '<line x1="5" y1="2" x2="5" y2="14"/>';
+
+// ============================================================
+// AI 刷新标题的图标 
+// ============================================================
+export const ICON_AI_TITLE =
+'<path d="m455.81,259a217.81,217.81 0 1 1 -217.81,-217.81" stroke-width="8"/>'+
+'<path d="m248.5,61.8l-21.79,-39.21m21.79,39.21l21.79,-39.21" stroke-linecap="round" '+
+    'stroke-width="8" transform="rotate(-94.4893, 248.5, 42.1899)"/>'+
+'<text fill="currentColor" font-family="Sans-serif" font-weight="bold" font-size="284" '+
+'stroke-linecap="round" text-anchor="middle" x="250" y="348">AI</text>'

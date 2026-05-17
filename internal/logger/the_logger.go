@@ -15,7 +15,7 @@ func TheLogger() zylog.Logger {
 // CreateTheLogger create the golbal logger
 func CreateTheLogger(level zylog.Level, logFile string, lang zylog.Language) error {
 	cfg := zylog.Config{
-		Name:     "BF",
+		Name:     "BrainForever",
 		File:     logFile,
 		MaxSize:  8,
 		Console:  zylog.ConsoleModeColor,

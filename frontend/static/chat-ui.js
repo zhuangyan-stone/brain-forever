@@ -506,7 +506,7 @@ export function showWelcomeMessage() {
 
     const el = document.createElement('div');
     el.className = 'welcome-message';
-    el.textContent = '你好！我是‘脑力永恒’ AI助手，多和我聊，然后我来映像你的第2大脑';
+    el.textContent = '你好！我是‘脑子在线’ AI助手，多和我聊，我来构建你的第2大脑';
     dom.chatContainer.appendChild(el);
 
     // 将输入区域移动到欢迎消息内部，使二者作为一个整体居中

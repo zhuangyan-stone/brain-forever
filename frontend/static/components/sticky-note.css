@@ -30,8 +30,6 @@
     position: relative;
     font-size: 1rem;
     line-height: 1.5;
-    /* 便利贴轻微旋转效果 */
-    transform: rotate(-0.5deg);
     transition: transform 0.2s ease, box-shadow 0.2s ease, padding 0.3s ease;
     /* 入场动画 */
     animation: stickyNoteEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -75,12 +73,12 @@
 @keyframes stickyNoteCollapse {
     0% {
         opacity: 1;
-        transform: rotate(-0.5deg) scale(1);
+        transform: scale(1);
         padding: 16px 16px 12px;
     }
     100% {
         opacity: 1;
-        transform: rotate(0deg) scale(1);
+        transform: scale(1);
         padding: 10px 16px;
     }
 }
@@ -173,11 +171,11 @@
 @keyframes stickyNoteEnter {
     0% {
         opacity: 0;
-        transform: translateX(40px) rotate(-1deg);
+        transform: translateX(40px);
     }
     100% {
         opacity: 1;
-        transform: translateX(0) rotate(-0.5deg);
+        transform: translateX(0);
     }
 }
 
@@ -185,11 +183,11 @@
 @keyframes stickyNoteLeave {
     0% {
         opacity: 1;
-        transform: translateX(0) rotate(-0.5deg);
+        transform: translateX(0);
     }
     100% {
         opacity: 0;
-        transform: translateX(60px) rotate(-2deg);
+        transform: translateX(60px);
     }
 }
 

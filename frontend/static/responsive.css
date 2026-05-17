@@ -1,5 +1,5 @@
 /* ============================================================
-    脑力永恒 AI 助手 — 响应式样式
+    脑子在线 AI 助手 — 响应式样式
     ============================================================
     依赖：theme.css（主题变量）
     ============================================================ */
@@ -84,6 +84,11 @@ body.small-screen-mode .menu-toggle-btn svg,
 body.small-screen-mode .new-chat-icon {
     width: 20px;
     height: 20px;
+}
+
+/* 小屏模式下隐藏 AI 标题按钮（仅宽屏展现） */
+body.small-screen-mode .ai-title-btn {
+    display: none;
 }
 
 /* 小屏模式下新对话按钮加上边框，并重置 margin-left（宽屏下的负 margin 不适用） */

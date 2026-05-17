@@ -137,7 +137,7 @@ func main() {
 	mux.Handle("/", fs)
 
 	// Start HTTP Server
-	addr := "0.0.0.0:8080"
+	addr := "[::]:8080"
 	if envAddr := os.Getenv("PROXY_ADDR"); envAddr != "" {
 		addr = envAddr
 	}
@@ -166,7 +166,7 @@ func main() {
 		}
 	}()
 
-	theLogger.Infof("aget server listening on: http://%s", addr)
+	theLogger.Infof("agent server listening on: http://%s", addr)
 	theLogger.Infof("frontend: http://%s", addr)
 
 	theLogger.Infof("press Ctrl+C to stop the server")

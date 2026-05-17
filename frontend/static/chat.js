@@ -1,11 +1,11 @@
 // ============================================================
-// 脑力永恒 AI 助手 — 主入口
+// 脑子在线 AI 助手 — 主入口
 // 导入各功能模块并完成初始化
 // ============================================================
 
 import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
-import { initDom, dom, showWelcomeMessage, updateTitleHistoryStyle } from './chat-ui.js';
+import { initDom, dom, showWelcomeMessage, updateTitleHistoryStyle, updateHeaderTitle, showToast } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
@@ -13,7 +13,8 @@ import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './chat-delete.js';
 import { restoreSession } from './chat-session.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
-import { ICON_MOON, ICON_SUN, ICON_TOGGLE } from './svg_icons.js';
+import { fetchSessionTitle } from './chat-api.js';
+import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
 'use strict';
 
@@ -110,6 +111,32 @@ function updateThemeButton(themeStr) {
         ? `<svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_MOON}</svg>`
         : `<svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SUN}</svg>`;
     themeToggle.dataset.tooltip = themeStr === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
+}
+
+// ============================================================
+// AI 标题按钮 — 使用 ICON_AI_TITLE 注入 SVG，点击触发 AI 重新生成标题
+// 防抖动：5 秒内重复点击只生效一次
+// ============================================================
+const aiTitleBtn = document.getElementById('aiTitleBtn');
+if (aiTitleBtn) {
+    aiTitleBtn.innerHTML = '<svg class="ai-title-icon" viewBox="0 0 500 500" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_AI_TITLE + '</svg>';
+    let aiTitleDebounceTimer = null;
+    aiTitleBtn.addEventListener('click', () => {
+        if (aiTitleDebounceTimer) {
+            console.log('[aiTitleBtn] debounced, ignoring click');
+            return;
+        }
+        console.log('[aiTitleBtn] clicked, dialogTitle:', state.dialogTitle, 'titleState:', state.titleState);
+        showToast('已向 AI 发出请求……', 'info');
+        // 使用当前对话标题作为 originalTitle 传给后端
+        // force=true 忽略 titleState 守卫，强制请求 AI 重新生成标题
+        const originalTitle = state.dialogTitle || '';
+        fetchSessionTitle(originalTitle, true);
+        // 设置防抖定时器，5 秒内不再响应点击
+        aiTitleDebounceTimer = setTimeout(() => {
+            aiTitleDebounceTimer = null;
+        }, 5000);
+    });
 }
 
 // ============================================================
@@ -227,7 +254,7 @@ let globalHeaderDivider = null;
 const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_TOGGLE + '</svg>';
 
 // ===== 品牌文本常量（方便以后修改） =====
-const BRAND_TITLE = '脑力永恒';
+const BRAND_TITLE = '脑子在线';
 const BRAND_SUBTITLE = '一个越来越懂你的AI' // '养育我的第2大脑'
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
@@ -242,7 +269,7 @@ function createBrandElement() {
     const logo = document.createElement('img');
     logo.className = 'brand-logo';
     logo.src = '/static/brain-forever.svg';
-    logo.alt = '脑力永恒';
+    logo.alt = '脑子在线';
 
     // 标题/副标题容器
     const textDiv = document.createElement('div');
@@ -269,7 +296,7 @@ function createBrandElement() {
 function getToggleButton() {
     if (!globalToggleButton) {
         globalToggleButton = document.createElement('button');
-        globalToggleButton.className = 'menu-toggle-btn';
+        globalToggleButton.className = 'small-icon-btn menu-toggle-btn';
         globalToggleButton.setAttribute('aria-label', '切换侧边栏');
         globalToggleButton.dataset.tooltip = '切换侧边栏';
         globalToggleButton.innerHTML = TOGGLE_BTN_SVG;
@@ -456,7 +483,7 @@ function updateBrandLayout() {
             const logoOnly = document.createElement('img');
             logoOnly.className = 'brand-logo brand-logo-compact';
             logoOnly.src = '/static/brain-forever.svg';
-            logoOnly.alt = '脑力永恒';
+            logoOnly.alt = '脑子在线';
             logoOnly.style.width = '32px';
             logoOnly.style.height = '32px';
             logoOnly.style.borderRadius = '12px';
