@@ -77,7 +77,7 @@ for /f "usebackq tokens=*" %%A in (".env") do (
                     
                     REM Set the environment variable
                     set "!_key!=!_val!"
-                    echo   set !_key!=!_val!
+                    echo   set !_key!
                 )
             )
         )

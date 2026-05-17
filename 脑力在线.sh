@@ -73,7 +73,7 @@ while IFS= read -r _line || [ -n "$_line" ]; do
 
     # Export the variable
     export "$_key=$_val"
-    echo "  set $_key=$_val"
+    echo "  set $_key"
 
 done < ".env"
 
