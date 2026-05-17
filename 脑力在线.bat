@@ -1,9 +1,13 @@
 @echo off
+
 REM ============================================
 REM BrainForever Launcher
 REM Reads .env, sets environment variables,
 REM then starts brain-forever.exe
 REM ============================================
+
+REM Set console encoding to UTF-8 (Windows)
+chcp 65001 >nul
 
 setlocal enabledelayedexpansion
 

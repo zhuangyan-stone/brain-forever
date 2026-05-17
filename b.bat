@@ -4,6 +4,9 @@ REM BrainForever Build Script
 REM Sets CGO and GCC path, then builds
 REM ============================================
 
+REM Set console encoding to UTF-8 (Windows)
+chcp 65001 >nul
+
 setlocal
 
 REM Set GCC path (adjust if your MinGW is elsewhere)
