@@ -1,8 +1,11 @@
-# ============================================
+﻿# ============================================
 # BrainForever Launcher (PowerShell)
 # Reads .env, sets environment variables,
 # then starts brain-forever.exe
 # ============================================
+
+# Set console output to UTF-8 so Chinese characters display correctly
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 
 Write-Host "=== 脑力在线 BrainForever Launcher ===" -ForegroundColor Cyan
 Write-Host ""
@@ -84,12 +87,14 @@ Write-Host "  Press Ctrl+C to stop the server" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Start brain-forever.exe and wait for it to exit
-$process = Start-Process -FilePath ".\brain-forever.exe" -NoNewWindow -Wait -PassThru
+# Start brain-forever.exe directly. Ctrl+C is forwarded to the
+# Go program's signal.NotifyContext (SIGINT) for graceful shutdown.
+& ".\brain-forever.exe"
+$exitCode = $LASTEXITCODE
 
-if ($process.ExitCode -ne 0) {
+if ($exitCode -ne 0) {
     Write-Host ""
-    Write-Host "[ERROR] brain-forever.exe exited with code $($process.ExitCode)" -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit $process.ExitCode
+    Write-Host "[ERROR] brain-forever.exe exited with code $exitCode" -ForegroundColor Red
 }
+
+exit $exitCode
