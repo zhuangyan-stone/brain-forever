@@ -100,7 +100,7 @@ export async function fetchSessionTitle(originalTitle, force = false) {
                         // 下一轮仍可继续尝试推荐
                     },
                     onReject: async (newTitle) => {
-                        // 用户点击"无需推荐"：将标题状态标记为用户修改（2），
+                        // 用户点击"停止推荐"：将标题状态标记为用户修改（2），
                         // 这样后续 fetchSessionTitle 检测到 state.titleState >= TITLE_STATE.AI
                         // 就不会再请求推荐标题了
                         state.titleState = TITLE_STATE.USER;
