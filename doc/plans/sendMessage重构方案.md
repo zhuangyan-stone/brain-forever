@@ -259,10 +259,9 @@ function cleanupAfterStream(assistantBubble, wasAborted) {
 }
 
 function autoUpdateTitle(wasAborted) {
-    if (!wasAborted && state.titleState !== TITLE_STATE.USER && state.messages.length <= 6) {
+    if (wasAborted || state.titleState >= TITLE_STATE.AI || state.messages.length > 6) return;
         const originalTitle = state.dialogTitle || '';
         fetchSessionTitle(originalTitle);
-    }
 }
 ```
 

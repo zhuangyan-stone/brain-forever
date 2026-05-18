@@ -84,33 +84,34 @@ export async function fetchSessionTitle(originalTitle, force = false) {
             }
 
             // ---- 显示便利贴让用户选择 ----
-            showStickyNote(
-                'AI 推荐标题',
-                data.title,
-                {
-                    onApply: async (newTitle) => {
-                        // 定时到点或用户点击"试试"：更新标题，标记为 AI 修改
-                        updateHeaderTitle(newTitle);
-                        state.titleState = TITLE_STATE.AI;
-                        // 同步到后端：用户已确认接受，调用 PUT 保存，标记为机改
-                        await putSessionTitle(newTitle, TITLE_STATE.AI);
-                    },
-                    onDismiss: (newTitle) => {
-                        // 用户取消：不做任何修改，状态保持当前值
-                        // 下一轮仍可继续尝试推荐
-                    },
-                    onReject: async (newTitle) => {
-                        // 用户点击"停止推荐"：将标题状态标记为用户修改（2），
-                        // 这样后续 fetchSessionTitle 检测到 state.titleState >= TITLE_STATE.AI
-                        // 就不会再请求推荐标题了
-                        state.titleState = TITLE_STATE.USER;
-                        // 同步到后端：用原标题 PUT 保存，标记为用户修改
-                        // 这样后端也会记住这个状态，刷新页面后不再推荐
-                        const currentTitle = document.querySelector('.header-title')?.textContent || newTitle;
-                        await putSessionTitle(currentTitle, TITLE_STATE.USER);
-                    },
-                }
-            );
+            // 仅当 titleState < TITLE_STATE.USER 时才提供 onReject（"停止推荐"）回调：
+            // 当状态 >= USER 时，AI 已不会再主动推荐，UI 上无需显示"停止推荐"按钮
+            const stickyOptions = {
+                onApply: async (newTitle) => {
+                    // 定时到点或用户点击"试试"：更新标题，标记为 AI 修改
+                    updateHeaderTitle(newTitle);
+                    state.titleState = TITLE_STATE.AI;
+                    // 同步到后端：用户已确认接受，调用 PUT 保存，标记为机改
+                    await putSessionTitle(newTitle, TITLE_STATE.AI);
+                },
+                onDismiss: (newTitle) => {
+                    // 用户取消：不做任何修改，状态保持当前值
+                    // 下一轮仍可继续尝试推荐
+                },
+            };
+            if (state.titleState == TITLE_STATE.ORIGINAL) {
+                stickyOptions.onReject = async (newTitle) => {
+                    // 用户点击"停止推荐"：将标题状态标记为用户修改（2），
+                    // 这样后续 fetchSessionTitle 检测到 state.titleState >= TITLE_STATE.AI
+                    // 就不会再请求推荐标题了
+                    state.titleState = TITLE_STATE.USER;
+                    // 同步到后端：用原标题 PUT 保存，标记为用户修改
+                    // 这样后端也会记住这个状态，刷新页面后不再推荐
+                    const currentTitle = document.querySelector('.header-title')?.textContent || newTitle;
+                    await putSessionTitle(currentTitle, TITLE_STATE.USER);
+                };
+            }
+            showStickyNote('AI 推荐标题', data.title, stickyOptions);
         }
         // 如果 changed === false（标题未变或出错），状态保持当前值，下一轮继续尝试
     } catch (e) {
