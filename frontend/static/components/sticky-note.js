@@ -270,10 +270,10 @@ export function showStickyNote(message, title, options = {}) {
     });
     actionsEl.appendChild(dismissBtn);
 
-    // "✓ 甚好" 按钮
+    // "✓ 采纳" 按钮
     const acceptBtn = document.createElement('button');
     acceptBtn.className = 'sticky-note-btn sticky-note-btn-accept';
-    acceptBtn.textContent = '✓ 甚好';
+    acceptBtn.textContent = '✓ 采纳';
     acceptBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         // 取消定时器
