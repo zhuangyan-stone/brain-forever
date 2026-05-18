@@ -29,3 +29,6 @@ Thumbs.db
 
 # --- Environment variables ---
 .env
+
+# img-source
+*.xcf
