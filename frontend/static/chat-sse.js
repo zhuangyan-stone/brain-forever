@@ -109,11 +109,14 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     state.accumulatedMarkdown = '';
     scrollToBottom();
 
-    // AI 回复完成后：如果页面不在最底部（用户已向上滚动），
-    // 通过 Toast 提醒用户回复已完成
-    if (!isScrolledToBottom()) {
-        showToast('AI 已完成回复', 'info');
-    }
+    // AI 回复完成后：延迟 600ms 再判断是否在底部，给渲染和滚动留出时间。
+    // 如果用户已手动滚动到底部或自动滚动已生效，则不弹 Toast；
+    // 如果用户确实离开了底部（向上滚动查看历史），才弹 Toast 提醒。
+    setTimeout(() => {
+        if (!isScrolledToBottom()) {
+            showToast('AI 已完成回复', 'info');
+        }
+    }, 600);
 }
 
 /**

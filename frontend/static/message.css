@@ -265,6 +265,16 @@
     pointer-events: auto;
 }
 
+/* 流式输出中：隐藏消息操作按钮（复制按钮等），避免用户复制不完整内容 */
+.message:has(.bubble.streaming) .message-actions {
+    display: none !important;
+}
+
+/* 流式输出中：隐藏代码块内的复制按钮 */
+.message .bubble.streaming .copy-btn.code-copy-btn {
+    display: none !important;
+}
+
 .msg-action-btn {
     width: 24px;
     height: 24px;

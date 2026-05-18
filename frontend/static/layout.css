@@ -654,6 +654,11 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     border: 1px solid var(--border);
 }
 
+.bubble.streaming {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 .bubble.streaming::after {
     content: '▍';
     animation: blink 0.8s step-end infinite;

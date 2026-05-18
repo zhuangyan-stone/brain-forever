@@ -163,7 +163,8 @@ export function setActiveTick(index) {
         const isActive = tickIdx === index;
         t.classList.toggle('active', isActive);
         const dist = Math.abs(tickIdx - index);
-        // 更新距当前活动刻度的距离，用于渐进式透明度
+        // 更新距当前活动刻度的距离，用于 CSS 控制刻度线长度和透明度
+        // dist=0（活动刻度）最长 12px，向两端每步递减 1px，最短 4px
         t.dataset.dist = dist;
 
         // 同步更新刻度序号：以当前活动刻度为中心，按距当前刻度的距离跳格显示

@@ -129,44 +129,49 @@
     transition: background 0.2s, box-shadow 0.2s, opacity 0.2s, width 0.2s;
 }
 
-/* 非展开状态下：根据距当前刻度的距离渐进变淡 + 刻度线长度递减 */
-/* 使用缓和的衰减曲线，让相邻刻度差异柔和 */
-/* 宽度 = 12px - dist(px)，每次短一个像素 */
+/* 非展开状态下：刻度线长度由距当前活动刻度的距离（data-dist）决定 */
+/* 活动刻度（dist=0）最长 12px，向两端每步递减 1px，最短 4px */
 .tick-nav:not(:hover) .tick[data-dist="0"] .tick-dot {
     opacity: 1;
     width: 12px;
 }
 .tick-nav:not(:hover) .tick[data-dist="1"] .tick-dot {
-    opacity: 0.85;
+    opacity: 0.9;
     width: 11px;
 }
 .tick-nav:not(:hover) .tick[data-dist="2"] .tick-dot {
-    opacity: 0.72;
+    opacity: 0.82;
     width: 10px;
 }
 .tick-nav:not(:hover) .tick[data-dist="3"] .tick-dot {
-    opacity: 0.6;
+    opacity: 0.74;
     width: 9px;
 }
 .tick-nav:not(:hover) .tick[data-dist="4"] .tick-dot {
-    opacity: 0.5;
+    opacity: 0.66;
     width: 8px;
 }
 .tick-nav:not(:hover) .tick[data-dist="5"] .tick-dot {
-    opacity: 0.4;
+    opacity: 0.6;
     width: 7px;
 }
 .tick-nav:not(:hover) .tick[data-dist="6"] .tick-dot {
-    opacity: 0.32;
+    opacity: 0.55;
     width: 6px;
 }
 .tick-nav:not(:hover) .tick[data-dist="7"] .tick-dot {
-    opacity: 0.25;
+    opacity: 0.5;
     width: 5px;
 }
 .tick-nav:not(:hover) .tick[data-dist="8"] .tick-dot,
-.tick-nav:not(:hover) .tick[data-dist="9"] .tick-dot {
-    opacity: 0.2;
+.tick-nav:not(:hover) .tick[data-dist="9"] .tick-dot,
+.tick-nav:not(:hover) .tick[data-dist="10"] .tick-dot,
+.tick-nav:not(:hover) .tick[data-dist="11"] .tick-dot,
+.tick-nav:not(:hover) .tick[data-dist="12"] .tick-dot,
+.tick-nav:not(:hover) .tick[data-dist="13"] .tick-dot,
+.tick-nav:not(:hover) .tick[data-dist="14"] .tick-dot,
+.tick-nav:not(:hover) .tick[data-dist="15"] .tick-dot {
+    opacity: 0.45;
     width: 4px;
 }
 
@@ -298,7 +303,6 @@
     }
 
     .tick-nav .tick .tick-dot {
-        width: 10px;
         height: 2px;
     }
 

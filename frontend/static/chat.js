@@ -5,7 +5,7 @@
 
 import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
-import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast } from './chat-ui.js';
+import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, SCROLL_BOTTOM_THRESHOLD } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
@@ -836,6 +836,8 @@ window.addEventListener('DOMContentLoaded', restoreSession);
     //     注意：必须节流（200ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
     //     （150ms 节流）更新 activeTickIndex 之后再执行，否则检测不到刻度变化。
     let scrollThrottleTimer = null;
+    /** 上一次记录的 scrollTop，用于在流式输出中判断用户是否主动向上滚动 */
+    let lastScrollTop = 0;
     chatContainer.addEventListener('scroll', () => {
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
@@ -846,14 +848,29 @@ window.addEventListener('DOMContentLoaded', restoreSession);
             // 最高优先级：AI 正在回答时始终折叠输入面板
             if (state.isStreaming) {
                 collapseInputArea();
-                // 检测用户是否已向上滚动离开底部 → 停止自动滚动
-                const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 8;
-                state.userScrolledUp = !isAtBottom;
+
+                // 通过 scrollTop 变化方向判断：只有 scrollTop 变小（用户主动向上滚动）
+                // 才视为"用户离开底部"，停止自动滚动。
+                // scrollToBottom() 只会让 scrollTop 变大（向下滚），
+                // 内容渲染让 scrollHeight 增大但 scrollTop 不变时也不应触发。
+                const currentScrollTop = chatContainer.scrollTop;
+                if (currentScrollTop < lastScrollTop) {
+                    state.userScrolledUp = true;
+                }
+                lastScrollTop = currentScrollTop;
+
+                // 如果用户又手动滚动到底部，恢复自动滚动
+                if (state.userScrolledUp) {
+                    const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < SCROLL_BOTTOM_THRESHOLD;
+                    if (isAtBottom) {
+                        state.userScrolledUp = false;
+                    }
+                }
                 return;
             }
 
             // 检测是否已滚动到底部（向下无可再滚）
-            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 8;
+            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < SCROLL_BOTTOM_THRESHOLD;
 
             if (isAtBottom) {
                 // 滚动到底部时自动展开
