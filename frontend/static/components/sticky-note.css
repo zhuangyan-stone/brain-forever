@@ -313,7 +313,7 @@
     color: var(--text-primary);
 }
 
-/* "无需推荐" 按钮 — 红色警告色，靠左对齐 */
+/* "停止推荐" 按钮 — 红色警告色，靠左对齐 */
 /* 复用 theme.css 中定义的 --error-* 主题变量，自动适配暗色/亮色主题 */
 .sticky-note-btn-reject {
     background: var(--error-bg);
