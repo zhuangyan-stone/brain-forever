@@ -40,6 +40,13 @@ function onMouseOver(e) {
     if (!target) return;
     if (target === currentTarget) return;
 
+    // 如果元素处于 disabled 状态，不显示 tooltip
+    if (target.disabled || target.hasAttribute('disabled')) {
+        hideTooltip();
+        currentTarget = null;
+        return;
+    }
+
     currentTarget = target;
     clearTimeout(showTimer);
     showTimer = setTimeout(() => showTooltip(target), 300);

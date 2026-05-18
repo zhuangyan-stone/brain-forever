@@ -72,6 +72,11 @@
     line-height: 1.5;
 }
 
+.message-input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 .message-input::placeholder {
     color: var(--text-muted);
 }

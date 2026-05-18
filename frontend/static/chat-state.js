@@ -75,6 +75,11 @@ export const state = {
     // 消息历史 [{role, content, id, usage}]
     messages: [],
 
+    // 用户是否向上滚动离开底部（流式输出中用于控制自动滚动）
+    // true  = 用户已向上滚动，停止自动滚动
+    // false = 页面在底部或尚未手动滚动，继续自动滚动
+    userScrolledUp: false,
+
     // 当前对话标题（显示在 header 左侧）
     // 欢迎状态: "欢迎开始新对话"
     // 用户发出第一条消息后: 通过 GET /api/session/title 由后端 AI 生成

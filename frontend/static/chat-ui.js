@@ -33,12 +33,23 @@ export function initDom() {
 
 /**
  * scrollToBottom 滚动到底部
+ * 如果用户已手动向上滚动（userScrolledUp === true），则不执行自动滚动
  */
 export function scrollToBottom() {
+    if (state.userScrolledUp) return;
     requestAnimationFrame(() => {
         const sc = dom.scrollContainer || dom.chatContainer;
         sc.scrollTop = sc.scrollHeight;
     });
+}
+
+/**
+ * isScrolledToBottom 检测页面是否已滚动到底部（允许 8px 误差）
+ * @returns {boolean}
+ */
+export function isScrolledToBottom() {
+    const sc = dom.scrollContainer || dom.chatContainer;
+    return sc.scrollHeight - sc.scrollTop - sc.clientHeight < 8;
 }
 
 /**

@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state, resetStreamingState } from './chat-state.js';
-import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, scrollToBottom, stopSearchHintsAnimation, updateHeaderTitle } from './chat-ui.js';
+import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, scrollToBottom, stopSearchHintsAnimation, updateHeaderTitle, showToast, isScrolledToBottom } from './chat-ui.js';
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -108,6 +108,12 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     // 重置累积变量，为下一次流式做准备
     state.accumulatedMarkdown = '';
     scrollToBottom();
+
+    // AI 回复完成后：如果页面不在最底部（用户已向上滚动），
+    // 通过 Toast 提醒用户回复已完成
+    if (!isScrolledToBottom()) {
+        showToast('AI 已完成回复', 'info');
+    }
 }
 
 /**
@@ -213,6 +219,22 @@ function enableStopButton() {
 }
 
 /**
+ * 流式开始时禁用 AI 标题按钮
+ */
+function disableAiTitleButton() {
+    const btn = document.getElementById('aiTitleBtn');
+    if (btn) btn.disabled = true;
+}
+
+/**
+ * 流式结束后启用 AI 标题按钮
+ */
+function enableAiTitleButton() {
+    const btn = document.getElementById('aiTitleBtn');
+    if (btn) btn.disabled = false;
+}
+
+/**
  * 发送前准备：验证输入、清理 UI、初始化状态
  * @returns {{ content: string, createdAt: string, assistantBubble: HTMLElement } | null}
  */
@@ -244,10 +266,14 @@ function prepareChat() {
     // 创建空的 assistant 消息占位
     const assistantBubble = addMessage('assistant', '', true);
     state.isStreaming = true;
+    // 新的一轮流式输出开始，重置用户滚动状态（默认自动滚动到底部）
+    state.userScrolledUp = false;
     updateDeleteButtons();
 
     // 启用中断按钮
     enableStopButton();
+    // 流式进行中，禁用 AI 标题修改按钮
+    disableAiTitleButton();
 
     // 创建 AbortController
     state.abortController = new AbortController();
@@ -429,6 +455,9 @@ function cleanupAfterStream(assistantBubble, wasAborted) {
     if (stopStreamingBtn) {
         stopStreamingBtn.disabled = true;
     }
+
+    // 流式结束：启用 AI 标题修改按钮
+    enableAiTitleButton();
 
     // 移除 streaming 类
     const contentDiv = assistantBubble.querySelector('.bubble');

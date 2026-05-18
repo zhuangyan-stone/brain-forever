@@ -284,6 +284,16 @@
     transform: scale(0.9);
 }
 
+.msg-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.msg-action-btn:disabled:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
 /* 复制按钮 */
 .msg-action-btn.copy-msg-btn {
     background: color-mix(in srgb, var(--accent) 10%, transparent);

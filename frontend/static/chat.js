@@ -122,6 +122,11 @@ if (aiTitleBtn) {
     aiTitleBtn.innerHTML = '<svg class="ai-title-icon" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_AI_TITLE + '</svg>';
     let aiTitleDebounceTimer = null;
     aiTitleBtn.addEventListener('click', () => {
+        // 正在 SSE 流式输出时，AI 标题按钮不可用
+        if (state.isStreaming) {
+            console.log('[aiTitleBtn] streaming in progress, ignoring click');
+            return;
+        }
         if (aiTitleDebounceTimer) {
             console.log('[aiTitleBtn] debounced, ignoring click');
             return;
@@ -841,6 +846,9 @@ window.addEventListener('DOMContentLoaded', restoreSession);
             // 最高优先级：AI 正在回答时始终折叠输入面板
             if (state.isStreaming) {
                 collapseInputArea();
+                // 检测用户是否已向上滚动离开底部 → 停止自动滚动
+                const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 8;
+                state.userScrolledUp = !isAtBottom;
                 return;
             }
 

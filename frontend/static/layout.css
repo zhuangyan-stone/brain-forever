@@ -470,6 +470,19 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     opacity: 1;
 }
 
+.ai-title-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.ai-title-btn:disabled:hover {
+    opacity: 0.4;
+}
+
+.ai-title-btn:disabled:hover .ai-title-icon {
+    color: var(--text-secondary);
+}
+
 .ai-title-icon {
     display: block;
     color: var(--text-secondary);
