@@ -95,12 +95,12 @@
 }
 
 [data-theme="dark"] .sources-panel .source-item {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--pure-black);
     color: #d4d4d4;
 }
 
 [data-theme="light"] .sources-panel .source-item {
-    background: #ffffff;
+    background: var(--pure-white);
 }
 
 .sources-panel .source-item .source-title {
