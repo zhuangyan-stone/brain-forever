@@ -119,7 +119,7 @@ function updateThemeButton(themeStr) {
 // ============================================================
 const aiTitleBtn = document.getElementById('aiTitleBtn');
 if (aiTitleBtn) {
-    aiTitleBtn.innerHTML = '<svg class="ai-title-icon" viewBox="0 0 500 500" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_AI_TITLE + '</svg>';
+    aiTitleBtn.innerHTML = '<svg class="ai-title-icon" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_AI_TITLE + '</svg>';
     let aiTitleDebounceTimer = null;
     aiTitleBtn.addEventListener('click', () => {
         if (aiTitleDebounceTimer) {

@@ -96,8 +96,6 @@ export const ICON_TOGGLE =
 // AI 刷新标题的图标 
 // ============================================================
 export const ICON_AI_TITLE =
-'<path d="m455.81,259a217.81,217.81 0 1 1 -217.81,-217.81" stroke-width="8"/>'+
-'<path d="m248.5,61.8l-21.79,-39.21m21.79,39.21l21.79,-39.21" stroke-linecap="round" '+
-    'stroke-width="8" transform="rotate(-94.4893, 248.5, 42.1899)"/>'+
-'<text fill="currentColor" font-family="Sans-serif" font-weight="bold" font-size="284" '+
-'stroke-linecap="round" text-anchor="middle" x="250" y="348">AI</text>'
+    '<path d="m45.581,25.9a21.781,21.781 0 1 1 -21.781,-21.781" stroke-width="3.8"></path>'+    
+    '<path d="m22.0,2.40l-9,-12.8 m9.50,12.50l2.0,-13" stroke-linecap="round" stroke-width="2.4" transform="rotate(-94.4893, 24.85, 0.18)"></path>'+
+    '<text fill="currentColor" font-family="Sans-serif" font-weight="bold" font-size="28.4" stroke-linecap="round" text-anchor="middle" x="25" y="34.8">AI</text>'
