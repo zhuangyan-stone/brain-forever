@@ -203,7 +203,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     color: var(--text-primary);
     margin-right: 4px;
     vertical-align: middle;
-    line-height: 0;
+    line-height: 1;
     position: relative;
     top: -0.1em;
     opacity: 0.80;
