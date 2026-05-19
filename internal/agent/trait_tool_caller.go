@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"BrainForever/infra/llm"
-	"BrainForever/internal/agent/toolimp"
 )
 
 // traitToolCaller implements llm.ToolCaller for trait extraction.
@@ -52,18 +51,4 @@ func (tc *traitToolCaller) Call(toolCallID, toolName string) (string, error) {
 		return "", fmt.Errorf("unknown tool '%s'", toolName)
 	}
 	return imp.Execute()
-}
-
-// getTraits returns the extracted traits from the traits_extracted tool.
-// Returns nil if the tool has not been called or no traits were extracted.
-func (tc *traitToolCaller) getTraits() []toolimp.TraitsExtractedResult {
-	imp, ok := tc.tools[toolimp.TraitsExtractedToolName]
-	if !ok {
-		return nil
-	}
-	traitsImp, ok := imp.(*toolimp.TraitsExtractedToolImp)
-	if !ok {
-		return nil
-	}
-	return traitsImp.GetTraits()
 }

@@ -90,8 +90,9 @@ func (ta *TraitAgent) ExtractTraits(
 	for _, m := range untraitedMsgs {
 		role := m.Role
 		if role != "user" && role != "assistant" && role != "system" && role != "tool" {
-			role = "user"
+			continue
 		}
+
 		llmMsgs = append(llmMsgs, llm.Message{Role: role, Content: m.Content})
 	}
 
@@ -136,14 +137,6 @@ func (ta *TraitAgent) ExtractTraits(
 		if _, err := caller.Call(tc.ID, tc.Function.Name); err != nil {
 			log.Printf("[TraitExtract] failed to execute tool '%s': %v", tc.Function.Name, err)
 			continue
-		}
-	}
-
-	// 8. Log extracted traits
-	if traits := caller.getTraits(); len(traits) > 0 {
-		for _, t := range traits {
-			log.Printf("[TraitExtract] topic=%s inference_method=%s nature=%s conclusion=%s scenario=%s domain=%s category=%s source=%s confidence=%.2f half_life=%s",
-				t.Topic, t.InferenceMethod, t.Nature, t.Conclusion, t.Scenario, t.Domain, t.Category, t.Source, t.Confidence, t.HalfLife)
 		}
 	}
 
