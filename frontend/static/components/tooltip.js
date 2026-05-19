@@ -101,7 +101,7 @@ function positionTooltip(target) {
 
     // 上方空间不足，放到下方
     if (top < 4) {
-        top = rect.bottom + gap;
+        top = rect.bottom + gap + 5;
     }
 
     // 水平不超出视口
