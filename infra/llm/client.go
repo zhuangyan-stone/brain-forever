@@ -28,8 +28,8 @@ import (
 //	stream := client.ChatStream(ctx, []llm.Message{...})
 // ============================================================
 
-// LLMClient defines the interface for LLM API clients.
-type LLMClient interface {
+// Client defines the interface for LLM API clients.
+type Client interface {
 	// Model returns the current model name.
 	Model() string
 

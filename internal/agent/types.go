@@ -33,6 +33,10 @@ type Message struct {
 	Sources []toolimp.WebSource `json:"sources,omitempty"`
 
 	CreatedAt string `json:"created_at"` // UTC time string, e.g. "2026-05-02T16:30:00Z"
+
+	// Traited marks whether this message has been processed by the trait
+	// extraction system.
+	Traited bool `json:"traited,omitempty"`
 }
 
 // ChatRequest is the chat request sent from the frontend

@@ -35,5 +35,76 @@ other = "哎呀！服务端出错啦！\n{{.Error}}"
 [assistant_broken_message]
 other = "哎呀！我的回复过程被强行中断了……"
 
+[trait-system_prompt]
+other = """你是个人特征分析助手。下面是用户与AI助手的对话历史，请你分析对话内容，从中提取用户的个人特征。
+
+你需要调用 traits_extracted 工具来记录提取到的特征。每条特征需要包含两个字段：
+- domain: 特征所属领域，如"计算机编程"、"饮食习惯"、"休闲娱乐"
+- conclusion: 简短的一句话描述用户的一个特征，如"喜欢用 tab 缩进代码"
+
+请仔细阅读对话内容，提取有意义的、可支撑的特征。"""
+
+[traits_extracted_tool_description]
+other = "AI 完成用户个人特征提取后调用，记录从对话中提取到的用户个人特征。每次调用可记录多条特征。"
+
+[traits_extracted_tool_pending]
+other = "正在提取个人特征..."
+
+[topic_shift_detected_tool_description]
+other = "AI 检测到用户话题发生变化时调用，以告知 chat-agent 当前话题已转移。"
+
+[topic_shift_detected_tool_pending]
+other = "正在检测话题转移..."
+
+# ============================================================
+# traits_extracted 工具参数说明
+# ============================================================
+
+[traits_extracted_param_traits_desc]
+other = "从对话中提取到的用户个人特征列表"
+
+[traits_extracted_param_topic_desc]
+other = "用户当前正在讨论的话题"
+
+[traits_extracted_param_inference_method_desc]
+other = "推断方式：显式表达 explicit-traits / 隐式表达 implicit-traits"
+
+[traits_extracted_param_nature_desc]
+other = "特征性质：陈述客观事实 objective-traits / 表达主观感受 subjectivity-traits"
+
+[traits_extracted_param_conclusion_desc]
+other = "用一句话描述一个特征"
+
+[traits_extracted_param_scenario_desc]
+other = "应用场景：闲聊 casual / 工作 work / 学习 study / 生活 life / 健康 health / 其他 other"
+
+[traits_extracted_param_domain_desc]
+other = "特征本身所属的内容领域"
+
+[traits_extracted_param_category_desc]
+other = "顶层分类：人口统计 demographic / 心理 psychological / 偏好 predilection / 爱好 avocation / 能力 capability / 习惯 habit / 状态 state / 社交 social / 其他 other"
+
+[traits_extracted_param_source_desc]
+other = "用于推导用户特征的原文直接引用(显式语句)或相关概括(跨段落归纳、缩写)"
+
+[traits_extracted_param_confidence_desc]
+other = "可信度，范围 0.1 ~ 1.0"
+
+[traits_extracted_param_half_life_desc]
+other = "特征数据的时效性和变化频率：短 short / 中 medium / 长 long"
+
+# ============================================================
+# topic_shift_detected 工具参数说明
+# ============================================================
+
+[topic_shift_detected_param_topics_desc]
+other = "当前对话涉及的一个或多个话题"
+
+[topic_shift_detected_param_recommended_desc]
+other = "当前推荐话题的描述"
+
+[topic_shift_detected_param_candidates_desc]
+other = "可能转移到的候选话题列表"
+
 [session_title_system_prompt]
 other = "你是一个标题生成助手。下面我会提供一段对话内容，其中 A 代表用户（提问方），B 代表 AI 助手（回答方）。请根据对话内容，生成一个简洁、准确的标题，长度严格控制在20个汉字以内。直接输出标题即可，不要多余的解释。"

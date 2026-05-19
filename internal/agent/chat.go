@@ -13,6 +13,7 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/toolset"
 )
 
 // ============================================================
@@ -27,7 +28,9 @@ import (
 type ChatAgent struct {
 	traitSearcher toolimp.TraitSearcher // Personal knowledge base (RAG) search
 	webSearcher   toolimp.WebSearcher   // Web search interface
-	charLLMClient llm.LLMClient         // LLM API client
+
+	charLLMClient  llm.Client // LLM API client for chat
+	traitLLMClient llm.Client // LLM API client for trait extraction
 
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
@@ -36,6 +39,11 @@ type ChatAgent struct {
 	// Used for translating system prompts, tool descriptions, and other
 	// content sent to the AI API and frontend.
 	defaultLang string
+
+	// traitExtractInterval is the threshold of new user messages that triggers trait extraction
+	traitExtractInterval int
+	// traitExtractTokenThreshold is the token count threshold for a single user message that triggers trait extraction
+	traitExtractTokenThreshold int
 }
 
 // Close releases underlying resources held by the ChatHandler.
@@ -48,17 +56,35 @@ func (h *ChatAgent) Close() error {
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
-func NewChatHandler(traitSearcher toolimp.TraitSearcher, webSearcher toolimp.WebSearcher, llmClient llm.LLMClient, cookieName string, defaultLang string) *ChatAgent {
+func NewChatHandler(
+	traitSearcher toolimp.TraitSearcher,
+	webSearcher toolimp.WebSearcher,
+	chatLLMClient llm.Client,
+	traitLLMClient llm.Client,
+	cookieName string,
+	defaultLang string,
+	traitExtractInterval int,
+	traitExtractTokenThreshold int,
+) *ChatAgent {
 	if defaultLang == "" {
 		defaultLang = "en"
 	}
+	if traitExtractInterval <= 0 {
+		traitExtractInterval = 5
+	}
+	if traitExtractTokenThreshold <= 0 {
+		traitExtractTokenThreshold = 200
+	}
 	return &ChatAgent{
-		traitSearcher:  traitSearcher,
-		webSearcher:    webSearcher,
-		charLLMClient:  llmClient,
-		sessionManager: NewSessionManager(),
-		cookieName:     cookieName,
-		defaultLang:    defaultLang,
+		traitSearcher:              traitSearcher,
+		webSearcher:                webSearcher,
+		charLLMClient:              chatLLMClient,
+		traitLLMClient:             traitLLMClient,
+		sessionManager:             NewSessionManager(),
+		cookieName:                 cookieName,
+		defaultLang:                defaultLang,
+		traitExtractInterval:       traitExtractInterval,
+		traitExtractTokenThreshold: traitExtractTokenThreshold,
 	}
 }
 
@@ -115,18 +141,7 @@ func appendNewResponseMessage(session *session, resMsg *Message) {
 func toRawMessages(msgs []Message) []llm.Message {
 	result := make([]llm.Message, len(msgs))
 	for i, m := range msgs {
-		switch m.Role {
-		case "system":
-			result[i] = llm.Message{Role: "system", Content: m.Content}
-		case "user":
-			result[i] = llm.Message{Role: "user", Content: m.Content}
-		case "assistant":
-			result[i] = llm.Message{Role: "assistant", Content: m.Content}
-		case "tool":
-			result[i] = llm.Message{Role: "tool", Content: m.Content}
-		default:
-			result[i] = llm.Message{Role: "user", Content: m.Content}
-		}
+		result[i] = llm.Message{Role: m.Role, Content: m.Content}
 	}
 	return result
 }
@@ -318,6 +333,140 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		toolsImp,
 		req.DeepThink,
 		lang)
+}
+
+// ============================================================
+// Trait extraction — triggered after each LLM streaming response
+// ============================================================
+
+// untraitedMessages is the return result of collectUntraitedMessages.
+// Returns nil when no trait extraction is needed.
+type untraitedMessages struct {
+	Msgs            []Message // Deep copy of the list of untraited messages
+	PreviousSummary string    // Summary of already extracted traits, used as context for the next extraction round
+	Lang            string    // Language
+}
+
+// collectUntraitedMessages collects messages that have not been trait-processed
+// and determines whether trait extraction should be triggered.
+// Returns *untraitedMessages if extraction is needed, or nil otherwise.
+func (h *ChatAgent) collectUntraitedMessages(session *session) *untraitedMessages {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+
+	// Find the next index after the last processed message
+	startIdx := 0
+	for i := len(session.history) - 1; i >= 0; i-- {
+		if session.history[i].Traited {
+			startIdx = i + 1
+			break
+		}
+	}
+
+	// Copy untraited messages
+	untraitedMsgs := make([]Message, len(session.history)-startIdx)
+	copy(untraitedMsgs, session.history[startIdx:])
+
+	// Count user messages
+	userMsgCount := 0
+	userMsgTokens := 0
+	for _, msg := range untraitedMsgs {
+		if msg.Role == "user" {
+			userMsgCount++
+			userMsgTokens += toolset.TokenEstimate(msg.Content)
+		}
+	}
+
+	// Determine whether to trigger extraction
+	isFirstExtraction := startIdx == 0 && len(session.history) > 0
+
+	if !isFirstExtraction && userMsgCount < h.traitExtractInterval && userMsgTokens <= h.traitExtractTokenThreshold {
+		return nil
+	}
+
+	if len(untraitedMsgs) == 0 {
+		return nil
+	}
+
+	// Deep copy untraited messages
+	msgsCopy := make([]Message, len(untraitedMsgs))
+	copy(msgsCopy, untraitedMsgs)
+
+	return &untraitedMessages{
+		Msgs:            msgsCopy,
+		PreviousSummary: collectTraitedSummary(session.history, len(session.history)-len(untraitedMsgs)),
+		Lang:            h.defaultLang,
+	}
+}
+
+// triggerTraitExtractionIfNeeded checks whether trait extraction is needed
+// and executes it asynchronously if so.
+func (h *ChatAgent) triggerTraitExtractionIfNeeded(ctx context.Context, session *session) {
+	result := h.collectUntraitedMessages(session)
+	if result == nil {
+		return
+	}
+
+	// TraitAgent is stateless; just create a new one from traitLLMClient each time
+	traitAgent := NewTraitAgent(h.traitLLMClient)
+
+	// Execute asynchronously
+	go func() {
+		traitCtx := context.WithoutCancel(ctx)
+		if err := traitAgent.ExtractTraits(traitCtx, result.Lang, result.Msgs, result.PreviousSummary); err != nil {
+			log.Printf("Trait extraction failed: %v", err)
+			return
+		}
+
+		// Extraction succeeded, mark these messages as processed
+		session.mu.Lock()
+		for i := range session.history {
+			for j := range result.Msgs {
+				if session.history[i].ID == result.Msgs[j].ID {
+					session.history[i].Traited = true
+					break
+				}
+			}
+		}
+		session.mu.Unlock()
+	}()
+}
+
+// collectTraitedSummary collects a summary of messages whose traits have already been extracted.
+// It is used as context for the trait-LLM in the next extraction round.
+func collectTraitedSummary(history []Message, maxLen int) string {
+	if maxLen <= 0 || len(history) == 0 {
+		return ""
+	}
+	if maxLen > len(history) {
+		maxLen = len(history)
+	}
+
+	// Take a brief summary of the last few assistant messages among processed messages
+	var b strings.Builder
+	count := 0
+	for i := maxLen - 1; i >= 0 && count < 3; i-- {
+		if history[i].Traited && history[i].Role == "assistant" && history[i].Content != "" {
+			if count > 0 {
+				b.WriteString("\n")
+			}
+			// Take the first 100 characters as a summary
+			content := history[i].Content
+			runes := []rune(content)
+			if len(runes) > 100 {
+				content = string(runes[:100]) + "..."
+			}
+			b.WriteString("- ")
+			b.WriteString(content)
+			count++
+		}
+	}
+
+	if count == 0 {
+		return ""
+	}
+
+	return b.String()
 }
 
 // ============================================================

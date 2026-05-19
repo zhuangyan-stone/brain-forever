@@ -253,6 +253,13 @@ func (h *ChatAgent) callLLMWithPipeline(
 		Usage: usage,
 		MsgID: userMsgID,
 	})
+
+	// 异步触发特征提取（不阻塞响应返回）
+	// 此时助手消息已通过 appendNewResponseMessage 归入 session.history
+	// 注意：必须在 go 中调用，因为 OnNewMessage 仍持有 session.mu，
+	// 而 collectUntraitedMessages 内部也会尝试 session.mu.Lock()，
+	// Go 的 sync.Mutex 不可重入，同步调用会导致死锁。
+	go h.triggerTraitExtractionIfNeeded(ctx, session)
 }
 
 func mergeMessagesContent(messages []llm.Message) string {

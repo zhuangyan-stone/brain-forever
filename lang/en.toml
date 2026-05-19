@@ -36,5 +36,76 @@ other = "Oops! Server error!\n{{.Error}}"
 [assistant_broken_message]
 other = "Oops! My reply process was forcibly interrupted..."
 
+[trait-system_prompt]
+other = """You are a personal trait analysis assistant. Below is a conversation between a user and an AI assistant. Analyze the conversation and extract the user's personal traits.
+
+You need to call the traits_extracted tool to record the extracted traits. Each trait must include two fields:
+- domain: The domain the trait belongs to, e.g., "computer programming", "eating habits", "leisure activities"
+- conclusion: A short sentence describing one of the user's traits, e.g., "Prefers using tabs for code indentation"
+
+Read the conversation carefully and extract meaningful, well-supported traits."""
+
+[traits_extracted_tool_description]
+other = "Called after the AI has completed extracting user personal traits. Records the extracted personal traits from the conversation. Multiple traits can be recorded in a single call."
+
+[traits_extracted_tool_pending]
+other = "Extracting personal traits..."
+
+[topic_shift_detected_tool_description]
+other = "Called when the AI detects a shift in the user's topic, to notify the chat-agent that the topic has changed."
+
+[topic_shift_detected_tool_pending]
+other = "Detecting topic shift..."
+
+# ============================================================
+# traits_extracted tool parameter descriptions
+# ============================================================
+
+[traits_extracted_param_traits_desc]
+other = "List of user personal traits extracted from the conversation"
+
+[traits_extracted_param_topic_desc]
+other = "What topic the user is currently discussing"
+
+[traits_extracted_param_inference_method_desc]
+other = "Inference mode: explicit expression explicit-traits / implicit expression implicit-traits"
+
+[traits_extracted_param_nature_desc]
+other = "Trait nature: stating objective facts objective-traits / expressing subjective feelings subjectivity-traits"
+
+[traits_extracted_param_conclusion_desc]
+other = "A short sentence describing a trait"
+
+[traits_extracted_param_scenario_desc]
+other = "Application scenario: casual(chitchat) / work / study / life / health / other"
+
+[traits_extracted_param_domain_desc]
+other = "The content domain of the trait itself"
+
+[traits_extracted_param_category_desc]
+other = "Top-level category: demographic / psychological / predilection / avocation / capability / habit / state / social / other"
+
+[traits_extracted_param_source_desc]
+other = "Direct quote (explicit sentence) or relevant summary (cross-paragraph summarization, abbreviation) of the source text used to derive the user trait"
+
+[traits_extracted_param_confidence_desc]
+other = "Confidence level, range 0.1 ~ 1.0"
+
+[traits_extracted_param_half_life_desc]
+other = "Timeliness and change frequency of the trait data: short / medium / long"
+
+# ============================================================
+# topic_shift_detected tool parameter descriptions
+# ============================================================
+
+[topic_shift_detected_param_topics_desc]
+other = "One or more topics involved in the current conversation"
+
+[topic_shift_detected_param_recommended_desc]
+other = "Description of the currently recommended topic"
+
+[topic_shift_detected_param_candidates_desc]
+other = "List of candidate topics that may be transitioned to"
+
 [session_title_system_prompt]
 other = "You are a title generation assistant. Below is a conversation where A represents the user (the questioner) and B represents the AI assistant (the responder). Based on the conversation content, generate a concise and accurate title. The title should be within 20 words. Output the title directly without any extra explanation."
