@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state, resetStreamingState } from './chat-state.js';
-import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, scrollToBottom, stopSearchHintsAnimation, updateHeaderTitle, showToast, isScrolledToBottom } from './chat-ui.js';
+import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, autoScrollToBottom as autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender } from './chat-ui.js';
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -16,13 +16,7 @@ import { TITLE_STATE, fetchSessionTitle, truncateTitle } from './chat-api.js';
  * @param {HTMLElement} contentDiv
  */
 function scheduleContentRender(contentDiv) {
-    if (!state.renderTimer) {
-        state.renderTimer = setTimeout(() => {
-            state.renderTimer = null;
-            contentDiv.innerHTML = renderMarkdown(state.accumulatedMarkdown);
-            scrollToBottom();
-        }, state.RENDER_INTERVAL);
-    }
+    throttleRender(state, contentDiv, () => state.accumulatedMarkdown);
 }
 
 /**
@@ -32,9 +26,6 @@ function scheduleContentRender(contentDiv) {
  * @param {HTMLElement} contentDiv
  */
 function handleTextEvent(event, assistantBubble, contentDiv) {
-    // 停止搜索提示的闪烁动画
-    stopSearchHintsAnimation(assistantBubble);
-
     // 累积原始 Markdown，实时渲染为 HTML（带节流）
     if (contentDiv) {
         state.accumulatedMarkdown += event.content;
@@ -65,9 +56,6 @@ function handleSourcesEvent(event) {
 function handleDoneEvent(event, assistantBubble, contentDiv) {
     // 流结束：如果 reasoning 区域仍处于 active 状态（没有 text 事件），标记为完成
     finalizeReasoningArea(assistantBubble);
-
-    // 停止搜索提示的闪烁动画（安全兜底）
-    stopSearchHintsAnimation(assistantBubble);
 
     // 流结束：确保最后一次渲染完成，保存纯文本到 messages
     if (!contentDiv) return;
@@ -107,15 +95,11 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     }
     // 重置累积变量，为下一次流式做准备
     state.accumulatedMarkdown = '';
-    scrollToBottom();
+    autoScrollToBottom();
 
-    // AI 回复完成后：延迟 600ms 再判断是否在底部，给渲染和滚动留出时间。
-    // 如果用户已手动滚动到底部或自动滚动已生效，则不弹 Toast；
-    // 如果用户确实离开了底部（向上滚动查看历史），才弹 Toast 提醒。
+    // AI 回复完成后：延迟 600ms 弹 Toast 提示用户
     setTimeout(() => {
-        if (!isScrolledToBottom()) {
-            showToast('AI 已完成回复', 'info');
-        }
+        showToast('AI 已完成回复', 'info');
     }, 600);
 }
 

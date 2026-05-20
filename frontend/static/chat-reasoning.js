@@ -4,7 +4,7 @@
 
 import { state } from './chat-state.js';
 import { renderMarkdown } from './chat-markdown.js';
-import { scrollToBottom } from './chat-ui.js';
+import { throttleRender } from './chat-ui.js';
 
 'use strict';
 
@@ -119,13 +119,7 @@ export function ensureReasoningContent(assistantBubble) {
  * @param {HTMLElement} contentEl
  */
 export function scheduleReasoningRender(contentEl) {
-    if (!contentEl.renderTimer) {
-        contentEl.renderTimer = setTimeout(() => {
-            contentEl.renderTimer = null;
-            contentEl.innerHTML = renderMarkdown(contentEl.rawText);
-            scrollToBottom();
-        }, state.RENDER_INTERVAL);
-    }
+    throttleRender(contentEl, contentEl, () => contentEl.rawText);
 }
 
 /**
