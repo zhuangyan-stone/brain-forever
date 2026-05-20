@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state, resetStreamingState } from './chat-state.js';
-import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, autoScrollToBottom as autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender } from './chat-ui.js';
+import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, autoScrollToBottom as autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender, restoreInputArea, autoScrollToBottomAfter } from './chat-ui.js';
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -96,6 +96,11 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     // 重置累积变量，为下一次流式做准备
     state.accumulatedMarkdown = '';
     autoScrollToBottom();
+
+    // 流式结束：展开输入面板（流式期间被折叠了）
+    restoreInputArea();
+    // 展开后布局可能变化，延迟再滚一次到底部
+    autoScrollToBottomAfter();
 
     // AI 回复完成后：延迟 600ms 弹 Toast 提示用户
     setTimeout(() => {
@@ -241,6 +246,9 @@ function prepareChat() {
     // 生成 UTC 时间
     const createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
+    // 新消息发出，即将滚动到底部，重置用户滚动状态
+    state.userScrolledUp = false;
+
     // 添加用户消息
     addUserMessage(content, createdAt);
 
@@ -253,8 +261,12 @@ function prepareChat() {
     // 创建空的 assistant 消息占位
     const assistantBubble = addMessage('assistant', '', true);
     state.isStreaming = true;
-    // 新的一轮流式输出开始，重置用户滚动状态（默认自动滚动到底部）
-    state.userScrolledUp = false;
+
+    // 同步滚动到底部（不等 rAF），确保流式开始前页面已在正确位置
+    // addMessage 内部的 autoScrollToBottom 是异步的（rAF），如果 SSE 事件
+    // 先于 rAF 到达（例如 reasoning 事件首次创建 DOM），会导致页面位置不正确。
+    autoScrollToBottom(true);
+
     updateDeleteButtons();
 
     // 启用中断按钮

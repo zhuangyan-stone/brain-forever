@@ -22,6 +22,8 @@
     margin-bottom: 32px;
     padding-top: 6px;
     box-sizing: border-box;
+    position: relative;
+    z-index: 100;
 }
 
 /* 右上角发送模式切换 — 在输入框之上右对齐 */
@@ -338,11 +340,15 @@
 .input-area.collapsed {
     padding-top: 4px;
     padding-bottom: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     box-shadow: none;
     border-radius: var(--radius);
-    background: var(--bg-secondary);
-    transition: padding 0.25s ease, margin-bottom 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    transition: padding 0.25s ease, margin-bottom 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* 折叠 + 流式输出中（disabled）：仅编辑框变暗，不影响红色中断按钮 */
+.input-area.collapsed.streaming .message-input {
+    cursor: not-allowed;
 }
 
 .input-area.collapsed .send-mode-corner,
@@ -354,7 +360,12 @@
 .input-area.collapsed .input-wrapper {
     border-color: var(--border);
     padding: 4px 10px;
-    transition: padding 0.25s ease;
+    transition: padding 0.25s ease, border-color 0.2s ease;
+}
+
+/* 折叠状态下，编辑框有焦点时显示边框色（与展开状态一致） */
+.input-area.collapsed .input-wrapper:focus-within {
+    border-color: var(--accent);
 }
 
 /* 折叠时隐藏换行提示 */

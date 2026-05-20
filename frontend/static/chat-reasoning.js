@@ -4,7 +4,7 @@
 
 import { state } from './chat-state.js';
 import { renderMarkdown } from './chat-markdown.js';
-import { throttleRender } from './chat-ui.js';
+import { throttleRender, autoScrollToBottom } from './chat-ui.js';
 
 'use strict';
 
@@ -147,6 +147,9 @@ export function finalizeReasoningArea(assistantBubble) {
             contentEl.innerHTML = renderMarkdown(contentEl.rawText);
         }
     }
+
+    // reasoning 区域渲染完成，内容高度可能变化，同步滚动到底部
+    autoScrollToBottom();
 }
 
 /**

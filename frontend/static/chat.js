@@ -5,7 +5,7 @@
 
 import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
-import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, SCROLL_BOTTOM_THRESHOLD } from './chat-ui.js';
+import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, SCROLL_BOTTOM_THRESHOLD, collapseInputArea, restoreInputArea, isInputCollapsed } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
@@ -839,42 +839,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     const chatContainer = document.getElementById('scrollContainer');
     const inputArea = document.querySelector('.input-area');
     const messageInput = document.getElementById('messageInput');
-    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
 
     if (!chatContainer || !inputArea || !messageInput) return;
 
-    /** 是否已折叠 */
-    let isCollapsed = false;
-
     /** 上一次记录的 activeTickIndex，用于检测刻度变化 */
     let lastActiveTickIndex = state.activeTickIndex;
-
-    /**
-     * 折叠输入面板（隐藏 send-mode-corner 和 input-footer）
-     * 折叠时始终显示中断按钮（非流式时 disabled 灰色，流式时红色可点击）
-     */
-    function collapseInputArea() {
-        if (isCollapsed) return;
-        isCollapsed = true;
-        inputArea.classList.add('collapsed');
-        // 折叠时始终显示中断按钮，非流式时 disabled
-        if (stopStreamingBtn) {
-            stopStreamingBtn.disabled = !state.isStreaming;
-        }
-    }
-
-    /**
-     * 恢复输入面板（显示所有内容）
-     */
-    function restoreInputArea() {
-        if (!isCollapsed) return;
-        isCollapsed = false;
-        inputArea.classList.remove('collapsed');
-        // 恢复时隐藏中断按钮
-        if (stopStreamingBtn) {
-            stopStreamingBtn.disabled = true;
-        }
-    }
 
     // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----
     //     优先级：AI 正在回答时始终折叠 > 滚动到底部展开 > 刻度变化折叠
@@ -917,26 +886,29 @@ window.addEventListener('DOMContentLoaded', async () => {
             // 检测是否已滚动到底部（向下无可再滚）
             const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < SCROLL_BOTTOM_THRESHOLD;
 
-            // [DEBUG] 注释掉自动展开输入面板和定时滚动的逻辑，以排查自动滚动 bug
-            // if (isAtBottom) {
-            //     // 滚动到底部时自动展开
-            //     restoreInputArea();
+            if (isAtBottom) {
+                // 滚动到底部时自动展开（用户手动滚到底部时恢复输入面板）
+                restoreInputArea();
 
-            //     // 展开后页面高度可能变化（输入面板展开），延迟再滚一次到底部
-            //     setTimeout(() => {
-            //         chatContainer.scrollTop = chatContainer.scrollHeight;
-            //     }, 500);
-            // } else {
+                // 展开后页面高度可能变化（输入面板展开），延迟再滚一次到底部
+                setTimeout(() => {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 500);
+            } else {
+                // 即使不在流式状态，也需要更新 lastScrollTop，
+                // 防止跨流式会话出现过期值，导致下一次流式开始时
+                // autoScrollToBottom 设置的 scrollTop 被误判为"用户向上滚动"
+                lastScrollTop = chatContainer.scrollTop;
+
                 // 刻度变化时折叠，并记住新刻度
                 if (currentTickIndex !== lastActiveTickIndex) {
                     lastActiveTickIndex = currentTickIndex;
                     // 已折叠时不再重复触发
-                    if (!isCollapsed) {
+                    if (!isInputCollapsed()) {
                         collapseInputArea();
                     }
                 }
-            // }
-            // [DEBUG] 以上关闭了自动展开逻辑，对应的 else 分支结束
+            }
         }, 200);
     });
 
@@ -948,7 +920,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // ---- 恢复条件 3：点击输入区域任意位置 ----
     inputArea.addEventListener('click', (e) => {
-        if (isCollapsed) {
+        if (isInputCollapsed()) {
             messageInput.focus();
         }
     });
@@ -959,29 +931,4 @@ window.addEventListener('DOMContentLoaded', async () => {
         sendBtn.addEventListener('click', restoreInputArea);
     }
 
-})();
-
-// ============================================================
-// 滚动区域扩展 — 当鼠标在 scrollContainer 右侧/外部时，
-// 将鼠标滚轮事件转发到 scrollContainer，提升滚动体验
-// ============================================================
-(function initWheelForwarding() {
-    const mainBody = document.getElementById('mainBody');
-    const scrollContainer = document.getElementById('scrollContainer');
-    if (!mainBody || !scrollContainer) return;
-
-    mainBody.addEventListener('wheel', (e) => {
-        // 如果事件目标在 scrollContainer 内部，让原生滚动自行处理
-        if (scrollContainer.contains(e.target)) return;
-
-        // 如果事件目标在 tick-nav 内部（刻度导航有自己的滚轮行为），不拦截
-        const tickNav = document.getElementById('tickNav');
-        if (tickNav && tickNav.contains(e.target)) return;
-
-        // 阻止默认行为（防止意外页面滚动等）
-        e.preventDefault();
-
-        // 将滚轮增量转发到 scrollContainer
-        scrollContainer.scrollTop += e.deltaY;
-    }, { passive: false });
 })();

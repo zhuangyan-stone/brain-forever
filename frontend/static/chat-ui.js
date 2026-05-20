@@ -21,6 +21,7 @@ export const dom = {
     messageInput: null,
     sendBtn: null,
     toastContainer: null,
+    inputArea: null,
 };
 
 /**
@@ -32,19 +33,27 @@ export function initDom() {
     dom.messageInput = document.getElementById('messageInput');
     dom.sendBtn = document.getElementById('sendBtn');
     dom.toastContainer = document.getElementById('toastContainer');
+    dom.inputArea = document.querySelector('.input-area');
 }
 
 /**
  * scrollToBottom 滚动到底部
  * 如果用户已手动向上滚动（userScrolledUp === true），则不执行自动滚动
+ * @param {boolean} [sync=false] - 是否同步执行（不使用 requestAnimationFrame）
  */
-export function autoScrollToBottom() {
+export function autoScrollToBottom(sync = false) {
     if (state.userScrolledUp) return;
 
-    requestAnimationFrame(() => {
+    const doScroll = () => {
         const sc = dom.scrollContainer;
         sc.scrollTop = sc.scrollHeight;
-    });
+    };
+
+    if (sync) {
+        doScroll();
+    } else {
+        requestAnimationFrame(doScroll);
+    }
 }
 
 /**
@@ -82,6 +91,9 @@ export function throttleRender(timerHolder, targetEl, getText) {
  */
 export function setInputEnabled(enabled) {
     dom.messageInput.disabled = !enabled;
+    if (dom.inputArea) {
+        dom.inputArea.classList.toggle('streaming', !enabled);
+    }
     if (enabled) {
         dom.sendBtn.disabled = false;
         dom.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20">${ICON_SEND}</svg>`;
@@ -532,3 +544,57 @@ export function showWelcomeMessage() {
     updateHeaderTitle('');
 }
 
+// ============================================================
+// 输入面板折叠/恢复 — 由 chat.js 的滚动处理器和 chat-sse.js 的流结束清理调用
+// ============================================================
+
+/** 输入面板是否处于折叠状态 */
+let _isInputCollapsed = false;
+
+/**
+ * 折叠输入面板（隐藏 send-mode-corner 和 input-footer）
+ * 折叠时始终显示中断按钮（非流式时 disabled 灰色，流式时红色可点击）
+ */
+export function collapseInputArea() {
+    if (_isInputCollapsed) return;
+    _isInputCollapsed = true;
+    const inputArea = document.querySelector('.input-area');
+    if (inputArea) inputArea.classList.add('collapsed');
+    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
+    if (stopStreamingBtn) {
+        stopStreamingBtn.disabled = !state.isStreaming;
+    }
+}
+
+/**
+ * 恢复输入面板（显示所有内容）
+ */
+export function restoreInputArea() {
+    if (!_isInputCollapsed) return;
+    _isInputCollapsed = false;
+    const inputArea = document.querySelector('.input-area');
+    if (inputArea) inputArea.classList.remove('collapsed');
+    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
+    if (stopStreamingBtn) {
+        stopStreamingBtn.disabled = true;
+    }
+}
+
+/**
+ * 查询输入面板是否处于折叠状态
+ * @returns {boolean}
+ */
+export function isInputCollapsed() {
+    return _isInputCollapsed;
+}
+
+/**
+ * 延迟执行自动滚动到底部，用于布局变化后补偿滚动位置。
+ * 复用 autoScrollToBottom 的 userScrolledUp 守卫逻辑。
+ * @param {number} [ms=500] - 延迟毫秒数
+ */
+export function autoScrollToBottomAfter(ms = 500) {
+    setTimeout(() => {
+        autoScrollToBottom();
+    }, ms);
+}

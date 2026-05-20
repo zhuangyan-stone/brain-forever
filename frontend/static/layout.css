@@ -777,7 +777,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     white-space: nowrap;
     pointer-events: none;
     user-select: none;
-    z-index: 9999;
+    z-index: 99;
 }
 
 .ai-disclaimer a {

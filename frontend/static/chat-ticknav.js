@@ -288,8 +288,12 @@ export function initTickNav() {
     if (!tickNav) return;
 
     // 刻度面板鼠标滚轮滚动 — 改变偏移量，翻动显示的刻度
+    // 注意：{ passive: false } 确保 e.preventDefault() 生效，
+    // 配合 e.stopPropagation() 防止 wheel 事件继续冒泡到 mainBody 的转发器，
+    // 避免误触发页面内容滚动。
     tickNav.addEventListener('wheel', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         const chatContainer = document.getElementById('chatContainer');
         if (!chatContainer) return;
         const userMessages = chatContainer.querySelectorAll('.message.user');
@@ -304,7 +308,7 @@ export function initTickNav() {
 
         state.tickScrollOffset = newOffset;
         updateTickNav();
-    });
+    }, { passive: false });
 
     // 面板消失时：根据当前滚动位置重新计算活动刻度，并确保 tickScrollOffset 包含活动刻度
     tickNav.addEventListener('mouseleave', () => {
