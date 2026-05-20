@@ -30,6 +30,9 @@ import (
 
 // Client defines the interface for LLM API clients.
 type Client interface {
+	// Name returns the LLM provider name (e.g. "DeepSeek", "ZhiPu").
+	Name() string
+
 	// Model returns the current model name.
 	Model() string
 

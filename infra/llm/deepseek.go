@@ -31,6 +31,7 @@ type DeepSeekClient struct {
 	apiKey                string
 	baseURL               string
 	model                 string
+	name                  string // LLM provider name, e.g. "DeepSeek"
 	httpClient            *http.Client
 	streamHTTPClient      *http.Client
 	lastUsage             *Usage // token usage from the most recent API call
@@ -54,6 +55,7 @@ func NewDeepSeekClient(baseURL, apiKey, envKey, model string) *DeepSeekClient {
 		apiKey:  apiKey,
 		baseURL: baseURL,
 		model:   model,
+		name:    "DeepSeek",
 
 		httpClient:       httpx.NewHTTPClient(120 * time.Second),
 		streamHTTPClient: httpx.NewStreamHTTPClient(15 * time.Minute),
@@ -96,10 +98,16 @@ func NewDeepSeekClientFromConfig(cfg DeepseekClientConfig) *DeepSeekClient {
 		apiKey:                cfg.APIKey,
 		baseURL:               cfg.BaseURL,
 		model:                 cfg.Model,
+		name:                  "DeepSeek",
 		httpClient:            httpClient,
 		streamHTTPClient:      httpx.NewStreamHTTPClient(15 * time.Minute),
 		maxToolCallIterations: cfg.MaxToolCallIterations,
 	}
+}
+
+// Name returns the LLM provider name.
+func (c *DeepSeekClient) Name() string {
+	return c.name
 }
 
 // Model returns the current model name.
