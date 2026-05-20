@@ -12,7 +12,7 @@ import { ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE } from './s
 'use strict';
 
 /** 判断"滚动到底部"的误差容限（px），底部剩余内容小于此值即视为已到底 */
-export const SCROLL_BOTTOM_THRESHOLD = 8;
+export const SCROLL_BOTTOM_THRESHOLD = 4;
 
 // DOM 元素引用（由 chat.js 初始化时设置）
 export const dom = {
