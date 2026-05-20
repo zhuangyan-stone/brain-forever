@@ -787,20 +787,22 @@ initDeleteModal();
 // 页面加载后先恢复会话
 window.addEventListener('DOMContentLoaded', restoreSession);
 
-// 页面加载后获取当前使用的 AI 模型名称，更新底部免责声明
+// 页面加载后获取当前使用的 AI 信息（名称、模型、官网），更新底部免责声明
 window.addEventListener('DOMContentLoaded', async () => {
     try {
-        const response = await fetch('/api/chat/info/llm-name');
+        const response = await fetch('/api/chat/info/llm');
         if (response.ok) {
             const data = await response.json();
             const disclaimer = document.getElementById('aiDisclaimer');
-            if (disclaimer && data.name) {
-                disclaimer.textContent = `内容由 AI （${data.name}） 生成，请仔细甄别`;
+            if (disclaimer && data.name && data.website) {
+                disclaimer.innerHTML = `内容由 AI（<a href="${data.website}" target="_blank" rel="noopener noreferrer">${data.name}</a>）生成，请仔细甄别`;
+            } else if (disclaimer && data.name) {
+                disclaimer.textContent = `内容由 AI（${data.name}）生成，请仔细甄别`;
             }
         }
     } catch (e) {
         // 静默失败，保留默认免责声明文本
-        console.debug('获取 AI 模型名称失败:', e);
+        console.debug('获取 AI 信息失败:', e);
     }
 });
 
