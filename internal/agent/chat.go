@@ -46,6 +46,20 @@ type ChatAgent struct {
 	traitExtractTokenThreshold int
 }
 
+// OnGetLLMName handles GET /api/chat/info/llm-name requests.
+// Returns the current chat LLM model name as JSON.
+func (h *ChatAgent) OnGetLLMName(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"name": h.charLLMClient.Model(),
+	})
+}
+
 // Close releases underlying resources held by the ChatHandler.
 // Currently closes the VectorStore (knowledge base) database.
 func (h *ChatAgent) Close() error {

@@ -117,6 +117,7 @@ func main() {
 
 	// API routes
 	mux.Handle("/api/chat", http.HandlerFunc(chatHandler.OnNewMessage))
+	mux.Handle("/api/chat/info/llm-name", http.HandlerFunc(chatHandler.OnGetLLMName))
 	mux.Handle("/api/session", http.HandlerFunc(chatHandler.OnRestoreSession))
 	mux.Handle("/api/session/new", http.HandlerFunc(chatHandler.OnNewSession))
 	mux.Handle("/api/session/title", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
