@@ -38,10 +38,11 @@ export function initDom() {
  * scrollToBottom 滚动到底部
  * 如果用户已手动向上滚动（userScrolledUp === true），则不执行自动滚动
  */
-export function scrollToBottom() {
+export function autoScrollToBottom() {
     if (state.userScrolledUp) return;
+
     requestAnimationFrame(() => {
-        const sc = dom.scrollContainer || dom.chatContainer;
+        const sc = dom.scrollContainer;
         sc.scrollTop = sc.scrollHeight;
     });
 }
@@ -51,8 +52,26 @@ export function scrollToBottom() {
  * @returns {boolean}
  */
 export function isScrolledToBottom() {
-    const sc = dom.scrollContainer || dom.chatContainer;
+    const sc = dom.scrollContainer;
     return sc.scrollHeight - sc.scrollTop - sc.clientHeight < SCROLL_BOTTOM_THRESHOLD;
+}
+
+/**
+ * throttleRender 节流渲染 + 自动滚动
+ * 对累积的文本做节流的 Markdown 渲染，渲染后自动滚动到底部。
+ * timerHolder 可以是 DOM 元素或 state 对象，只要拥有 renderTimer 属性即可，
+ * 从而实现 timer 的天然隔离（reasoning 存在 contentEl，content 存在 state）。
+ * @param {{ renderTimer: number|null }} timerHolder - 持有 renderTimer 的对象
+ * @param {HTMLElement} targetEl - 渲染目标元素（设置 innerHTML）
+ * @param {() => string} getText - 返回当前需要渲染的文本
+ */
+export function throttleRender(timerHolder, targetEl, getText) {
+    if (timerHolder.renderTimer) return;
+    timerHolder.renderTimer = setTimeout(() => {
+        timerHolder.renderTimer = null;
+        targetEl.innerHTML = renderMarkdown(getText());
+        autoScrollToBottom();
+    }, state.RENDER_INTERVAL);
 }
 
 /**
@@ -121,23 +140,12 @@ export function showToast(message, type, duration) {
 }
 
 /**
- * showError 显示错误信息
+ * showError 通过 Toast 显示错误信息
  * @param {HTMLElement} assistantBubble
  * @param {string} message
  */
 export function showError(assistantBubble, message) {
-    // 如果 assistant 气泡是空的，直接显示错误
-    const contentDiv = assistantBubble.querySelector('.bubble');
-    if (contentDiv && !contentDiv.textContent.trim()) {
-        contentDiv.innerHTML = `❌ ${escapeHtml(message)}`;
-        contentDiv.classList.remove('streaming');
-        assistantBubble.classList.add('error');
-    } else {
-        // 如果 assistant 气泡已有内容（如流式已开始），改用 toast 显示错误，
-        // 避免创建无法删除的独立错误消息气泡
-        showToast(message, 'error', 6000);
-    }
-    scrollToBottom();
+    showToast(message, 'error', 6000);
 }
 
 /**
@@ -269,7 +277,7 @@ export function addMessage(role, content, isStreaming = false) {
 
     div.appendChild(inner);
 
-    scrollToBottom();
+    autoScrollToBottom();
     return div;
 }
 
@@ -457,7 +465,7 @@ export function showSources(sources, type) {
     }
 
     panel.appendChild(section);
-    scrollToBottom();
+    autoScrollToBottom();
 }
 
 /**
@@ -524,11 +532,3 @@ export function showWelcomeMessage() {
     updateHeaderTitle('');
 }
 
-/**
- * 停止所有 web-search-hint 的闪烁动画
- * @param {HTMLElement} assistantBubble
- */
-export function stopSearchHintsAnimation(assistantBubble) {
-    const hints = assistantBubble.querySelectorAll('.web-search-hint');
-    hints.forEach(h => h.style.animation = 'none');
-}

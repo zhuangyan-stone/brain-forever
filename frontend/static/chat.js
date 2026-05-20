@@ -627,6 +627,31 @@ window.addEventListener('resize', () => {
 })();
 
 // ============================================================
+// 滚动区域扩展 — 当鼠标在 scrollContainer 右侧/外部时，
+// 将鼠标滚轮事件转发到 scrollContainer，提升滚动体验
+// ============================================================
+(function initWheelForwarding() {
+    const mainBody = document.getElementById('mainBody');
+    const scrollContainer = document.getElementById('scrollContainer');
+    if (!mainBody || !scrollContainer) return;
+
+    mainBody.addEventListener('wheel', (e) => {
+        // 如果事件目标在 scrollContainer 内部，让原生滚动自行处理
+        if (scrollContainer.contains(e.target)) return;
+
+        // 如果事件目标在 tick-nav 内部（刻度导航有自己的滚轮行为），不拦截
+        const tickNav = document.getElementById('tickNav');
+        if (tickNav && tickNav.contains(e.target)) return;
+
+        // 阻止默认行为（防止意外页面滚动等）
+        e.preventDefault();
+
+        // 将滚轮增量转发到 scrollContainer
+        scrollContainer.scrollTop += e.deltaY;
+    }, { passive: false });
+})();
+
+// ============================================================
 // 初始化：自动调整 textarea 高度
 // ============================================================
 
@@ -892,15 +917,16 @@ window.addEventListener('DOMContentLoaded', async () => {
             // 检测是否已滚动到底部（向下无可再滚）
             const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < SCROLL_BOTTOM_THRESHOLD;
 
-            if (isAtBottom) {
-                // 滚动到底部时自动展开
-                restoreInputArea();
+            // [DEBUG] 注释掉自动展开输入面板和定时滚动的逻辑，以排查自动滚动 bug
+            // if (isAtBottom) {
+            //     // 滚动到底部时自动展开
+            //     restoreInputArea();
 
-                // 展开后页面高度可能变化（输入面板展开），延迟再滚一次到底部
-                setTimeout(() => {
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                }, 500);
-            } else {
+            //     // 展开后页面高度可能变化（输入面板展开），延迟再滚一次到底部
+            //     setTimeout(() => {
+            //         chatContainer.scrollTop = chatContainer.scrollHeight;
+            //     }, 500);
+            // } else {
                 // 刻度变化时折叠，并记住新刻度
                 if (currentTickIndex !== lastActiveTickIndex) {
                     lastActiveTickIndex = currentTickIndex;
@@ -909,7 +935,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                         collapseInputArea();
                     }
                 }
-            }
+            // }
+            // [DEBUG] 以上关闭了自动展开逻辑，对应的 else 分支结束
         }, 200);
     });
 
@@ -932,4 +959,29 @@ window.addEventListener('DOMContentLoaded', async () => {
         sendBtn.addEventListener('click', restoreInputArea);
     }
 
+})();
+
+// ============================================================
+// 滚动区域扩展 — 当鼠标在 scrollContainer 右侧/外部时，
+// 将鼠标滚轮事件转发到 scrollContainer，提升滚动体验
+// ============================================================
+(function initWheelForwarding() {
+    const mainBody = document.getElementById('mainBody');
+    const scrollContainer = document.getElementById('scrollContainer');
+    if (!mainBody || !scrollContainer) return;
+
+    mainBody.addEventListener('wheel', (e) => {
+        // 如果事件目标在 scrollContainer 内部，让原生滚动自行处理
+        if (scrollContainer.contains(e.target)) return;
+
+        // 如果事件目标在 tick-nav 内部（刻度导航有自己的滚轮行为），不拦截
+        const tickNav = document.getElementById('tickNav');
+        if (tickNav && tickNav.contains(e.target)) return;
+
+        // 阻止默认行为（防止意外页面滚动等）
+        e.preventDefault();
+
+        // 将滚轮增量转发到 scrollContainer
+        scrollContainer.scrollTop += e.deltaY;
+    }, { passive: false });
 })();
