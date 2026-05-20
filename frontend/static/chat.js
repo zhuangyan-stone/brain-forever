@@ -795,7 +795,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             const data = await response.json();
             const disclaimer = document.getElementById('aiDisclaimer');
             if (disclaimer && data.name && data.website) {
-                disclaimer.innerHTML = `内容由 AI（<a href="${data.website}" target="_blank" rel="noopener noreferrer">${data.name}</a>）生成，请仔细甄别`;
+                const modelTip = data.model ? `模型：${data.model}` : '';
+                disclaimer.innerHTML = `内容由 AI（<a href="${data.website}" target="_blank" rel="noopener noreferrer" data-tooltip="${modelTip}">${data.name}</a>）生成，请仔细甄别`;
             } else if (disclaimer && data.name) {
                 disclaimer.textContent = `内容由 AI（${data.name}）生成，请仔细甄别`;
             }
