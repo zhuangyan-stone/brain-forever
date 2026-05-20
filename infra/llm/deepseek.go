@@ -115,6 +115,11 @@ func (c *DeepSeekClient) Model() string {
 	return c.model
 }
 
+// Website returns the official website URL of the LLM provider.
+func (c *DeepSeekClient) Website() string {
+	return "https://www.deepseek.com/"
+}
+
 // GetMaxToolCallIterations returns the maximum number of tool call iterations.
 func (c *DeepSeekClient) GetMaxToolCallIterations() int {
 	if c.maxToolCallIterations <= 0 {
@@ -146,11 +151,14 @@ func (c *DeepSeekClient) storeUsage(usage Usage) {
 
 // Chat sends a chat message and gets a reply (non-streaming).
 // Uses the client's default model.
+// Token usage is returned in the ChatCompletionResponse.Usage field;
+// stream_options is not needed for non-streaming requests.
 func (c *DeepSeekClient) Chat(ctx context.Context, messages []Message) (*ChatCompletionResponse, error) {
-	return c.ChatWithOptions(ctx, ChatCompletionRequest{
+	req := ChatCompletionRequest{
 		Model:    c.model,
 		Messages: messages,
-	})
+	}
+	return c.ChatWithOptions(ctx, req)
 }
 
 // ChatWithOptions sends a chat request with custom parameters (non-streaming).
@@ -216,11 +224,13 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 
 // ChatStream sends a chat request and returns a stream for reading chunks.
 // Uses the client's default model.
+// StreamOptions (include_usage) is configured inside ChatStreamWithOptions.
 func (c *DeepSeekClient) ChatStream(ctx context.Context, messages []Message) *ChatCompletionChunkDecoder {
-	return c.ChatStreamWithOptions(ctx, ChatCompletionRequest{
+	req := ChatCompletionRequest{
 		Model:    c.model,
 		Messages: messages,
-	})
+	}
+	return c.ChatStreamWithOptions(ctx, req)
 }
 
 // ChatStreamWithOptions sends a streaming chat request with custom parameters.
@@ -431,6 +441,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		if len(toolDefs) > 0 {
 			req.Tools = toolDefs
 		}
+		// StreamOptions (include_usage) is configured inside ChatStreamWithOptions.
 
 		// Set thinking mode based on the per-request deepThink flag.
 		// ChatStreamWithOptions will respect this if already set.

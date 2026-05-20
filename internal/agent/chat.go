@@ -46,17 +46,26 @@ type ChatAgent struct {
 	traitExtractTokenThreshold int
 }
 
-// OnGetLLMName handles GET /api/chat/info/llm-name requests.
-// Returns the current chat LLM model name as JSON.
-func (h *ChatAgent) OnGetLLMName(w http.ResponseWriter, r *http.Request) {
+// LLMInfo is the response for the LLM info endpoint.
+type LLMInfo struct {
+	Name    string `json:"name"`
+	Model   string `json:"model"`
+	Website string `json:"website"`
+}
+
+// OnGetLLMInfo handles GET /api/chat/info/llm requests.
+// Returns the current chat LLM provider name, model name, and official website URL as JSON.
+func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"name": h.charLLMClient.Model(),
+	json.NewEncoder(w).Encode(LLMInfo{
+		Name:    h.charLLMClient.Name(),
+		Model:   h.charLLMClient.Model(),
+		Website: h.charLLMClient.Website(),
 	})
 }
 

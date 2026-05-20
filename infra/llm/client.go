@@ -36,6 +36,9 @@ type Client interface {
 	// Model returns the current model name.
 	Model() string
 
+	// Website returns the LLM provider's official website URL.
+	Website() string
+
 	// GetUsageInfo returns the token usage information from the most recent API call.
 	// Returns nil if no call has been made yet.
 	GetUsageInfo() *Usage
@@ -70,7 +73,7 @@ type Client interface {
 	//   - ctx: context for cancellation
 	//   - callback: StreamCallback for receiving streaming events (text, reasoning, etc.)
 	//   - messages: the conversation messages (will be modified in-place during tool call loops)
-	//   - pipeline: 连接 agent 的前端 (sse client)和后端 (llm-api) 的数据，包括工具调用
+	//   - pipeline: connects data between the agent's frontend (sse client) and backend (llm-api), including tool calls
 	//   - withDeepThink: enable deep thinking/reasoning mode for this request
 	//
 	// Returns the final assistant reply content and reasoning content.
@@ -84,7 +87,7 @@ type Client interface {
 // ============================================================
 // ClientConfig — generic config for creating an LLM client instance
 //
-// This struct is used by factory functions (e.g. NewDeepSeekRawFromConfig)
+// This struct is used by factory functions (e.g. NewDeepSeekFromConfig)
 // to create a concrete LLM client. DeepSeek-specific fields (e.g. Thinking)
 // are handled internally by the implementation.
 // ============================================================
@@ -163,6 +166,23 @@ type ChatCompletionRequest struct {
 
 	// StreamOptions controls whether token usage is included in the final streaming chunk.
 	StreamOptions *StreamOptions `json:"stream_options,omitempty"`
+
+	// ResponseFormat specifies the format the model must output.
+	// Allowed values: "text", "json_object".
+	// Defaults to "text" if not set.
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+
+	// Stop is a list of up to 16 strings (or a single string) that will stop
+	// the API from generating further tokens when encountered.
+	Stop []string `json:"stop,omitempty"`
+
+	// UserID is an optional user identifier for the end-user.
+	// Max length: 512 characters. Allowed charset: [a-zA-Z0-9\-_].
+	UserID string `json:"user_id,omitempty"`
+
+	// ReasoningEffort controls the reasoning effort for the model.
+	// DeepSeek-specific. Allowed values: "high", "max". Default: "high".
+	ReasoningEffort string `json:"reasoning_effort,omitempty"`
 }
 
 func (req *ChatCompletionRequest) DisableToolChoice() {
@@ -187,9 +207,71 @@ func (req *ChatCompletionRequest) ForceToolChoice(functionName string) {
 	req.ToolChoice = json.RawMessage(`{"type":"function","function":{"name":"` + functionName + `"}}`)
 }
 
+// SetResponseFormat sets the response_format field on the request.
+// Pass TextFormatResponse for plain text output, or JSONFormatResponse for JSON mode.
+func (req *ChatCompletionRequest) SetResponseFormat(fmt ResponseFormatType) {
+	switch fmt {
+	case TextFormatResponse:
+		req.ResponseFormat = &ResponseFormat{Type: "text"}
+	case JSONFormatResponse:
+		req.ResponseFormat = &ResponseFormat{Type: "json_object"}
+	}
+}
+
+// ReasoningEffortLevel is the enum type for reasoning effort selection.
+type ReasoningEffortLevel int
+
+const (
+	// ReasoningEffortHigh is the default reasoning effort.
+	ReasoningEffortHigh ReasoningEffortLevel = iota
+	// ReasoningEffortMax uses maximum reasoning effort (DeepSeek R1-0528 style).
+	ReasoningEffortMax
+)
+
+// SetReasoningEffort sets the reasoning_effort field on the request.
+// Pass ReasoningEffortHigh (default) or ReasoningEffortMax for maximum reasoning.
+func (req *ChatCompletionRequest) SetReasoningEffort(effort ReasoningEffortLevel) {
+	switch effort {
+	case ReasoningEffortHigh:
+		req.ReasoningEffort = "high"
+	case ReasoningEffortMax:
+		req.ReasoningEffort = "max"
+	}
+}
+
+// IncludeUsage sets whether token usage is included in the final streaming chunk.
+// When include is true, StreamOptions.IncludeUsage is set to true.
+// When include is false, StreamOptions is cleared (set to nil).
+func (req *ChatCompletionRequest) IncludeUsage(includeUsage bool) {
+	if includeUsage {
+		if req.StreamOptions == nil {
+			req.StreamOptions = &StreamOptions{}
+		}
+		req.StreamOptions.IncludeUsage = true
+	} else {
+		req.StreamOptions = nil
+	}
+}
+
 // ThinkingConfig configures the model's thinking/reasoning mode (DeepSeek-specific).
 type ThinkingConfig struct {
 	Type string `json:"type"` // "enabled" to enable, "disabled" to disable
+}
+
+// ResponseFormatType is the enum type for response format selection.
+type ResponseFormatType int
+
+const (
+	// TextFormatResponse indicates the model should output plain text.
+	TextFormatResponse ResponseFormatType = iota
+	// JSONFormatResponse indicates the model should output a valid JSON object.
+	JSONFormatResponse
+)
+
+// ResponseFormat specifies the format the model must output.
+// The only supported values are "text" (default) and "json_object".
+type ResponseFormat struct {
+	Type string `json:"type"` // "text" or "json_object"
 }
 
 // StreamOptions configures streaming behavior.
