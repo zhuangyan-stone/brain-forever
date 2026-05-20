@@ -762,3 +762,21 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     overflow: hidden;
 }
 
+/* ============================================================
+    AI 生成免责声明 — 页面底部居中
+    ============================================================ */
+
+.ai-disclaimer {
+    position: fixed;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--text-secondary, #999);
+    opacity: 0.6;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    z-index: 9999;
+}
+
