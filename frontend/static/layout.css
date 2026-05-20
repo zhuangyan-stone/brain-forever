@@ -780,3 +780,14 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     z-index: 9999;
 }
 
+.ai-disclaimer a {
+    pointer-events: auto;
+    color: var(--accent, #4a90d9);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.ai-disclaimer a:hover {
+    text-decoration: underline;
+}
+
