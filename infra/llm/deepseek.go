@@ -551,7 +551,7 @@ func mergeToolCalls(toolCalls []StreamingToolCall, delta DeltaToolCall) []Stream
 // It copies the reply text, reasoning content, and converts each StreamingToolCall into a ToolCall.
 func makeAssistantMessageForToolCalls(reply, reasoning string, toolCalls []StreamingToolCall) Message {
 	assistantMsg := Message{
-		Role: "assistant",
+		Role: RoleAssistant,
 	}
 	if len(reply) > 0 {
 		assistantMsg.Content = reply
@@ -601,7 +601,7 @@ func executeToolCalls(pipeline Pipeline, toolCalls []StreamingToolCall, messages
 
 			// Append the tool result message
 			*messages = append(*messages, Message{
-				Role:       "tool",
+				Role:       RoleTool,
 				ToolCallID: tc.ID,
 				Content:    resultContent,
 			})

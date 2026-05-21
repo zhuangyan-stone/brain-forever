@@ -116,7 +116,7 @@ func makeAssistantBrokenMessage(lang string, id int64) Message {
 
 	return Message{
 		ID:        id,
-		Role:      "assistant",
+		Role:      llm.RoleAssistant,
 		Content:   brokenMsg,
 		CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
 	}
@@ -139,7 +139,7 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 		// When the AI is interrupted mid-thought or mid-response, we won't get an assistant message,
 		// so the last message will be a user message.
 		// In this case, we need to manually append an assistant message.
-		if lastMsg.Role == "user" {
+		if lastMsg.Role == llm.RoleUser {
 			assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
 			session.history = append(session.history, assistantMsg)
 		}
@@ -196,6 +196,27 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 	return &req
 }
 
+func extractMessagesForTitle(history []Message) []Message {
+	c := len(history)
+	if c <= 50 {
+		return history
+	}
+
+	i := c/3 + 1
+	samples := history[0:i]
+
+	for j := i + 1; j < c-1; j++ {
+		if history[j].Role == llm.RoleUser {
+			samples = append(samples, history[j])
+		} else if j%5 == 0 {
+			samples = append(samples, history[j])
+		}
+	}
+
+	samples = append(samples, history[c-1])
+	return samples
+}
+
 // OnGetSessionTitle handles GET /api/session/title requests.
 // It reads the "title" query parameter as the original title,
 // takes the first 5 messages from the session history,
@@ -226,25 +247,18 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	session.mu.Lock()
-	history := make([]Message, 0, len(session.history))
-	history = append(history, session.history...)
+	samples := extractMessagesForTitle(session.history)
 	session.mu.Unlock()
-
-	// Take at most the first 24 messages
-	const maxMsgs = 24
-	if len(history) > maxMsgs {
-		history = history[:maxMsgs]
-	}
 
 	// Build the LLM prompt with i18n support
 	systemPrompt := i18n.TL(lang, "session_title_system_prompt")
 	var contentBuilder strings.Builder
 
-	for _, msg := range history {
+	for _, msg := range samples {
 		switch msg.Role {
-		case "user":
+		case llm.RoleUser:
 			contentBuilder.WriteString("A: ")
-		case "assistant":
+		case llm.RoleAssistant:
 			contentBuilder.WriteString("B: ")
 		}
 		contentBuilder.WriteString(msg.Content)
@@ -252,8 +266,8 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	messages := make([]llm.Message, 0, 2)
-	messages = append(messages, llm.Message{Role: "system", Content: systemPrompt})
-	messages = append(messages, llm.Message{Role: "user", Content: contentBuilder.String()})
+	messages = append(messages, llm.Message{Role: llm.RoleSystem, Content: systemPrompt})
+	messages = append(messages, llm.Message{Role: llm.RoleUser, Content: contentBuilder.String()})
 
 	newTitle := ""
 	titleChanged := false
@@ -275,9 +289,9 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Validate the generated title:
 	// - If LLM returned empty content, fall back to original title
-	// - If the generated title is unreasonably long (>50 chars), the LLM likely
+	// - If the generated title is unreasonably long (>60 chars), the LLM likely
 	//   failed to generate a concise title; discard it and use the original title instead.
-	const maxTitleLen = 50
+	const maxTitleLen = 60
 	if newTitle == "" || len([]rune(newTitle)) > maxTitleLen {
 		newTitle = originalTitle
 	}
@@ -331,7 +345,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	llmMsgs := toRawMessages(session.history)
 
 	startSystemMsg := llm.Message{
-		Role:    "system",
+		Role:    llm.RoleSystem,
 		Content: makeFixSystemPromptContent(lang),
 	}
 	messages := make([]llm.Message, 0, 1+len(llmMsgs))
@@ -394,7 +408,7 @@ func (h *ChatAgent) collectUntraitedMessages(session *session) *untraitedMessage
 	userMsgCount := 0
 	userMsgTokens := 0
 	for _, msg := range untraitedMsgs {
-		if msg.Role == "user" {
+		if msg.Role == llm.RoleUser {
 			userMsgCount++
 			userMsgTokens += toolset.TokenEstimate(msg.Content)
 		}
@@ -469,7 +483,7 @@ func collectTraitedSummary(history []Message, maxLen int) string {
 	var b strings.Builder
 	count := 0
 	for i := maxLen - 1; i >= 0 && count < 3; i-- {
-		if history[i].Traited && history[i].Role == "assistant" && history[i].Content != "" {
+		if history[i].Traited && history[i].Role == llm.RoleAssistant && history[i].Content != "" {
 			if count > 0 {
 				b.WriteString("\n")
 			}

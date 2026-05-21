@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"BrainForever/infra/llm"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -36,7 +37,7 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 				title = savedTitle
 			} else {
 				for _, msg := range history {
-					if msg.Role == "user" {
+					if msg.Role == llm.RoleUser {
 						title = truncateTitle(msg.Content)
 						session.SetTitle(title)
 						break

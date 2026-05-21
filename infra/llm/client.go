@@ -103,6 +103,17 @@ type ClientConfig struct {
 }
 
 // ============================================================
+// Message role constants — used as the Role field in Message
+// ============================================================
+
+const (
+	RoleSystem    = "system"
+	RoleUser      = "user"
+	RoleAssistant = "assistant"
+	RoleTool      = "tool"
+)
+
+// ============================================================
 // Message types — mirror the OpenAI chat completion request/response schema
 // ============================================================
 

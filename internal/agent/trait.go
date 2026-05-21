@@ -86,10 +86,10 @@ func (ta *TraitAgent) ExtractTraits(
 
 	// 2. Convert untraitedMsgs to llm.Message
 	llmMsgs := make([]llm.Message, 0, 1+len(untraitedMsgs))
-	llmMsgs = append(llmMsgs, llm.Message{Role: "system", Content: systemContent})
+	llmMsgs = append(llmMsgs, llm.Message{Role: llm.RoleSystem, Content: systemContent})
 	for _, m := range untraitedMsgs {
 		role := m.Role
-		if role != "user" && role != "assistant" && role != "system" && role != "tool" {
+		if role != llm.RoleUser && role != llm.RoleAssistant && role != llm.RoleSystem && role != llm.RoleTool {
 			continue
 		}
 

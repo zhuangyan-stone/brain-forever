@@ -228,7 +228,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 		if len(reply) > 0 {
 			assistantMsg := Message{
 				ID:        userMsgID, // same as user message's id
-				Role:      "assistant",
+				Role:      llm.RoleAssistant,
 				Content:   reply,
 				Reasoning: reasoning,
 				CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
