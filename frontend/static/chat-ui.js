@@ -147,11 +147,12 @@ export function showToast(message, type, duration) {
 }
 
 /**
- * showError 通过 Toast 显示错误信息
+ * showError 通过 Toast 显示错误信息，同时在控制台输出出错信息
  * @param {HTMLElement} assistantBubble
  * @param {string} message
  */
 export function showError(assistantBubble, message) {
+    console.error('[SSE Error]', message);
     showToast(message, 'error', 6000);
 }
 
