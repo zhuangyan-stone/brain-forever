@@ -853,6 +853,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     /** 上一次记录的 scrollTop，用于在流式输出中判断用户是否主动向上滚动 */
     let lastScrollTop = 0;
     chatContainer.addEventListener('scroll', () => {
+        // ★ 流式输出中：如果 scrollTop 变化由 autoScrollToBottom 触发，
+        //   立即捕获 scroll anchoring 调整后的最终 scrollTop 作为基准值，
+        //   跳过节流处理，避免 auto-scroll 与 scroll anchoring 的组合变化被误判为"用户向上滚动"。
+        if (state.isStreaming && state.isAutoScrolling) {
+            state.isAutoScrolling = false;
+            lastScrollTop = chatContainer.scrollTop;
+            return;
+        }
+
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
             scrollThrottleTimer = null;
@@ -863,12 +872,13 @@ window.addEventListener('DOMContentLoaded', async () => {
             if (state.isStreaming) {
                 collapseInputArea();
 
-                // 通过 scrollTop 变化方向判断：只有 scrollTop 变小（用户主动向上滚动）
-                // 才视为"用户离开底部"，停止自动滚动。
+                // 检测用户主动向上滚动（scrollTop 明显减小）。
+                // 注意：scrollTop 可能因 scroll anchoring（浏览器滚动锚定）而微小降低，
+                // 因此需用最小阈值过滤（典型锚定调整 < 4px，用户主动滚动远大于此）。
                 // scrollToBottom() 只会让 scrollTop 变大（向下滚），
                 // 内容渲染让 scrollHeight 增大但 scrollTop 不变时也不应触发。
                 const currentScrollTop = chatContainer.scrollTop;
-                if (currentScrollTop < lastScrollTop) {
+                if (currentScrollTop + SCROLL_BOTTOM_THRESHOLD < lastScrollTop) {
                     state.userScrolledUp = true;
                 }
                 lastScrollTop = currentScrollTop;

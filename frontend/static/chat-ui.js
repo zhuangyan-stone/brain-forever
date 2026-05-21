@@ -46,6 +46,7 @@ export function autoScrollToBottom(sync = false) {
 
     const doScroll = () => {
         const sc = dom.scrollContainer;
+        state.isAutoScrolling = true;
         sc.scrollTop = sc.scrollHeight;
     };
 

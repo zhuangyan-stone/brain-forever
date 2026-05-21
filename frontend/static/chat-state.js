@@ -132,6 +132,10 @@ export const state = {
     // 渲染节流间隔（毫秒）
     RENDER_INTERVAL: 180,
 
+    // 标记 scrollTop 变化是否由 autoScrollToBottom 触发，
+    // 用于 chat.js 的 scroll 监听器中区分自动滚动与 scroll anchoring 误判
+    isAutoScrolling: false,
+
     // 最多同时显示的刻度数
     MAX_VISIBLE_TICKS: 9,
     
