@@ -149,6 +149,7 @@ export function finalizeReasoningArea(assistantBubble) {
     }
 
     // reasoning 区域渲染完成，内容高度可能变化，同步滚动到底部
+    console.log(`[AutoScroll] 🧠 finalizeReasoningArea: reasoning渲染完成 → autoScrollToBottom userScrolledUp=${state.userScrolledUp}`);
     autoScrollToBottom();
 }
 

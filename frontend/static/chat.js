@@ -845,30 +845,56 @@ window.addEventListener('DOMContentLoaded', async () => {
     /** 上一次记录的 activeTickIndex，用于检测刻度变化 */
     let lastActiveTickIndex = state.activeTickIndex;
 
+    // ---- scrollend：滚动完全停止后，折叠输入面板 + 恢复自动滚动 ----
+    chatContainer.addEventListener('scrollend', () => {
+        if (!state.isStreaming) return;
+
+        // 滚动停止后才折叠输入面板，避免 scroll anchoring 干扰滚动过程中的检测
+        collapseInputArea();
+
+        if (state.userScrolledUp && isScrolledToBottom()) {
+            console.log(
+                `%c[AutoScroll] 🔄 scrollend: 已到底部 → userScrolledUp=false (恢复自动滚动)`,
+                'background:green; color:white; font-size:12px; font-weight:bold; padding:2px;'
+            );
+            state.userScrolledUp = false;
+        }
+    });
+
     // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----
-    //     优先级：AI 正在回答时始终折叠 > 滚动到底部展开 > 刻度变化折叠
+    //     优先级：用户滚动检测 + 非流式刻度变化折叠
     //     注意：必须节流（200ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
     //     （150ms 节流）更新 activeTickIndex 之后再执行，否则检测不到刻度变化。
     let scrollThrottleTimer = null;
     chatContainer.addEventListener('scroll', () => {
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
-            scrollThrottleTimer = null;
-
             const currentTickIndex = state.activeTickIndex;
+            const sc = chatContainer;
+            const debugInfo = `scrollTop=${sc.scrollTop} scrollHeight=${sc.scrollHeight} clientHeight=${sc.clientHeight}`;
 
-            // 最高优先级：AI 正在回答时始终折叠输入面板
             if (state.isStreaming) {
-                collapseInputArea();
-
-                // 检测用户是否离开底部：用 isScrolledToBottom 判断，
-                // 4px 容差可过滤 scroll anchoring 造成的微小偏移。
+                // streaming 分支：只检测用户滚动状态，不操作输入面板（避免 scroll anchoring）
+                // auto-scroll 由 throttleRender 每 180ms 调用 autoScrollToBottom 负责
                 if (!isScrolledToBottom()) {
+                    if (!state.userScrolledUp) {
+                        console.log(
+                            `%c[AutoScroll] ⚠️⚠️⚠️ userScrolledUp → true (用户向上滚动，阻塞自动滚动) ⚠️⚠️⚠️`,
+                            'background:red; color:yellow; font-size:14px; font-weight:bold; padding:4px;'
+                        );
+                        console.log(`[AutoScroll] 📊 ${debugInfo} isScrolledToBottom=false`);
+                    }
                     state.userScrolledUp = true;
                 } else if (state.userScrolledUp) {
-                    // 用户手动滚动回到底部，恢复自动滚动
+                    console.log(
+                        `%c[AutoScroll] ✅✅✅ userScrolledUp → false (用户滚回底部，恢复自动滚动) ✅✅✅`,
+                        'background:green; color:white; font-size:14px; font-weight:bold; padding:4px;'
+                    );
+                    console.log(`[AutoScroll] 📊 ${debugInfo}`);
                     state.userScrolledUp = false;
                 }
+
+                scrollThrottleTimer = null;
                 return;
             }
 
@@ -891,6 +917,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
             }
+
+            scrollThrottleTimer = null;
         }, 200);
     });
 

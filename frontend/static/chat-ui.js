@@ -41,10 +41,27 @@ export function initDom() {
  * 如果用户已手动向上滚动（userScrolledUp === true），则不执行自动滚动
  */
 export function autoScrollToBottom() {
+    const sc = dom.scrollContainer;
+    const scrollHeight = sc.scrollHeight;
+    const scrollTop = sc.scrollTop;
+    const clientHeight = sc.clientHeight;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < SCROLL_BOTTOM_THRESHOLD;
+
     if (state.userScrolledUp) {
+        console.log(
+            `[AutoScroll] 🚫 BLOCKED by userScrolledUp=true | ` +
+            `scrollHeight=${scrollHeight} scrollTop=${scrollTop} clientHeight=${clientHeight} ` +
+            `isAtBottom=${isAtBottom}`
+        );
         return;
     }
-    dom.scrollContainer.scrollTop = dom.scrollContainer.scrollHeight;
+
+    console.log(
+        `[AutoScroll] ✅ scrollToBottom | ` +
+        `before: scrollTop=${scrollTop} → after: scrollHeight=${scrollHeight} ` +
+        `clientHeight=${clientHeight} userScrolledUp=${state.userScrolledUp}`
+    );
+    sc.scrollTop = scrollHeight;
 }
 
 /**
@@ -70,6 +87,7 @@ export function throttleRender(timerHolder, targetEl, getText) {
     timerHolder.renderTimer = setTimeout(() => {
         timerHolder.renderTimer = null;
         targetEl.innerHTML = renderMarkdown(getText());
+        console.log(`[AutoScroll] ⏲ throttleRender 渲染完成, 调用 autoScrollToBottom userScrolledUp=${state.userScrolledUp}`);
         autoScrollToBottom();
     }, state.RENDER_INTERVAL);
 }
@@ -281,6 +299,7 @@ export function addMessage(role, content, isStreaming = false) {
 
     div.appendChild(inner);
 
+    console.log(`[AutoScroll] 💬 addMessage: role=${role} isStreaming=${isStreaming} → autoScrollToBottom userScrolledUp=${state.userScrolledUp}`);
     autoScrollToBottom();
     return div;
 }
@@ -469,6 +488,7 @@ export function showSources(sources, type) {
     }
 
     panel.appendChild(section);
+    console.log(`[AutoScroll] 📄 showSources: 添加来源面板后 autoScrollToBottom userScrolledUp=${state.userScrolledUp}`);
     autoScrollToBottom();
 }
 
