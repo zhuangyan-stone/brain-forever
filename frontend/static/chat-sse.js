@@ -102,10 +102,12 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     // 展开后布局可能变化，延迟再滚一次到底部
     autoScrollToBottomAfter();
 
-    // AI 回复完成后：延迟 600ms 弹 Toast 提示用户
-    setTimeout(() => {
-        showToast('AI 已完成回复', 'info');
-    }, 600);
+    // AI 回复完成后：如果用户已向上滚动（离开底部），才弹 Toast 提示
+    if (state.userScrolledUp) {
+        setTimeout(() => {
+            showToast('AI 回复完毕', 'info');
+        }, 600);
+    }
 }
 
 /**
