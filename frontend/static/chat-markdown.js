@@ -18,23 +18,28 @@ try {
 }
 
 /**
- * 在引号与强调标记（**、*、__、_）之间插入零宽空格（\u200B），
- * 解决 marked 将引号后的 ** 错误识别为左定界符而非右定界符的问题。
+ * 在标点符号与强调标记（**、*、__、_）之间插入零宽空格（\u200B），
+ * 解决 marked 将标点后的 ** 错误识别为左定界符而非右定界符的问题。
  *
  * 问题背景：marked 遵循 CommonMark 规范，使用 Unicode 属性 \p{P}（标点符号）
  * 来判断 * 和 _ 的定界符类型。引号字符（如 " U+0022、" U+201C、" U+201D）
- * 属于标点符号，导致紧随其后的 ** 被错误分类为左定界符，从而使前面的 **
+ * 以及 CJK 全角括号（如 ）U+FF09、（ U+FF08、》U+300B、《U+300A 等）
+ * 都属于标点符号，导致紧随其后的 ** 被错误分类为左定界符，从而使前面的 **
  * 找不到配对的右定界符，strong/em 解析失败。
  *
  * 零宽空格（\u200B）不属于 \p{P}，插入后 marked 能正确识别定界符，
  * 且在最终渲染结果中不可见。
  */
-function fixQuotesAroundEmphasis(text) {
+function fixPunctuationAroundEmphasis(text) {
     return text
         // 引号 + 强调标记 → 引号 + 零宽空格 + 强调标记
         .replace(/(["\u201c\u201d])(?=[*_]{1,2})/g, '$1\u200B')
         // 强调标记 + 引号 → 强调标记 + 零宽空格 + 引号
-        .replace(/(?<=[*_]{1,2})(["\u201c\u201d])/g, '\u200B$1');
+        .replace(/(?<=[*_]{1,2})(["\u201c\u201d])/g, '\u200B$1')
+        // CJK 全角右括号（） 》 」 』 】 〗 等）+ * 或 ** → 右括号 + 零宽空格 + 强调标记
+        .replace(/([\u300B\u300D\u300F\u3011\u3017\uFF09])(?=[*]{1,2})/g, '$1\u200B')
+        // * 或 ** + CJK 全角左括号（（ 《 「 『 【 〖 等）→ 强调标记 + 零宽空格 + 左括号
+        .replace(/(?<=[*]{1,2})([\uFF08\u300A\u300C\u300E\u3010\u3016])/g, '\u200B$1');
 }
 
 /**
@@ -45,8 +50,8 @@ function fixQuotesAroundEmphasis(text) {
 export function renderMarkdown(text) {
     if (!text) return '';
     try {
-        // 修复引号与强调标记相邻时的定界符识别问题
-        const fixed = fixQuotesAroundEmphasis(text);
+        // 修复标点与强调标记相邻时的定界符识别问题
+        const fixed = fixPunctuationAroundEmphasis(text);
         // 使用 marked 渲染
         const html = marked.parse(fixed, {
             breaks: true,      // 支持 GitHub 风格的换行
