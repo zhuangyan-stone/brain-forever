@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state, resetStreamingState } from './chat-state.js';
-import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, autoScrollToBottom as autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender, restoreInputArea, autoScrollToBottomAfter } from './chat-ui.js';
+import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender, restoreInputArea } from './chat-ui.js';
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -95,12 +95,16 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     }
     // 重置累积变量，为下一次流式做准备
     state.accumulatedMarkdown = '';
+    console.log('[handleDoneEvent] userScrolledUp=', state.userScrolledUp);
     autoScrollToBottom();
 
     // 流式结束：展开输入面板（流式期间被折叠了）
     restoreInputArea();
     // 展开后布局可能变化，延迟再滚一次到底部
-    autoScrollToBottomAfter();
+    setTimeout(() => {
+        console.log('[handleDoneEvent] 500ms 延迟滚动, userScrolledUp=', state.userScrolledUp);
+        autoScrollToBottom();
+    }, 500);
 
     // AI 回复完成后：如果用户已向上滚动（离开底部），才弹 Toast 提示
     if (state.userScrolledUp) {
@@ -250,6 +254,8 @@ function prepareChat() {
 
     // 新消息发出，即将滚动到底部，重置用户滚动状态
     state.userScrolledUp = false;
+    const sc = document.getElementById('scrollContainer');
+    console.log('[prepareChat] 🔄 重置 userScrolledUp=false, scrollHeight=', sc?.scrollHeight, 'scrollTop=', sc?.scrollTop);
 
     // 添加用户消息
     addUserMessage(content, createdAt);
@@ -264,10 +270,11 @@ function prepareChat() {
     const assistantBubble = addMessage('assistant', '', true);
     state.isStreaming = true;
 
-    // 同步滚动到底部（不等 rAF），确保流式开始前页面已在正确位置
-    // addMessage 内部的 autoScrollToBottom 是异步的（rAF），如果 SSE 事件
-    // 先于 rAF 到达（例如 reasoning 事件首次创建 DOM），会导致页面位置不正确。
-    autoScrollToBottom(true);
+    // 确保流式开始前页面已在底部。
+    // addMessage 内部的 autoScrollToBottom 使用同步 scrollTop 赋值，
+    // 如果 SSE 事件在 scroll 事件之前到达（如 reasoning 事件首条创建 DOM），
+    // 再次滚动可确保位置正确。
+    autoScrollToBottom();
 
     updateDeleteButtons();
 

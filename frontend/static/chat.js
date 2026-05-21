@@ -5,7 +5,7 @@
 
 import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
-import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, SCROLL_BOTTOM_THRESHOLD, collapseInputArea, restoreInputArea, isInputCollapsed } from './chat-ui.js';
+import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, collapseInputArea, restoreInputArea, isInputCollapsed, isScrolledToBottom } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
@@ -850,18 +850,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     //     注意：必须节流（200ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
     //     （150ms 节流）更新 activeTickIndex 之后再执行，否则检测不到刻度变化。
     let scrollThrottleTimer = null;
-    /** 上一次记录的 scrollTop，用于在流式输出中判断用户是否主动向上滚动 */
-    let lastScrollTop = 0;
     chatContainer.addEventListener('scroll', () => {
-        // ★ 流式输出中：如果 scrollTop 变化由 autoScrollToBottom 触发，
-        //   立即捕获 scroll anchoring 调整后的最终 scrollTop 作为基准值，
-        //   跳过节流处理，避免 auto-scroll 与 scroll anchoring 的组合变化被误判为"用户向上滚动"。
-        if (state.isStreaming && state.isAutoScrolling) {
-            state.isAutoScrolling = false;
-            lastScrollTop = chatContainer.scrollTop;
-            return;
-        }
-
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
             scrollThrottleTimer = null;
@@ -872,31 +861,24 @@ window.addEventListener('DOMContentLoaded', async () => {
             if (state.isStreaming) {
                 collapseInputArea();
 
-                // 检测用户主动向上滚动（scrollTop 明显减小）。
-                // 注意：scrollTop 可能因 scroll anchoring（浏览器滚动锚定）而微小降低，
-                // 因此需用最小阈值过滤（典型锚定调整 < 4px，用户主动滚动远大于此）。
-                // scrollToBottom() 只会让 scrollTop 变大（向下滚），
-                // 内容渲染让 scrollHeight 增大但 scrollTop 不变时也不应触发。
-                const currentScrollTop = chatContainer.scrollTop;
-                if (currentScrollTop + SCROLL_BOTTOM_THRESHOLD < lastScrollTop) {
-                    state.userScrolledUp = true;
-                }
-                lastScrollTop = currentScrollTop;
+                console.log('[scrollHandler/streaming] userScrolledUp=', state.userScrolledUp, 'scrollTop=', chatContainer.scrollTop, 'scrollHeight=', chatContainer.scrollHeight, 'clientHeight=', chatContainer.clientHeight, 'isScrolledToBottom=', isScrolledToBottom());
 
-                // 如果用户又手动滚动到底部，恢复自动滚动
-                if (state.userScrolledUp) {
-                    const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < SCROLL_BOTTOM_THRESHOLD;
-                    if (isAtBottom) {
-                        state.userScrolledUp = false;
-                    }
+                // 检测用户是否离开底部：用 isScrolledToBottom 判断，
+                // 4px 容差可过滤 scroll anchoring 造成的微小偏移。
+                if (!isScrolledToBottom()) {
+                    state.userScrolledUp = true;
+                    console.log('[scrollHandler/streaming] 🔴 检测到用户离开底部，设置 userScrolledUp=true');
+                } else if (state.userScrolledUp) {
+                    // 用户手动滚动回到底部，恢复自动滚动
+                    state.userScrolledUp = false;
+                    console.log('[scrollHandler/streaming] 🟢 用户滚回底部，重置 userScrolledUp=false');
                 }
                 return;
             }
 
-            // 检测是否已滚动到底部（向下无可再滚）
-            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < SCROLL_BOTTOM_THRESHOLD;
-
-            if (isAtBottom) {
+            // 非流式状态：检测是否已滚动到底部
+            if (isScrolledToBottom()) {
+                console.log('[scrollHandler/non-streaming] ✅ 已在底部，展开输入面板');
                 // 滚动到底部时自动展开（用户手动滚到底部时恢复输入面板）
                 restoreInputArea();
 
@@ -905,14 +887,10 @@ window.addEventListener('DOMContentLoaded', async () => {
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }, 500);
             } else {
-                // 即使不在流式状态，也需要更新 lastScrollTop，
-                // 防止跨流式会话出现过期值，导致下一次流式开始时
-                // autoScrollToBottom 设置的 scrollTop 被误判为"用户向上滚动"
-                lastScrollTop = chatContainer.scrollTop;
-
                 // 刻度变化时折叠，并记住新刻度
                 if (currentTickIndex !== lastActiveTickIndex) {
                     lastActiveTickIndex = currentTickIndex;
+                    console.log('[scrollHandler/non-streaming] 刻度变化，折叠输入面板, tickIndex=', currentTickIndex);
                     // 已折叠时不再重复触发
                     if (!isInputCollapsed()) {
                         collapseInputArea();

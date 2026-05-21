@@ -39,22 +39,15 @@ export function initDom() {
 /**
  * scrollToBottom 滚动到底部
  * 如果用户已手动向上滚动（userScrolledUp === true），则不执行自动滚动
- * @param {boolean} [sync=false] - 是否同步执行（不使用 requestAnimationFrame）
  */
-export function autoScrollToBottom(sync = false) {
-    if (state.userScrolledUp) return;
-
-    const doScroll = () => {
-        const sc = dom.scrollContainer;
-        state.isAutoScrolling = true;
-        sc.scrollTop = sc.scrollHeight;
-    };
-
-    if (sync) {
-        doScroll();
-    } else {
-        requestAnimationFrame(doScroll);
+export function autoScrollToBottom() {
+    console.log('[autoScroll] userScrolledUp=', state.userScrolledUp, 'scrollTop=', dom.scrollContainer.scrollTop, 'scrollHeight=', dom.scrollContainer.scrollHeight, 'clientHeight=', dom.scrollContainer.clientHeight, 'isStreaming=', state.isStreaming);
+    if (state.userScrolledUp) {
+        console.log('[autoScroll] ⛔ 被 userScrolledUp 阻塞');
+        return;
     }
+    dom.scrollContainer.scrollTop = dom.scrollContainer.scrollHeight;
+    console.log('[autoScroll] ✅ 已执行滚动到底部, new scrollTop=', dom.scrollContainer.scrollTop);
 }
 
 /**
@@ -80,6 +73,7 @@ export function throttleRender(timerHolder, targetEl, getText) {
     timerHolder.renderTimer = setTimeout(() => {
         timerHolder.renderTimer = null;
         targetEl.innerHTML = renderMarkdown(getText());
+        console.log('[throttleRender] 渲染后 autoScrollToBottom, userScrolledUp=', state.userScrolledUp);
         autoScrollToBottom();
     }, state.RENDER_INTERVAL);
 }
@@ -587,15 +581,4 @@ export function restoreInputArea() {
  */
 export function isInputCollapsed() {
     return _isInputCollapsed;
-}
-
-/**
- * 延迟执行自动滚动到底部，用于布局变化后补偿滚动位置。
- * 复用 autoScrollToBottom 的 userScrolledUp 守卫逻辑。
- * @param {number} [ms=500] - 延迟毫秒数
- */
-export function autoScrollToBottomAfter(ms = 500) {
-    setTimeout(() => {
-        autoScrollToBottom();
-    }, ms);
 }
