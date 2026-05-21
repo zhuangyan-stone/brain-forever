@@ -861,24 +861,19 @@ window.addEventListener('DOMContentLoaded', async () => {
             if (state.isStreaming) {
                 collapseInputArea();
 
-                console.log('[scrollHandler/streaming] userScrolledUp=', state.userScrolledUp, 'scrollTop=', chatContainer.scrollTop, 'scrollHeight=', chatContainer.scrollHeight, 'clientHeight=', chatContainer.clientHeight, 'isScrolledToBottom=', isScrolledToBottom());
-
                 // 检测用户是否离开底部：用 isScrolledToBottom 判断，
                 // 4px 容差可过滤 scroll anchoring 造成的微小偏移。
                 if (!isScrolledToBottom()) {
                     state.userScrolledUp = true;
-                    console.log('[scrollHandler/streaming] 🔴 检测到用户离开底部，设置 userScrolledUp=true');
                 } else if (state.userScrolledUp) {
                     // 用户手动滚动回到底部，恢复自动滚动
                     state.userScrolledUp = false;
-                    console.log('[scrollHandler/streaming] 🟢 用户滚回底部，重置 userScrolledUp=false');
                 }
                 return;
             }
 
             // 非流式状态：检测是否已滚动到底部
             if (isScrolledToBottom()) {
-                console.log('[scrollHandler/non-streaming] ✅ 已在底部，展开输入面板');
                 // 滚动到底部时自动展开（用户手动滚到底部时恢复输入面板）
                 restoreInputArea();
 
@@ -890,7 +885,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                 // 刻度变化时折叠，并记住新刻度
                 if (currentTickIndex !== lastActiveTickIndex) {
                     lastActiveTickIndex = currentTickIndex;
-                    console.log('[scrollHandler/non-streaming] 刻度变化，折叠输入面板, tickIndex=', currentTickIndex);
                     // 已折叠时不再重复触发
                     if (!isInputCollapsed()) {
                         collapseInputArea();

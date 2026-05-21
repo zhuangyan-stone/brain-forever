@@ -41,13 +41,10 @@ export function initDom() {
  * 如果用户已手动向上滚动（userScrolledUp === true），则不执行自动滚动
  */
 export function autoScrollToBottom() {
-    console.log('[autoScroll] userScrolledUp=', state.userScrolledUp, 'scrollTop=', dom.scrollContainer.scrollTop, 'scrollHeight=', dom.scrollContainer.scrollHeight, 'clientHeight=', dom.scrollContainer.clientHeight, 'isStreaming=', state.isStreaming);
     if (state.userScrolledUp) {
-        console.log('[autoScroll] ⛔ 被 userScrolledUp 阻塞');
         return;
     }
     dom.scrollContainer.scrollTop = dom.scrollContainer.scrollHeight;
-    console.log('[autoScroll] ✅ 已执行滚动到底部, new scrollTop=', dom.scrollContainer.scrollTop);
 }
 
 /**
@@ -73,7 +70,6 @@ export function throttleRender(timerHolder, targetEl, getText) {
     timerHolder.renderTimer = setTimeout(() => {
         timerHolder.renderTimer = null;
         targetEl.innerHTML = renderMarkdown(getText());
-        console.log('[throttleRender] 渲染后 autoScrollToBottom, userScrolledUp=', state.userScrolledUp);
         autoScrollToBottom();
     }, state.RENDER_INTERVAL);
 }

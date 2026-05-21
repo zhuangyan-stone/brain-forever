@@ -95,14 +95,12 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     }
     // 重置累积变量，为下一次流式做准备
     state.accumulatedMarkdown = '';
-    console.log('[handleDoneEvent] userScrolledUp=', state.userScrolledUp);
     autoScrollToBottom();
 
     // 流式结束：展开输入面板（流式期间被折叠了）
     restoreInputArea();
     // 展开后布局可能变化，延迟再滚一次到底部
     setTimeout(() => {
-        console.log('[handleDoneEvent] 500ms 延迟滚动, userScrolledUp=', state.userScrolledUp);
         autoScrollToBottom();
     }, 500);
 
@@ -254,8 +252,6 @@ function prepareChat() {
 
     // 新消息发出，即将滚动到底部，重置用户滚动状态
     state.userScrolledUp = false;
-    const sc = document.getElementById('scrollContainer');
-    console.log('[prepareChat] 🔄 重置 userScrolledUp=false, scrollHeight=', sc?.scrollHeight, 'scrollTop=', sc?.scrollTop);
 
     // 添加用户消息
     addUserMessage(content, createdAt);
