@@ -1,5 +1,5 @@
 // ============================================================
-// 脑子在线 AI 助手 — 主入口
+// 第2大脑 AI 助手 — 主入口
 // 导入各功能模块并完成初始化
 // ============================================================
 
@@ -267,7 +267,7 @@ let globalHeaderDivider = null;
 const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_TOGGLE + '</svg>';
 
 // ===== 品牌文本常量（方便以后修改） =====
-const BRAND_TITLE = '脑子在线';
+const BRAND_TITLE = '第2大脑';
 const BRAND_SUBTITLE = '一个越来越懂你的AI' // '养育我的第2大脑'
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
@@ -282,7 +282,7 @@ function createBrandElement() {
     const logo = document.createElement('img');
     logo.className = 'brand-logo';
     logo.src = '/static/brain-forever.svg';
-    logo.alt = '脑子在线';
+    logo.alt = '第2大脑';
 
     // 标题/副标题容器
     const textDiv = document.createElement('div');
@@ -496,7 +496,7 @@ function updateBrandLayout() {
             const logoOnly = document.createElement('img');
             logoOnly.className = 'brand-logo brand-logo-compact';
             logoOnly.src = '/static/brain-forever.svg';
-            logoOnly.alt = '脑子在线';
+            logoOnly.alt = '第2大脑';
             logoOnly.style.width = '32px';
             logoOnly.style.height = '32px';
             logoOnly.style.borderRadius = '12px';
