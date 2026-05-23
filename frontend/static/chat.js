@@ -268,7 +268,7 @@ const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColo
 
 // ===== 品牌文本常量（方便以后修改） =====
 const BRAND_TITLE = '第2大脑';
-const BRAND_SUBTITLE = '一个越来越懂你的AI' // '养育我的第2大脑'
+const BRAND_SUBTITLE = '比你更懂你' // '养育我的第2大脑'
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
 function createBrandElement() {
