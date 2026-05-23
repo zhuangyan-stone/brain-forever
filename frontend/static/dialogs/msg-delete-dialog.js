@@ -1,11 +1,11 @@
 // ============================================================
-// chat-delete.js — 删除模态框
+// msg-delete-dialog.js — 消息删除对话框
 // ============================================================
 
-import { escapeHtml, truncate } from './toolsets.js';
-import { state } from './chat-state.js';
-import { showToast } from './chat-ui.js';
-import { updateTickNav } from './chat-ticknav.js';
+import { escapeHtml } from '../toolsets.js';
+import { state } from '../chat-state.js';
+import { showToast } from '../chat-ui.js';
+import { updateTickNav } from '../chat-ticknav.js';
 
 'use strict';
 
@@ -15,6 +15,7 @@ import { updateTickNav } from './chat-ticknav.js';
 export function showDeleteModal() {
     const deleteModal = document.getElementById('deleteModal');
     const modalBody = document.getElementById('modalBody');
+    const modalNote = document.getElementById('modalDeleteNote');
     const chatContainer = document.getElementById('chatContainer');
     if (!deleteModal || !modalBody || !chatContainer) return;
 
@@ -28,26 +29,37 @@ export function showDeleteModal() {
     let html = '';
     if (userMsg) {
         const rawContent = userMsg.querySelector('.bubble').textContent || '';
-        // 用户问题最多显示 28 字
-        const userPreview = escapeHtml(truncate(rawContent, 28));
-        html += `<div style="margin-bottom:8px; border-bottom: black 1px solid;"><strong>我：</strong>${userPreview}</div>`;
+        // 用户消息完整保留在 DOM 中（CSS 控制单行截断）
+        const userPreview = escapeHtml(rawContent);
+        html += '<div class="del-preview-msg del-preview-user">'
+            + '<div class="role-label">我</div>'
+            + '<div class="del-preview-bubble">' + userPreview + '</div>'
+            + '</div>';
         // 在同一个 .message-group 内查找 AI 回复（不依赖 data-msg-id 配对）
         const group = userMsg.closest('.message-group');
         if (group) {
             const assistantMsg = group.querySelector('.message.assistant');
             if (assistantMsg) {
                 const assistantContent = assistantMsg.querySelector('.bubble').textContent || '';
-                // 去掉首尾空白，最多显示 62 字
-                const assistantPreview = escapeHtml(truncate(assistantContent.trim(), 62));
+                // 助手消息完整保留在 DOM 中（CSS 控制单行截断）
+                const assistantPreview = escapeHtml(assistantContent.trim());
                 if (assistantPreview) {
-                    html += `<div style="margin-bottom:4px; border-bottom: black 1px solid;"><strong>AI：</strong>${assistantPreview}</div>`;
-                    html += `<div style="margin-bottom:4px; color:red">（注意：双方对话将一起删除）</div>`;
+                    html += '<div class="del-preview-msg del-preview-assistant">'
+                        + '<div class="role-label">AI</div>'
+                        + '<div class="del-preview-bubble"><span class="del-preview-text">' + assistantPreview + '</span></div>'
+                        + '</div>';
                 }
             }
         }
     }
 
-    modalBody.innerHTML = html || '(无内容)';
+    modalBody.innerHTML = html || '<div class="del-preview-empty">(无内容)</div>';
+
+    // 更新固定提醒内容
+    if (modalNote) {
+        modalNote.style.display = html ? 'block' : 'none';
+    }
+
     deleteModal.classList.add('show');
 }
 

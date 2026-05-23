@@ -1,5 +1,5 @@
 /* ============================================================
-    脑子在线 AI 助手 — 对话框公共样式
+    第2大脑 AI 助手 — 对话框公共样式
     ============================================================
     所有模态对话框共享的基础样式。
     依赖：theme.css（主题变量）
@@ -40,7 +40,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px 12px;
+    padding: 12px 20px 6px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -98,7 +98,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    padding: 12px 20px 16px;
+    padding: 4px 20px 12px;
 }
 
 /* ---- 通用按钮 ---- */

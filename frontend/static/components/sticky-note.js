@@ -18,8 +18,8 @@ const ICON_CLOSE = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" 
 /** 方框图标 SVG — 表示恢复窗口最大化（单个方框） */
 const ICON_RESTORE = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/></svg>';
 
-/** 定时时长（毫秒）— 20 秒后自动应用标题 */
-const TIMER_DURATION = 20000;
+/** 定时时长（毫秒）— 15 秒后自动应用标题 */
+const TIMER_DURATION = 15000;
 
 /**
  * 便利贴容器（单例，延迟创建）
@@ -270,10 +270,10 @@ export function showStickyNote(message, title, options = {}) {
     });
     actionsEl.appendChild(dismissBtn);
 
-    // "✓ 采纳" 按钮
+    // "✓ 采纳" 按钮（含定时剩余秒数）
     const acceptBtn = document.createElement('button');
     acceptBtn.className = 'sticky-note-btn sticky-note-btn-accept';
-    acceptBtn.textContent = '✓ 采纳';
+    acceptBtn.innerHTML = '✓ 采纳 <span class="sticky-note-countdown"></span>';
     acceptBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         // 取消定时器
@@ -296,21 +296,33 @@ export function showStickyNote(message, title, options = {}) {
 
     note.appendChild(actionsEl);
 
-    // ---- 30 秒定时进度条 + 自动应用标题 ----
+    // ---- 定时进度条 + 倒计时秒数 + 自动应用标题 ----
     const startTime = Date.now();
 
-    // 每 100ms 更新一次进度条
+    // 获取倒计时显示元素
+    const countdownSpan = acceptBtn.querySelector('.sticky-note-countdown');
+
+    // 每 100ms 更新一次进度条和倒计时秒数
     const progressInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const pct = Math.min(elapsed / TIMER_DURATION, 1);
         progressFill.style.width = (pct * 100) + '%';
+
+        // 更新倒计时秒数（向上取整，固定 2 位，不足补 0）
+        const remaining = Math.max(0, Math.ceil((TIMER_DURATION - elapsed) / 1000));
+        if (countdownSpan) {
+            const formatted = String(remaining).padStart(2, '0');
+            countdownSpan.textContent = remaining > 0 ? `(${formatted})` : '';
+        }
     }, 100);
 
-    // 30 秒后自动应用标题
+    // 定时到点后自动应用标题
     const autoAcceptTimer = setTimeout(() => {
         clearInterval(progressInterval);
         // 进度条填满
         progressFill.style.width = '100%';
+        // 清除倒计时文字
+        if (countdownSpan) countdownSpan.textContent = '';
         // 离场动画后移除
         note.classList.add('leaving');
         note.addEventListener('animationend', () => {

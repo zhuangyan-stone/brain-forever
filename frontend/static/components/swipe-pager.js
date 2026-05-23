@@ -147,6 +147,8 @@ export class SwipePager {
             this._resetSlider();
             this._updateDots();
             this._state.isAnimating = false;
+            // isAnimating 设为 false 后再次调用 _fillTriple，触发左右栏高度清理
+            this._fillTriple(page);
             if (this._options.onPageChange) {
                 this._options.onPageChange(page);
             }
@@ -302,12 +304,26 @@ export class SwipePager {
 
         if (dx < 0 && this._state.page < this._state.total - 1) {
             // ---- 左滑（下一页）：从 -33.33% 向 -66.66% 移动 ----
+            // 预先填充右栏（=page+1），使滑动过程中目标页内容同时可见
+            const nextPage = this._state.page + 1;
+            this._options.renderPage(this._panes.right, nextPage);
+            // 确保右栏高度不被压缩，让内容可见
+            this._panes.right.style.height = '';
+            this._panes.right.style.overflow = '';
+
             // 偏移范围 -33.33% ~ -60%（留余量给 touchend 的 -66.66%）
             const offset = Math.max(-33.33 + dx / containerWidth * 33.33, -60);
             this._slider.style.transition = 'none';
             this._slider.style.transform = `translateX(${offset}%)`;
         } else if (dx > 0 && this._state.page > 0) {
             // ---- 右滑（上一页）：从 -33.33% 向 0 移动 ----
+            // 预先填充左栏（=page-1），使滑动过程中目标页内容同时可见
+            const prevPage = this._state.page - 1;
+            this._options.renderPage(this._panes.left, prevPage);
+            // 确保左栏高度不被压缩，让内容可见
+            this._panes.left.style.height = '';
+            this._panes.left.style.overflow = '';
+
             // 偏移范围 -33.33% ~ -5%（留余量给 touchend 的 0）
             const offset = Math.min(-33.33 + dx / containerWidth * 33.33, -5);
             this._slider.style.transition = 'none';
@@ -335,6 +351,7 @@ export class SwipePager {
                 this._resetSlider();
                 this._updateDots();
                 this._state.isAnimating = false;
+                this._fillTriple(this._state.page); // isAnimating=false 后清理左右栏高度
                 if (this._options.onPageChange) {
                     this._options.onPageChange(this._state.page);
                 }
@@ -349,6 +366,7 @@ export class SwipePager {
                 this._resetSlider();
                 this._updateDots();
                 this._state.isAnimating = false;
+                this._fillTriple(this._state.page); // isAnimating=false 后清理左右栏高度
                 if (this._options.onPageChange) {
                     this._options.onPageChange(this._state.page);
                 }
@@ -391,6 +409,20 @@ export class SwipePager {
         this._options.renderPage(this._panes.left, prev);
         this._options.renderPage(this._panes.center, page);
         this._options.renderPage(this._panes.right, next);
+
+        // ---- 稳定状态下，让容器高度仅由当前可见页（中栏）决定 ----
+        // 三栏 flex 布局中，容器高度由最高的 pane 撑起。翻页动画过程中，
+        // 左栏或右栏作为起始位置需要有内容（保留高度）；动画完成后（稳定状态，
+        // isAnimating === false），将非可见的左右栏高度设为 0，使容器高度
+        // 仅反映当前页内容。这样最后一页条目较少时，面板底部不会出现空白。
+        if (!this._state.isAnimating) {
+            this._panes.left.style.height = '0';
+            this._panes.left.style.overflow = 'hidden';
+            this._panes.right.style.height = '0';
+            this._panes.right.style.overflow = 'hidden';
+            this._panes.center.style.height = '';
+            this._panes.center.style.overflow = '';
+        }
     }
 
     /**

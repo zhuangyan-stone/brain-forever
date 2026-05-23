@@ -251,7 +251,7 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 	session.mu.Unlock()
 
 	// Build the LLM prompt with i18n support
-	systemPrompt := i18n.TL(lang, "session_title_system_prompt")
+	systemPrompt := i18n.SystemPrompt.TL(lang, "title")
 	var contentBuilder strings.Builder
 
 	for _, msg := range samples {
@@ -289,9 +289,10 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Validate the generated title:
 	// - If LLM returned empty content, fall back to original title
-	// - If the generated title is unreasonably long (>60 chars), the LLM likely
+	// - If the generated title is unreasonably long (>50 runes), the LLM likely
 	//   failed to generate a concise title; discard it and use the original title instead.
-	const maxTitleLen = 60
+	//   50 runes ≈ 15 Chinese characters or 8 English words, matching the prompt constraints.
+	const maxTitleLen = 50
 	if newTitle == "" || len([]rune(newTitle)) > maxTitleLen {
 		newTitle = originalTitle
 	}
@@ -513,5 +514,5 @@ func collectTraitedSummary(history []Message, maxLen int) string {
 // makeFixSystemPromptContent returns the system prompt content string,
 // translated according to the given language.
 func makeFixSystemPromptContent(lang string) string {
-	return i18n.TL(lang, "system_prompt")
+	return i18n.SystemPrompt.TL(lang, "chat")
 }

@@ -1,0 +1,177 @@
+/* ============================================================
+    第2大脑 AI 助手 — 消息删除对话框专有样式
+    ============================================================
+    依赖：dialog.css（公共对话框样式）、theme.css（主题变量）
+    ============================================================ */
+
+/* ---- 删除对话框内容区可滚动 ---- */
+#deleteModal .dialog-body {
+    max-height: 340px !important;
+    overflow-y: auto !important;
+    padding: 6px 16px 2px !important;
+    white-space: normal !important;
+}
+
+/* ---- 预览消息容器 ---- */
+.del-preview-msg {
+    margin-bottom: 0 !important;
+}
+
+.del-preview-msg:last-of-type {
+    margin-bottom: 0 !important;
+}
+
+/* ---- 角色标签（参考主页面 .role-label 样式） ---- */
+.del-preview-msg .role-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 0 4px;
+    margin-bottom: 4px !important;
+    margin-top: 6px !important;
+    line-height: 1.3;
+}
+
+.del-preview-user .role-label {
+    text-align: right;
+}
+
+.del-preview-assistant .role-label {
+    text-align: left;
+}
+
+/* ---- 用户预览消息（靠右，宽度 90%；与 AI 标签间距 12px） ---- */
+.del-preview-user {
+    text-align: right;
+    margin-bottom: 12px !important;
+    margin-top: 0 !important;
+}
+
+.del-preview-user .del-preview-bubble {
+    display: inline-block;
+    text-align: left;
+    width: 95%;
+    background: var(--bg-user);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* ---- 助手预览消息（靠左） ---- */
+.del-preview-assistant {
+    text-align: left;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.del-preview-assistant .del-preview-bubble {
+    display: inline-block;
+    text-align: left;
+    max-width: 100%;
+    background: var(--bg-assistant);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* 助手预览气泡内部文本：最多两行，超出省略 */
+.del-preview-assistant .del-preview-bubble .del-preview-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+}
+
+/* ---- 预览气泡基础样式 ---- */
+.del-preview-bubble {
+    position: relative;
+}
+
+.del-preview-bubble::before {
+    content: '😨';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 14px;
+    font-size: 1.3rem;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 2;
+    animation: del-cry-emoji-float 0.6s ease-in-out infinite;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+/* 预览气泡微微发抖 */
+.del-preview-bubble {
+    animation: del-msg-shake 0.5s ease-in-out infinite;
+}
+
+@keyframes del-cry-emoji-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-2px) rotate(-5deg); }
+    75% { transform: translateY(2px) rotate(5deg); }
+}
+
+@keyframes del-msg-shake {
+    0%, 100% { transform: translateX(0); }
+    10% { transform: translateX(-1.5px) rotate(-0.3deg); }
+    20% { transform: translateX(1.5px) rotate(0.3deg); }
+    30% { transform: translateX(-1px) rotate(-0.2deg); }
+    40% { transform: translateX(1px) rotate(0.2deg); }
+    50% { transform: translateX(-0.5px) rotate(-0.1deg); }
+    60% { transform: translateX(0.5px) rotate(0.1deg); }
+    70% { transform: translateX(-0.3px); }
+    80% { transform: translateX(0.3px); }
+}
+
+/* ---- 删除提示文字（固定在对话框底部，不在滚动范围内） ---- */
+.del-preview-note {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    color: #e53935;
+    text-align: left;
+    line-height: 1.6;
+    background: transparent;
+    border-radius: 8px;
+    flex-shrink: 0;
+    margin: 24px 12px 0 12px !important;
+}
+
+/* ---- 空内容占位 ---- */
+.del-preview-empty {
+    color: var(--text-muted);
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* ---- 删除对话框底部按钮区与上方内容的间距 ---- */
+#deleteModal .dialog-footer {
+    margin-top: 20px !important;
+}
+
+/* ---- 删除按钮（红色） ---- */
+.dialog-btn-delete {
+    background: #e53935;
+    color: #fff;
+    border-color: #e53935;
+}
+
+.dialog-btn-delete:hover {
+    background: #c62828;
+    border-color: #c62828;
+}

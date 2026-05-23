@@ -93,9 +93,15 @@ export const ICON_TOGGLE =
     '<line x1="5" y1="2" x2="5" y2="14"/>';
 
 // ============================================================
-// AI 刷新标题的图标 
+// AI 刷新标题的图标
 // ============================================================
 export const ICON_AI_TITLE =
-    '<path d="m45.581,25.9a21.781,21.781 0 1 1 -21.781,-21.781" stroke-width="3.8"></path>'+    
+    '<path d="m45.581,25.9a21.781,21.781 0 1 1 -21.781,-21.781" stroke-width="3.8"></path>'+
     '<path d="m22.0,2.40l-9,-12.8 m9.50,12.50l2.0,-13" stroke-linecap="round" stroke-width="2.4" transform="rotate(-94.4893, 24.85, 0.18)"></path>'+
     '<text fill="currentColor" font-family="Sans-serif" font-weight="bold" font-size="28.4" stroke-linecap="round" text-anchor="middle" x="25" y="34.8">AI</text>'
+
+// ============================================================
+// 编辑图标（铅笔）
+// ============================================================
+export const ICON_EDIT =
+    '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>';

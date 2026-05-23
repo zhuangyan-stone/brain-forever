@@ -39,6 +39,15 @@ var (
 )
 
 // init loads translation files from the i18n directory.
+// It recursively loads all .toml files from the directory and its subdirectories,
+// allowing translation files to be organized into subdirectories (e.g., lang/en/, lang/zh-CN/).
+//
+// Files in subdirectories (e.g., lang/en/tools/current_time.toml) have their message IDs
+// automatically prefixed with the file name (without extension) to avoid key collisions.
+// For example, a message with ID "description" in lang/en/tools/current_time.toml
+// becomes "current_time-description".
+//
+// Top-level files (e.g., lang/en.toml) keep their message IDs as-is.
 func init() {
 	// Determine the i18n directory path.
 	// First try relative to the executable, then fall back to the source directory.
@@ -47,10 +56,22 @@ func init() {
 	bundle = i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 
-	// Load all TOML translation files
-	files, err := filepath.Glob(filepath.Join(i18nDir, "*.toml"))
+	// Recursively load all TOML translation files from the directory tree
+	var files []string
+	err := filepath.WalkDir(i18nDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(d.Name(), ".toml") {
+			files = append(files, path)
+		}
+		return nil
+	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[i18n] failed to list translation files: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[i18n] failed to walk translation directory: %v\n", err)
 		return
 	}
 
@@ -60,10 +81,112 @@ func init() {
 	}
 
 	for _, file := range files {
-		if _, err := bundle.LoadMessageFile(file); err != nil {
-			fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
+		// Determine if this file is in a subdirectory (needs prefix) or top-level (no prefix).
+		relPath, _ := filepath.Rel(i18nDir, file)
+		dir := filepath.Dir(relPath)
+
+		if dir == "." {
+			// Top-level file (e.g., lang/en.toml) — load as-is, no prefix.
+			if _, err := bundle.LoadMessageFile(file); err != nil {
+				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
+			}
+		} else {
+			// Subdirectory file (e.g., lang/en/tools/current_time.toml) — prefix message IDs.
+			if err := loadWithPrefix(file); err != nil {
+				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
+			}
 		}
 	}
+}
+
+// loadWithPrefix parses a .toml translation file and registers all messages
+// with their IDs prefixed by the file name (without extension).
+//
+// For example, if the file is "current_time.toml" and contains a message with ID "description",
+// it will be registered as "current_time-description".
+//
+// The file path determines the language tag from the directory structure.
+// The expected path format is: lang/{language_tag}/.../{filename}.toml
+// e.g., "lang/en/tools/current_time.toml" → language tag "en"
+//
+//	"lang/zh-CN/tools/web_search.toml" → language tag "zh-CN"
+func loadWithPrefix(filePath string) error {
+	// Read the file content
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Determine the language tag from the directory structure.
+	// The path is expected to be: lang/{language_tag}/.../{filename}.toml
+	// We use filepath.Rel to get the relative path from the i18n directory,
+	// then extract the first component as the language tag.
+	// e.g., relPath = "en/tools/current_time.toml" → parts[0] = "en"
+	//        relPath = "zh-CN/tools/web_search.toml" → parts[0] = "zh-CN"
+	relPath, _ := filepath.Rel(findI18nDir(), filePath)
+	parts := strings.SplitN(relPath, string(filepath.Separator), 3)
+	var langTag string
+	if len(parts) >= 1 {
+		langTag = parts[0]
+	} else {
+		langTag = "en"
+	}
+	tag, err := language.Parse(langTag)
+	if err != nil {
+		// Fallback to English if the language tag is invalid
+		tag = language.English
+	}
+
+	// Parse the TOML file into a generic map.
+	// go-i18n's TOML format uses sections as message IDs:
+	//   [description]
+	//   other = "..."
+	var rawData map[string]interface{}
+	if err := toml.Unmarshal(data, &rawData); err != nil {
+		return fmt.Errorf("failed to unmarshal toml: %w", err)
+	}
+
+	// Extract the file name without extension as the prefix
+	prefix := strings.TrimSuffix(filepath.Base(filePath), ".toml")
+
+	// Iterate over each section (message ID) in the file
+	for sectionName, sectionData := range rawData {
+		msgMap, ok := sectionData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		msg := &i18n.Message{ID: prefix + "-" + sectionName}
+
+		// Extract plural forms from the section
+		if other, ok := msgMap["other"]; ok {
+			msg.Other = fmt.Sprintf("%v", other)
+		}
+		if zero, ok := msgMap["zero"]; ok {
+			msg.Zero = fmt.Sprintf("%v", zero)
+		}
+		if one, ok := msgMap["one"]; ok {
+			msg.One = fmt.Sprintf("%v", one)
+		}
+		if two, ok := msgMap["two"]; ok {
+			msg.Two = fmt.Sprintf("%v", two)
+		}
+		if few, ok := msgMap["few"]; ok {
+			msg.Few = fmt.Sprintf("%v", few)
+		}
+		if many, ok := msgMap["many"]; ok {
+			msg.Many = fmt.Sprintf("%v", many)
+		}
+		if desc, ok := msgMap["description"]; ok {
+			msg.Description = fmt.Sprintf("%v", desc)
+		}
+
+		if err := bundle.AddMessages(tag, msg); err != nil {
+			return fmt.Errorf("failed to add message %s: %w", msg.ID, err)
+		}
+	}
+
+	return nil
 }
 
 // findI18nDir attempts to locate the i18n directory.
@@ -246,26 +369,26 @@ func TLf(lang, messageID string, args ...interface{}) string {
 
 // GetAcceptLanguage extracts the language preference from the request.
 // This is a helper for HTTP handlers to determine the user's language.
+// It uses language.Matcher to match against the bundle's registered language tags,
+// so "zh" will be correctly matched to "zh-CN" if that's what the bundle supports.
 func GetAcceptLanguage(acceptLang string) string {
-	// Simple parsing: take the first language tag
 	if acceptLang == "" {
 		return defaultLang.String()
 	}
 
-	// Split by comma and take the first one
-	parts := strings.Split(acceptLang, ",")
-	if len(parts) == 0 {
+	// Parse the Accept-Language header
+	tags, _, err := language.ParseAcceptLanguage(acceptLang)
+	if err != nil || len(tags) == 0 {
 		return defaultLang.String()
 	}
 
-	// Split by semicolon to remove quality value
-	lang := strings.Split(strings.TrimSpace(parts[0]), ";")[0]
+	// Try to find a supported language using the bundle's matcher
+	matcher := language.NewMatcher(bundle.LanguageTags())
+	_, i, _ := matcher.Match(tags...)
 
-	// Validate the language tag
-	_, err := language.Parse(lang)
-	if err != nil {
-		return defaultLang.String()
+	if i < len(bundle.LanguageTags()) {
+		return bundle.LanguageTags()[i].String()
 	}
 
-	return lang
+	return defaultLang.String()
 }

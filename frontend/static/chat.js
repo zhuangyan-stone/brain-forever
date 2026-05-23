@@ -1,5 +1,5 @@
 // ============================================================
-// 脑子在线 AI 助手 — 主入口
+// 第2大脑 AI 助手 — 主入口
 // 导入各功能模块并完成初始化
 // ============================================================
 
@@ -10,10 +10,11 @@ import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
-import { initDeleteModal } from './chat-delete.js';
+import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { restoreSession } from './chat-session.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
-import { fetchSessionTitle } from './chat-api.js';
+import { fetchSessionTitle, putSessionTitle, TITLE_STATE } from './chat-api.js';
+import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
 'use strict';
@@ -267,8 +268,8 @@ let globalHeaderDivider = null;
 const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_TOGGLE + '</svg>';
 
 // ===== 品牌文本常量（方便以后修改） =====
-const BRAND_TITLE = '脑子在线';
-const BRAND_SUBTITLE = '一个越来越懂你的AI' // '养育我的第2大脑'
+const BRAND_TITLE = '第2大脑';
+const BRAND_SUBTITLE = '比你更懂你' // '养育我的第2大脑'
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
 function createBrandElement() {
@@ -282,7 +283,7 @@ function createBrandElement() {
     const logo = document.createElement('img');
     logo.className = 'brand-logo';
     logo.src = '/static/brain-forever.svg';
-    logo.alt = '脑子在线';
+    logo.alt = '第2大脑';
 
     // 标题/副标题容器
     const textDiv = document.createElement('div');
@@ -496,7 +497,7 @@ function updateBrandLayout() {
             const logoOnly = document.createElement('img');
             logoOnly.className = 'brand-logo brand-logo-compact';
             logoOnly.src = '/static/brain-forever.svg';
-            logoOnly.alt = '脑子在线';
+            logoOnly.alt = '第2大脑';
             logoOnly.style.width = '32px';
             logoOnly.style.height = '32px';
             logoOnly.style.borderRadius = '12px';
@@ -781,25 +782,41 @@ fileInput.addEventListener('change', () => {
 initTickNav();
 
 // ============================================================
-// 测试便利贴定位：点击对话标题弹出测试便利贴
+// 修改对话标题：点击对话标题弹出修改对话框
 // ============================================================
-(async function initStickyNoteTest() {
+(function initTitleEdit() {
     const headerTitle = document.getElementById('headerTitle');
     if (!headerTitle) return;
-    const { showStickyNote } = await import('./components/sticky-note.js');
+
     headerTitle.addEventListener('click', () => {
-        showStickyNote(
-            '🧪 测试便利贴定位',
-            '这是一个测试用的推荐标题，用于验证右侧空白区域居中效果',
-            {
-                onAccept: (title) => {
-                    console.log('测试：接受了标题', title);
-                },
-                onDismiss: (title) => {
-                    console.log('测试：拒绝了标题', title);
-                },
-            }
-        );
+        // 正在流式输出时不允许修改标题
+        if (state.isStreaming) {
+            showToast('正在生成回复，请稍后再修改标题', 'info');
+            return;
+        }
+
+        const currentTitle = state.dialogTitle || '';
+        if (!currentTitle) {
+            // 欢迎状态（空标题）不弹出对话框
+            return;
+        }
+
+        showTitleEditDialog({
+            currentTitle: currentTitle,
+            onConfirm: async (newTitle) => {
+                // 先调后端 API 保存新标题
+                const success = await putSessionTitle(newTitle, TITLE_STATE.USER);
+                if (success) {
+                    // 后端确认成功后，更新页面标题
+                    updateHeaderTitle(newTitle);
+                    showToast('标题已更新', 'success');
+                    return true;
+                } else {
+                    showToast('修改标题失败，请重试', 'error');
+                    return false;
+                }
+            },
+        });
     });
 })();
 

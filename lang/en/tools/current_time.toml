@@ -1,0 +1,5 @@
+[description]
+other = "Call this tool to get the current local date, time, and timezone information. Use this when the user asks about the current date, time, timezone, or other time-sensitive questions."
+
+[pending]
+other = "Let me check the current time..."

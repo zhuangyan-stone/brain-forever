@@ -472,6 +472,10 @@ export function showSources(sources, type) {
             showDots: true,
             dotsClass: 'sources-pagination-dots',
             dotClass: 'sources-pagination-dot',
+            onPageChange: () => {
+                // 翻页后，如果面板高度变化导致内容不可见，自动滚动补偿
+                scrollPanelIntoView(itemsContainer);
+            },
         });
         pager.mount(0);
 
@@ -493,7 +497,46 @@ export function showSources(sources, type) {
 }
 
 /**
+ * scrollPanelIntoView 智能滚动，确保面板在可视区域内尽可能完整可见。
+ *
+ * 策略（优先级）：
+ *   1. 面板底部不可见时，向上滚动直到底部可见；
+ *      但如果面板顶部已到达可视区顶部，停止滚动（面板比可视区还高时）。
+ *   2. 面板底部可见但顶部不可见时，向下滚动使顶部可见。
+ *
+ * @param {HTMLElement} panel - 要滚动到的面板元素
+ */
+function scrollPanelIntoView(panel) {
+    const sc = dom.scrollContainer;
+    if (!sc || !panel) return;
+
+    requestAnimationFrame(() => {
+        const panelRect = panel.getBoundingClientRect();
+        const containerRect = sc.getBoundingClientRect();
+        const panelTop = panelRect.top;
+        const panelBottom = panelRect.bottom;
+        const containerTop = containerRect.top;
+        const containerBottom = containerRect.bottom;
+
+        if (panelBottom > containerBottom) {
+            // ---- 底部不可见：向上滚动，直到底部可见或顶部到达可视区顶部 ----
+            const overflow = panelBottom - containerBottom + 8; // 多留 8px 间距
+            const maxScroll = panelTop - containerTop;          // 顶部到可视区顶部的距离
+            const scrollBy = Math.min(overflow, maxScroll);     // 取小值，防止顶部滚出
+            if (scrollBy > 0) {
+                sc.scrollBy({ top: scrollBy, behavior: 'smooth' });
+            }
+        } else if (panelTop < containerTop) {
+            // ---- 底部可见但顶部不可见：向下滚动使顶部可见 ----
+            const scrollBy = panelTop - containerTop - 8; // 负值，向上滚动（实际是向下）
+            sc.scrollBy({ top: scrollBy, behavior: 'smooth' });
+        }
+    });
+}
+
+/**
  * toggleSourcesSection 切换引用来源区域的折叠/展开
+ * 展开时自动滚动确保面板可见。
  * @param {HTMLElement} titleEl
  * @param {HTMLElement} bodyEl
  */
@@ -502,6 +545,12 @@ function toggleSourcesSection(titleEl, bodyEl) {
     bodyEl.style.display = isCollapsed ? '' : 'none';
     titleEl.classList.toggle('collapsed', !isCollapsed);
     titleEl.classList.toggle('expanded', isCollapsed);
+
+    // 展开时，自动滚动确保面板可见
+    if (isCollapsed) {
+        const panel = titleEl.closest('.sources-panel');
+        scrollPanelIntoView(panel);
+    }
 }
 
 /**
@@ -535,7 +584,7 @@ export function showWelcomeMessage() {
 
     const el = document.createElement('div');
     el.className = 'welcome-message';
-    el.textContent = '你好！我是‘脑子在线’ AI助手，多和我聊，我来构建你的第2大脑';
+    el.textContent = '你好！我是‘第2大脑’ AI助手，多和我聊，我来构建你的第2大脑';
     dom.chatContainer.appendChild(el);
 
     // 将输入区域移动到欢迎消息内部，使二者作为一个整体居中

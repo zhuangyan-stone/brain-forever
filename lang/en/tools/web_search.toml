@@ -1,0 +1,8 @@
+[description]
+other = "Call this tool to perform web searches when real-time information is needed (e.g., weather, news, stock prices, exchange rates, latest events, etc.). Generates a list of search keywords based on the user's input."
+
+[param_description]
+other = "Search query string. Use double quotes for exact phrases that must not be split, e.g., '\"Hello world\"'. For multiple concepts, combine with spaces. Example: 'C++ \"Hello world\" history'"
+
+[pending]
+other = "Searching"

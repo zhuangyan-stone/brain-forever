@@ -51,13 +51,6 @@ type TraitItem struct {
 	HalfLife        string  `json:"half_life"`        // Half-life: short/medium/long
 }
 
-// TopicShiftDetectedParams is the input parameters for the topic_shift_detected tool (currently unused).
-type TopicShiftDetectedParams struct {
-	Topics      []string `json:"topics,omitempty"`      // Topics involved in the current conversation
-	Recommended string   `json:"recommended,omitempty"` // The most recommended topic currently
-	Candidates  []string `json:"candidates,omitempty"`  // List of candidate topics
-}
-
 // ============================================================
 // Core extraction methods
 // ============================================================
@@ -79,7 +72,7 @@ func (ta *TraitAgent) ExtractTraits(
 	previousSummary string,
 ) error {
 	// 1. Build the system prompt
-	systemContent := i18n.TL(lang, "trait-system_prompt")
+	systemContent := i18n.SystemPrompt.TL(lang, "trait")
 	if previousSummary != "" {
 		systemContent += "\n\nPreviously extracted trait summary:\n" + previousSummary
 	}
