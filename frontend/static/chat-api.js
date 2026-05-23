@@ -79,7 +79,8 @@ export async function fetchSessionTitle(originalTitle, force = false) {
 
         if (data.title && data.changed === true) {
             // 异步调用期间用户可能已手动修改标题，再次检查防止覆盖
-            if (state.titleState === TITLE_STATE.USER) {
+            // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制显示推荐
+            if (!force && state.titleState === TITLE_STATE.USER) {
                 return;
             }
 
