@@ -289,9 +289,10 @@ func (h *ChatAgent) OnGetSessionTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Validate the generated title:
 	// - If LLM returned empty content, fall back to original title
-	// - If the generated title is unreasonably long (>60 chars), the LLM likely
+	// - If the generated title is unreasonably long (>50 runes), the LLM likely
 	//   failed to generate a concise title; discard it and use the original title instead.
-	const maxTitleLen = 60
+	//   50 runes ≈ 15 Chinese characters or 8 English words, matching the prompt constraints.
+	const maxTitleLen = 50
 	if newTitle == "" || len([]rune(newTitle)) > maxTitleLen {
 		newTitle = originalTitle
 	}
