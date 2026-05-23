@@ -164,6 +164,7 @@ body {
     user-select: none;
     border-bottom: 1px solid var(--border);
     padding-bottom: 1px;
+    cursor: pointer;
 }
 
 /* 对话标题下边框线：亮色主题用纯黑，暗色主题用纯白 */

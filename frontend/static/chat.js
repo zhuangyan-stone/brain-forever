@@ -13,7 +13,8 @@ import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './chat-delete.js';
 import { restoreSession } from './chat-session.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
-import { fetchSessionTitle } from './chat-api.js';
+import { fetchSessionTitle, putSessionTitle, TITLE_STATE } from './chat-api.js';
+import { showTitleEditDialog } from './components/title-edit-dialog.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
 'use strict';
@@ -781,25 +782,41 @@ fileInput.addEventListener('change', () => {
 initTickNav();
 
 // ============================================================
-// 测试便利贴定位：点击对话标题弹出测试便利贴
+// 修改对话标题：点击对话标题弹出修改对话框
 // ============================================================
-(async function initStickyNoteTest() {
+(function initTitleEdit() {
     const headerTitle = document.getElementById('headerTitle');
     if (!headerTitle) return;
-    const { showStickyNote } = await import('./components/sticky-note.js');
+
     headerTitle.addEventListener('click', () => {
-        showStickyNote(
-            '🧪 测试便利贴定位',
-            '这是一个测试用的推荐标题，用于验证右侧空白区域居中效果',
-            {
-                onAccept: (title) => {
-                    console.log('测试：接受了标题', title);
-                },
-                onDismiss: (title) => {
-                    console.log('测试：拒绝了标题', title);
-                },
-            }
-        );
+        // 正在流式输出时不允许修改标题
+        if (state.isStreaming) {
+            showToast('正在生成回复，请稍后再修改标题', 'info');
+            return;
+        }
+
+        const currentTitle = state.dialogTitle || '';
+        if (!currentTitle) {
+            // 欢迎状态（空标题）不弹出对话框
+            return;
+        }
+
+        showTitleEditDialog({
+            currentTitle: currentTitle,
+            onConfirm: async (newTitle) => {
+                // 先调后端 API 保存新标题
+                const success = await putSessionTitle(newTitle, TITLE_STATE.USER);
+                if (success) {
+                    // 后端确认成功后，更新页面标题
+                    updateHeaderTitle(newTitle);
+                    showToast('标题已更新', 'success');
+                    return true;
+                } else {
+                    showToast('修改标题失败，请重试', 'error');
+                    return false;
+                }
+            },
+        });
     });
 })();
 
