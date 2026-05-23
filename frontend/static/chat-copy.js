@@ -6,7 +6,7 @@ import { copyPlainText, copyMarkdown, copyHtml, htmlToMarkdown } from './clipboa
 import { state } from './chat-state.js';
 import { showToast } from './chat-ui.js';
 import { setActiveTick } from './chat-ticknav.js';
-import { showDeleteModal } from './chat-delete.js';
+import { showDeleteModal } from './dialogs/msg-delete-dialog.js';
 
 'use strict';
 

@@ -10,11 +10,11 @@ import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
-import { initDeleteModal } from './chat-delete.js';
+import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { restoreSession } from './chat-session.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
 import { fetchSessionTitle, putSessionTitle, TITLE_STATE } from './chat-api.js';
-import { showTitleEditDialog } from './components/title-edit-dialog.js';
+import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
 'use strict';

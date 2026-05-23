@@ -1,11 +1,11 @@
 // ============================================================
-// chat-delete.js — 删除模态框
+// msg-delete-dialog.js — 消息删除对话框
 // ============================================================
 
-import { escapeHtml, truncate } from './toolsets.js';
-import { state } from './chat-state.js';
-import { showToast } from './chat-ui.js';
-import { updateTickNav } from './chat-ticknav.js';
+import { escapeHtml, truncate } from '../toolsets.js';
+import { state } from '../chat-state.js';
+import { showToast } from '../chat-ui.js';
+import { updateTickNav } from '../chat-ticknav.js';
 
 'use strict';
 

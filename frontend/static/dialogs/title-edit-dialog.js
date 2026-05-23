@@ -4,7 +4,7 @@
 // 风格与现有删除确认对话框一致（但不是 sticky）。
 // ============================================================
 // 使用方式：
-//   import { showTitleEditDialog } from './components/title-edit-dialog.js';
+//   import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 //   showTitleEditDialog({
 //       currentTitle: '原标题',
 //       onConfirm: async (newTitle) => { /* 确认回调 */ },
