@@ -40,7 +40,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px 12px;
+    padding: 12px 20px 6px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -98,7 +98,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    padding: 12px 20px 16px;
+    padding: 4px 20px 12px;
 }
 
 /* ---- 通用按钮 ---- */

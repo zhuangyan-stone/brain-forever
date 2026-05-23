@@ -195,10 +195,11 @@
     <div class="dialog-overlay" id="deleteModal">
         <div class="dialog-box">
             <div class="dialog-header">
-                <h3 id="modalTitle">是否删除以下对话？</h3>
+                <h3 id="modalTitle">删除对话消息组</h3>
                 <button class="dialog-close-btn" id="modalCloseBtn">&times;</button>
             </div>
             <div class="dialog-body" id="modalBody"></div>
+            <div class="del-preview-note" id="modalDeleteNote" style="display:none">提醒：<br>① 用户消息与助手消息成组删除<br>② 下一轮对话，tokens 的部分缓存会失效</div>
             <div class="dialog-footer">
                 <button class="dialog-btn dialog-btn-cancel" id="modalCancelBtn">取消</button>
                 <button class="dialog-btn dialog-btn-delete" id="modalConfirmBtn">确认删除</button>
