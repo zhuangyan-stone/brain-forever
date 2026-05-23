@@ -459,14 +459,14 @@ func (c *DeepSeekClient) ChatWithPipeline(
 
 		// Start streaming connection
 		stream := c.ChatStreamWithOptions(ctx, req)
-		if stream.Err() != nil {
-			return "", "", fmt.Errorf("failed to call LLM API: client not initialized")
+		if err = stream.Err(); err != nil {
+			return "", "", fmt.Errorf("failed to call LLM API: client not initialized. %w", err)
 		}
 
 		// Read all chunks from the stream — collect reply, reasoning, and tool calls
 		streamResult, err := streamChatCompletion(stream, pipeline, c.SetUsageInfo)
 		if err != nil {
-			return "", "", err
+			return "", "", fmt.Errorf("Read chunks from stream fail. %w", err)
 		}
 
 		// Track whether any "thinking" activity has occurred across all iterations.
@@ -494,8 +494,8 @@ func (c *DeepSeekClient) ChatWithPipeline(
 			messages = append(messages, assistantMsg)
 
 			// Execute each tool call via the ToolCaller
-			if err := executeToolCalls(pipeline, streamResult.ToolCalls, &messages); err != nil {
-				return "", "", err
+			if err = executeToolCalls(pipeline, streamResult.ToolCalls, &messages); err != nil {
+				return "", "", fmt.Errorf("Call tools fail. %w", err)
 			}
 
 			// Close current stream before looping
@@ -582,21 +582,16 @@ func makeAssistantMessageForToolCalls(reply, reasoning string, toolCalls []Strea
 // are converted to user-facing error messages (via i18n) so the LLM can see them.
 func executeToolCalls(pipeline Pipeline, toolCalls []StreamingToolCall, messages *[]Message) error {
 	for _, tc := range toolCalls {
-		resultContent := ""
-
 		if pendingErr := pipeline.Pending(tc.ID, tc.Name, tc.Arguments); pendingErr != nil {
-			resultContent = i18n.T("set_tool_argument_faild", map[string]interface{}{
-				"Error": pendingErr,
-			})
+			errMsg := i18n.T("tool_argument_fail", map[string]interface{}{"Error": pendingErr})
+			return fmt.Errorf("[%s(%s)]-%s", tc.Name, tc.Arguments, errMsg)
 		} else {
 			// Execute the tool via the caller
-			var execErr error
-			resultContent, execErr = pipeline.Call(tc.ID, tc.Name)
+			resultContent, execErr := pipeline.Call(tc.ID, tc.Name)
 
 			if execErr != nil {
-				resultContent = i18n.T("tool_execution_failed", map[string]interface{}{
-					"Error": execErr,
-				})
+				errMsg := i18n.T("tool_execution_failed", map[string]interface{}{"Error": execErr})
+				return fmt.Errorf("[%s(%s)]-%s", tc.Name, tc.Arguments, errMsg)
 			}
 
 			// Append the tool result message
@@ -607,5 +602,6 @@ func executeToolCalls(pipeline Pipeline, toolCalls []StreamingToolCall, messages
 			})
 		}
 	}
+
 	return nil
 }

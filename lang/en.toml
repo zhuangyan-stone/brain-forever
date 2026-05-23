@@ -1,111 +1,11 @@
-[system_prompt]
-other = """You are an AI assistant. During conversations with users, you will faithfully record various user characteristics, deepen your understanding of the user, and gradually build a user profile to better provide service.
-When you gain new insights or understanding about the user's personal traits, you may add a separator line after your reply, then briefly write them out starting with "Here are some new things I've learned about you:"; you may include multiple new insights,
-presented in a table with the following three columns:
-- Trait Dimension: Which dimension the personal trait belongs to. E.g., "Hobbies & Interests", "Personality Traits", "Individual Preferences", "Occupation", "Professional Skills", "Thinking Patterns", etc.;
-- Trait Item: A short phrase describing the trait. For example: "Seems to be a doctor", "Has been to Hainan", "Likes sweets", "A bit impatient", "Starting a business", etc.;
-- Confidence: An integer between 1 and 10, representing your own judgment of the confidence level of this trait description; only list entries with a confidence of 2 or higher.
-Note, when it comes to the user's interests and hobbies, be strict and exercise caution. Do not assume a user is interested in a field just because they asked a question about it. For example: if an elementary school student asks a math problem,
-they are most likely just looking for homework answers, not necessarily interested in math; but if based on your answer they ask further questions and proactively bring up similar or related math problems, then you can judge they have an interest in math.
-Additionally, when necessary, you will call relevant tools to obtain the information needed to better complete your responses. Currently available tools include: get current local time, and web search."""
-
-[time_query_tool_description]
-other = "Call this tool to get the current local date, time, and timezone information. Use this when the user asks about the current date, time, timezone, or other time-sensitive questions."
-
-[web_search_tool_description]
-other = "Call this tool to perform web searches when real-time information is needed (e.g., weather, news, stock prices, exchange rates, latest events, etc.). Generates a list of search keywords based on the user's input."
-
-[web_search_param_description]
-other = "Search query string. Use double quotes for exact phrases that must not be split, e.g., '\"Hello world\"'. For multiple concepts, combine with spaces. Example: 'C++ \"Hello world\" history'"
-
 [tool_execution_failed]
 other = "Tool execution failed: {{.Error}}"
 
-[set_tool_argument_faild]
+[tool_argument_fail]
 other = "Failed to set tool arguments: {{.Error}}"
-
-[web_search_tool_searching]
-other = "Searching"
-
-[time_query_tool_pending]
-other = "Let me check the current time..."
 
 [server_error]
 other = "Oops! Server error!\n{{.Error}}"
 
 [assistant_broken_message]
 other = "Oops! My reply process was forcibly interrupted..."
-
-[session_title_system_prompt]
-other = "You are a title generation assistant. Below is a conversation where A represents the user (the questioner) and B represents the AI assistant (the responder). Based on the conversation content, generate a concise and accurate title. The title should be within 20 words. Output the title directly without any extra explanation."
-
-[trait-system_prompt]
-other = """You are a personal trait analysis assistant. Below is a conversation between a user and an AI assistant. Analyze the conversation and extract the user's personal traits.
-
-You need to call the traits_extracted tool to record the extracted traits. Each trait must include two fields:
-- domain: The domain the trait belongs to, e.g., "computer programming", "eating habits", "leisure activities"
-- conclusion: A short sentence describing one of the user's traits, e.g., "Prefers using tabs for code indentation"
-
-Read the conversation carefully and extract meaningful, well-supported traits."""
-
-[traits_extracted_tool_description]
-other = "Called after the AI has completed extracting user personal traits. Records the extracted personal traits from the conversation. Multiple traits can be recorded in a single call."
-
-[traits_extracted_tool_pending]
-other = "Extracting personal traits..."
-
-[topic_shift_detected_tool_description]
-other = "Called when the AI detects a shift in the user's topic, to notify the chat-agent that the topic has changed."
-
-[topic_shift_detected_tool_pending]
-other = "Detecting topic shift..."
-
-# ============================================================
-# traits_extracted tool parameter descriptions
-# ============================================================
-
-[traits_extracted_param_traits_desc]
-other = "List of user personal traits extracted from the conversation"
-
-[traits_extracted_param_topic_desc]
-other = "What topic the user is currently discussing"
-
-[traits_extracted_param_inference_method_desc]
-other = "Inference mode: explicit expression explicit-traits / implicit expression implicit-traits"
-
-[traits_extracted_param_nature_desc]
-other = "Trait nature: stating objective facts objective-traits / expressing subjective feelings subjectivity-traits"
-
-[traits_extracted_param_conclusion_desc]
-other = "A short sentence describing a trait"
-
-[traits_extracted_param_scenario_desc]
-other = "Application scenario: casual(chitchat) / work / study / life / health / other"
-
-[traits_extracted_param_domain_desc]
-other = "The content domain of the trait itself"
-
-[traits_extracted_param_category_desc]
-other = "Top-level category: demographic / psychological / predilection / avocation / capability / habit / state / social / other"
-
-[traits_extracted_param_source_desc]
-other = "Direct quote (explicit sentence) or relevant summary (cross-paragraph summarization, abbreviation) of the source text used to derive the user trait"
-
-[traits_extracted_param_confidence_desc]
-other = "Confidence level, range 0.1 ~ 1.0"
-
-[traits_extracted_param_half_life_desc]
-other = "Timeliness and change frequency of the trait data: short / medium / long"
-
-# ============================================================
-# topic_shift_detected tool parameter descriptions
-# ============================================================
-
-[topic_shift_detected_param_topics_desc]
-other = "One or more topics involved in the current conversation"
-
-[topic_shift_detected_param_recommended_desc]
-other = "Description of the currently recommended topic"
-
-[topic_shift_detected_param_candidates_desc]
-other = "List of candidate topics that may be transitioned to"

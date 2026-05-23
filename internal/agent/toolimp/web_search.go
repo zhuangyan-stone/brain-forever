@@ -77,7 +77,7 @@ func webSearchToolDefinition(lang string) llm.ToolDefinition {
 		"properties": map[string]any{
 			"search_queries": map[string]any{
 				"type":        "string",
-				"description": i18n.TL(lang, "web_search_param_description"),
+				"description": i18n.Tools.TL(lang, WebSearchToolName, "param_description"),
 			},
 		},
 		"required":             []string{"search_queries"},
@@ -99,7 +99,7 @@ func webSearchToolDefinition(lang string) llm.ToolDefinition {
 		Type: "function",
 		Function: llm.ToolFunctionDef{
 			Name:        WebSearchToolName,
-			Description: i18n.TL(lang, "web_search_tool_description"),
+			Description: i18n.Tools.TL(lang, WebSearchToolName, "description"),
 			Parameters:  paramsMap,
 			Strict:      &strict,
 		},
@@ -146,7 +146,7 @@ func (imp *WebSearchToolImp) GetDefinition() llm.ToolDefinition {
 }
 
 func (imp *WebSearchToolImp) GetPendingText() string {
-	return fmt.Sprintf("%s %s", i18n.TL(imp.lang, "web_search_tool_searching"), imp.q)
+	return fmt.Sprintf("%s %s", i18n.Tools.TL(imp.lang, WebSearchToolName, "pending"), imp.q)
 }
 
 func (imp *WebSearchToolImp) SetArgument(arguments string) (err error) {

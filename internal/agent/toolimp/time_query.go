@@ -10,7 +10,7 @@ import (
 
 // TimeQueryToolName is the name of the tool used for time query.
 // The LLM can call this tool when it determines that currernt local time is needed.
-const TimeQueryToolName = "get_current_local_time"
+const TimeQueryToolName = "current_time"
 
 // getCurrentLocalTimeWithZone : return like 2026-05-10 14:30:00+08:00 [Asia/Shanghai]
 func getCurrentLocalTimeWithZone() string {
@@ -54,7 +54,7 @@ func timeQueryToolDefinition(lang string) llm.ToolDefinition {
 		Type: "function",
 		Function: llm.ToolFunctionDef{
 			Name:        TimeQueryToolName,
-			Description: i18n.TL(lang, "time_query_tool_description"),
+			Description: i18n.Tools.TL(lang, "current_time", "description"),
 			Parameters:  paramsMap,
 			Strict:      &strict,
 		},
@@ -90,7 +90,7 @@ func (f *TimeQueryToolImp) SetArgument(arguments string) error {
 }
 
 func (f *TimeQueryToolImp) GetPendingText() string {
-	return i18n.TL(f.lang, "time_query_tool_pending")
+	return i18n.Tools.TL(f.lang, "current_time", "pending")
 }
 
 func (f *TimeQueryToolImp) Execute() (string, error) {
