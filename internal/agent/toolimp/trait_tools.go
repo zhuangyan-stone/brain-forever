@@ -213,7 +213,6 @@ func (imp *TraitsExtractedToolImp) GetTraits() []TraitsExtractedResult {
 
 func (imp *TraitsExtractedToolImp) Execute() (string, error) {
 	if len(imp.traits) == 0 {
-		fmt.Println("[traits_extracted] 没有抽取到新特征")
 		return "没有抽取到新特征\n" + `{"status":"ok","count":0}`, nil
 	}
 
