@@ -105,8 +105,11 @@ func init() {
 // For example, if the file is "current_time.toml" and contains a message with ID "description",
 // it will be registered as "current_time-description".
 //
-// The file path determines the language tag: the parent directory name is used as the
-// language tag (e.g., "lang/en/tools/current_time.toml" → language tag "en").
+// The file path determines the language tag from the directory structure.
+// The expected path format is: lang/{language_tag}/.../{filename}.toml
+// e.g., "lang/en/tools/current_time.toml" → language tag "en"
+//
+//	"lang/zh-CN/tools/web_search.toml" → language tag "zh-CN"
 func loadWithPrefix(filePath string) error {
 	// Read the file content
 	data, err := os.ReadFile(filePath)
@@ -114,12 +117,23 @@ func loadWithPrefix(filePath string) error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Determine the language tag from the parent directory name.
-	// e.g., "lang/en/tools/current_time.toml" → parent dir "en" → tag "en"
-	parentDir := filepath.Base(filepath.Dir(filePath))
-	tag, err := language.Parse(parentDir)
+	// Determine the language tag from the directory structure.
+	// The path is expected to be: lang/{language_tag}/.../{filename}.toml
+	// We use filepath.Rel to get the relative path from the i18n directory,
+	// then extract the first component as the language tag.
+	// e.g., relPath = "en/tools/current_time.toml" → parts[0] = "en"
+	//        relPath = "zh-CN/tools/web_search.toml" → parts[0] = "zh-CN"
+	relPath, _ := filepath.Rel(findI18nDir(), filePath)
+	parts := strings.SplitN(relPath, string(filepath.Separator), 3)
+	var langTag string
+	if len(parts) >= 1 {
+		langTag = parts[0]
+	} else {
+		langTag = "en"
+	}
+	tag, err := language.Parse(langTag)
 	if err != nil {
-		// Fallback to parsing from the file path
+		// Fallback to English if the language tag is invalid
 		tag = language.English
 	}
 
@@ -355,26 +369,26 @@ func TLf(lang, messageID string, args ...interface{}) string {
 
 // GetAcceptLanguage extracts the language preference from the request.
 // This is a helper for HTTP handlers to determine the user's language.
+// It uses language.Matcher to match against the bundle's registered language tags,
+// so "zh" will be correctly matched to "zh-CN" if that's what the bundle supports.
 func GetAcceptLanguage(acceptLang string) string {
-	// Simple parsing: take the first language tag
 	if acceptLang == "" {
 		return defaultLang.String()
 	}
 
-	// Split by comma and take the first one
-	parts := strings.Split(acceptLang, ",")
-	if len(parts) == 0 {
+	// Parse the Accept-Language header
+	tags, _, err := language.ParseAcceptLanguage(acceptLang)
+	if err != nil || len(tags) == 0 {
 		return defaultLang.String()
 	}
 
-	// Split by semicolon to remove quality value
-	lang := strings.Split(strings.TrimSpace(parts[0]), ";")[0]
+	// Try to find a supported language using the bundle's matcher
+	matcher := language.NewMatcher(bundle.LanguageTags())
+	_, i, _ := matcher.Match(tags...)
 
-	// Validate the language tag
-	_, err := language.Parse(lang)
-	if err != nil {
-		return defaultLang.String()
+	if i < len(bundle.LanguageTags()) {
+		return bundle.LanguageTags()[i].String()
 	}
 
-	return lang
+	return defaultLang.String()
 }
