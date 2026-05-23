@@ -18,8 +18,8 @@ const ICON_CLOSE = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" 
 /** 方框图标 SVG — 表示恢复窗口最大化（单个方框） */
 const ICON_RESTORE = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/></svg>';
 
-/** 定时时长（毫秒）— 20 秒后自动应用标题 */
-const TIMER_DURATION = 20000;
+/** 定时时长（毫秒）— 15 秒后自动应用标题 */
+const TIMER_DURATION = 15000;
 
 /**
  * 便利贴容器（单例，延迟创建）
