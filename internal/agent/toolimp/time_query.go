@@ -12,12 +12,17 @@ import (
 // The LLM can call this tool when it determines that currernt local time is needed.
 const TimeQueryToolName = "current_time"
 
-// getCurrentLocalTimeWithZone : return like 2026-05-10 14:30:00+08:00 [Asia/Shanghai]
-func getCurrentLocalTimeWithZone() string {
+// getCurrentTime returns both local time (with timezone) and UTC time.
+// Format:
+//
+//	Local : 2026-05-23 16:10:42 CST (Asia/Shanghai)
+//	UTC   : 2026-05-23 08:10:42 UTC
+func getCurrentTime() string {
 	now := time.Now()
-	timePart := now.Format("2006-01-02 15:04:05-07:00")
+	localTime := now.Format("2006-01-02 15:04:05")
 	tzName := now.Location().String()
-	return fmt.Sprintf("%s [%s]", timePart, tzName)
+	utcTime := now.UTC().Format("2006-01-02 15:04:05")
+	return fmt.Sprintf("Local : %s %s\nUTC   : %s UTC", localTime, tzName, utcTime)
 }
 
 // timeQueryToolDefinition returns the ToolDefinition for time query
@@ -61,9 +66,9 @@ func timeQueryToolDefinition(lang string) llm.ToolDefinition {
 	}
 }
 
-// ExecuteTimeQuery performs the actual get current local time and returns the results.
-func executeTimeQuery() (currentLocalTimeWithZone string) {
-	return getCurrentLocalTimeWithZone()
+// ExecuteTimeQuery performs the actual get current time and returns the results.
+func executeTimeQuery() (currentTime string) {
+	return getCurrentTime()
 }
 
 type TimeQueryToolImp struct {
@@ -94,5 +99,5 @@ func (f *TimeQueryToolImp) GetPendingText() string {
 }
 
 func (f *TimeQueryToolImp) Execute() (string, error) {
-	return getCurrentLocalTimeWithZone(), nil
+	return getCurrentTime(), nil
 }
