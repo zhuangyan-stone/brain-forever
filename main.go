@@ -142,8 +142,17 @@ func main() {
 	})
 
 	// Static file server — frontend pages
+	// 开发环境（DEV_CACHE_DISABLE=true）禁用缓存，确保前端修改即时生效
+	// 生产环境（默认）使用 http.FileServer 默认的 ETag/Last-Modified 缓存行为
 	fs := http.FileServer(http.Dir("./frontend"))
-	mux.Handle("/", fs)
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if os.Getenv("DEV_CACHE_DISABLE") == "true" {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+		}
+		fs.ServeHTTP(w, r)
+	}))
 
 	// Start HTTP Server
 	addr := "[::]:8080"
