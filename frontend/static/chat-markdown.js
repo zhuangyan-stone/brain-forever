@@ -43,6 +43,42 @@ function fixPunctuationAroundEmphasis(text) {
 }
 
 /**
+ * fixTableAlignment 修复 AI 模型输出的表格对齐分隔行中的多余冒号。
+ *
+ * 问题背景：某些 LLM（如 DeepSeek V4/Flash）在生成 GFM 表格时，
+ * 对齐分隔行可能出现多余的冒号，例如 `::----` 或 `:::---`，
+ * 导致 marked 无法正确解析表格，整个表格退化为纯文本。
+ *
+ * 标准 GFM 表格对齐分隔行格式：
+ *   `----`  默认（通常左对齐）
+ *   `:---`  左对齐
+ *   `:--:`  居中对齐
+ *   `---:`  右对齐
+ *
+ * 本函数将表格分隔行中连续 2 个以上的冒号缩减为 1 个，
+ * 例如：`::----` → `:----`，`:::--:` → `:--:`。
+ *
+ * @param {string} text - Markdown 原文
+ * @returns {string} 修复后的 Markdown 文本
+ */
+function fixTableAlignment(text) {
+    // 只处理表格对齐分隔行：行内容仅包含 |、:、-、空格（即 GFM 表格的第二行）
+    // 将其中连续 2+ 个冒号替换为单个冒号，覆盖所有位置：
+    //   - 开头：::---- → :----
+    //   - 中间：-::-  → -:-
+    //   - 末尾：----:: → ---:
+    //   - 混合：|::----|::| → |:----|:|
+    return text.replace(/^[\s|:\-]+$/gm, (line) => {
+        // 进一步确认：必须包含至少一个 -（排除全是空格/冒号/| 的噪声行）
+        if (!/-/.test(line)) return line;
+        // 检查是否包含连续冒号（2 个以上）
+        if (!/:{2,}/.test(line)) return line;
+        // 将连续 2+ 个冒号替换为单个冒号
+        return line.replace(/:{2,}/g, ':');
+    });
+}
+
+/**
  * renderMarkdown 将 Markdown 文本渲染为安全的 HTML，并对代码块进行语法高亮
  * @param {string} text
  * @returns {string}
@@ -51,7 +87,9 @@ export function renderMarkdown(text) {
     if (!text) return '';
     try {
         // 修复标点与强调标记相邻时的定界符识别问题
-        const fixed = fixPunctuationAroundEmphasis(text);
+        let fixed = fixPunctuationAroundEmphasis(text);
+        // 修复 AI 模型输出的表格对齐分隔行中的多余冒号（如 ::---- → :----）
+        fixed = fixTableAlignment(fixed);
         // 使用 marked 渲染
         const html = marked.parse(fixed, {
             breaks: true,      // 支持 GitHub 风格的换行
