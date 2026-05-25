@@ -6,6 +6,7 @@ import { state } from './chat-state.js';
 import { addMessage, showSources, showTokenUsage, showWelcomeMessage, updateHeaderTitle } from './chat-ui.js';
 import { restoreReasoningArea } from './chat-reasoning.js';
 import { updateTickNav } from './chat-ticknav.js';
+import { sessionManager } from './chat-session-manager.js';
 
 'use strict';
 
@@ -86,6 +87,25 @@ export async function restoreChat() {
 
 		// 恢复完成后更新刻度导航
 		updateTickNav();
+	
+		// 检查当前 chat 的 session 是否有未渲染的 streamingMsg
+		// 场景：页面刷新前，该 chat 正在后台接收 SSE 流式数据但尚未完成
+		const currentSN = state.currentChatSN;
+		if (currentSN) {
+			const session = sessionManager.sessions.get(currentSN);
+			if (session && session.streamingMsg && !session.streamingMsg.isDone) {
+				// 有未完成的流式数据，需要渲染到 DOM
+				// 先创建 assistant 气泡，恢复 DOM 引用
+				const assistantBubble = addMessage('assistant', '', null, true);
+				const contentDiv = assistantBubble.querySelector('.bubble');
+				session.assistantBubble = assistantBubble;
+				session.contentDiv = contentDiv;
+
+				// 使用 session 上已有的 responser 执行 flushToDOM
+				// flushToDOM 现在支持 isDone=false 时渲染已有累积内容
+				session.responser.flushToDOM();
+			}
+		}
 	} catch (e) {
 		// 网络错误等情况下，回退到显示欢迎消息
 		console.warn('无法恢复对话历史，显示欢迎消息:', e);

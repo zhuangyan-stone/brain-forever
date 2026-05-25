@@ -70,6 +70,11 @@ export const UserSettings = {
 /**
  * 全局状态对象
  * 所有可变状态集中在此，各模块通过 state.xxx 读写。
+ *
+ * 注意：流式相关的状态（isStreaming, abortController 等）已迁移到
+ * ChatSession / ChatSessionManager 中管理。state 中的 isStreaming
+ * 和 abortController 改为委托给 sessionManager 的 getter/setter，
+ * 以保持对现有代码的向后兼容。
  */
 export const state = {
     // 消息历史 [{role, content, id, usage}]
@@ -93,11 +98,43 @@ export const state = {
     // 状态只能从低往高变，不能从高往低变
     titleState: 0,
 
-    // 是否正在流式接收
-    isStreaming: false,
+    // ---- 以下字段委托给 sessionManager ----
+    // 实际存储在 ChatSession 中，通过 sessionManager 的 getter/setter 访问
 
-    // 用于取消请求的 AbortController
-    abortController: null,
+    /**
+     * 是否正在流式接收
+     * 委托给 sessionManager.getActive()?.isStreaming
+     */
+    get isStreaming() {
+        // 如果 sessionManager 尚未初始化，返回 false
+        if (!this._sessionManager) return false;
+        return this._sessionManager.isStreaming;
+    },
+    set isStreaming(val) {
+        // 兼容旧代码中 state.isStreaming = true/false 的直接赋值
+        // 但实际 isStreaming 应由 ChatSession 管理
+        // 这里仅做兼容处理，不真正存储
+        if (this._sessionManager) {
+            const active = this._sessionManager.getActive();
+            if (active) {
+                active.isStreaming = val;
+            }
+        }
+    },
+
+    /**
+     * 用于取消请求的 AbortController
+     * 委托给 sessionManager.getActive()?.abortController
+     */
+    get abortController() {
+        if (!this._sessionManager) return null;
+        return this._sessionManager.abortController;
+    },
+    set abortController(val) {
+        if (this._sessionManager) {
+            this._sessionManager.abortController = val;
+        }
+    },
 
     // 深度思考按钮状态（同步自 UserSettings.deepThink）
     deepThinkActive: false,
@@ -122,10 +159,6 @@ export const state = {
     // 而是标记此值，等滚动完全停止后再触发（由 scrollDebounceTimer 处理）
     pendingHighlightIndex: -1,
 
-    // 流式渲染相关
-    accumulatedMarkdown: '',
-    renderTimer: null,
-
     // 渲染节流间隔（毫秒）
     RENDER_INTERVAL: 180,
 
@@ -143,15 +176,17 @@ export const state = {
     // 新对话初始为空字符串，首次发送消息前通过 POST /api/chat/new 获取
     // 页面刷新时由 restoreChat 从后端恢复
     currentChatSN: '',
+
+    // ChatSessionManager 引用（由 chat.js 初始化时设置）
+    _sessionManager: null,
 };
 
 /**
  * 重置流式渲染状态（取消请求后清理）
+ * 注意：accumulatedMarkdown 和 renderTimer 已迁移到 ChatSession，
+ * 此函数保留以兼容旧代码调用，但实际不再操作 state 上的字段。
  */
 export function resetStreamingState() {
-    state.accumulatedMarkdown = '';
-    if (state.renderTimer) {
-        clearTimeout(state.renderTimer);
-        state.renderTimer = null;
-    }
+    // 不再操作 state.accumulatedMarkdown 和 state.renderTimer
+    // 这些字段已由 ChatSession 管理
 }

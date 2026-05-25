@@ -1,8 +1,16 @@
 // ============================================================
 // chat-sse.js — SSE 流处理 + 事件分发
 // ============================================================
+//
+// 重构后：sendMessage() 通过 sessionManager 获取 ChatSession，
+// SSE 读取流程由 ChatSession 管理，事件分发委托给 SSEResponser。
+//
+// 切换对话时，旧对话的 SSE 连接继续在后台接收数据，
+// 数据累积到 ChatSession.streamingMsg 中，不丢失。
+// ============================================================
 
-import { state, resetStreamingState } from './chat-state.js';
+import { state } from './chat-state.js';
+import { sessionManager } from './chat-session-manager.js';
 import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender, restoreInputArea } from './chat-ui.js';
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
@@ -11,182 +19,6 @@ import { TITLE_STATE, fetchChatTitle, truncateTitle, newChat } from './chat-api.
 import { addDirtyChat } from './chat-list.js';
 
 'use strict';
-
-/**
- * 对 contentDiv 执行节流渲染（累积 Markdown → HTML）
- * @param {HTMLElement} contentDiv
- */
-function scheduleContentRender(contentDiv) {
-    throttleRender(state, contentDiv, () => state.accumulatedMarkdown);
-}
-
-/**
- * 处理 text 事件
- * @param {object} event
- * @param {HTMLElement} assistantBubble
- * @param {HTMLElement} contentDiv
- */
-function handleTextEvent(event, assistantBubble, contentDiv) {
-    // 累积原始 Markdown，实时渲染为 HTML（带节流）
-    if (contentDiv) {
-        state.accumulatedMarkdown += event.content;
-        contentDiv.classList.add('streaming');
-        scheduleContentRender(contentDiv);
-    }
-}
-
-/**
- * 处理 sources 事件
- * @param {object} event
- */
-function handleSourcesEvent(event) {
-    if (event.sources) {
-        showSources(event.sources, 'rag');
-    }
-    if (event.web_sources) {
-        showSources(event.web_sources, 'web');
-    }
-}
-
-/**
- * 处理 done 事件
- * @param {object} event
- * @param {HTMLElement} assistantBubble
- * @param {HTMLElement} contentDiv
- */
-function handleDoneEvent(event, assistantBubble, contentDiv) {
-    // 流结束：如果 reasoning 区域仍处于 active 状态（没有 text 事件），标记为完成
-    finalizeReasoningArea(assistantBubble);
-
-    // 流结束：确保最后一次渲染完成，保存纯文本到 messages
-    if (!contentDiv) return;
-
-    contentDiv.classList.remove('streaming');
-    // 清除未执行的节流定时器，立即做最终渲染
-    if (state.renderTimer) {
-        clearTimeout(state.renderTimer);
-        state.renderTimer = null;
-    }
-    // 最终渲染为 HTML
-    contentDiv.innerHTML = renderMarkdown(state.accumulatedMarkdown);
-    // 启用所有复制按钮（流已结束）
-    enableCopyButtons(assistantBubble);
-    // 后端返回的消息 ID（前端之前传 0，由后端分配）
-    const msgId = event.msg_id || 0;
-    if (msgId) {
-        // 更新本地 messages 数组中最新一条 id===0 的用户消息的 ID
-        for (let i = state.messages.length - 1; i >= 0; i--) {
-            if (state.messages[i].role === 'user' && state.messages[i].id === 0) {
-                state.messages[i].id = msgId;
-                break;
-            }
-        }
-        // 将 data-msg-id 设置在 message-group 上（同一组的 user 和 assistant 共享同一 ID）
-        const group = assistantBubble.closest('.message-group');
-        if (group) {
-            group.dataset.msgId = msgId;
-        }
-    }
-    // AI 回复复用用户消息的 ID（source ID）
-    const usage = event.usage || null;
-    const assistantCreatedAt = event.created_at || null;
-    state.messages.push({ role: 'assistant', content: state.accumulatedMarkdown, id: msgId, usage, created_at: assistantCreatedAt });
-
-    // 更新 assistant 气泡的角色标签，显示完成时间
-    // 如果有 reasoning 区域，时间显示在 reasoning-header 的 role-badge 中；
-    // 否则显示在独立的 role-label 中
-    if (assistantCreatedAt) {
-        const d = new Date(assistantCreatedAt);
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        const timeText = `(${hh}:${mm}:${ss})`;
-
-        // 优先更新 reasoning-header 中的 role-badge（如果有 reasoning 区域）
-        const reasoningBadge = assistantBubble.querySelector('.reasoning-role-badge');
-        if (reasoningBadge) {
-            // 替换或追加时间文本（去除已有的时间，再追加新的）
-            const badgeText = reasoningBadge.textContent || 'AI';
-            const cleanBadge = badgeText.replace(/\s*\(\d{2}:\d{2}:\d{2}\)/, '');
-            reasoningBadge.textContent = `${cleanBadge} ${timeText}`;
-        } else {
-            // 没有 reasoning 区域，更新独立的 role-label
-            const roleLabel = assistantBubble.querySelector('.role-label');
-            if (roleLabel) {
-                const roleText = '🤖 AI';
-                roleLabel.textContent = `${roleText} ${timeText}`;
-            }
-        }
-    }
-    // 显示 token 用量信息
-    if (event.usage) {
-        showTokenUsage(assistantBubble, event.usage);
-    }
-    // 重置累积变量，为下一次流式做准备
-    state.accumulatedMarkdown = '';
-    autoScrollToBottom();
-
-    // 流式结束：展开输入面板（流式期间被折叠了）
-    restoreInputArea();
-    // 展开后布局可能变化，延迟再滚一次到底部
-    setTimeout(() => {
-        autoScrollToBottom();
-    }, 480);
-
-    // AI 回复完成后：如果用户已向上滚动（离开底部），才弹 Toast 提示
-    if (state.userScrolledUp) {
-        setTimeout(() => {
-            showToast('AI 回复完毕', 'info');
-        }, 500);
-    }
-}
-
-/**
- * 处理 reasoning_end 事件：标记 reasoning 区域为"思考完成"
- * @param {object} event
- * @param {HTMLElement} assistantBubble
- */
-function handleReasoningEndEvent(event, assistantBubble) {
-    finalizeReasoningArea(assistantBubble);
-}
-
-/**
- * handleSSEEvent 根据事件类型分发到对应的处理函数
- * @param {object} event
- * @param {HTMLElement} assistantBubble
- */
-function handleSSEEvent(event, assistantBubble) {
-    const contentDiv = assistantBubble.querySelector('.bubble');
-
-    switch (event.type) {
-        case 'reasoning':
-            handleReasoningEvent(event, assistantBubble);
-            break;
-
-        case 'reasoning_end':
-            handleReasoningEndEvent(event, assistantBubble);
-            break;
-
-        case 'text':
-            handleTextEvent(event, assistantBubble, contentDiv);
-            break;
-
-        case 'sources':
-            handleSourcesEvent(event);
-            break;
-
-        case 'done':
-            handleDoneEvent(event, assistantBubble, contentDiv);
-            break;
-
-        case 'error':
-            showError(assistantBubble, event.message);
-            break;
-
-        default:
-            console.warn('未知事件类型:', event.type);
-    }
-}
 
 // ============================================================
 // 辅助函数 — 发送前准备
@@ -241,7 +73,7 @@ function addUserMessage(content, createdAt) {
 
 /**
  * 发送前准备：验证输入、清理 UI、初始化状态
- * @returns {{ content: string, createdAt: string, assistantBubble: HTMLElement } | null}
+ * @returns {{ content: string, createdAt: string, session: ChatSession } | null}
  */
 function prepareChat() {
     const messageInput = document.getElementById('messageInput');
@@ -270,7 +102,16 @@ function prepareChat() {
 
     // 创建空的 assistant 消息占位
     const assistantBubble = addMessage('assistant', '', null, true);
-    state.isStreaming = true;
+    const contentDiv = assistantBubble.querySelector('.bubble');
+
+    // 获取或创建当前对话的 ChatSession
+    const sn = state.currentChatSN;
+    const session = sessionManager.getOrCreate(sn);
+    session.isStreaming = true;
+    session._isActive = true;
+    session.assistantBubble = assistantBubble;
+    session.contentDiv = contentDiv;
+    session.resetStreaming();
 
     // 确保流式开始前页面已在底部。
     // addMessage 内部的 autoScrollToBottom 使用同步 scrollTop 赋值，
@@ -282,21 +123,21 @@ function prepareChat() {
     applyStreamingState(true);
 
     // 创建 AbortController
-    state.abortController = new AbortController();
+    session.abortController = new AbortController();
 
-    return { content, createdAt, assistantBubble };
+    return { content, createdAt, session };
 }
 
 // ============================================================
-// 辅助函数 — SSE 流读取
+// SSE 流读取（ChatSession 的方法）
 // ============================================================
 
 /**
- * 读取 SSE 流数据，按行解析并分发事件
+ * 读取 SSE 流数据，按行解析并分发事件到 SSEResponser
  * @param {Response} response
- * @param {HTMLElement} assistantBubble
+ * @param {ChatSession} session
  */
-async function readSSEBuffer(response, assistantBubble) {
+async function readSSEBuffer(response, session) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -318,7 +159,8 @@ async function readSSEBuffer(response, assistantBubble) {
             const jsonStr = trimmed.slice(6);
             try {
                 const event = JSON.parse(jsonStr);
-                handleSSEEvent(event, assistantBubble);
+                // 通过 SSEResponser 分发事件
+                dispatchEventToResponser(event, session);
             } catch (e) {
                 console.warn('解析 SSE 事件失败:', jsonStr);
             }
@@ -330,7 +172,7 @@ async function readSSEBuffer(response, assistantBubble) {
         const jsonStr = buffer.trim().slice(6);
         try {
             const event = JSON.parse(jsonStr);
-            handleSSEEvent(event, assistantBubble);
+            dispatchEventToResponser(event, session);
         } catch (e) {
             console.warn('解析剩余 SSE 事件失败:', jsonStr);
         }
@@ -338,12 +180,51 @@ async function readSSEBuffer(response, assistantBubble) {
 }
 
 /**
+ * 将 SSE 事件分发到 session 的 SSEResponser
+ * @param {object} event
+ * @param {ChatSession} session
+ */
+function dispatchEventToResponser(event, session) {
+    const responser = session.responser;
+    if (!responser) return;
+
+    switch (event.type) {
+        case 'reasoning':
+            responser.onReasoning(event);
+            break;
+
+        case 'reasoning_end':
+            responser.onReasoningEnd();
+            break;
+
+        case 'text':
+            responser.onText(event);
+            break;
+
+        case 'sources':
+            responser.onSources(event);
+            break;
+
+        case 'done':
+            responser.onDone(event);
+            break;
+
+        case 'error':
+            responser.onError(event);
+            break;
+
+        default:
+            console.warn('未知事件类型:', event.type);
+    }
+}
+
+/**
  * 发起 fetch 请求并读取 SSE 流
- * @param {HTMLElement} assistantBubble
+ * @param {ChatSession} session
  * @param {string} content
  * @param {string} createdAt
  */
-async function fetchStream(assistantBubble, content, createdAt) {
+async function fetchStream(session, content, createdAt) {
     // 锁定本轮会话的深度思考状态（防止流式过程中用户乱点按钮导致状态漂移）
     state.sessionDeepThinkingEnabled = state.deepThinkActive;
 
@@ -357,7 +238,7 @@ async function fetchStream(assistantBubble, content, createdAt) {
             deep_think: state.deepThinkActive,
             web_search_enabled: state.webSearchActive
         }),
-        signal: state.abortController.signal
+        signal: session.abortController.signal
     });
 
     if (!response.ok) {
@@ -365,7 +246,7 @@ async function fetchStream(assistantBubble, content, createdAt) {
         throw new Error(`服务器错误 [${response.status}]: ${errText}`);
     }
 
-    await readSSEBuffer(response, assistantBubble);
+    await readSSEBuffer(response, session);
 }
 
 // ============================================================
@@ -374,9 +255,12 @@ async function fetchStream(assistantBubble, content, createdAt) {
 
 /**
  * 处理 AbortError：更新 reasoning 区域状态，空气泡显示中断提示
- * @param {HTMLElement} assistantBubble
+ * @param {ChatSession} session
  */
-function handleAbortError(assistantBubble) {
+function handleAbortError(session) {
+    const assistantBubble = session.assistantBubble;
+    if (!assistantBubble) return;
+
     // 请求已取消：将 reasoning 标题改为"AI 思路已被掐断"
     const area = assistantBubble.querySelector('.reasoning-area.active');
     if (area) {
@@ -394,7 +278,7 @@ function handleAbortError(assistantBubble) {
         }
     }
     // 如果 assistant 气泡为空（尚未收到任何 text 事件），显示中断提示
-    const contentDiv = assistantBubble.querySelector('.bubble');
+    const contentDiv = session.contentDiv;
     if (contentDiv && !contentDiv.textContent.trim()) {
         contentDiv.innerHTML = '⏹ 已中断';
         contentDiv.classList.remove('streaming');
@@ -405,16 +289,18 @@ function handleAbortError(assistantBubble) {
 /**
  * 处理流式请求错误
  * @param {Error} err
- * @param {HTMLElement} assistantBubble
+ * @param {ChatSession} session
  */
-function handleStreamError(err, assistantBubble) {
+function handleStreamError(err, session) {
     if (err.name === 'AbortError') {
         // 标记为中断，cleanupAfterStream 据此跳过标题自动修改等操作
         state._wasAborted = true;
-        handleAbortError(assistantBubble);
+        handleAbortError(session);
     } else {
         console.error('请求失败:', err);
-        showError(assistantBubble, err.message);
+        if (session.assistantBubble) {
+            showError(session.assistantBubble, err.message);
+        }
     }
 }
 
@@ -444,68 +330,71 @@ function autoUpdateTitle(wasAborted) {
 
 /**
  * 流结束清理：重置状态、恢复 UI、清理定时器、自动修改标题
- * @param {HTMLElement} assistantBubble
+ * @param {ChatSession} session
  * @param {boolean} wasAborted  是否被用户中断
  */
-function cleanupAfterStream(assistantBubble, wasAborted) {
-	// 清理中断标记（默认 false，确保每次 sendMessage 调用都有干净的初始值）
-	state._wasAborted = false;
-	state.isStreaming = false;
-	state.abortController = null;
-	// 统一切换所有 UI 组件到非流式状态
-	applyStreamingState(false);
-	document.getElementById('messageInput').focus();
+function cleanupAfterStream(session, wasAborted) {
+    // 清理中断标记（默认 false，确保每次 sendMessage 调用都有干净的初始值）
+    state._wasAborted = false;
+    session.isStreaming = false;
+    session.abortController = null;
+    // 统一切换所有 UI 组件到非流式状态
+    applyStreamingState(false);
+    document.getElementById('messageInput').focus();
 
-	// 移除 streaming 类
-	const contentDiv = assistantBubble.querySelector('.bubble');
-	if (contentDiv) {
-		contentDiv.classList.remove('streaming');
-	}
+    // 移除 streaming 类
+    const contentDiv = session.contentDiv;
+    if (contentDiv) {
+        contentDiv.classList.remove('streaming');
+    }
 
-	// 清理渲染状态（防止取消请求后定时器残留）
-	resetStreamingState();
+    // 清理渲染状态（防止取消请求后定时器残留）
+    session.clearRenderTimer();
 
-	// 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
-	const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
-	if (reasoningContentEl && reasoningContentEl.renderTimer) {
-		clearTimeout(reasoningContentEl.renderTimer);
-		reasoningContentEl.renderTimer = null;
-	}
+    // 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
+    const assistantBubble = session.assistantBubble;
+    if (assistantBubble) {
+        const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
+        if (reasoningContentEl && reasoningContentEl.renderTimer) {
+            clearTimeout(reasoningContentEl.renderTimer);
+            reasoningContentEl.renderTimer = null;
+        }
+    }
 
-	// 标题自动修改
-	autoUpdateTitle(wasAborted);
+    // 标题自动修改
+    autoUpdateTitle(wasAborted);
 
-	// 第一轮对话完成后，获取当前对话的信息并更新侧边栏单个条目（登录用户可见）
-	getCurrentChatIfNeeded(wasAborted);
+    // 第一轮对话完成后，获取当前对话的信息并更新侧边栏单个条目（登录用户可见）
+    getCurrentChatIfNeeded(wasAborted);
 }
 
 /**
-	* getCurrentChatIfNeeded 在第一轮对话完成后，调用专用 API 获取当前对话的信息，
-	* 然后只更新侧边栏中对应的单个条目（而非刷新整个列表）。
-	* 这避免了 refreshChatListIfNeeded 的"全量替换"方式可能导致的重复条目和标题覆盖问题。
-	* 条件：
-	*   - 未被中断（AI 回复不完整时列表无意义）
-	*   - 仅在第一组消息后触发（state.messages.length <= 2）
-	*/
+ * getCurrentChatIfNeeded 在第一轮对话完成后，调用专用 API 获取当前对话的信息，
+ * 然后只更新侧边栏中对应的单个条目（而非刷新整个列表）。
+ * 这避免了 refreshChatListIfNeeded 的"全量替换"方式可能导致的重复条目和标题覆盖问题。
+ * 条件：
+ *   - 未被中断（AI 回复不完整时列表无意义）
+ *   - 仅在第一组消息后触发（state.messages.length <= 2）
+ */
 async function getCurrentChatIfNeeded(wasAborted) {
-	// 被中断或非第一轮对话，跳过
-	if (wasAborted || state.messages.length > 2) return;
+    // 被中断或非第一轮对话，跳过
+    if (wasAborted || state.messages.length > 2) return;
 
-	try {
-		const response = await fetch('/api/chat/current');
-		if (!response.ok) return;
-		const data = await response.json();
-		if (data.sn) {
-			// 后端在新对话时 currentChat.title 为空字符串（尚未设置），
-			// 此时前端已有正确的原始标题（来自用户首条消息截取），
-			// 因此仅当后端返回的 title 非空时才更新，避免空标题覆盖前端已有标题。
-			const title = data.title || undefined;
-			const { updateChatEntry } = await import('./chat-list.js');
-			updateChatEntry(data.sn, title, data.title_state);
-		}
-	} catch (e) {
-		console.warn('获取当前对话信息失败:', e);
-	}
+    try {
+        const response = await fetch('/api/chat/current');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.sn) {
+            // 后端在新对话时 currentChat.title 为空字符串（尚未设置），
+            // 此时前端已有正确的原始标题（来自用户首条消息截取），
+            // 因此仅当后端返回的 title 非空时才更新，避免空标题覆盖前端已有标题。
+            const title = data.title || undefined;
+            const { updateChatEntry } = await import('./chat-list.js');
+            updateChatEntry(data.sn, title, data.title_state);
+        }
+    } catch (e) {
+        console.warn('获取当前对话信息失败:', e);
+    }
 }
 
 // ============================================================
@@ -522,10 +411,10 @@ function isNewChat() {
 }
 
 /**
-	* sendMessage 发送用户消息并启动 SSE 流式接收
-	* 如果是新对话（SN 为空），先调用 POST /api/chat/new 初始化并获取 SN，
-	* 然后再发送用户消息。
-	*/
+ * sendMessage 发送用户消息并启动 SSE 流式接收
+ * 如果是新对话（SN 为空），先调用 POST /api/chat/new 初始化并获取 SN，
+ * 然后再发送用户消息。
+ */
 export async function sendMessage() {
     // 新对话：先向后台初始化对话并获取 SN
     if (isNewChat()) {
@@ -539,13 +428,13 @@ export async function sendMessage() {
     const chatData = prepareChat();
     if (!chatData) return;
 
-    const { content, createdAt, assistantBubble } = chatData;
+    const { content, createdAt, session } = chatData;
 
     try {
-        await fetchStream(assistantBubble, content, createdAt);
+        await fetchStream(session, content, createdAt);
     } catch (err) {
-        handleStreamError(err, assistantBubble);
+        handleStreamError(err, session);
     } finally {
-        cleanupAfterStream(assistantBubble, !!state._wasAborted);
+        cleanupAfterStream(session, !!state._wasAborted);
     }
 }

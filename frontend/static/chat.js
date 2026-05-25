@@ -17,6 +17,7 @@ import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-a
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, addDirtyChat } from './chat-list.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
+import { sessionManager } from './chat-session-manager.js';
 
 'use strict';
 
@@ -44,6 +45,9 @@ function resolveTheme(theme) {
 // ============================================================
 initDom();
 initTooltip();
+
+// 初始化 sessionManager 到全局状态
+state._sessionManager = sessionManager;
 
 // ============================================================
 // 切换按钮状态（深度思考 / 智能搜索）

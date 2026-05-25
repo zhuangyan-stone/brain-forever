@@ -4,7 +4,8 @@
 // ============================================================
 
 import { state } from './chat-state.js';
-import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showSources, showTokenUsage } from './chat-ui.js';
+import { sessionManager } from './chat-session-manager.js';
+import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showSources, showTokenUsage, applyStreamingState } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { restoreReasoningArea } from './chat-reasoning.js';
@@ -423,6 +424,11 @@ function createChatItem(chat) {
 
 /**
  * 选中一个对话 — 加载该对话的消息并渲染到主区域
+ *
+ * 变更（SSEResponser 重构后）：
+ *   - 通过 sessionManager.switchTo() 切换活跃会话
+ *   - 旧对话的 SSE 连接继续在后台接收数据（不 abort）
+ *   - 旧对话的 DOM 引用被释放，但 streamingMsg 保留
  */
 async function selectChat(sn) {
     // 更新高亮
@@ -435,16 +441,16 @@ async function selectChat(sn) {
     // 关闭右键菜单
     closeContextMenu();
 
+    // 0. 通过 sessionManager 切换活跃会话
+    // 旧 session 标记为非活跃（_isActive = false），其 SSE 连接继续后台接收
+    // 新 session 标记为活跃（_isActive = true）
+    sessionManager.switchTo(sn);
+
     // 1. 清空当前消息状态
     state.messages = [];
     state.userMsgCount = 0;
     state.activeTickIndex = -1;
     state.tickScrollOffset = 0;
-    state.accumulatedMarkdown = '';
-    if (state.renderTimer) {
-        clearTimeout(state.renderTimer);
-        state.renderTimer = null;
-    }
 
     // 2. 移除所有消息 DOM 节点
     const chatContainer = document.getElementById('chatContainer');
@@ -520,7 +526,50 @@ async function selectChat(sn) {
         }
     }
 
-    // 9. 更新刻度导航
+    // 9. 检查当前 session 是否有流式输出的累积数据需要渲染
+    // 场景 A：切换回一个正在后台流式输出的对话（!isDone）
+    //   仅当历史消息最后一条不是 assistant 时才创建气泡（否则 AI 已回复完成）
+    // 场景 B：切换回一个流式已完成的对话（isDone），但 DOM 引用已被释放
+    const session = sessionManager.sessions.get(sn);
+    const lastMsg = result.messages[result.messages.length - 1];
+    const lastIsAssistant = lastMsg && lastMsg.role === 'assistant';
+
+    if (session && session.streamingMsg && !session.streamingMsg.isDone && !lastIsAssistant) {
+        // 场景 A：流未完成且最后一条不是 assistant，重新创建气泡恢复 DOM 引用
+        const assistantBubble = addMessage('assistant', '', null, true);
+        const contentDiv = assistantBubble.querySelector('.bubble');
+        session.assistantBubble = assistantBubble;
+        session.contentDiv = contentDiv;
+
+        // 将已有累积内容渲染到 DOM
+        const msg = session.streamingMsg;
+        if (msg.reasoning) {
+            restoreReasoningArea(assistantBubble, msg.reasoning);
+        }
+        if (msg.content) {
+            contentDiv.innerHTML = msg.content;
+            contentDiv.classList.add('streaming');
+        }
+        if (msg.webSources.length > 0) {
+            showSources(msg.webSources, 'web');
+        }
+
+        // 标记流式状态
+        applyStreamingState(true);
+    } else if (session && session.streamingMsg && session.streamingMsg.isDone && !session.assistantBubble) {
+        // 场景 B：流已完成但 DOM 引用已释放，通过 flushToDOM 渲染
+        // 注意：switchTo() 中已调用 flushToDOM()，但当时 assistantBubble 为 null 所以被跳过
+        // 这里需要先创建 assistantBubble，再调用 flushToDOM
+        const assistantBubble = addMessage('assistant', '', null, true);
+        const contentDiv = assistantBubble.querySelector('.bubble');
+        session.assistantBubble = assistantBubble;
+        session.contentDiv = contentDiv;
+
+        // 现在 flushToDOM 可以正常工作了
+        session.responser.flushToDOM();
+    }
+
+    // 10. 更新刻度导航
     updateTickNav();
 }
 
@@ -786,6 +835,10 @@ async function handleDelete(chat) {
             showToast('删除失败', 'error');
             return;
         }
+
+        // 0. 通过 sessionManager 移除 ChatSession（abort 正在进行的 SSE 流）
+        sessionManager.remove(chat.sn);
+
         // 从本地数据移除
         const idx = currentChats.findIndex(c => c.sn === chat.sn);
         if (idx >= 0) {
@@ -799,11 +852,6 @@ async function handleDelete(chat) {
             state.userMsgCount = 0;
             state.activeTickIndex = -1;
             state.tickScrollOffset = 0;
-            state.accumulatedMarkdown = '';
-            if (state.renderTimer) {
-                clearTimeout(state.renderTimer);
-                state.renderTimer = null;
-            }
 
             // 移除所有消息 DOM
             const chatContainer = document.getElementById('chatContainer');
