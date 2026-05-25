@@ -1,13 +1,16 @@
 // ============================================================
-// chat-session-list.js — 会话列表组件
-// 在左侧栏显示用户的会话列表，按时间分组展示
+// chat-list.js — 对话列表组件
+// 在左侧栏显示用户的对话列表，按时间分组展示
 // ============================================================
 
 import { state } from './chat-state.js';
-import { showToast } from './chat-ui.js';
-import { putSessionTitle, TITLE_STATE } from './chat-api.js';
+import { showToast, addMessage, updateHeaderTitle, showSources, showTokenUsage } from './chat-ui.js';
+import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
+import { restoreReasoningArea } from './chat-reasoning.js';
+import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE } from './svg_icons.js';
+import msgbox from './components/msgbox.js';
 
 'use strict';
 
@@ -58,12 +61,12 @@ function getTimeGroupLabel(date) {
 }
 
 /**
- * 将会话列表按时间分组
- * @param {Array} sessions - 会话数组
+ * 将对话列表按时间分组
+ * @param {Array} chats - 对话数组
  * @returns {Object} 分组结果
  */
-function groupSessions(sessions) {
-    const pinned = [];      // 置顶会话
+function groupChats(chats) {
+    const pinned = [];      // 置顶对话
     const today = [];
     const yesterday = [];
     const within7Days = [];
@@ -80,38 +83,38 @@ function groupSessions(sessions) {
     const monthAgoStart = new Date(todayStart);
     monthAgoStart.setDate(monthAgoStart.getDate() - 30);
 
-    for (const sess of sessions) {
-        // 如果会话已分类（category > 0），归入分类分组
-        if (sess.category && sess.category > 0) {
-            const catKey = String(sess.category);
+    for (const chat of chats) {
+        // 如果对话已分类（category > 0），归入分类分组
+        if (chat.category && chat.category > 0) {
+            const catKey = String(chat.category);
             if (!categorized[catKey]) {
                 categorized[catKey] = [];
             }
-            categorized[catKey].push(sess);
+            categorized[catKey].push(chat);
             continue;
         }
 
-        if (sess.pinned) {
-            pinned.push(sess);
+        if (chat.pinned) {
+            pinned.push(chat);
             continue;
         }
 
-        const updateDate = new Date(sess.update_at);
+        const updateDate = new Date(chat.update_at);
         if (updateDate >= todayStart) {
-            today.push(sess);
+            today.push(chat);
         } else if (updateDate >= yesterdayStart) {
-            yesterday.push(sess);
+            yesterday.push(chat);
         } else if (updateDate >= weekAgoStart) {
-            within7Days.push(sess);
+            within7Days.push(chat);
         } else if (updateDate >= monthAgoStart) {
-            within30Days.push(sess);
+            within30Days.push(chat);
         } else {
             // 更早：按具体日期分组
-            const dateKey = getDateStr(sess.update_at);
+            const dateKey = getDateStr(chat.update_at);
             if (!earlier[dateKey]) {
                 earlier[dateKey] = [];
             }
-            earlier[dateKey].push(sess);
+            earlier[dateKey].push(chat);
         }
     }
 
@@ -145,22 +148,22 @@ function truncateTitle(title, maxLen = 25) {
 }
 
 // ============================================================
-// 会话列表渲染
+// 对话列表渲染
 // ============================================================
 
-let currentSessions = [];       // 当前会话列表
-let activeSessionSN = null;     // 当前选中的会话 SN
+let currentChats = [];       // 当前对话列表
+let activeChatSN = null;     // 当前选中的对话 SN
 let contextMenuEl = null;       // 当前打开的右键菜单
-let contextTargetSN = null;     // 右键菜单目标会话 SN
+let contextTargetSN = null;     // 右键菜单目标对话 SN
 
 /**
- * 渲染会话列表到左侧栏
- * @param {Array} sessions - 会话数组
- * @param {string} [activeSN] - 当前激活的会话 SN
+ * 渲染对话列表到左侧栏
+ * @param {Array} chats - 对话数组
+ * @param {string} [activeSN] - 当前激活的对话 SN
  */
-export function renderSessionList(sessions, activeSN) {
-    currentSessions = sessions || [];
-    activeSessionSN = activeSN || null;
+export function renderChatList(chats, activeSN) {
+    currentChats = chats || [];
+    activeChatSN = activeSN || null;
 
     const sidebarContent = document.getElementById('sidebarContent');
     if (!sidebarContent) return;
@@ -171,18 +174,18 @@ export function renderSessionList(sessions, activeSN) {
     // 清空并重新渲染
     sidebarContent.innerHTML = '';
     const listEl = document.createElement('div');
-    listEl.className = 'session-list';
+    listEl.className = 'chat-list';
     sidebarContent.appendChild(listEl);
 
-    if (!sessions || sessions.length === 0) {
+    if (!chats || chats.length === 0) {
         const emptyEl = document.createElement('div');
-        emptyEl.className = 'session-list-empty';
+        emptyEl.className = 'chat-list-empty';
         emptyEl.textContent = '暂无对话记录';
         listEl.appendChild(emptyEl);
         return;
     }
 
-    const groups = groupSessions(sessions);
+    const groups = groupChats(chats);
 
     // 1. 置顶分组
     if (groups.pinned.length > 0) {
@@ -219,28 +222,28 @@ export function renderSessionList(sessions, activeSN) {
 
     if (earlierDates.length > 0) {
         const earlierGroup = document.createElement('div');
-        earlierGroup.className = 'session-group';
+        earlierGroup.className = 'chat-group';
 
         const header = document.createElement('div');
-        header.className = 'session-group-header';
+        header.className = 'chat-group-header';
         header.textContent = '更早';
         earlierGroup.appendChild(header);
 
         const body = document.createElement('div');
-        body.className = 'session-group-body';
+        body.className = 'chat-group-body';
 
         for (const dateKey of earlierDates) {
             // 日期子分组
             const dateGroup = document.createElement('div');
-            dateGroup.className = 'session-date-group';
+            dateGroup.className = 'chat-date-group';
 
             const dateHeader = document.createElement('div');
-            dateHeader.className = 'session-date-header';
+            dateHeader.className = 'chat-date-header';
             dateHeader.textContent = dateKey;
             dateGroup.appendChild(dateHeader);
 
-            for (const sess of groups.earlier[dateKey]) {
-                const item = createSessionItem(sess);
+            for (const chat of groups.earlier[dateKey]) {
+                const item = createChatItem(chat);
                 dateGroup.appendChild(item);
             }
 
@@ -255,28 +258,28 @@ export function renderSessionList(sessions, activeSN) {
     const catKeys = Object.keys(groups.categorized);
     if (catKeys.length > 0) {
         const categoryGroup = document.createElement('div');
-        categoryGroup.className = 'session-group';
+        categoryGroup.className = 'chat-group';
         const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'session-group-header';
+        categoryHeader.className = 'chat-group-header';
         categoryHeader.textContent = '分类';
         categoryGroup.appendChild(categoryHeader);
         const categoryBody = document.createElement('div');
-        categoryBody.className = 'session-group-body';
+        categoryBody.className = 'chat-group-body';
         for (const catKey of catKeys) {
             appendGroup(categoryBody, `分类 ${catKey}`, groups.categorized[catKey]);
         }
         categoryGroup.appendChild(categoryBody);
         listEl.appendChild(categoryGroup);
     } else {
-        // 无已分类会话，显示空的分组（留空占位）
+        // 无已分类对话，显示空的分组（留空占位）
         const categoryGroup = document.createElement('div');
-        categoryGroup.className = 'session-group';
+        categoryGroup.className = 'chat-group';
         const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'session-group-header';
+        categoryHeader.className = 'chat-group-header';
         categoryHeader.textContent = '分类';
         categoryGroup.appendChild(categoryHeader);
         const categoryBody = document.createElement('div');
-        categoryBody.className = 'session-group-body';
+        categoryBody.className = 'chat-group-body';
         categoryBody.style.display = 'none';
         categoryGroup.appendChild(categoryBody);
         listEl.appendChild(categoryGroup);
@@ -286,20 +289,20 @@ export function renderSessionList(sessions, activeSN) {
 /**
  * 添加一个分组到列表
  */
-function appendGroup(parentEl, label, sessions) {
+function appendGroup(parentEl, label, chats) {
     const group = document.createElement('div');
-    group.className = 'session-group';
+    group.className = 'chat-group';
 
     const header = document.createElement('div');
-    header.className = 'session-group-header';
+    header.className = 'chat-group-header';
     header.textContent = label;
     group.appendChild(header);
 
     const body = document.createElement('div');
-    body.className = 'session-group-body';
+    body.className = 'chat-group-body';
 
-    for (const sess of sessions) {
-        const item = createSessionItem(sess);
+    for (const chat of chats) {
+        const item = createChatItem(chat);
         body.appendChild(item);
     }
 
@@ -308,71 +311,153 @@ function appendGroup(parentEl, label, sessions) {
 }
 
 /**
- * 创建单个会话项
+ * 创建单个对话项
  */
-function createSessionItem(sess) {
+function createChatItem(chat) {
     const item = document.createElement('div');
-    item.className = 'session-item';
-    item.dataset.sn = sess.sn;
+    item.className = 'chat-item';
+    item.dataset.sn = chat.sn;
 
-    if (sess.sn === activeSessionSN) {
+    if (chat.sn === activeChatSN) {
         item.classList.add('active');
     }
 
     // 标题
     const titleEl = document.createElement('div');
-    titleEl.className = 'session-item-title';
-    titleEl.textContent = truncateTitle(sess.title);
+    titleEl.className = 'chat-item-title';
+    titleEl.textContent = truncateTitle(chat.title);
     item.appendChild(titleEl);
 
     // 更多按钮（hover 或选中时显示）
     const moreBtn = document.createElement('button');
-    moreBtn.className = 'session-item-more-btn';
+    moreBtn.className = 'chat-item-more-btn';
     moreBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/></svg>';
     moreBtn.dataset.tooltip = '更多操作';
     item.appendChild(moreBtn);
 
-    // 点击会话项 — 切换到该会话
+    // 点击对话项 — 切换到该对话
     item.addEventListener('click', (e) => {
         // 如果点击的是 moreBtn，不触发切换
-        if (e.target.closest('.session-item-more-btn')) return;
-        selectSession(sess.sn);
+        if (e.target.closest('.chat-item-more-btn')) return;
+        selectChat(chat.sn);
     });
 
     // 点击更多按钮 — 显示上下文菜单
     moreBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        showContextMenu(e, sess);
+        showContextMenu(e, chat);
     });
 
     // 右键菜单
     item.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        showContextMenu(e, sess);
+        showContextMenu(e, chat);
     });
 
     return item;
 }
 
 /**
- * 选中一个会话
+ * 选中一个对话 — 加载该对话的消息并渲染到主区域
  */
-function selectSession(sn) {
+async function selectChat(sn) {
     // 更新高亮
-    document.querySelectorAll('.session-item').forEach(el => {
+    document.querySelectorAll('.chat-item').forEach(el => {
         el.classList.toggle('active', el.dataset.sn === sn);
     });
-    activeSessionSN = sn;
+    activeChatSN = sn;
 
     // 关闭右键菜单
     closeContextMenu();
 
-    // TODO: 后续实现切换到该会话的逻辑
-    // 目前先显示 toast 提示
-    const sess = currentSessions.find(s => s.sn === sn);
-    if (sess) {
-        showToast(`已选择: ${truncateTitle(sess.title)}`, 'info');
+    // 1. 清空当前消息状态
+    state.messages = [];
+    state.userMsgCount = 0;
+    state.activeTickIndex = -1;
+    state.tickScrollOffset = 0;
+    state.currentGroup = null;
+    state.accumulatedMarkdown = '';
+    if (state.renderTimer) {
+        clearTimeout(state.renderTimer);
+        state.renderTimer = null;
     }
+
+    // 2. 移除所有消息 DOM 节点
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) {
+        chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
+    }
+
+    // 3. 移除 welcome-message（如果有），把 input-area 移回原位
+    const existingWelcome = document.querySelector('.welcome-message');
+    if (existingWelcome) {
+        const inputArea = existingWelcome.querySelector('.input-area');
+        if (inputArea) {
+            const mainBody = document.getElementById('mainBody');
+            if (mainBody && mainBody.nextElementSibling?.classList?.contains('input-area')) {
+                // 已在正确位置
+            } else if (mainBody) {
+                mainBody.parentNode.insertBefore(inputArea, mainBody.nextSibling);
+            }
+        }
+        existingWelcome.remove();
+    }
+
+    // 4. 清空刻度导航
+    const tickNav = document.getElementById('tickNav');
+    if (tickNav) {
+        tickNav.innerHTML = '';
+    }
+
+    // 5. 移除 welcome-state 标记
+    const scrollContainer = document.getElementById('scrollContainer');
+    if (scrollContainer) {
+        scrollContainer.classList.remove('welcome-state');
+    }
+
+    // 6. 调用后端 API 加载目标对话的消息
+    const result = await switchChat(sn);
+    if (!result) {
+        showToast('加载对话失败', 'error');
+        return;
+    }
+
+    // 7. 更新标题
+    if (result.title) {
+        updateHeaderTitle(result.title);
+    }
+    if (typeof result.title_state === 'number') {
+        state.titleState = result.title_state;
+    }
+
+    // 8. 渲染消息
+    for (const msg of result.history) {
+        const msgDiv = addMessage(msg.role, msg.content, msg.created_at || null);
+        const entry = { role: msg.role, content: msg.content, id: msg.id, usage: msg.usage || null };
+        state.messages.push(entry);
+        // 将 data-msg-id 设置在 message-group 上
+        if (msgDiv && msg.id) {
+            const group = msgDiv.closest('.message-group');
+            if (group) {
+                group.dataset.msgId = msg.id;
+            }
+        }
+        // assistant 消息 token-info
+        if (msg.role === 'assistant' && msg.usage && msgDiv) {
+            showTokenUsage(msgDiv, msg.usage);
+        }
+        // assistant 消息 sources
+        if (msg.role === 'assistant' && msg.sources && msg.sources.length > 0) {
+            showSources(msg.sources, 'web');
+        }
+        // assistant 消息 reasoning
+        if (msg.role === 'assistant' && msg.reasoning && msgDiv) {
+            restoreReasoningArea(msgDiv, msg.reasoning, msg.deep_think);
+        }
+    }
+
+    // 9. 更新刻度导航
+    updateTickNav();
 }
 
 // ============================================================
@@ -382,13 +467,13 @@ function selectSession(sn) {
 /**
  * 显示上下文菜单
  */
-function showContextMenu(e, sess) {
+function showContextMenu(e, chat) {
     closeContextMenu();
 
-    contextTargetSN = sess.sn;
+    contextTargetSN = chat.sn;
 
     const menu = document.createElement('div');
-    menu.className = 'session-context-menu';
+    menu.className = 'chat-context-menu';
     menu.style.position = 'fixed';
 
     // 计算菜单位置
@@ -413,35 +498,35 @@ function showContextMenu(e, sess) {
 
     // 重命名
     const renameItem = document.createElement('div');
-    renameItem.className = 'session-context-menu-item';
+    renameItem.className = 'chat-context-menu-item';
     renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名';
     renameItem.addEventListener('click', () => {
         closeContextMenu();
-        handleRename(sess);
+        handleRename(chat);
     });
     menu.appendChild(renameItem);
 
     // 置顶/取消置顶
     const pinItem = document.createElement('div');
-    pinItem.className = 'session-context-menu-item';
-    if (sess.pinned) {
+    pinItem.className = 'chat-context-menu-item';
+    if (chat.pinned) {
         pinItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg> 取消置顶';
     } else {
         pinItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg> 置顶';
     }
     pinItem.addEventListener('click', () => {
         closeContextMenu();
-        handleTogglePin(sess);
+        handleTogglePin(chat);
     });
     menu.appendChild(pinItem);
 
     // 删除（警告色）
     const deleteItem = document.createElement('div');
-    deleteItem.className = 'session-context-menu-item session-context-menu-item-danger';
+    deleteItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
     deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除';
     deleteItem.addEventListener('click', () => {
         closeContextMenu();
-        handleDelete(sess);
+        handleDelete(chat);
     });
     menu.appendChild(deleteItem);
 
@@ -470,15 +555,15 @@ function closeContextMenu() {
 // ============================================================
 
 /**
- * 重命名会话
+ * 重命名对话
  */
-async function handleRename(sess) {
+async function handleRename(chat) {
     showTitleEditDialog({
-        currentTitle: sess.title || '',
+        currentTitle: chat.title || '',
         onConfirm: async (newTitle) => {
             try {
                 const response = await fetch('/api/session/title?title=' + encodeURIComponent(newTitle) +
-                    '&state=' + TITLE_STATE.USER + '&sn=' + encodeURIComponent(sess.sn), {
+                    '&state=' + TITLE_STATE.USER + '&sn=' + encodeURIComponent(chat.sn), {
                     method: 'PUT',
                 });
                 if (!response.ok) {
@@ -486,9 +571,9 @@ async function handleRename(sess) {
                     return false;
                 }
                 // 更新本地数据
-                sess.title = newTitle;
+                chat.title = newTitle;
                 // 重新渲染列表
-                renderSessionList(currentSessions, activeSessionSN);
+                renderChatList(currentChats, activeChatSN);
                 showToast('已重命名', 'success');
                 return true;
             } catch (e) {
@@ -502,10 +587,10 @@ async function handleRename(sess) {
 /**
  * 切换置顶状态
  */
-async function handleTogglePin(sess) {
-    const newPinned = !sess.pinned;
+async function handleTogglePin(chat) {
+    const newPinned = !chat.pinned;
     try {
-        const response = await fetch('/api/session/pin?sn=' + encodeURIComponent(sess.sn) +
+        const response = await fetch('/api/chat/pin?sn=' + encodeURIComponent(chat.sn) +
             '&pinned=' + newPinned, {
             method: 'PUT',
         });
@@ -514,9 +599,9 @@ async function handleTogglePin(sess) {
             return;
         }
         // 更新本地数据
-        sess.pinned = newPinned;
+        chat.pinned = newPinned;
         // 重新渲染列表
-        renderSessionList(currentSessions, activeSessionSN);
+        renderChatList(currentChats, activeChatSN);
         showToast(newPinned ? '已置顶' : '已取消置顶', 'success');
     } catch (e) {
         showToast('操作出错', 'error');
@@ -524,15 +609,35 @@ async function handleTogglePin(sess) {
 }
 
 /**
- * 删除会话
+ * 更新当前活动对话的标题并同步到侧边栏
+ * 直接操作 DOM，不重新渲染整个列表
+ * @param {string} newTitle - 新标题
  */
-async function handleDelete(sess) {
-    if (!confirm(`确定要删除对话「${truncateTitle(sess.title)}」吗？\n此操作不可撤销。`)) {
+export function updateCurrentChatTitle(newTitle) {
+    if (!newTitle) return;
+    // 更新内存中的标题
+    const chat = currentChats.find(c => c.sn === activeChatSN);
+    if (chat) {
+        chat.title = newTitle;
+    }
+    // 直接更新 DOM
+    const activeItem = document.querySelector(`.chat-item[data-sn="${activeChatSN}"] .chat-item-title`);
+    if (activeItem) {
+        activeItem.textContent = truncateTitle(newTitle);
+    }
+}
+
+/**
+ * 删除对话
+ */
+async function handleDelete(chat) {
+    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」删除后不可恢复，请确认是否删除？`);
+    if (result !== 1) {
         return;
     }
 
     try {
-        const response = await fetch('/api/session?sn=' + encodeURIComponent(sess.sn), {
+        const response = await fetch('/api/session?sn=' + encodeURIComponent(chat.sn), {
             method: 'DELETE',
         });
         if (!response.ok) {
@@ -540,12 +645,12 @@ async function handleDelete(sess) {
             return;
         }
         // 从本地数据移除
-        const idx = currentSessions.findIndex(s => s.sn === sess.sn);
+        const idx = currentChats.findIndex(c => c.sn === chat.sn);
         if (idx >= 0) {
-            currentSessions.splice(idx, 1);
+            currentChats.splice(idx, 1);
         }
         // 重新渲染列表
-        renderSessionList(currentSessions, activeSessionSN);
+        renderChatList(currentChats, activeChatSN);
         showToast('已删除', 'success');
     } catch (e) {
         showToast('删除出错', 'error');

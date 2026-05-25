@@ -15,16 +15,16 @@ import (
 
 const logTimeFormat = "2006/01/02 15:04:05.000"
 
-// ConsoleMode 控制台输出模式
+// ConsoleMode defines the console output mode.
 type ConsoleMode int
 
 const (
-	ConsoleModeNone   ConsoleMode = iota // 不输出到控制台
-	ConsoleModeNormal                    // 输出到控制台，不带颜色
-	ConsoleModeColor                     // 输出到控制台，带颜色
+	ConsoleModeNone   ConsoleMode = iota // No console output
+	ConsoleModeNormal                    // Output to console, no colors
+	ConsoleModeColor                     // Output to console, with colors
 )
 
-// Level 自定义日志级别枚举
+// Level is a custom log level enum.
 type Level int
 
 const (
@@ -34,35 +34,40 @@ const (
 	LevelWarn  Level = 4   // WARN
 	LevelError Level = 8   // ERROR
 	LevelFatal Level = 12  // FATAL
-	LevelOff   Level = 999 // OFF - 完全不输出日志
+	LevelOff   Level = 999 // OFF - completely disable logging
 )
 
-// Language 日志语言类型
+// Language defines the log language type.
 type Language int
 
 const (
-	LanguageEN Language = 0 // 英文
-	LanguageZH Language = 1 // 中文
+	LanguageEN     Language = 0 // English
+	LanguageCustom Language = 1 // Custom language
 )
 
-// ConsoleColorCode ANSI 控制台颜色代码的类型别名
+// ConsoleColorCode is a type alias for ANSI console color codes.
 type ConsoleColorCode = string
 
-// Config 日志配置
+// Config holds the log configuration.
 type Config struct {
-	Name string // 日志器名称
+	Name string // Logger name
 
-	Level    Level       // 日志级别
-	File     string      // 日志文件路径
-	MaxSize  int         // MB，日志文件最大大小
-	Console  ConsoleMode // 控制台输出模式
-	Language Language    // 日志语言
+	Level    Level       // Log level
+	File     string      // Log file path
+	MaxSize  int         // Max file size in MB
+	Console  ConsoleMode // Console output mode
+	Language Language    // Log language
 
-	// 级别到颜色代码的映射
+	// Mapping from level to color codes
 	LevelColors map[Level]ConsoleColorCode
+
+	// LevelNames maps slog.Level to [2]string where index 0 is the primary name and
+	// index 1 is the custom-language name (used when Language == LanguageCustom).
+	// If nil, defaultLevelNames() is used.
+	LevelNames map[slog.Level][2]string
 }
 
-// ConsoleModeFromStr 将字符串控制台模式转换为 ConsoleMode
+// ConsoleModeFromStr converts a string console mode to ConsoleMode.
 func ConsoleModeFromStr(console string) ConsoleMode {
 	switch console {
 	case "none":
@@ -76,32 +81,36 @@ func ConsoleModeFromStr(console string) ConsoleMode {
 	}
 }
 
-// LanguageFromStr 将字符串语言转换为 Language
+// LanguageFromStr converts a string language to Language.
 func LanguageFromStr(language string) Language {
 	switch language {
-	case "zh":
-		return LanguageZH // 1
+	case "custom":
+		return LanguageCustom
 	case "en", "":
-		return LanguageEN // 0
+		return LanguageEN
 	default:
-		return LanguageEN // 0
+		return LanguageEN
 	}
 }
 
-// levelNames 日志级别名称映射表，索引0为英文名称，索引1为中文名称
-var levelNames = map[slog.Level][2]string{
-	slog.Level(-8):  {"TRACE", "跟踪"}, // TRACE
-	slog.LevelDebug: {"DEBUG", "调试"}, // DEBUG
-	slog.LevelInfo:  {"INFO", "信息"},  // INFO
-	slog.LevelWarn:  {"WARN", "警告"},  // WARN
-	slog.LevelError: {"ERROR", "错误"}, // ERROR
-	slog.Level(12):  {"FATAL", "失败"}, // FATAL
-	slog.Level(999): {"OFF", "关闭"},   // OFF - 完全不输出日志
+// defaultLevelNames returns the default level name mapping.
+// index 0 is the primary name, index 1 is the custom-language name.
+func defaultLevelNames() map[slog.Level][2]string {
+	return map[slog.Level][2]string{
+		slog.Level(-8):  {"TRACE", "T"}, // TRACE
+		slog.LevelDebug: {"DEBUG", "D"}, // DEBUG
+		slog.LevelInfo:  {"INFO", "I"},  // INFO
+		slog.LevelWarn:  {"WARN", "W"},  // WARN
+		slog.LevelError: {"ERROR", "E"}, // ERROR
+		slog.Level(12):  {"FATAL", "F"}, // FATAL
+		slog.Level(999): {"OFF", "O"},   // OFF
+	}
 }
 
-// NameToLevel 日志级别名字（字符串，支持中英）到日志级别，未找到时会返回 LevelOff
+// NameToLevel converts a log level name (string, supports primary/custom names) to Level. Returns LevelOff if not found.
 func NameToLevel(name string) Level {
-	for k, v := range levelNames {
+	ln := defaultLevelNames()
+	for k, v := range ln {
 		for _, n := range v {
 			if name == n {
 				return Level(k)
@@ -112,7 +121,7 @@ func NameToLevel(name string) Level {
 	return LevelOff
 }
 
-// Logger 是应用程序的日志接口
+// Logger is the logging interface for the application.
 type Logger interface {
 	Trace(msg string, args ...any)
 	Debug(msg string, args ...any)
@@ -121,7 +130,7 @@ type Logger interface {
 	Error(msg string, args ...any)
 	Fatal(msg string, args ...any)
 
-	// 格式化日志方法
+	// Formatted logging methods
 	Tracef(format string, args ...any)
 	Debugf(format string, args ...any)
 	Warnf(format string, args ...any)
@@ -129,24 +138,24 @@ type Logger interface {
 	Errorf(format string, args ...any)
 	Fatalf(format string, args ...any)
 
-	// With 方法返回一个新的 Logger，包含额外的上下文信息
+	// With returns a new Logger containing additional context.
 	With(args ...any) Logger
 
-	// SetLevel 设置日志级别（线程安全）
+	// SetLevel sets the log level (thread-safe).
 	SetLevel(level Level)
 
-	// GetLevel 获取当前日志级别（线程安全）
+	// GetLevel returns the current log level (thread-safe).
 	GetLevel() Level
 }
 
-// slogWithName 是 slog.Logger 的包装器
+// slogWithName is a wrapper around slog.Logger.
 type slogWithName struct {
 	logger  *slog.Logger
-	name    string         // 日志器名称
-	handler *customHandler // 指向底层处理器，用于级别操作
+	name    string         // Logger name
+	handler *customHandler // Pointer to underlying handler for level operations
 }
 
-// getCustomHandler 尝试从 slog.Logger 中提取 customHandler
+// getCustomHandler attempts to extract the customHandler from slog.Logger.
 func getCustomHandler(logger *slog.Logger) *customHandler {
 	handler := logger.Handler()
 	if ch, ok := handler.(*customHandler); ok {
@@ -155,7 +164,7 @@ func getCustomHandler(logger *slog.Logger) *customHandler {
 	return nil
 }
 
-// 创建带有名称的 slogLogger
+// newSlogLoggerWithName creates a slogLogger with the given name.
 func newSlogLoggerWithName(logger *slog.Logger, name string) Logger {
 	return &slogWithName{
 		logger:  logger,
@@ -165,7 +174,7 @@ func newSlogLoggerWithName(logger *slog.Logger, name string) Logger {
 }
 
 func (l *slogWithName) Trace(msg string, args ...any) {
-	// LevelTrace 的值为 -8
+	// LevelTrace has value -8
 	l.logger.Log(context.Background(), slog.Level(-8), msg, args...)
 }
 
@@ -186,7 +195,7 @@ func (l *slogWithName) Error(msg string, args ...any) {
 }
 
 func (l *slogWithName) Fatal(msg string, args ...any) {
-	// Fatal 级别比 Error 更高，使用 Level(12)
+	// Fatal level is higher than Error, using Level(12)
 	l.logger.Log(context.Background(), slog.Level(12), msg, args...)
 }
 
@@ -194,7 +203,7 @@ func (l *slogWithName) With(args ...any) Logger {
 	return &slogWithName{logger: l.logger.With(args...), handler: l.handler}
 }
 
-// SetLevel 设置日志级别
+// SetLevel sets the log level.
 func (l *slogWithName) SetLevel(level Level) {
 	if l.handler == nil {
 		return
@@ -204,141 +213,141 @@ func (l *slogWithName) SetLevel(level Level) {
 	l.handler.cfg.Level = level
 }
 
-// GetLevel 获取当前日志级别
+// GetLevel returns the current log level.
 func (l *slogWithName) GetLevel() Level {
 	if l.handler == nil {
-		return LevelInfo // 默认级别
+		return LevelInfo // Default level
 	}
 	l.handler.mu.RLock()
 	defer l.handler.mu.RUnlock()
 	return l.handler.cfg.Level
 }
 
-// Tracef 使用格式化字符串记录Trace级别日志
+// Tracef logs a formatted Trace-level log.
 func (l *slogWithName) Tracef(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Trace(msg)
 }
 
-// Debugf 使用格式化字符串记录Debug级别日志
+// Debugf logs a formatted Debug-level log.
 func (l *slogWithName) Debugf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Debug(msg)
 }
 
-// Infof 使用格式化字符串记录Info级别日志
+// Infof logs a formatted Info-level log.
 func (l *slogWithName) Infof(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.logger.Info(msg)
 }
 
-// Warnf 使用格式化字符串记录Warn级别日志
+// Warnf logs a formatted Warn-level log.
 func (l *slogWithName) Warnf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Warn(msg)
 }
 
-// Errorf 使用格式化字符串记录Error级别日志
+// Errorf logs a formatted Error-level log.
 func (l *slogWithName) Errorf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.logger.Error(msg)
 }
 
-// Fatalf 使用格式化字符串记录Fatal级别日志
+// Fatalf logs a formatted Fatal-level log.
 func (l *slogWithName) Fatalf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Fatal(msg)
 }
 
-// logLevelToSlog 将自定义 LogLevel 转换为 slog.Level
+// logLevelToSlog converts a custom LogLevel to slog.Level.
 func logLevelToSlog(level Level) slog.Level {
 	return slog.Level(level)
 }
 
-// slogToLogLevel 将 slog.Level 转换为自定义 LogLevel
+// slogToLogLevel converts slog.Level to a custom LogLevel.
 func slogToLogLevel(level slog.Level) Level {
 	return Level(level)
 }
 
-// ANSI 颜色代码
-// 这些常量用于在控制台输出不同颜色的日志级别。
-// 例如，ColorRed 表示红色，ColorGreen 表示绿色，ColorBoldRed 表示加粗的红色。
-// 日志输出时会用这些转义序列包裹文本，实现彩色显示。
-// ColorReset 用于重置颜色，防止影响后续输出。
+// ANSI color codes
+// These constants are used to output different colors for log levels in the console.
+// For example, ColorRed represents red, ColorGreen represents green, ColorBoldRed represents bold red.
+// These escape sequences wrap the text when logging to achieve colored output.
+// ColorReset is used to reset the color and prevent affecting subsequent output.
 const (
-	ColorReset ConsoleColorCode = "\033[0m" // 重置所有属性
+	ColorReset ConsoleColorCode = "\033[0m" // Reset all attributes
 
-	ColorBlack   = "\033[30m" // 黑色
-	ColorRed     = "\033[31m" // 红色
-	ColorGreen   = "\033[32m" // 绿色
-	ColorYellow  = "\033[33m" // 黄色
-	ColorBlue    = "\033[34m" // 蓝色
-	ColorMagenta = "\033[35m" // 洋红
-	ColorCyan    = "\033[36m" // 青色
-	ColorWhite   = "\033[37m" // 白色
-	ColorGray    = "\033[90m" // 灰色（亮黑色）
+	ColorBlack   = "\033[30m" // Black
+	ColorRed     = "\033[31m" // Red
+	ColorGreen   = "\033[32m" // Green
+	ColorYellow  = "\033[33m" // Yellow
+	ColorBlue    = "\033[34m" // Blue
+	ColorMagenta = "\033[35m" // Magenta
+	ColorCyan    = "\033[36m" // Cyan
+	ColorWhite   = "\033[37m" // White
+	ColorGray    = "\033[90m" // Gray (bright black)
 
-	ColorBrightRed     = "\033[91m" // 亮红色
-	ColorBrightGreen   = "\033[92m" // 亮绿色
-	ColorBrightYellow  = "\033[93m" // 亮黄色
-	ColorBrightBlue    = "\033[94m" // 亮蓝色
-	ColorBrightMagenta = "\033[95m" // 亮洋红
-	ColorBrightCyan    = "\033[96m" // 亮青色
-	ColorBrightWhite   = "\033[97m" // 亮白色
+	ColorBrightRed     = "\033[91m" // Bright red
+	ColorBrightGreen   = "\033[92m" // Bright green
+	ColorBrightYellow  = "\033[93m" // Bright yellow
+	ColorBrightBlue    = "\033[94m" // Bright blue
+	ColorBrightMagenta = "\033[95m" // Bright magenta
+	ColorBrightCyan    = "\033[96m" // Bright cyan
+	ColorBrightWhite   = "\033[97m" // Bright white
 
-	ColorBoldRed     = "\033[1;31m" // 加粗红色
-	ColorBoldGreen   = "\033[1;32m" // 加粗绿色
-	ColorBoldYellow  = "\033[1;33m" // 加粗黄色
-	ColorBoldBlue    = "\033[1;34m" // 加粗蓝色
-	ColorBoldMagenta = "\033[1;35m" // 加粗洋红
-	ColorBoldCyan    = "\033[1;36m" // 加粗青色
-	ColorBoldWhite   = "\033[1;37m" // 加粗白色
+	ColorBoldRed     = "\033[1;31m" // Bold red
+	ColorBoldGreen   = "\033[1;32m" // Bold green
+	ColorBoldYellow  = "\033[1;33m" // Bold yellow
+	ColorBoldBlue    = "\033[1;34m" // Bold blue
+	ColorBoldMagenta = "\033[1;35m" // Bold magenta
+	ColorBoldCyan    = "\033[1;36m" // Bold cyan
+	ColorBoldWhite   = "\033[1;37m" // Bold white
 )
 
-// isTerminal 检查 writer 是否指向终端
+// isTerminal checks whether the writer points to a terminal.
 func isTerminal(w io.Writer) bool {
-	// 尝试类型断言到 *os.File
+	// Try type assertion to *os.File
 	if f, ok := w.(*os.File); ok {
-		// 检查是否是标准输出或标准错误
+		// Check if it's stdout or stderr
 		return f == os.Stdout || f == os.Stderr
 	}
 	return false
 }
 
-// getLevelColor 根据日志级别返回对应的颜色代码
-// 如果 cfg 为 nil 或 LevelColors 为空，或者对应级别没有配置颜色，则返回空字符串
+// getLevelColor returns the color code for the given log level.
+// If cfg is nil or LevelColors is empty, or no color is configured for the level, returns empty strings.
 func getLevelColor(level slog.Level, cfg *Config) (colorCode, resetCode ConsoleColorCode) {
 	resetCode = ColorReset
 
-	// 首先检查配置中的颜色映射
+	// First check the color mapping in the config
 	if cfg != nil && len(cfg.LevelColors) > 0 {
-		// 将 slog.Level 转换为 LogLevel
+		// Convert slog.Level to LogLevel
 		logLevel := Level(level)
 		if colorCode, ok := cfg.LevelColors[logLevel]; ok && colorCode != "" {
-			// LevelColors 中存储的已经是 ANSI 颜色代码
+			// LevelColors already stores ANSI color codes
 			return colorCode, resetCode
 		}
 	}
 
-	// 如果没有配置颜色，返回空字符串
+	// If no color configured, return empty strings
 	return "", ""
 }
 
-// customHandler 自定义日志处理器，支持名称显示
-// 现在支持多个writers，可以为每个writer单独处理颜色
+// customHandler is a custom log handler that supports name display.
+// It now supports multiple writers and can handle colors individually for each writer.
 type customHandler struct {
 	handler            slog.Handler
-	cfg                Config       // 日志配置
-	terminalWriters    []io.Writer  // 终端输出目标（可能支持颜色）
-	nonTerminalWriters []io.Writer  // 非终端输出目标（不支持颜色）
-	mu                 sync.RWMutex // 保护配置等运行期可配置字段的读写锁
+	cfg                Config       // Log configuration
+	terminalWriters    []io.Writer  // Terminal output targets (may support colors)
+	nonTerminalWriters []io.Writer  // Non-terminal output targets (no color support)
+	mu                 sync.RWMutex // Read-write mutex protecting runtime-configurable fields
 }
 
 func (h *customHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	// 如果日志级别设置为 OFF (999)，则始终返回 false，不输出任何日志
+	// If the log level is OFF (999), always return false — do not output any logs
 	slogLevel := logLevelToSlog(h.cfg.Level)
 	if slogLevel == slog.Level(999) {
 		return false
@@ -347,34 +356,38 @@ func (h *customHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *customHandler) Handle(ctx context.Context, r slog.Record) error {
-	// 防御性检查：如果日志级别是 OFF，直接返回，不处理任何日志
-	// 注意：正常情况下 Enabled 方法已经过滤了 OFF 级别的日志，这里是为了额外的安全
+	// Defensive check: if the log level is OFF, return immediately without processing any logs
+	// Note: Normally the Enabled method already filters OFF-level logs; this is an extra safety measure
 	slogLevel := logLevelToSlog(h.cfg.Level)
 	if slogLevel == slog.Level(999) {
 		return nil
 	}
 
-	// 格式化时间
+	// Format the timestamp
 	timeStr := r.Time.Format(logTimeFormat)
 
-	// 获取级别字符串
+	// Get the level string
 	var levelStr string
-	if names, ok := levelNames[r.Level]; ok {
-		// 根据语言选择名称
-		if h.cfg.Language == LanguageZH {
-			levelStr = names[1] // 中文名称
+	ln := h.cfg.LevelNames
+	if ln == nil {
+		ln = defaultLevelNames()
+	}
+	if names, ok := ln[r.Level]; ok {
+		// Select the name based on language
+		if h.cfg.Language == LanguageCustom {
+			levelStr = names[1] // Custom-language name
 		} else {
-			levelStr = names[0] // 英文名称
+			levelStr = names[0] // Primary (English) name
 		}
 	} else {
-		// 未知级别，使用默认字符串表示
+		// Unknown level, use the default string representation
 		levelStr = r.Level.String()
 	}
 
-	// 收集属性
+	// Collect attributes
 	var attrs []string
 	r.Attrs(func(attr slog.Attr) bool {
-		// 跳过 name 属性，因为已经在前缀中显示了
+		// Skip the "name" attribute since it's already shown in the prefix
 		if attr.Key == "name" {
 			return true
 		}
@@ -382,14 +395,14 @@ func (h *customHandler) Handle(ctx context.Context, r slog.Record) error {
 		return true
 	})
 
-	// 构造消息 前缀（此时先不区分有没有颜色）
+	// Build the message prefix (without color distinction for now)
 	prefix := fmt.Sprintf("%s [%s]", timeStr, levelStr)
-	// 有应用名字，加上名字
+	// If the app name is set, prepend it
 	if h.cfg.Name != "" {
 		prefix = fmt.Sprintf("%s %s>", prefix, h.cfg.Name)
 	}
 
-	// 构建消息内容（消息和属性部分）
+	// Build the message body (message and attributes part)
 	var body string
 	if len(attrs) > 0 {
 		body = fmt.Sprintf(" %s %s\n", r.Message, strings.Join(attrs, " "))
@@ -397,7 +410,7 @@ func (h *customHandler) Handle(ctx context.Context, r slog.Record) error {
 		body = fmt.Sprintf(" %s\n", r.Message)
 	}
 
-	// 写入非终端输出
+	// Write to non-terminal output
 	var firstErr error
 	if len(h.nonTerminalWriters) > 0 {
 		plainLogLine := prefix + body
@@ -408,7 +421,7 @@ func (h *customHandler) Handle(ctx context.Context, r slog.Record) error {
 		}
 	}
 
-	// 写入终端输出
+	// Write to terminal output
 	if len(h.terminalWriters) > 0 {
 		colorCode, resetCode := getLevelColor(r.Level, &h.cfg)
 
@@ -431,7 +444,7 @@ func (h *customHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func (h *customHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	// 创建一个新的基础处理器并添加属性
+	// Create a new base handler and add attributes
 	newHandler := h.handler.WithAttrs(attrs)
 	return &customHandler{
 		handler:            newHandler,
@@ -451,29 +464,29 @@ func (h *customHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// 根据配置创建新的日志器
-// 支持多个输出目标：
-// 1. 如果配置了 File，则输出到文件
-// 2. 如果配置了 Console=true 或没有配置文件输出，则输出到控制台
-// 3. 可以同时输出到文件和控制台（使用 io.MultiWriter）
+// NewLogger creates a new logger based on the configuration.
+// It supports multiple output targets:
+// 1. If File is configured, output to file
+// 2. If Console=true or no file output is configured, output to console
+// 3. Can output to both file and console simultaneously (using io.MultiWriter)
 func NewLogger(cfg Config) (Logger, error) {
 	var writers []io.Writer
 
-	// 如果配置了文件输出，则添加文件写入器
+	// If file output is configured, add a file writer
 	if cfg.File != "" {
-		// 确保日志目录存在
+		// Ensure the log directory exists
 		dir := filepath.Dir(cfg.File)
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			return nil, fmt.Errorf("创建日志目录失败: %w", err)
+			return nil, fmt.Errorf("failed to create log directory: %w", err)
 		}
 
-		// 打开日志文件（追加模式）
+		// Open the log file (append mode)
 		file, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
-			return nil, fmt.Errorf("打开日志文件失败: %w", err)
+			return nil, fmt.Errorf("failed to open log file: %w", err)
 		}
 
-		// 如果配置了日志轮转，使用自定义的轮转写入器
+		// If log rotation is configured, use the custom rotating writer
 		if cfg.MaxSize > 0 {
 			writers = append(writers, newRotatingWriter(file, cfg))
 		} else {
@@ -481,15 +494,15 @@ func NewLogger(cfg Config) (Logger, error) {
 		}
 	}
 
-	// cfg.Console 已经是 ConsoleMode 类型，无需解析
+	// cfg.Console is already of ConsoleMode type, no need to parse
 	consoleMode := cfg.Console
 
-	// 如果配置了控制台输出，则添加控制台写入器
+	// If console output is configured, add a console writer
 	if consoleMode != ConsoleModeNone || len(writers) == 0 {
 		writers = append(writers, os.Stdout)
 	}
 
-	// 将writers分为终端和非终端两类
+	// Split writers into terminal and non-terminal categories
 	var terminalWriters, nonTerminalWriters []io.Writer
 	for _, w := range writers {
 		if isTerminal(w) {
@@ -499,27 +512,33 @@ func NewLogger(cfg Config) (Logger, error) {
 		}
 	}
 
-	// 创建自定义处理器，包含配置
+	// Ensure LevelNames has defaults
+	if cfg.LevelNames == nil {
+		cfg.LevelNames = defaultLevelNames()
+	}
+
+	// Create a custom handler with the configuration
 	customHandler := &customHandler{
-		handler:            nil, // 我们不再使用基础处理器
+		handler:            nil, // We no longer use a base handler
 		cfg:                cfg,
 		terminalWriters:    terminalWriters,
 		nonTerminalWriters: nonTerminalWriters,
 	}
 
-	// 创建 slog.Logger 的包装器，传递名称
+	// Create the slog.Logger wrapper, passing the name
 	logger := newSlogLoggerWithName(slog.New(customHandler), cfg.Name)
 
-	levelName := levelNames[slog.Level(cfg.Level)][0] + "/" + levelNames[slog.Level(cfg.Level)][1]
+	ln := cfg.LevelNames
+	levelName := ln[slog.Level(cfg.Level)][0] + "/" + ln[slog.Level(cfg.Level)][1]
 
-	// 记录日志初始化信息
-	logger.Tracef("日志器创建成功。级别控制 %s, 终端模式 %d，日志文件 %s，文件限制 %d M",
+	// Log the initialization info
+	logger.Tracef("Logger created. Level=%s, ConsoleMode=%d, File=%s, MaxSize=%dM",
 		levelName, cfg.Console, cfg.File, cfg.MaxSize)
 
 	return logger, nil
 }
 
-// rotatingWriter 实现简单的日志轮转
+// rotatingWriter implements simple log rotation.
 type rotatingWriter struct {
 	file        *os.File
 	cfg         Config
@@ -540,11 +559,11 @@ func newRotatingWriter(file *os.File, cfg Config) io.Writer {
 }
 
 func (w *rotatingWriter) Write(p []byte) (n int, err error) {
-	// 检查是否需要轮转
+	// Check if rotation is needed
 	if w.currentSize+int64(len(p)) > int64(w.cfg.MaxSize)*1024*1024 {
 		if err := w.rotate(); err != nil {
-			// 如果轮转失败，继续写入当前文件
-			log.Printf("日志轮转失败: %v", err)
+			// If rotation fails, continue writing to the current file
+			log.Printf("Log rotation failed: %v", err)
 		}
 	}
 
@@ -556,22 +575,22 @@ func (w *rotatingWriter) Write(p []byte) (n int, err error) {
 }
 
 func (w *rotatingWriter) rotate() error {
-	// 关闭当前文件
+	// Close the current file
 	if err := w.file.Close(); err != nil {
-		return fmt.Errorf("关闭日志文件失败: %w", err)
+		return fmt.Errorf("failed to close log file: %w", err)
 	}
 
-	// 重命名当前文件
+	// Rename the current file
 	timestamp := time.Now().Format("2006_01_02-15_04_05")
 	backupPath := w.cfg.File + "." + timestamp
 	if err := os.Rename(w.cfg.File, backupPath); err != nil {
-		return fmt.Errorf("重命名日志文件失败: %w", err)
+		return fmt.Errorf("failed to rename log file: %w", err)
 	}
 
-	// 创建新文件
+	// Create a new file
 	file, err := os.OpenFile(w.cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		return fmt.Errorf("创建新日志文件失败: %w", err)
+		return fmt.Errorf("failed to create new log file: %w", err)
 	}
 
 	w.file = file
@@ -580,7 +599,7 @@ func (w *rotatingWriter) rotate() error {
 	return nil
 }
 
-// Context 相关函数
+// Context-related functions
 func FromContext(ctx context.Context, defaultLogger Logger) Logger {
 	if logger, ok := ctx.Value(loggerKey).(Logger); ok {
 		return logger

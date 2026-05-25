@@ -3,6 +3,7 @@
 // ============================================================
 
 import { escapeHtml, truncate } from './toolsets.js';
+import { updateCurrentChatTitle } from './chat-list.js';
 import { state } from './chat-state.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
@@ -564,7 +565,7 @@ function toggleSourcesSection(titleEl, bodyEl) {
 }
 
 /**
- * updateHeaderTitle 更新 header 左侧的对话标题
+ * updateHeaderTitle 更新 header 左侧的对话标题，并同步到侧边栏
  * @param {string} title
  */
 export function updateHeaderTitle(title) {
@@ -583,6 +584,11 @@ export function updateHeaderTitle(title) {
         }
     }
     state.dialogTitle = title;
+
+    // 同步更新侧边栏中当前对话的标题
+    if (title) {
+        updateCurrentChatTitle(title);
+    }
 }
 
 /**

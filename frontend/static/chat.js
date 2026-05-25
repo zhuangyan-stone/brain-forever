@@ -11,9 +11,9 @@ import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
-import { restoreSession } from './chat-session.js';
+import { restoreChat } from './chat-restore.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
-import { fetchSessionTitle, putSessionTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
+import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
@@ -137,7 +137,7 @@ if (aiTitleBtn) {
         // 使用当前对话标题作为 originalTitle 传给后端
         // force=true 忽略 titleState 守卫，强制请求 AI 重新生成标题
         const originalTitle = state.dialogTitle || '';
-        fetchSessionTitle(originalTitle, true);
+        fetchChatTitle(originalTitle, true);
         // 设置防抖定时器，5 秒内不再响应点击
         aiTitleDebounceTimer = setTimeout(() => {
             aiTitleDebounceTimer = null;
@@ -805,7 +805,7 @@ initTickNav();
             currentTitle: currentTitle,
             onConfirm: async (newTitle) => {
                 // 先调后端 API 保存新标题
-                const success = await putSessionTitle(newTitle, TITLE_STATE.USER);
+                const success = await putChatTitle(newTitle, TITLE_STATE.USER);
                 if (success) {
                     // 后端确认成功后，更新页面标题
                     updateHeaderTitle(newTitle);
@@ -834,9 +834,10 @@ initDeleteModal();
     if (!loginBtn) return;
 
     loginBtn.addEventListener('click', async () => {
-        // 如果正在流式输出，先中止
-        if (state.isStreaming && state.abortController) {
-            state.abortController.abort();
+        // 流式输出时，登录按钮直接短路返回，不做任何操作
+        if (state.isStreaming) {
+            console.log('[loginBtn] streaming in progress, ignoring click');
+            return;
         }
 
         // 简单模拟登录：使用固定 userNo 或生成一个测试号
@@ -852,7 +853,7 @@ initDeleteModal();
 })();
 
 // 页面加载后先恢复会话
-window.addEventListener('DOMContentLoaded', restoreSession);
+window.addEventListener('DOMContentLoaded', restoreChat);
 
 // 页面加载后获取当前使用的 AI 信息（名称、模型、官网），更新底部免责声明
 window.addEventListener('DOMContentLoaded', async () => {

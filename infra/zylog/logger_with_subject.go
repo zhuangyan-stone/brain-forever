@@ -2,13 +2,13 @@ package zylog
 
 import "fmt"
 
-// 再包装一层主题
+// WrapWithSubject wraps a Logger with a subject prefix.
 type slogWrapWithSubject struct {
 	logger  Logger
 	subject string
 }
 
-// WrapWithSubject 加上主题包装的日志记录器
+// WrapWithSubject wraps a Logger with a subject prefix for context tagging.
 func WrapWithSubject(src Logger, subject string) Logger {
 	if subject == "" {
 		return src
@@ -56,47 +56,47 @@ func (l *slogWrapWithSubject) With(args ...any) Logger {
 	return &slogWrapWithSubject{logger: l.logger.With(args...)}
 }
 
-// SetLevel 设置日志级别
+// SetLevel sets the log level.
 func (l *slogWrapWithSubject) SetLevel(level Level) {
 	l.logger.SetLevel(level)
 }
 
-// GetLevel 获取当前日志级别
+// GetLevel returns the current log level.
 func (l *slogWrapWithSubject) GetLevel() Level {
 	return l.logger.GetLevel()
 }
 
-// Tracef 使用格式化字符串记录Trace级别日志
+// Tracef logs a formatted Trace-level log.
 func (l *slogWrapWithSubject) Tracef(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Trace(msg)
 }
 
-// Debugf 使用格式化字符串记录Debug级别日志
+// Debugf logs a formatted Debug-level log.
 func (l *slogWrapWithSubject) Debugf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Debug(msg)
 }
 
-// Infof 使用格式化字符串记录Info级别日志
+// Infof logs a formatted Info-level log.
 func (l *slogWrapWithSubject) Infof(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Info(msg)
 }
 
-// Warnf 使用格式化字符串记录Warn级别日志
+// Warnf logs a formatted Warn-level log.
 func (l *slogWrapWithSubject) Warnf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Warn(msg)
 }
 
-// Errorf 使用格式化字符串记录Error级别日志
+// Errorf logs a formatted Error-level log.
 func (l *slogWrapWithSubject) Errorf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Error(msg)
 }
 
-// Fatalf 使用格式化字符串记录Fatal级别日志
+// Fatalf logs a formatted Fatal-level log.
 func (l *slogWrapWithSubject) Fatalf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	l.Fatal(msg)

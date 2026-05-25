@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +11,7 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/store"
 )
 
 // ============================================================
@@ -102,88 +102,6 @@ func makeAssistantBrokenMessage(lang string, id int64) Message {
 	}
 }
 
-// generateSessionSN generates a unique serial number for a chat session.
-// Format: chat-<16randomHex>-<timestamp>
-func generateSessionSN() string {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return fmt.Sprintf("chat-fallback-%d", time.Now().UnixNano())
-	}
-	return fmt.Sprintf("chat-%x-%d", b, time.Now().UnixNano())
-}
-
-// ensureDBSession ensures that the current chat has a corresponding record
-// in the chat_sessions table. If dbSessionID is 0, it creates a new session
-// record and sets dbSessionID.
-//
-// Exception: anonymous users (chatStore == nil) have no DB persistence,
-// so no DB session record is created.
-// Must be called with session.mu held.
-func ensureDBSession(session *session) {
-	if session.chatStore == nil {
-		return // Anonymous user, no DB persistence
-	}
-	if session.currentChat.dbSessionID != 0 {
-		return // Already has a DB session
-	}
-
-	sn := generateSessionSN()
-	title := session.currentChat.title
-
-	dbSess, err := session.chatStore.InsertSession(sn, 0, title, 0)
-	if err != nil {
-		log.Printf("failed to insert DB session for user %s: %v", session.userNo, err)
-		return
-	}
-
-	session.currentChat.dbSessionID = dbSess.ID
-}
-
-// persistMessageToDB inserts a single message into the chat_messages table.
-//
-// Exception: anonymous users (chatStore == nil) have no DB persistence,
-// so messages are not stored in the database.
-// Must be called with session.mu held.
-func persistMessageToDB(session *session, msg *Message) {
-	if session.chatStore == nil {
-		return // Anonymous user, no DB persistence
-	}
-	if session.currentChat.dbSessionID == 0 {
-		log.Printf("cannot persist message: no DB session ID for user %s", session.userNo)
-		return
-	}
-
-	// Map agent.Message role to store.Message role: 0=user, 1=assistant
-	var role int
-	switch msg.Role {
-	case llm.RoleUser:
-		role = 0
-	case llm.RoleAssistant:
-		role = 1
-	default:
-		return // Skip system messages
-	}
-
-	// Map agent.Message.ID (group index) to store.Message.GroupIndex
-	groupIndex := int(msg.ID)
-
-	// Map agent.Message.Reasoning to store.Message.Reasoning (*string)
-	var reasoning *string
-	if msg.Reasoning != "" {
-		reasoning = &msg.Reasoning
-	}
-
-	if err := session.chatStore.InsertMessage(
-		session.currentChat.dbSessionID,
-		groupIndex,
-		role,
-		msg.Content,
-		reasoning,
-	); err != nil {
-		log.Printf("failed to persist message to DB for user %s: %v", session.userNo, err)
-	}
-}
-
 // Enqueue a new message for request, assign an ID
 func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 	if reqMsg.ID != 0 {
@@ -193,8 +111,8 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 	var lastID int64 = 0
 
 	// Assign new ID if ID==0 (frontend no longer manages IDs)
-	if len(session.currentChat.history) > 0 {
-		lastMsg := session.currentChat.history[len(session.currentChat.history)-1]
+	if session.getHistoryLenWithoutLock() > 0 {
+		lastMsg := session.getHistoryLastMsgWithoutLock()
 		lastID = lastMsg.ID
 
 		// Also check if the last message is a user message!
@@ -203,7 +121,7 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 		// In this case, we need to manually append an assistant message.
 		if lastMsg.Role == llm.RoleUser {
 			assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
-			session.currentChat.history = append(session.currentChat.history, assistantMsg)
+			session.appendHistoryWithoutLock(assistantMsg)
 
 			// Also persist the broken assistant message to DB if logged in
 			persistMessageToDB(session, &assistantMsg)
@@ -213,7 +131,7 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 	reqMsg.ID = lastID + 1
 
 	// Append to history
-	session.currentChat.history = append(session.currentChat.history, *reqMsg)
+	session.appendHistoryWithoutLock(*reqMsg)
 
 	// Ensure a DB session record exists for logged-in users
 	ensureDBSession(session)
@@ -228,7 +146,7 @@ func appendNewResponseMessage(session *session, resMsg *Message) {
 		panic("new response message's ID is 0")
 	}
 
-	session.currentChat.history = append(session.currentChat.history, *resMsg)
+	session.appendHistoryWithoutLock(*resMsg)
 
 	// Persist the assistant message to DB if logged in
 	persistMessageToDB(session, resMsg)
@@ -303,7 +221,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	sseWriter := sse.NewSSEWriter(w)
 
 	// Convert agent.Message history to llm.Message for the API call
-	llmMsgs := toRawMessages(session.currentChat.history)
+	llmMsgs := toRawMessages(session.getAllHistoryWithoutLock())
 
 	startSystemMsg := llm.Message{
 		Role:    llm.RoleSystem,
@@ -325,12 +243,122 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 7. Stream with tool call handling
-	h.callLLMWithPipeline(r.Context(), session, sseWriter,
+	// callLLMWithPipeline handles the streaming LLM call, tool loop, and SSE events.
+	// It returns the assistant message that the caller persists to session history.
+	assistantMsg := h.callLLMWithPipeline(r.Context(), sseWriter,
 		req.Message.ID,
 		messages,
 		toolsImp,
 		req.DeepThink,
 		lang)
+
+	if assistantMsg != nil {
+		appendNewResponseMessage(session, assistantMsg)
+	}
+}
+
+// ============================================================
+// SwitchChat handler — GET /api/chat/switch?sn=XXX
+// SwitchChat handler — switches the current active chat to a specified historical chat (topic switch).
+// ============================================================
+
+// OnSwitchChat handles GET /api/chat/switch — switches the current
+// active chat to a historical chat identified by its SN, loading
+// its messages from the database into memory. Returns the chat's
+// messages, title, and title state.
+func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sn := r.URL.Query().Get("sn")
+	if sn == "" {
+		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	if err := session.switchToChat(sn); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	session.mu.Lock()
+	history := session.copyHistoryWithoutLock()
+	title, titleState := session.getTitleWithoutLock()
+	session.mu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":      "ok",
+		"history":     history,
+		"title":       title,
+		"title_state": int(titleState),
+	})
+}
+
+// ============================================================
+// ChatPin handler — PUT /api/chat/pin?sn=XXX&pinned=true|false
+// ChatPin handler — pins/unpins the specified chat.
+// ============================================================
+
+// OnChatPin handles PUT /api/chat/pin — toggles the pinned state of a chat.
+// Uses chatsMu because it operates on session.chats (independent of streaming).
+func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sn := r.URL.Query().Get("sn")
+	if sn == "" {
+		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	pinnedStr := r.URL.Query().Get("pinned")
+	pinned := pinnedStr == "true"
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	session.chatsMu.Lock()
+	defer session.chatsMu.Unlock()
+
+	if session.chatStore == nil {
+		http.Error(w, "user not logged in", http.StatusBadRequest)
+		return
+	}
+
+	// Find the session by SN
+	var targetChat *store.Chat
+	for i := range session.chats {
+		if session.chats[i].SN == sn {
+			targetChat = &session.chats[i]
+			break
+		}
+	}
+	if targetChat == nil {
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+
+	if err := session.chatStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
+		log.Printf("failed to update chat pin: %v", err)
+		http.Error(w, "failed to update chat pin", http.StatusInternalServerError)
+		return
+	}
+
+	// Update in-memory cache
+	targetChat.Pinned = pinned
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+	})
 }
 
 // ============================================================

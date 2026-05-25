@@ -19,7 +19,7 @@ type WebSource struct {
 	Title       string  `json:"title"`
 	Content     string  `json:"content,omitempty"`
 	URL         string  `json:"url,omitempty"`          // Web page URL
-	SiteName    string  `json:"site_name,omitempty"`    // Website name (e.g. "知乎", "CSDN")
+	SiteName    string  `json:"site_name,omitempty"`    // Website name (e.g. "Zhihu", "CSDN")
 	SiteIcon    string  `json:"site_icon,omitempty"`    // Website favicon URL
 	PublishDate string  `json:"publish_date,omitempty"` // Page publish date, formatted string e.g. "2006-01-02"
 	Score       float64 `json:"score"`

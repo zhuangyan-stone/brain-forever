@@ -23,9 +23,10 @@ type Config struct {
 
 // LoggerConfig configures the golbal logger
 type LoggerConfig struct {
-	File  string
-	Level string // TRACE, DEBUG, INFO, WARN, ERROR, FATAL
-	Lang  int    // 0 en, 1 zh
+	File             string
+	Level            string   // TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+	Lang             int      // 0 en, 1 custom
+	CustomLevelNames []string // Custom level names for LanguageCustom, e.g. {"TRACE","DEBUG","INFO","WARN","ERROR","FATAL","OFF"}
 }
 
 // EmbedderConfig configures the text embedding provider.

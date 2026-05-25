@@ -62,7 +62,7 @@ func main() {
 		},
 	}
 
-	if err := logger.CreateTheLogger(zylog.NameToLevel(cfg.Logger.Level), cfg.Logger.File, zylog.Language(cfg.Logger.Lang)); err != nil {
+	if err := logger.CreateTheLogger(zylog.NameToLevel(cfg.Logger.Level), cfg.Logger.File, zylog.Language(cfg.Logger.Lang), cfg.Logger.CustomLevelNames); err != nil {
 		log.Fatalf("create the logger fail. %v", err)
 	}
 
@@ -139,14 +139,15 @@ func main() {
 	mux.Handle("/api/session/title", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			chatHandler.OnGetSessionTitle(w, r)
+			chatHandler.OnProposeChatTitle(w, r)
 		case http.MethodPut:
-			chatHandler.OnPutSessionTitle(w, r)
+			chatHandler.OnPutChatTitle(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
-	mux.Handle("/api/session/pin", http.HandlerFunc(chatHandler.OnUpdateSessionPin))
+	mux.Handle("/api/chat/pin", http.HandlerFunc(chatHandler.OnChatPin))
+	mux.Handle("/api/chat/switch", http.HandlerFunc(chatHandler.OnSwitchChat))
 	mux.Handle("/api/history", http.HandlerFunc(chatHandler.OnDeleteMessage))
 	mux.Handle("/api/chat/login", http.HandlerFunc(chatHandler.OnLogin))
 
@@ -160,8 +161,8 @@ func main() {
 	})
 
 	// Static file server — frontend pages
-	// 开发环境（DEV_CACHE_DISABLE=true）禁用缓存，确保前端修改即时生效
-	// 生产环境（默认）使用 http.FileServer 默认的 ETag/Last-Modified 缓存行为
+	// Dev environment (DEV_CACHE_DISABLE=true) disables caching so frontend changes take effect immediately.
+	// Production environment (default) uses http.FileServer's default ETag/Last-Modified caching behavior.
 	fs := http.FileServer(http.Dir("./frontend"))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if os.Getenv("DEV_CACHE_DISABLE") == "true" {

@@ -1,0 +1,73 @@
+/* ============================================================
+    第2大脑 AI 助手 — 统一消息框（MsgBox）专有样式
+    依赖：dialog.css（公共对话框样式）、theme.css（主题变量）
+    ============================================================
+
+    msgbox 动态创建对话框，复用 dialog.css 中的 dialog-overlay / dialog-box 等基础类。
+    本文件仅补充消息框特有的样式。
+
+    使用方式：
+        import msgbox from './components/msgbox.js';
+        await msgbox.warning('「xxx」删除后不可恢复，请确认是否删除？');
+    ============================================================ */
+
+/* ---- 消息框内容区 ---- */
+.msgbox-body {
+    text-align: center;
+    padding: 24px 20px 16px;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.7;
+    word-break: break-word;
+}
+
+/* ---- 消息文本 ---- */
+.msgbox-message {
+    margin: 0;
+}
+
+/* ---- 危险/删除按钮（红色） ---- */
+.msgbox-btn-danger {
+    background: #e53935;
+    color: #fff;
+    border-color: #e53935;
+}
+
+.msgbox-btn-danger:hover {
+    background: #c62828;
+    border-color: #c62828;
+}
+
+/* ---- 主要确认按钮（强调色） ---- */
+.msgbox-btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.msgbox-btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+/* ---- 三按钮布局：第一个按钮左对齐，其余靠右 ---- */
+.msgbox-footer-triple {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 4px 20px 12px;
+}
+
+.msgbox-footer-triple .msgbox-btn-first {
+    margin-right: auto;
+}
+
+/* ---- 关闭动画 ---- */
+.msgbox-overlay-closing {
+    animation: fadeOut 0.15s ease forwards;
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}

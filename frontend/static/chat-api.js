@@ -64,7 +64,7 @@ export function truncateTitle(s) {
  * @param {boolean} [force=false] - 是否强制请求（忽略 titleState 守卫条件），用于用户手动点击 AI 标题按钮
  * @returns {Promise<void>}
  */
-export async function fetchSessionTitle(originalTitle, force = false) {
+export async function fetchChatTitle(originalTitle, force = false) {
     // 如果标题已被修改过（AI 修改或用户手动修改），不再请求
     // 状态只能从低往高变（0→1, 0→2, 1→2），>= 1 即表示已非原始状态
     // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制请求 AI 重新生成
@@ -93,7 +93,7 @@ export async function fetchSessionTitle(originalTitle, force = false) {
                     updateHeaderTitle(newTitle);
                     state.titleState = TITLE_STATE.AI;
                     // 同步到后端：用户已确认接受，调用 PUT 保存，标记为机改
-                    await putSessionTitle(newTitle, TITLE_STATE.AI);
+                    await putChatTitle(newTitle, TITLE_STATE.AI);
                 },
                 onDismiss: (newTitle) => {
                     // 用户取消：不做任何修改，状态保持当前值
@@ -103,13 +103,13 @@ export async function fetchSessionTitle(originalTitle, force = false) {
             if (state.titleState == TITLE_STATE.ORIGINAL) {
                 stickyOptions.onReject = async (newTitle) => {
                     // 用户点击"停止推荐"：将标题状态标记为用户修改（2），
-                    // 这样后续 fetchSessionTitle 检测到 state.titleState >= TITLE_STATE.AI
+                    // 这样后续 fetchChatTitle 检测到 state.titleState >= TITLE_STATE.AI
                     // 就不会再请求推荐标题了
                     state.titleState = TITLE_STATE.USER;
                     // 同步到后端：用原标题 PUT 保存，标记为用户修改
                     // 这样后端也会记住这个状态，刷新页面后不再推荐
                     const currentTitle = document.querySelector('.header-title')?.textContent || newTitle;
-                    await putSessionTitle(currentTitle, TITLE_STATE.USER);
+                    await putChatTitle(currentTitle, TITLE_STATE.USER);
                 };
             }
             showStickyNote('AI 推荐标题', data.title, stickyOptions);
@@ -122,13 +122,13 @@ export async function fetchSessionTitle(originalTitle, force = false) {
 }
 
 /**
- * putSessionTitle 向后端发送 PUT 请求更新 session 标题。
+ * putChatTitle 向后端发送 PUT 请求更新 chat 标题。
  * 成功后标记 titleState 为指定状态，并更新本地标题。
  * @param {string} title - 新标题
  * @param {number} [titleState=TITLE_STATE.USER] - 标题修改状态，默认用户修改（2）
  * @returns {Promise<boolean>} 是否成功
  */
-export async function putSessionTitle(title, titleState = TITLE_STATE.USER) {
+export async function putChatTitle(title, titleState = TITLE_STATE.USER) {
 	if (!title) return false;
 	try {
 		const url = '/api/session/title?title=' + encodeURIComponent(title) +
@@ -151,7 +151,8 @@ export async function putSessionTitle(title, titleState = TITLE_STATE.USER) {
 
 /**
 	* onChatLogin 调用后端 POST /api/chat/login 接口，切换当前会话到登录用户。
-	* 登录成功后调用 switchToUser 加载用户的对话列表。
+	* 登录成功后调用 switchToUser 加载用户的对话列表，
+	* 并将 user_no 持久化到 localStorage 以在页面刷新后恢复。
 	* @param {string} userNo - 全局唯一用户系列号
 	* @returns {Promise<boolean>} 是否成功
 	*/
@@ -169,6 +170,8 @@ export async function onChatLogin(userNo) {
 		}
 		const data = await response.json();
 		if (data.status === 'ok') {
+			// 持久化 user_no 到 localStorage，用于页面刷新后恢复登录状态
+			localStorage.setItem('brainforever_user_no', userNo);
 			await switchToUser(data);
 			return true;
 		}
@@ -182,6 +185,7 @@ export async function onChatLogin(userNo) {
 /**
 	* switchToUser 切换前端状态到指定用户。
 	* 清空当前对话历史，重置标题，然后加载用户的对话列表。
+	* 登录后自动恢复当前会话（包含合并的匿名聊天历史）。
 	* @param {object} data - 后端返回的登录响应数据 { user_no, sessions }
 	*/
 export async function switchToUser(data) {
@@ -243,17 +247,46 @@ export async function switchToUser(data) {
 		loginBtn.textContent = `用户: ${data.user_no}`;
 	}
 
-	// 渲染会话列表
-	const { renderSessionList } = await import('./chat-session-list.js');
-	renderSessionList(data.sessions || [], data.current_sn || null);
+	// 渲染对话列表
+	const { renderChatList } = await import('./chat-list.js');
+	renderChatList(data.chats || [], data.current_sn || null);
 
-	// 显示欢迎消息
-	const { showWelcomeMessage } = await import('./chat-ui.js');
-	showWelcomeMessage();
+	// 恢复合并后的对话（后端 switchToUser 已将匿名聊天持久化并设置为当前对话）
+	// 调用 GET /api/session 恢复匿名聊天的历史消息，实现无缝过渡
+	const { restoreChat } = await import('./chat-restore.js');
+	await restoreChat();
 
 	// 聚焦输入框
 	const msgInput = document.getElementById('messageInput');
 	if (msgInput) {
 		msgInput.focus();
+	}
+}
+
+/**
+	* switchChat 调用后端切换当前对话到指定历史对话，并返回其消息历史。
+	* @param {string} sn - 目标会话的 SN
+	* @returns {Promise<{history: Array, title: string, title_state: number}|null>}
+	*/
+export async function switchChat(sn) {
+	if (!sn) return null;
+	try {
+		const response = await fetch('/api/chat/switch?sn=' + encodeURIComponent(sn));
+		if (!response.ok) {
+			console.warn('切换会话失败:', response.status);
+			return null;
+		}
+		const data = await response.json();
+		if (data.status === 'ok') {
+			return {
+				history: data.history || [],
+				title: data.title || '',
+				title_state: data.title_state ?? 0,
+			};
+		}
+		return null;
+	} catch (e) {
+		console.warn('切换会话出错:', e);
+		return null;
 	}
 }

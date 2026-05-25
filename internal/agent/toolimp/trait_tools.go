@@ -213,15 +213,15 @@ func (imp *TraitsExtractedToolImp) GetTraits() []TraitsExtractedResult {
 
 func (imp *TraitsExtractedToolImp) Execute() (string, error) {
 	if len(imp.traits) == 0 {
-		return "没有抽取到新特征\n" + `{"status":"ok","count":0}`, nil
+		return "No new traits extracted\n" + `{"status":"ok","count":0}`, nil
 	}
 
-	// 构建每个 trait 的可读摘要
+	// Build a human-readable summary for each trait
 	var lines []string
-	lines = append(lines, fmt.Sprintf("抽取到 %d 个特征:", len(imp.traits)))
+	lines = append(lines, fmt.Sprintf("Extracted %d traits:", len(imp.traits)))
 	for i, t := range imp.traits {
 		line := fmt.Sprintf(
-			"%d. [%s] 主题=%s | 方式=%s | 性质=%s | 结论=%s | 场景=%s | 领域=%s | 类别=%s | 来源=%s | 置信度=%.2f | 半衰期=%s",
+			"%d. [%s] topic=%s | method=%s | nature=%s | conclusion=%s | scenario=%s | domain=%s | category=%s | source=%s | confidence=%.2f | half-life=%s",
 			i+1, t.Category, t.Topic, t.InferenceMethod, t.Nature, t.Conclusion,
 			t.Scenario, t.Domain, t.Category, t.Source, t.Confidence, t.HalfLife,
 		)

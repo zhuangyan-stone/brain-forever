@@ -1,9 +1,8 @@
 package agent
 
 import (
+	"BrainForever/toolset"
 	"context"
-	"crypto/rand"
-	"fmt"
 	"net/http"
 	"sync/atomic"
 )
@@ -15,21 +14,11 @@ import (
 // sessionAutoIncID provides thread-safe auto-increment for session ID generation
 var sessionAutoIncID atomic.Uint64
 
-// generateSessionID generates a sessionID with a random prefix and auto-increment suffix.
-// The random prefix (crypto/rand, 16 bytes → 32 hex chars) prevents session enumeration,
-// while the auto-increment suffix preserves ordering for debugging.
-// Format: sess-<32hex>-<decimal>
+// generateSessionID generates a globally unique session ID.
+// Format: s-<uuid-v4>
+// Delegates to toolset.GenerateSN with prefix "s".
 func generateSessionID() string {
-	id := sessionAutoIncID.Add(1)
-
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		// crypto/rand.Read should never fail on a modern OS;
-		// if it does, fall back to a less secure but still usable ID
-		return fmt.Sprintf("sess-fallback-%d", id)
-	}
-
-	return fmt.Sprintf("sess-%x-%d", b, id)
+	return toolset.GenerateSN("s")
 }
 
 // StartGC starts the background session GC goroutine.

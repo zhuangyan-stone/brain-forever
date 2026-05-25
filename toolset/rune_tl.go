@@ -21,22 +21,22 @@ func IsWhitespace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '\f' || r == '\v'
 }
 
-// IsLetter 判断 rune 是否为英文字母（包括大小写）。
+// IsLetter reports whether r is an English letter (both uppercase and lowercase).
 func IsLetter(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
 }
 
-// IsEmoji 粗略判断 rune 是否为 emoji 或特殊符号。
-// 覆盖常见的 emoji 区间和一些特殊符号。
+// IsEmoji roughly checks whether r is an emoji or special symbol.
+// Covers common emoji ranges and some special symbols.
 func IsEmoji(r rune) bool {
-	return (r >= 0x1F300 && r <= 0x1F9FF) || // 杂项符号和 pictograph、表情符号
-		(r >= 0x2600 && r <= 0x26FF) || // 杂项符号
-		(r >= 0x2700 && r <= 0x27BF) || // 装饰符号
-		(r >= 0xFE00 && r <= 0xFE0F) || // 变体选择器
-		(r >= 0x1F600 && r <= 0x1F64F) || // 表情符号
-		(r >= 0x1F680 && r <= 0x1F6FF) || // 交通和地图符号
-		(r >= 0x1F1E0 && r <= 0x1F1FF) || // 区域指示符
-		(r >= 0x200D) // 零宽连接符（ZWJ，用于组合 emoji）
+	return (r >= 0x1F300 && r <= 0x1F9FF) || // Miscellaneous Symbols, Pictographs, and Emoticons
+		(r >= 0x2600 && r <= 0x26FF) || // Miscellaneous Symbols
+		(r >= 0x2700 && r <= 0x27BF) || // Dingbats
+		(r >= 0xFE00 && r <= 0xFE0F) || // Variation Selectors
+		(r >= 0x1F600 && r <= 0x1F64F) || // Emoticons
+		(r >= 0x1F680 && r <= 0x1F6FF) || // Transport and Map Symbols
+		(r >= 0x1F1E0 && r <= 0x1F1FF) || // Regional Indicator Symbols
+		(r >= 0x200D) // Zero Width Joiner (ZWJ, used for combining emoji)
 }
 
 // TruncateTitle truncates a string to at most maxLen runes for use as a session title.

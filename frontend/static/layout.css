@@ -431,6 +431,12 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     transform: scale(0.96);
 }
 
+.header-login-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* ============================================================
     主栏标题前 — 竖向分隔线（切换按钮与新对话按钮之间）
     ============================================================ */

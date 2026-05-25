@@ -8,7 +8,7 @@ import (
 )
 
 func TestLogLevelEnum(t *testing.T) {
-	// 测试 LogLevel 枚举值
+	// Test LogLevel enum values
 	testCases := []struct {
 		level    Level
 		expected int
@@ -25,13 +25,13 @@ func TestLogLevelEnum(t *testing.T) {
 
 	for _, tc := range testCases {
 		if int(tc.level) != tc.expected {
-			t.Errorf("LogLevel %s 的值不正确: 期望 %d, 实际 %d", tc.name, tc.expected, tc.level)
+			t.Errorf("LogLevel %s value is incorrect: expected %d, got %d", tc.name, tc.expected, tc.level)
 		}
 	}
 }
 
 func TestLevelConversion(t *testing.T) {
-	// 测试 slog.Level 和 LogLevel 之间的转换
+	// Test conversion between slog.Level and LogLevel
 	testCases := []struct {
 		logLevel  Level
 		slogLevel slog.Level
@@ -46,26 +46,26 @@ func TestLevelConversion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		// 测试 LogLevel -> slog.Level
+		// Test LogLevel -> slog.Level
 		converted := logLevelToSlog(tc.logLevel)
 		if converted != tc.slogLevel {
-			t.Errorf("logLevelToSlog 转换错误: 输入 %v, 期望 %v, 实际 %v", tc.logLevel, tc.slogLevel, converted)
+			t.Errorf("logLevelToSlog conversion error: input %v, expected %v, got %v", tc.logLevel, tc.slogLevel, converted)
 		}
 
-		// 测试 slog.Level -> LogLevel
+		// Test slog.Level -> LogLevel
 		back := slogToLogLevel(tc.slogLevel)
 		if back != tc.logLevel {
-			t.Errorf("slogToLogLevel 转换错误: 输入 %v, 期望 %v, 实际 %v", tc.slogLevel, tc.logLevel, back)
+			t.Errorf("slogToLogLevel conversion error: input %v, expected %v, got %v", tc.slogLevel, tc.logLevel, back)
 		}
 	}
 }
 
 func TestSetGetLevel(t *testing.T) {
-	// 创建一个测试日志器
+	// Create a test logger
 	cfg := Config{
 		Name:        "test",
 		Level:       LevelInfo,
-		File:        "", // 不输出到文件
+		File:        "", // No file output
 		Console:     ConsoleModeNormal,
 		Language:    LanguageEN,
 		LevelColors: map[Level]string{},
@@ -73,49 +73,49 @@ func TestSetGetLevel(t *testing.T) {
 
 	logger, err := NewLogger(cfg)
 	if err != nil {
-		t.Fatalf("创建日志器失败: %v", err)
+		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	// 测试获取初始级别
+	// Test getting the initial level
 	initialLevel := logger.GetLevel()
 	if initialLevel != LevelInfo {
-		t.Errorf("初始级别不正确: 期望 INFO(%d), 实际 %v(%d)", LevelInfo, initialLevel, initialLevel)
+		t.Errorf("initial level is incorrect: expected INFO(%d), got %v(%d)", LevelInfo, initialLevel, initialLevel)
 	}
 
-	// 测试设置和获取 DEBUG 级别
+	// Test setting and getting DEBUG level
 	logger.SetLevel(LevelDebug)
 	debugLevel := logger.GetLevel()
 	if debugLevel != LevelDebug {
-		t.Errorf("DEBUG 级别设置失败: 期望 DEBUG(%d), 实际 %v(%d)", LevelDebug, debugLevel, debugLevel)
+		t.Errorf("DEBUG level set failed: expected DEBUG(%d), got %v(%d)", LevelDebug, debugLevel, debugLevel)
 	}
 
-	// 测试设置和获取 ERROR 级别
+	// Test setting and getting ERROR level
 	logger.SetLevel(LevelError)
 	errorLevel := logger.GetLevel()
 	if errorLevel != LevelError {
-		t.Errorf("ERROR 级别设置失败: 期望 ERROR(%d), 实际 %v(%d)", LevelError, errorLevel, errorLevel)
+		t.Errorf("ERROR level set failed: expected ERROR(%d), got %v(%d)", LevelError, errorLevel, errorLevel)
 	}
 
-	// 测试设置和获取 TRACE 级别
+	// Test setting and getting TRACE level
 	logger.SetLevel(LevelTrace)
 	traceLevel := logger.GetLevel()
 	if traceLevel != LevelTrace {
-		t.Errorf("TRACE 级别设置失败: 期望 TRACE(%d), 实际 %v(%d)", LevelTrace, traceLevel, traceLevel)
+		t.Errorf("TRACE level set failed: expected TRACE(%d), got %v(%d)", LevelTrace, traceLevel, traceLevel)
 	}
 
-	// 测试设置和获取 OFF 级别
+	// Test setting and getting OFF level
 	logger.SetLevel(LevelOff)
 	offLevel := logger.GetLevel()
 	if offLevel != LevelOff {
-		t.Errorf("OFF 级别设置失败: 期望 OFF(%d), 实际 %v(%d)", LevelOff, offLevel, offLevel)
+		t.Errorf("OFF level set failed: expected OFF(%d), got %v(%d)", LevelOff, offLevel, offLevel)
 	}
 }
 
 func TestLevelAffectsLogging(t *testing.T) {
-	// 由于我们无法直接修改 customHandler 的 writers，我们需要创建一个简单的测试
-	// 这里我们主要测试级别设置是否影响 Enabled 方法
+	// Since we cannot directly modify customHandler's writers, we create a simple test
+	// Here we mainly test whether level settings affect the Enabled method
 
-	// 创建一个 customHandler 进行测试
+	// Create a customHandler for testing
 	handler := &customHandler{
 		cfg: Config{
 			Level: LevelInfo,
@@ -123,52 +123,52 @@ func TestLevelAffectsLogging(t *testing.T) {
 		mu: sync.RWMutex{},
 	}
 
-	// 测试不同级别是否被启用
+	// Test whether different levels are enabled
 	testCases := []struct {
 		level    slog.Level
 		expected bool
 		desc     string
 	}{
-		{slog.Level(-8), false, "TRACE 应该被 INFO 级别过滤"},
-		{slog.LevelDebug, false, "DEBUG 应该被 INFO 级别过滤"},
-		{slog.LevelInfo, true, "INFO 应该被启用"},
-		{slog.LevelWarn, true, "WARN 应该被启用"},
-		{slog.LevelError, true, "ERROR 应该被启用"},
+		{slog.Level(-8), false, "TRACE should be filtered by INFO level"},
+		{slog.LevelDebug, false, "DEBUG should be filtered by INFO level"},
+		{slog.LevelInfo, true, "INFO should be enabled"},
+		{slog.LevelWarn, true, "WARN should be enabled"},
+		{slog.LevelError, true, "ERROR should be enabled"},
 	}
 
 	for _, tc := range testCases {
 		enabled := handler.Enabled(context.Background(), tc.level)
 		if enabled != tc.expected {
-			t.Errorf("%s: 级别 %v, 期望 %v, 实际 %v", tc.desc, tc.level, tc.expected, enabled)
+			t.Errorf("%s: level %v, expected %v, got %v", tc.desc, tc.level, tc.expected, enabled)
 		}
 	}
 
-	// 修改级别为 DEBUG
+	// Change level to DEBUG
 	handler.mu.Lock()
 	handler.cfg.Level = LevelDebug
 	handler.mu.Unlock()
 
-	// 再次测试
+	// Test again
 	debugTestCases := []struct {
 		level    slog.Level
 		expected bool
 		desc     string
 	}{
-		{slog.Level(-8), false, "TRACE 应该被 DEBUG 级别过滤"},
-		{slog.LevelDebug, true, "DEBUG 应该被启用"},
-		{slog.LevelInfo, true, "INFO 应该被启用"},
+		{slog.Level(-8), false, "TRACE should be filtered by DEBUG level"},
+		{slog.LevelDebug, true, "DEBUG should be enabled"},
+		{slog.LevelInfo, true, "INFO should be enabled"},
 	}
 
 	for _, tc := range debugTestCases {
 		enabled := handler.Enabled(context.Background(), tc.level)
 		if enabled != tc.expected {
-			t.Errorf("DEBUG级别设置后 %s: 级别 %v, 期望 %v, 实际 %v", tc.desc, tc.level, tc.expected, enabled)
+			t.Errorf("After setting DEBUG level %s: level %v, expected %v, got %v", tc.desc, tc.level, tc.expected, enabled)
 		}
 	}
 }
 
 func TestConcurrentLevelAccess(t *testing.T) {
-	// 测试并发访问级别设置
+	// Test concurrent level access
 	cfg := Config{
 		Name:    "concurrent-test",
 		Level:   LevelInfo,
@@ -177,14 +177,14 @@ func TestConcurrentLevelAccess(t *testing.T) {
 
 	logger, err := NewLogger(cfg)
 	if err != nil {
-		t.Fatalf("创建日志器失败: %v", err)
+		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	// 启动多个 goroutine 同时读写级别
+	// Start multiple goroutines reading and writing the level simultaneously
 	done := make(chan bool)
 	iterations := 100
 
-	// 写入 goroutine
+	// Writer goroutine
 	go func() {
 		for i := 0; i < iterations; i++ {
 			level := Level(i % 7)
@@ -196,7 +196,7 @@ func TestConcurrentLevelAccess(t *testing.T) {
 		done <- true
 	}()
 
-	// 读取 goroutine
+	// Reader goroutine
 	go func() {
 		for i := 0; i < iterations; i++ {
 			_ = logger.GetLevel()
@@ -204,10 +204,10 @@ func TestConcurrentLevelAccess(t *testing.T) {
 		done <- true
 	}()
 
-	// 等待两个 goroutine 完成
+	// Wait for both goroutines to finish
 	<-done
 	<-done
 
-	// 确保没有 panic 发生
-	t.Log("并发级别访问测试完成，无 panic")
+	// Ensure no panic occurred
+	t.Log("Concurrent level access test completed, no panic")
 }

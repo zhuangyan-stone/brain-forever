@@ -41,11 +41,15 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	// Switch the session to the logged-in user
 	session.switchToUser(req.UserNo)
 
-	// Return the user's session list
+	// Return the user's session list (read under chatsMu protection)
+	session.chatsMu.Lock()
+	chats := session.chats
+	session.chatsMu.Unlock()
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":   "ok",
-		"user_no":  req.UserNo,
-		"sessions": session.chats,
+		"status":  "ok",
+		"user_no": req.UserNo,
+		"chats":   chats,
 	})
 }

@@ -1,16 +1,16 @@
 /* ============================================================
-   会话列表样式 — 左侧栏会话列表
+   对话列表样式 — 左侧栏对话列表
    依赖：theme.css（主题变量）
    ============================================================ */
 
-/* ---------- 会话列表容器 ---------- */
-.session-list {
+/* ---------- 对话列表容器 ---------- */
+.chat-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
 
-.session-list-empty {
+.chat-list-empty {
     text-align: center;
     color: var(--text-muted);
     padding: 2rem 1rem;
@@ -18,11 +18,11 @@
 }
 
 /* ---------- 分组 ---------- */
-.session-group {
+.chat-group {
     margin-bottom: 4px;
 }
 
-.session-group-header {
+.chat-group-header {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -32,18 +32,18 @@
     user-select: none;
 }
 
-.session-group-body {
+.chat-group-body {
     display: flex;
     flex-direction: column;
     gap: 1px;
 }
 
 /* ---------- 日期子分组（更早分组下） ---------- */
-.session-date-group {
+.chat-date-group {
     margin-bottom: 2px;
 }
 
-.session-date-header {
+.chat-date-header {
     font-size: 0.7rem;
     font-weight: 500;
     color: var(--text-muted);
@@ -52,8 +52,8 @@
     opacity: 0.8;
 }
 
-/* ---------- 单个会话项 ---------- */
-.session-item {
+/* ---------- 单个对话项 ---------- */
+.chat-item {
     display: flex;
     align-items: center;
     padding: 0.5rem 0.75rem;
@@ -61,22 +61,22 @@
     cursor: pointer;
     position: relative;
     transition: background-color 0.15s ease;
-    min-height: 36px;
+    min-height: 40px;
     gap: 4px;
 }
 
-.session-item:hover {
+.chat-item:hover {
     background: var(--bg-user);
 }
 
-.session-item.active {
+.chat-item.active {
     background: var(--bg-user);
     border-left: 3px solid var(--accent);
     padding-left: calc(0.75rem - 3px);
 }
 
-/* ---------- 会话标题 ---------- */
-.session-item-title {
+/* ---------- 对话标题 ---------- */
+.chat-item-title {
     flex: 1;
     font-size: 0.8125rem;
     color: var(--text-primary);
@@ -87,13 +87,13 @@
     min-width: 0;
 }
 
-.session-item.active .session-item-title {
+.chat-item.active .chat-item-title {
     color: var(--accent);
     font-weight: 500;
 }
 
 /* ---------- 更多按钮（...） ---------- */
-.session-item-more-btn {
+.chat-item-more-btn {
     flex-shrink: 0;
     width: 24px;
     height: 24px;
@@ -110,19 +110,19 @@
     transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
-.session-item:hover .session-item-more-btn,
-.session-item.active .session-item-more-btn {
+.chat-item:hover .chat-item-more-btn,
+.chat-item.active .chat-item-more-btn {
     display: flex;
 }
 
-.session-item-more-btn:hover {
+.chat-item-more-btn:hover {
     opacity: 1;
     background: var(--border);
     color: var(--text-primary);
 }
 
 /* ---------- 上下文菜单（下拉菜单） ---------- */
-.session-context-menu {
+.chat-context-menu {
     position: fixed;
     z-index: 1000;
     min-width: 140px;
@@ -145,7 +145,7 @@
     }
 }
 
-.session-context-menu-item {
+.chat-context-menu-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -159,19 +159,19 @@
     transition: background-color 0.1s ease;
 }
 
-.session-context-menu-item:hover {
+.chat-context-menu-item:hover {
     background: var(--bg-user);
 }
 
-.session-context-menu-item svg {
+.chat-context-menu-item svg {
     flex-shrink: 0;
 }
 
 /* 删除菜单项 — 警告色 */
-.session-context-menu-item-danger {
+.chat-context-menu-item-danger {
     color: var(--error-text);
 }
 
-.session-context-menu-item-danger:hover {
+.chat-context-menu-item-danger:hover {
     background: var(--error-bg);
 }

@@ -7,8 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"BrainForever/infra/llm"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/store"
+	"BrainForever/toolset"
 )
 
 // ============================================================
@@ -77,7 +79,7 @@ type Usage struct {
 
 // TitleState represents the state of the session title modification.
 //
-//	0: original title (default, "新对话" for new sessions)
+//	0: original title (default, "New Chat" for new sessions)
 //	1: AI-modified title
 //	2: user-modified title
 type TitleState int
@@ -99,78 +101,139 @@ type chat struct {
 
 // session represents an individual user's session
 type session struct {
-	mu           sync.Mutex
+	mu      sync.Mutex // protects: currentChat, userNo, lastActivity
+	chatsMu sync.Mutex // protects: chats, chatStore
+
 	lastActivity time.Time // Last activity time, used by GC for cleanup
 
-	currentChat *chat // Current active chat (history, title, titleState)
-
-	chats     []store.Session  // User's session list from the database (populated after login)
-	userNo    string           // Global unique user serial number; empty means not logged in
-	chatStore *store.ChatStore // Chat database store for the logged-in user; nil for anonymous users
+	id          string           // HTTP cookie session ID (e.g., "s-<32hex>-<digits>"), set at creation time
+	currentChat *chat            // Current active chat (history, title, titleState)
+	chats       []store.Chat     // User's chat list from the database (populated after login)
+	userNo      string           // Global unique user serial number; empty means not logged in
+	chatStore   *store.ChatStore // Chat database store for the logged-in user; nil for anonymous users
 }
 
-func (s *session) GetTitle() string {
+// GetTitle returns the current title and its modification state atomically.
+func (s *session) GetTitle() (string, TitleState) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if s.currentChat == nil {
-		return ""
-	}
-	return s.currentChat.title
+	return s.getTitleWithoutLock()
 }
 
-func (s *session) SetTitle(newTitle string) {
-	s.mu.Lock() // <---- 死锁
-	defer s.mu.Unlock()
+func (s *session) getTitleWithoutLock() (string, TitleState) {
+	if s.currentChat == nil {
+		return "", TitleStateOriginal
+	}
+	return s.currentChat.title, s.currentChat.titleState
+}
 
+// setTitleWithoutLock sets both title and titleState atomically (caller must hold s.mu).
+// Title is always updated. TitleState only moves forward (0→1, 0→2, 1→2).
+func (s *session) setTitleWithoutLock(newTitle string, newState TitleState) {
 	if s.currentChat == nil {
 		s.currentChat = &chat{}
 	}
-	if newTitle != s.currentChat.title {
-		s.currentChat.title = newTitle
-	}
-}
-
-func (s *session) GetTitleState() TitleState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.currentChat == nil {
-		return TitleStateOriginal
-	}
-	return s.currentChat.titleState
-}
-
-// SetTitleState sets the title modification state.
-// The state can only move forward (0→1, 0→2, 1→2), never backward.
-// Returns true if the state was updated, false if the new state is lower than the current state.
-func (s *session) SetTitleState(newState TitleState) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.currentChat == nil {
-		s.currentChat = &chat{}
-	}
+	s.currentChat.title = newTitle
 	if newState > s.currentChat.titleState {
 		s.currentChat.titleState = newState
-		return true
 	}
-	return false
+}
+
+// SetTitle sets both the title and its modification state atomically.
+// Title is always updated. TitleState only moves forward (0→1, 0→2, 1→2).
+func (s *session) SetTitle(newTitle string, newState TitleState) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.setTitleWithoutLock(newTitle, newState)
+}
+
+// ============================================================
+// History accessors (WithoutLock variants — caller must hold s.mu)
+// ============================================================
+
+func (s *session) getHistoryLenWithoutLock() int {
+	if s.currentChat == nil {
+		return 0
+	}
+	return len(s.currentChat.history)
+}
+
+func (s *session) getHistoryLastMsgWithoutLock() *Message {
+	if s.currentChat == nil || len(s.currentChat.history) == 0 {
+		return nil
+	}
+	return &s.currentChat.history[len(s.currentChat.history)-1]
+}
+
+func (s *session) appendHistoryWithoutLock(msgs ...Message) {
+	if s.currentChat == nil {
+		s.currentChat = &chat{}
+	}
+	s.currentChat.history = append(s.currentChat.history, msgs...)
+}
+
+func (s *session) deleteHistoryRangeWithoutLock(start, end int) {
+	if s.currentChat == nil {
+		return
+	}
+	s.currentChat.history = append(s.currentChat.history[:start], s.currentChat.history[end:]...)
+}
+
+func (s *session) copyHistoryWithoutLock() []Message {
+	if s.currentChat == nil {
+		return nil
+	}
+	cp := make([]Message, len(s.currentChat.history))
+	copy(cp, s.currentChat.history)
+	return cp
+}
+
+// getAllHistoryWithoutLock returns the raw history slice for read-only access
+// (caller must hold s.mu).
+func (s *session) getAllHistoryWithoutLock() []Message {
+	if s.currentChat == nil {
+		return nil
+	}
+	return s.currentChat.history
+}
+
+// ============================================================
+// dbSessionID accessors (WithoutLock variants — caller must hold s.mu)
+// ============================================================
+
+func (s *session) getDbSessionIDWithoutLock() int64 {
+	if s.currentChat == nil {
+		return 0
+	}
+	return s.currentChat.dbSessionID
+}
+
+func (s *session) setDbSessionIDWithoutLock(id int64) {
+	if s.currentChat == nil {
+		s.currentChat = &chat{}
+	}
+	s.currentChat.dbSessionID = id
 }
 
 // switchToUser switches the session to a logged-in user.
-// It clears the current chat, opens (or creates)
-// the user's chat database, and loads the user's session list.
+// It preserves the anonymous chat history by persisting it
+// to the user's database, then loads the user's session list.
 func (s *session) switchToUser(sn string) {
+	// Phase 0: Capture anonymous chat state (under mu lock)
+	var anonymousHistory []Message
+	var anonymousTitle string
+	var anonymousTitleState TitleState
+	hasAnonymousHistory := false
+
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if s.currentChat != nil && len(s.currentChat.history) > 0 {
+		anonymousHistory = s.copyHistoryWithoutLock()
+		anonymousTitle, anonymousTitleState = s.getTitleWithoutLock()
+		hasAnonymousHistory = true
+	}
+	s.mu.Unlock()
 
-	// Reset current chat (history, title, titleState)
-	s.currentChat = nil
-	// Set the user serial number
-	s.userNo = sn
-
-	// Open (or create) the user's chat database
+	// Phase 1: IO operations (no lock needed — DB creation + query)
 	dbFile := "data/" + sn + ".chats.db"
 	chatStore, err := store.CreateLocalChatScheme(dbFile)
 	if err != nil {
@@ -178,16 +241,175 @@ func (s *session) switchToUser(sn string) {
 		return
 	}
 
-	// Save the chat store for later use (message persistence)
-	s.chatStore = chatStore
-
-	// Load the user's session list (latest 100)
-	chats, err := chatStore.ListSessions(100)
+	// Load the user's chat list (latest 100)
+	chats, err := chatStore.ListChats(100)
 	if err != nil {
 		log.Printf("failed to list sessions for user %s: %v", sn, err)
 		return
 	}
+
+	// Phase 1.5: Persist anonymous history to the user's database
+	var mergedDBSessionID int64
+	if hasAnonymousHistory {
+		chatSN := generateSessionSN()
+
+		// Determine title: use existing title, or derive from first user message
+		title := anonymousTitle
+		if title == "" {
+			for _, msg := range anonymousHistory {
+				if msg.Role == llm.RoleUser {
+					title = toolset.TruncateTitle(msg.Content, 50)
+					break
+				}
+			}
+		}
+
+		dbChat, err := chatStore.InsertChat(chatSN, 0, title, int8(anonymousTitleState))
+		if err != nil {
+			log.Printf("failed to create DB chat for migrated anonymous chat: %v", err)
+		} else {
+			mergedDBSessionID = dbChat.ID
+
+			// Persist each message from the anonymous history
+			for _, msg := range anonymousHistory {
+				// Map agent.Message role to store.Message role: 0=user, 1=assistant
+				var role int
+				switch msg.Role {
+				case llm.RoleUser:
+					role = 0
+				case llm.RoleAssistant:
+					role = 1
+				default:
+					continue // Skip system messages
+				}
+
+				groupIndex := int(msg.ID)
+
+				var reasoning *string
+				if msg.Reasoning != "" {
+					reasoning = &msg.Reasoning
+				}
+
+				if err := chatStore.InsertMessage(
+					mergedDBSessionID,
+					groupIndex,
+					role,
+					msg.Content,
+					reasoning,
+				); err != nil {
+					log.Printf("failed to persist anonymous message to user DB: %v", err)
+				}
+			}
+
+			// Add the merged chat to the top of the session list
+			newChat := store.Chat{
+				ID:         dbChat.ID,
+				SN:         chatSN,
+				Title:      title,
+				TitleState: int8(anonymousTitleState),
+				CreateAt:   dbChat.CreateAt,
+				UpdateAt:   dbChat.UpdateAt,
+			}
+			chats = append([]store.Chat{newChat}, chats...)
+		}
+	}
+
+	// Phase 2: lock and set state
+	s.chatsMu.Lock()
+	s.chatStore = chatStore
 	s.chats = chats
+	s.chatsMu.Unlock()
+
+	s.mu.Lock()
+	if hasAnonymousHistory && mergedDBSessionID > 0 {
+		// Preserve the merged anonymous chat as the current active session.
+		// The frontend's GET /api/session call will return this history,
+		// allowing a seamless transition from anonymous to logged-in user
+		// without losing the conversation context.
+		s.currentChat = &chat{
+			history:     anonymousHistory,
+			title:       anonymousTitle,
+			titleState:  anonymousTitleState,
+			dbSessionID: mergedDBSessionID,
+		}
+	} else {
+		s.currentChat = nil
+	}
+	s.userNo = sn
+	s.mu.Unlock()
+}
+
+// switchToChat switches the current active chat to a historical session
+// identified by its serial number (SN). It loads the session's messages
+// from the database into memory and sets them as the current chat.
+// Returns an error if the user is not logged in or the session is not found.
+func (s *session) switchToChat(sn string) error {
+	// Phase 1: Find the chat by SN under chatsMu lock
+	s.chatsMu.Lock()
+	if s.chatStore == nil {
+		s.chatsMu.Unlock()
+		return fmt.Errorf("user not logged in")
+	}
+
+	var dbSessionID int64
+	var targetTitle string
+	var targetTitleState int8
+	found := false
+	for i := range s.chats {
+		if s.chats[i].SN == sn {
+			dbSessionID = s.chats[i].ID
+			targetTitle = s.chats[i].Title
+			targetTitleState = s.chats[i].TitleState
+			found = true
+			break
+		}
+	}
+	s.chatsMu.Unlock()
+
+	if !found {
+		return fmt.Errorf("session not found: %s", sn)
+	}
+
+	// Phase 2: Load messages from DB (no lock needed — IO)
+	dbMessages, err := s.chatStore.ListMessages(dbSessionID)
+	if err != nil {
+		return fmt.Errorf("failed to load messages for session %s: %w", sn, err)
+	}
+
+	// Phase 3: Convert store.Message slice to agent.Message slice
+	history := make([]Message, 0, len(dbMessages))
+	for _, m := range dbMessages {
+		role := llm.RoleUser
+		if m.Role == 1 {
+			role = llm.RoleAssistant
+		}
+
+		agentMsg := Message{
+			ID:        int64(m.GroupIndex),
+			Role:      role,
+			Content:   m.Content,
+			CreatedAt: m.CreateAt,
+		}
+		if m.Reasoning != nil {
+			agentMsg.Reasoning = *m.Reasoning
+		}
+		// NOTE: Usage and Sources are not persisted to DB yet,
+		// so they will be empty after switching sessions.
+		// This is acceptable for the current implementation.
+		history = append(history, agentMsg)
+	}
+
+	// Phase 4: Set as current chat under mu lock
+	s.mu.Lock()
+	s.currentChat = &chat{
+		history:     history,
+		title:       targetTitle,
+		titleState:  TitleState(targetTitleState),
+		dbSessionID: dbSessionID,
+	}
+	s.mu.Unlock()
+
+	return nil
 }
 
 // SessionManager manages all user sessions
@@ -231,6 +453,7 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	}
 
 	s = &session{
+		id:           sessionID,
 		lastActivity: time.Now(),
 		currentChat:  &chat{},
 	}
@@ -254,9 +477,7 @@ func (sm *SessionManager) GetHistory(sessionID string) ([]Message, *session) {
 	if s.currentChat == nil {
 		return []Message{}, s
 	}
-	cp := make([]Message, len(s.currentChat.history))
-	copy(cp, s.currentChat.history)
-	return cp, s
+	return s.copyHistoryWithoutLock(), s
 }
 
 // Remove removes the session for the given sessionID (optional)
@@ -342,8 +563,9 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	}
 
 	// Find the first message with the given ID
+	history := s.getAllHistoryWithoutLock()
 	start := -1
-	for i, msg := range s.currentChat.history {
+	for i, msg := range history {
 		if msg.ID == msgID {
 			start = i
 			break
@@ -356,10 +578,10 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 
 	// Find the end: keep deleting while ID matches, stop at first different ID
 	end := start + 1
-	for end < len(s.currentChat.history) && s.currentChat.history[end].ID == msgID {
+	for end < len(history) && history[end].ID == msgID {
 		end++
 	}
 
-	s.currentChat.history = append(s.currentChat.history[:start], s.currentChat.history[end:]...)
+	s.deleteHistoryRangeWithoutLock(start, end)
 	return nil
 }

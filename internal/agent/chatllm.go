@@ -107,7 +107,7 @@ func (ate *pipelineImp) GetWebSearchResult() (sources []toolimp.WebSource) {
 	for _, tl := range ate.tools {
 		if tl.GetName() == toolimp.WebSearchToolName {
 			if searcherTl := tl.(*toolimp.WebSearchToolImp); searcherTl != nil {
-				// 去重
+				// Deduplicate
 				for _, page := range searcherTl.WebPages {
 					url := page.URL
 					if url == "" {
@@ -169,16 +169,18 @@ func (atc *pipelineImp) Call(toolCallID, toolName string) (string, error) {
 
 // callLLMWithPipeline performs a streaming LLM call with tool support.
 // It delegates to DeepSeek's imp, which handles the tool call loop internally.
+// Returns the assistant message on success, or nil if the LLM returned an error
+// or produced an empty reply. The caller is responsible for appending the
+// returned message to the session history via appendNewResponseMessage.
 func (h *ChatAgent) callLLMWithPipeline(
 	ctx context.Context,
-	session *session,
 	sseWriter *sse.Writer,
 	userMsgID int64,
 	messages []llm.Message,
 	tools []llm.ToolIMP,
 	withDeepThink bool,
 	lang string,
-) {
+) *Message {
 	// construct pipeline
 	pipeline := MakePipeline(ctx, h, sseWriter, tools, lang)
 
@@ -187,6 +189,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 		messages, &pipeline, withDeepThink)
 
 	var usage *Usage
+	var assistantMsg *Message
 
 	if err != nil {
 		pipeline.OnError(err) // Display "Oops! Server error!\n %v"
@@ -226,7 +229,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 		// Append the LLM's full reply to the user's internal history
 		//     The AI reply reuses the user message's ID (source ID)
 		if len(reply) > 0 {
-			assistantMsg := Message{
+			assistantMsg = &Message{
 				ID:        userMsgID, // same as user message's id
 				Role:      llm.RoleAssistant,
 				Content:   reply,
@@ -242,8 +245,6 @@ func (h *ChatAgent) callLLMWithPipeline(
 				assistantMsg.Sources = webPages
 			}
 
-			appendNewResponseMessage(session, &assistantMsg)
-
 			pipeline.OnWebSource(webPages)
 		}
 	}
@@ -256,6 +257,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 		CreatedAt: createdAt,
 	})
 
+	return assistantMsg
 }
 
 func mergeMessagesContent(messages []llm.Message) string {

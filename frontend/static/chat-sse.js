@@ -7,7 +7,7 @@ import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSource
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { TITLE_STATE, fetchSessionTitle, truncateTitle } from './chat-api.js';
+import { TITLE_STATE, fetchChatTitle, truncateTitle } from './chat-api.js';
 
 'use strict';
 
@@ -267,6 +267,22 @@ function enableAiTitleButton() {
 }
 
 /**
+ * 流式开始时禁用登录按钮
+ */
+function disableLoginButton() {
+    const btn = document.getElementById('loginBtn');
+    if (btn) btn.disabled = true;
+}
+
+/**
+ * 流式结束后启用登录按钮
+ */
+function enableLoginButton() {
+    const btn = document.getElementById('loginBtn');
+    if (btn) btn.disabled = false;
+}
+
+/**
  * 发送前准备：验证输入、清理 UI、初始化状态
  * @returns {{ content: string, createdAt: string, assistantBubble: HTMLElement } | null}
  */
@@ -322,6 +338,8 @@ function prepareChat() {
     enableStopButton();
     // 流式进行中，禁用 AI 标题修改按钮
     disableAiTitleButton();
+    // 流式进行中，禁用登录按钮
+    disableLoginButton();
 
     // 创建 AbortController
     state.abortController = new AbortController();
@@ -481,7 +499,7 @@ function autoUpdateTitle(wasAborted) {
     // 如果 dialogTitle 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
     const originalTitle = state.dialogTitle || '';
     // 异步调用，不阻塞后续操作
-    fetchSessionTitle(originalTitle);
+    fetchChatTitle(originalTitle);
 }
 
 /**
@@ -506,6 +524,8 @@ function cleanupAfterStream(assistantBubble, wasAborted) {
 
     // 流式结束：启用 AI 标题修改按钮
     enableAiTitleButton();
+    // 流式结束：启用登录按钮
+    enableLoginButton();
 
     // 移除 streaming 类
     const contentDiv = assistantBubble.querySelector('.bubble');
