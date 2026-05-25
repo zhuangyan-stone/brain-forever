@@ -31,7 +31,8 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 
 	if !isNew {
 		// Get a snapshot of history (copy) — lock is released inside GetHistory
-		history, sess := h.sessionManager.GetHistory(sessionID)
+		var sess *session
+		history, sess = h.sessionManager.GetHistory(sessionID)
 
 		if history == nil || sess == nil {
 			history = []Message{}
@@ -67,6 +68,12 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 				}
 				sess.chatsMu.Unlock()
 			}
+		}
+	}
+
+	if !isNew {
+		if len(history) == 0 && title == "" {
+			isNew = true
 		}
 	}
 

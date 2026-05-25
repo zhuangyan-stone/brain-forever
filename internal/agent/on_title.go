@@ -152,6 +152,10 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 // Chat title generation handler — GET /api/session/title?title=XXX
 // ============================================================
 
+// extractMessagesForTitle extracts a representative sample of messages
+// for LLM-based title generation. When history is short (<=50 messages),
+// all messages are used. For longer histories, a sampling strategy is
+// applied to include the first, last, and representative intermediate messages.
 func extractMessagesForTitle(history []Message) []Message {
 	c := len(history)
 	if c <= 50 {

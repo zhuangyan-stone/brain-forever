@@ -51,14 +51,15 @@ export async function restoreChat() {
 			}
 		}
 
-		// isNew 或 history 为空 → 显示欢迎消息
+		// 全新会话（is_new）→ 显示欢迎消息
+		// 非新会话：即使 history 为空（如后端异常），也要展示标题等信息
 		const history = data.history || [];
-		if (data.is_new || history.length === 0) {
+		if (data.is_new) {
 			showWelcomeMessage();
 			return;
 		}
 
-		// 恢复对话标题（后端从第一条用户消息截取）
+		// 恢复对话标题
 		if (data.title) {
 			updateHeaderTitle(data.title);
 		}

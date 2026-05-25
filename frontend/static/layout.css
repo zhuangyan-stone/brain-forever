@@ -41,7 +41,7 @@ body {
     ============================================================
     布局结构：
       .app-container (flex row, 100% x 100%)
-      ├── .left-sidebar (width:400px, hidden class 控制显隐)
+      ├── .left-sidebar (width:380px, hidden class 控制显隐)
       │   ├── .sidebar-header (标题区, flex-shrink:0)
       │   │   └── .left-brand-area (品牌容器, 动态渲染)
       │   └── .sidebar-content (flex:1, overflow-y:auto, 独立滚动)
@@ -68,7 +68,7 @@ body {
     ============================================================ */
 
 .left-sidebar {
-    width: 400px;
+    width: 380px;
     flex-shrink: 0;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
@@ -86,7 +86,7 @@ body {
 }
 
 .left-sidebar.hidden {
-    margin-left: -400px;
+    margin-left: -380px;
     visibility: hidden;
     opacity: 0;
 }
