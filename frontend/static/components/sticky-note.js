@@ -135,11 +135,10 @@ function restoreNote(note) {
  * @param {object} [options] - 可选配置
  * @param {function} [options.onApply] - 应用标题的回调（定时到点或用户点击"试试"时调用），参数为 title
  * @param {function} [options.onDismiss] - 用户取消时的回调，参数为 title
- * @param {function} [options.onReject] - 用户点击"停止推荐"时的回调，参数为 title。仅当提供此回调时，"停止推荐"按钮才会显示
  * @returns {HTMLElement} 创建的便利贴 DOM 元素
  */
 export function showStickyNote(message, title, options = {}) {
-    const { onApply, onDismiss, onReject } = options;
+    const { onApply, onDismiss } = options;
 
     const ctn = getContainer();
 
@@ -216,34 +215,6 @@ export function showStickyNote(message, title, options = {}) {
     // 按钮行
     const actionsEl = document.createElement('div');
     actionsEl.className = 'sticky-note-actions';
-
-    // "停止推荐" 按钮（红色警告色，放在最左边）
-    // 仅在提供了 onReject 回调时显示，因为该按钮的逻辑含义与 onReject 绑定
-    // 当标题已是"用户修改状态"时，调用方不应传入 onReject，从而隐藏此按钮
-    if (typeof onReject === 'function') {
-        const rejectBtn = document.createElement('button');
-        rejectBtn.className = 'sticky-note-btn sticky-note-btn-reject';
-        rejectBtn.textContent = '停止推荐';
-        rejectBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // 取消定时器
-            clearInterval(progressInterval);
-            clearTimeout(autoAcceptTimer);
-            // 离场动画后移除
-            note.classList.add('leaving');
-            note.addEventListener('animationend', () => {
-                note.remove();
-                if (ctn.children.length === 0) {
-                    ctn.remove();
-                    container = null;
-                }
-            }, { once: true });
-            if (typeof onReject === 'function') {
-                onReject(title);
-            }
-        });
-        actionsEl.appendChild(rejectBtn);
-    }
 
     // "✗ 不要" 按钮
     const dismissBtn = document.createElement('button');

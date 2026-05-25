@@ -431,7 +431,7 @@ async function selectChat(sn) {
     }
 
     // 8. 渲染消息
-    for (const msg of result.history) {
+    for (const msg of result.messages) {
         const msgDiv = addMessage(msg.role, msg.content, msg.created_at || null);
         const entry = { role: msg.role, content: msg.content, id: msg.id, usage: msg.usage || null };
         state.messages.push(entry);

@@ -313,21 +313,6 @@
     color: var(--text-primary);
 }
 
-/* "停止推荐" 按钮 — 红色警告色，靠左对齐 */
-/* 复用 theme.css 中定义的 --error-* 主题变量，自动适配暗色/亮色主题 */
-.sticky-note-btn-reject {
-    background: var(--error-bg);
-    color: var(--error-text);
-    border-color: var(--error-border);
-    margin-right: auto;
-}
-
-.sticky-note-btn-reject:hover {
-    background: color-mix(in srgb, var(--error-text) 18%, transparent);
-    border-color: var(--error-text);
-    color: var(--error-text);
-}
-
 /* "就 它" 按钮 — 保留深度思考按钮选中背景 */
 .sticky-note-btn-accept {
     border-color: var(--accent);

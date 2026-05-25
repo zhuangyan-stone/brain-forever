@@ -20,9 +20,9 @@ import (
 
 // ChatAgent handles chat requests, integrating RAG retrieval + LLM streaming
 //
-// ChatAgent uses SessionManager to isolate each user's chat history by sessionID.
+// ChatAgent uses SessionManager to isolate each user's chat messages by sessionID.
 // The frontend only needs to send the user's latest message each time,
-// and ChatAgent merges history with new messages before sending to the actual LLM.
+// and ChatAgent merges messages with new messages before sending to the actual LLM.
 type ChatAgent struct {
 	traitSearcher toolimp.TraitSearcher // Personal knowledge base (RAG) search
 	webSearcher   toolimp.WebSearcher   // Web search interface
@@ -111,8 +111,8 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 	var lastID int64 = 0
 
 	// Assign new ID if ID==0 (frontend no longer manages IDs)
-	if session.getHistoryLenWithoutLock() > 0 {
-		lastMsg := session.getHistoryLastMsgWithoutLock()
+	if session.getMessagesLenWithoutLock() > 0 {
+		lastMsg := session.getMessagesLastMsgWithoutLock()
 		lastID = lastMsg.ID
 
 		// Also check if the last message is a user message!
@@ -121,7 +121,7 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 		// In this case, we need to manually append an assistant message.
 		if lastMsg.Role == llm.RoleUser {
 			assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
-			session.appendHistoryWithoutLock(assistantMsg)
+			session.appendMessagesWithoutLock(assistantMsg)
 
 			// Also persist the broken assistant message to DB if logged in
 			persistMessageToDB(session, &assistantMsg)
@@ -130,8 +130,8 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 
 	reqMsg.ID = lastID + 1
 
-	// Append to history
-	session.appendHistoryWithoutLock(*reqMsg)
+	// Append to messages
+	session.appendMessagesWithoutLock(*reqMsg)
 
 	// Ensure a DB session record exists for logged-in users
 	ensureDBSession(session)
@@ -146,7 +146,7 @@ func appendNewResponseMessage(session *session, resMsg *Message) {
 		panic("new response message's ID is 0")
 	}
 
-	session.appendHistoryWithoutLock(*resMsg)
+	session.appendMessagesWithoutLock(*resMsg)
 
 	// Persist the assistant message to DB if logged in
 	persistMessageToDB(session, resMsg)
@@ -210,18 +210,18 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		lang = h.defaultLang
 	}
 
-	// 4. Add the message to the history and assign it a unique ID
+	// 4. Add the message to the messages and assign it a unique ID
 	appendNewRequestMessage(session, &req.Message, lang)
 
 	if req.Message.ID <= 0 {
-		panic("new message's ID is zero still after append to history")
+		panic("new message's ID is zero still after append to messages")
 	}
 
 	// 5. Create SSE writer
 	sseWriter := sse.NewSSEWriter(w)
 
 	// Convert agent.Message history to llm.Message for the API call
-	llmMsgs := toRawMessages(session.getAllHistoryWithoutLock())
+	llmMsgs := toRawMessages(session.getMessagesWithoutLock())
 
 	startSystemMsg := llm.Message{
 		Role:    llm.RoleSystem,
@@ -287,14 +287,14 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.mu.Lock()
-	history := session.copyHistoryWithoutLock()
+	msgs := session.copyMessagesWithoutLock()
 	title, titleState := session.getTitleWithoutLock()
 	session.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":      "ok",
-		"history":     history,
+		"messages":    msgs,
 		"title":       title,
 		"title_state": int(titleState),
 	})

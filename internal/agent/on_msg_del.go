@@ -7,10 +7,10 @@ import (
 )
 
 // ============================================================
-// DeleteHistoryHandler — DELETE /api/history
+// DeleteMessageHandler — DELETE /api/history
 // ============================================================
 
-// DeleteMessageRequest is the request body for deleting a history pair
+// DeleteMessageRequest is the request body for deleting a message pair
 type DeleteMessageRequest struct {
 	MsgID int64 `json:"msg_id"` // Unique message ID of the user message to delete (along with its AI reply)
 }

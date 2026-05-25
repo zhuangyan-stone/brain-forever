@@ -74,7 +74,7 @@ type Usage struct {
 }
 
 // ============================================================
-// Session management — isolates user chat history by sessionID
+// Session management — isolates user chat messages by sessionID
 // ============================================================
 
 // TitleState represents the state of the session title modification.
@@ -91,7 +91,7 @@ const (
 )
 
 type chat struct {
-	history []Message // The user's complete chat history
+	messages []Message // The user's complete chat messages
 
 	title      string     // Session title, generated from the first user message content
 	titleState TitleState // Title modification state
@@ -107,7 +107,7 @@ type session struct {
 	lastActivity time.Time // Last activity time, used by GC for cleanup
 
 	id          string           // HTTP cookie session ID (e.g., "s-<32hex>-<digits>"), set at creation time
-	currentChat *chat            // Current active chat (history, title, titleState)
+	currentChat *chat            // Current active chat (messages, title, titleState)
 	chats       []store.Chat     // User's chat list from the database (populated after login)
 	userNo      string           // Global unique user serial number; empty means not logged in
 	chatStore   *store.ChatStore // Chat database store for the logged-in user; nil for anonymous users
@@ -148,53 +148,53 @@ func (s *session) SetTitle(newTitle string, newState TitleState) {
 }
 
 // ============================================================
-// History accessors (WithoutLock variants — caller must hold s.mu)
+// Messages accessors (WithoutLock variants — caller must hold s.mu)
 // ============================================================
 
-func (s *session) getHistoryLenWithoutLock() int {
+func (s *session) getMessagesLenWithoutLock() int {
 	if s.currentChat == nil {
 		return 0
 	}
-	return len(s.currentChat.history)
+	return len(s.currentChat.messages)
 }
 
-func (s *session) getHistoryLastMsgWithoutLock() *Message {
-	if s.currentChat == nil || len(s.currentChat.history) == 0 {
+func (s *session) getMessagesLastMsgWithoutLock() *Message {
+	if s.currentChat == nil || len(s.currentChat.messages) == 0 {
 		return nil
 	}
-	return &s.currentChat.history[len(s.currentChat.history)-1]
+	return &s.currentChat.messages[len(s.currentChat.messages)-1]
 }
 
-func (s *session) appendHistoryWithoutLock(msgs ...Message) {
+func (s *session) appendMessagesWithoutLock(msgs ...Message) {
 	if s.currentChat == nil {
 		s.currentChat = &chat{}
 	}
-	s.currentChat.history = append(s.currentChat.history, msgs...)
+	s.currentChat.messages = append(s.currentChat.messages, msgs...)
 }
 
-func (s *session) deleteHistoryRangeWithoutLock(start, end int) {
+func (s *session) deleteMessagesRangeWithoutLock(start, end int) {
 	if s.currentChat == nil {
 		return
 	}
-	s.currentChat.history = append(s.currentChat.history[:start], s.currentChat.history[end:]...)
+	s.currentChat.messages = append(s.currentChat.messages[:start], s.currentChat.messages[end:]...)
 }
 
-func (s *session) copyHistoryWithoutLock() []Message {
+func (s *session) copyMessagesWithoutLock() []Message {
 	if s.currentChat == nil {
 		return nil
 	}
-	cp := make([]Message, len(s.currentChat.history))
-	copy(cp, s.currentChat.history)
+	cp := make([]Message, len(s.currentChat.messages))
+	copy(cp, s.currentChat.messages)
 	return cp
 }
 
-// getAllHistoryWithoutLock returns the raw history slice for read-only access
+// getMessagesWithoutLock returns the raw messages slice for read-only access
 // (caller must hold s.mu).
-func (s *session) getAllHistoryWithoutLock() []Message {
+func (s *session) getMessagesWithoutLock() []Message {
 	if s.currentChat == nil {
 		return nil
 	}
-	return s.currentChat.history
+	return s.currentChat.messages
 }
 
 // ============================================================
@@ -216,20 +216,20 @@ func (s *session) setDbSessionIDWithoutLock(id int64) {
 }
 
 // switchToUser switches the session to a logged-in user.
-// It preserves the anonymous chat history by persisting it
+// It preserves the anonymous chat messages by persisting them
 // to the user's database, then loads the user's session list.
 func (s *session) switchToUser(sn string) {
 	// Phase 0: Capture anonymous chat state (under mu lock)
-	var anonymousHistory []Message
+	var anonymousMessages []Message
 	var anonymousTitle string
 	var anonymousTitleState TitleState
-	hasAnonymousHistory := false
+	hasAnonymousMessages := false
 
 	s.mu.Lock()
-	if s.currentChat != nil && len(s.currentChat.history) > 0 {
-		anonymousHistory = s.copyHistoryWithoutLock()
+	if s.currentChat != nil && len(s.currentChat.messages) > 0 {
+		anonymousMessages = s.copyMessagesWithoutLock()
 		anonymousTitle, anonymousTitleState = s.getTitleWithoutLock()
-		hasAnonymousHistory = true
+		hasAnonymousMessages = true
 	}
 	s.mu.Unlock()
 
@@ -248,15 +248,15 @@ func (s *session) switchToUser(sn string) {
 		return
 	}
 
-	// Phase 1.5: Persist anonymous history to the user's database
+	// Phase 1.5: Persist anonymous messages to the user's database
 	var mergedDBSessionID int64
-	if hasAnonymousHistory {
+	if hasAnonymousMessages {
 		chatSN := generateSessionSN()
 
 		// Determine title: use existing title, or derive from first user message
 		title := anonymousTitle
 		if title == "" {
-			for _, msg := range anonymousHistory {
+			for _, msg := range anonymousMessages {
 				if msg.Role == llm.RoleUser {
 					title = toolset.TruncateTitle(msg.Content, 50)
 					break
@@ -270,8 +270,8 @@ func (s *session) switchToUser(sn string) {
 		} else {
 			mergedDBSessionID = dbChat.ID
 
-			// Persist each message from the anonymous history
-			for _, msg := range anonymousHistory {
+			// Persist each message from the anonymous messages
+			for _, msg := range anonymousMessages {
 				// Map agent.Message role to store.Message role: 0=user, 1=assistant
 				var role int
 				switch msg.Role {
@@ -321,13 +321,13 @@ func (s *session) switchToUser(sn string) {
 	s.chatsMu.Unlock()
 
 	s.mu.Lock()
-	if hasAnonymousHistory && mergedDBSessionID > 0 {
+	if hasAnonymousMessages && mergedDBSessionID > 0 {
 		// Preserve the merged anonymous chat as the current active session.
-		// The frontend's GET /api/session call will return this history,
+		// The frontend's GET /api/session call will return these messages,
 		// allowing a seamless transition from anonymous to logged-in user
 		// without losing the conversation context.
 		s.currentChat = &chat{
-			history:     anonymousHistory,
+			messages:    anonymousMessages,
 			title:       anonymousTitle,
 			titleState:  anonymousTitleState,
 			dbSessionID: mergedDBSessionID,
@@ -377,7 +377,7 @@ func (s *session) switchToChat(sn string) error {
 	}
 
 	// Phase 3: Convert store.Message slice to agent.Message slice
-	history := make([]Message, 0, len(dbMessages))
+	msgs := make([]Message, 0, len(dbMessages))
 	for _, m := range dbMessages {
 		role := llm.RoleUser
 		if m.Role == 1 {
@@ -396,13 +396,13 @@ func (s *session) switchToChat(sn string) error {
 		// NOTE: Usage and Sources are not persisted to DB yet,
 		// so they will be empty after switching sessions.
 		// This is acceptable for the current implementation.
-		history = append(history, agentMsg)
+		msgs = append(msgs, agentMsg)
 	}
 
 	// Phase 4: Set as current chat under mu lock
 	s.mu.Lock()
 	s.currentChat = &chat{
-		history:     history,
+		messages:    msgs,
 		title:       targetTitle,
 		titleState:  TitleState(targetTitleState),
 		dbSessionID: dbSessionID,
@@ -458,9 +458,9 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	return s
 }
 
-// GetHistory returns a read-only copy of the session's chat history.
+// GetMessages returns a read-only copy of the session's chat messages.
 // Returns nil if the session does not exist.
-func (sm *SessionManager) GetHistory(sessionID string) ([]Message, *session) {
+func (sm *SessionManager) GetMessages(sessionID string) ([]Message, *session) {
 	sm.mu.RLock()
 	s, ok := sm.sessions[sessionID]
 	sm.mu.RUnlock()
@@ -474,7 +474,7 @@ func (sm *SessionManager) GetHistory(sessionID string) ([]Message, *session) {
 	if s.currentChat == nil {
 		return []Message{}, s
 	}
-	return s.copyHistoryWithoutLock(), s
+	return s.copyMessagesWithoutLock(), s
 }
 
 // Remove removes the session for the given sessionID (optional)
@@ -560,9 +560,9 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	}
 
 	// Find the first message with the given ID
-	history := s.getAllHistoryWithoutLock()
+	msgs := s.getMessagesWithoutLock()
 	start := -1
-	for i, msg := range history {
+	for i, msg := range msgs {
 		if msg.ID == msgID {
 			start = i
 			break
@@ -575,10 +575,10 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 
 	// Find the end: keep deleting while ID matches, stop at first different ID
 	end := start + 1
-	for end < len(history) && history[end].ID == msgID {
+	for end < len(msgs) && msgs[end].ID == msgID {
 		end++
 	}
 
-	s.deleteHistoryRangeWithoutLock(start, end)
+	s.deleteMessagesRangeWithoutLock(start, end)
 	return nil
 }

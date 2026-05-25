@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
@@ -153,33 +154,40 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 // ============================================================
 
 // extractMessagesForTitle extracts a representative sample of messages
-// for LLM-based title generation. When history is short (<=50 messages),
-// all messages are used. For longer histories, a sampling strategy is
+// for LLM-based title generation. When messages are short (<=50 messages),
+// all messages are used. For longer message lists, a sampling strategy is
 // applied to include the first, last, and representative intermediate messages.
-func extractMessagesForTitle(history []Message) []Message {
-	c := len(history)
+func extractMessagesForTitle(msgs []Message) []Message {
+	c := len(msgs)
 	if c <= 50 {
-		return history
+		return msgs
 	}
 
 	i := c/3 + 1
-	samples := history[0:i]
+	samples := msgs[0:i]
 
 	for j := i + 1; j < c-1; j++ {
-		if history[j].Role == llm.RoleUser {
-			samples = append(samples, history[j])
-		} else if j%5 == 0 {
-			samples = append(samples, history[j])
+		if msgs[j].Role == llm.RoleUser {
+			samples = append(samples, msgs[j])
+		} else if msgs[j].ID%3 == 0 {
+			msg := msgs[j]
+			msg.Reasoning = ""
+
+			if utf8.RuneCountInString(msg.Content) > 600 {
+				msg.Content = string([]rune(msg.Content)[:600])
+			}
+
+			samples = append(samples, msg)
 		}
 	}
 
-	samples = append(samples, history[c-1])
+	samples = append(samples, msgs[c-1])
 	return samples
 }
 
 // OnProposeChatTitle handles GET /api/session/title requests.
 // It reads the "title" query parameter as the original title,
-// takes messages from the session history, sends them to the LLM
+// takes messages from the session, sends them to the LLM
 // to generate a new concise title, and returns the new title as JSON.
 // On error or empty LLM response, returns the original title.
 //
@@ -207,7 +215,7 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	session.mu.Lock()
-	samples := extractMessagesForTitle(session.getAllHistoryWithoutLock())
+	samples := extractMessagesForTitle(session.getMessagesWithoutLock())
 	session.mu.Unlock()
 
 	// Build the LLM prompt with i18n support

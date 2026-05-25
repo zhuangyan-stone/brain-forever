@@ -52,8 +52,8 @@ export async function restoreChat() {
 		}
 
 		// 全新会话（is_new）→ 显示欢迎消息
-		// 非新会话：即使 history 为空（如后端异常），也要展示标题等信息
-		const history = data.history || [];
+		// 非新会话：即使 messages 为空（如后端异常），也要展示标题等信息
+		const history = data.messages || [];
 		if (data.is_new) {
 			showWelcomeMessage();
 			return;

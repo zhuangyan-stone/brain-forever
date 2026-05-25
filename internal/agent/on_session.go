@@ -23,26 +23,26 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 
 	sessionID, isNew := h.getSessionID(w, r)
 
-	var history []Message
+	var msgs []Message
 	title := ""
 	titleState := int(TitleStateOriginal)
 	userNo := ""
 	var chats []store.Chat
 
 	if !isNew {
-		// Get a snapshot of history (copy) — lock is released inside GetHistory
+		// Get a snapshot of messages (copy) — lock is released inside GetMessages
 		var sess *session
-		history, sess = h.sessionManager.GetHistory(sessionID)
+		msgs, sess = h.sessionManager.GetMessages(sessionID)
 
-		if history == nil || sess == nil {
-			history = []Message{}
+		if msgs == nil || sess == nil {
+			msgs = []Message{}
 		} else {
 			savedTitle, savedState := sess.GetTitle()
 			if savedTitle != "" {
 				title = savedTitle
 				titleState = int(savedState)
 			} else {
-				for _, msg := range history {
+				for _, msg := range msgs {
 					if msg.Role == llm.RoleUser {
 						title = toolset.TruncateTitle(msg.Content, 50)
 						sess.SetTitle(title, TitleStateOriginal)
@@ -72,7 +72,7 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isNew {
-		if len(history) == 0 && title == "" {
+		if len(msgs) == 0 && title == "" {
 			isNew = true
 		}
 	}
@@ -80,7 +80,7 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{
 		"session_id":  sessionID,
 		"is_new":      isNew,
-		"history":     history,
+		"messages":    msgs,
 		"title":       title,
 		"title_state": titleState,
 		"user_no":     userNo,
