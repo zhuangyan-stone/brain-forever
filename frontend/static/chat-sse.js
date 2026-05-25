@@ -8,6 +8,7 @@ import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { TITLE_STATE, fetchChatTitle, truncateTitle } from './chat-api.js';
+import { addDirtyChat } from './chat-list.js';
 
 'use strict';
 
@@ -228,6 +229,13 @@ function addUserMessage(content, createdAt) {
         if (title) {
             updateHeaderTitle(title);
             state.titleState = TITLE_STATE.ORIGINAL;
+
+            // 登录用户的首次消息：立即在侧边栏插入一条脏数据条目
+            // （sn 为空，等后端刷新后替换为完整数据）
+            const userNo = localStorage.getItem('brainforever_user_no');
+            if (userNo) {
+                addDirtyChat(title);
+            }
         }
     }
 }

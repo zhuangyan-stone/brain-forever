@@ -496,6 +496,15 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     color: var(--accent);
 }
 
+.new-chat-btn:disabled,
+.new-chat-btn:disabled:hover {
+    cursor: not-allowed;
+    opacity: 0.4;
+    pointer-events: none;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
 /* ============================================================
     AI 循环按钮 — 位于对话标题右侧，仅宽屏可见
     ============================================================ */

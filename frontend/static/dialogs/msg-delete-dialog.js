@@ -139,14 +139,9 @@ async function confirmDelete() {
         // 更新 userMsgCount
         state.userMsgCount = remainingUsers.length;
 
-        // 如果所有消息都被删除（没有用户消息了），重置 currentGroup
-        if (remainingUsers.length === 0) {
-            state.currentGroup = null;
-        } else {
-            // 更新 currentGroup 为最后一个 group
-            const lastGroup = chatContainer.querySelector('.message-group:last-child');
-            state.currentGroup = lastGroup;
-        }
+        // currentGroup 已取消，不再需要维护。
+        // addMessage('assistant') 会通过 dom.chatContainer.querySelector('.message-group:last-child')
+        // 自动找到当前组，因此无需设置 state.currentGroup。
 
         // 更新刻度导航
         updateTickNav();

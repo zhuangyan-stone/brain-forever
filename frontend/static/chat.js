@@ -15,7 +15,7 @@ import { restoreChat } from './chat-restore.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
-import { clearActiveChat } from './chat-list.js';
+import { clearActiveChat, addDirtyChat } from './chat-list.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
 'use strict';
@@ -171,7 +171,6 @@ async function startNewSession() {
         state.userMsgCount = 0;
         state.activeTickIndex = -1;
         state.tickScrollOffset = 0;
-        state.currentGroup = null;
         state.accumulatedMarkdown = '';
         if (state.renderTimer) {
             clearTimeout(state.renderTimer);

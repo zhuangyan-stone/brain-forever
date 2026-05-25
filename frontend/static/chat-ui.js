@@ -269,12 +269,13 @@ export function addMessage(role, content, createdAt = null, isStreaming = false)
 
         dom.chatContainer.appendChild(group);
 
-        // 记录为当前组，后续 assistant 消息会追加到此组内
-        state.currentGroup = group;
+        // user 消息创建的新组即当前组，后续 assistant 消息会追加到此组内
+        // 通过 dom.chatContainer.querySelector('.message-group:last-child') 查找
     } else {
-        // assistant 消息：追加到当前消息组
-        if (state.currentGroup) {
-            state.currentGroup.appendChild(div);
+        // assistant 消息：追加到当前消息组（即 DOM 中最后一个 .message-group）
+        const lastGroup = dom.chatContainer.querySelector('.message-group:last-child');
+        if (lastGroup) {
+            lastGroup.appendChild(div);
         } else {
             // 兜底：没有当前组时（如欢迎消息），创建一个独立的消息组
             const group = document.createElement('div');
@@ -290,7 +291,6 @@ export function addMessage(role, content, createdAt = null, isStreaming = false)
             group.appendChild(groupDeleteBtn);
 
             dom.chatContainer.appendChild(group);
-            state.currentGroup = group;
         }
     }
 

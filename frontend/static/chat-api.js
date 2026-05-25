@@ -180,7 +180,6 @@ export async function switchToUser(data) {
 	state.userMsgCount = 0;
 	state.activeTickIndex = -1;
 	state.tickScrollOffset = 0;
-	state.currentGroup = null;
 	state.accumulatedMarkdown = '';
 	if (state.renderTimer) {
 		clearTimeout(state.renderTimer);

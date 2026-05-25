@@ -122,9 +122,6 @@ export const state = {
     // 而是标记此值，等滚动完全停止后再触发（由 scrollDebounceTimer 处理）
     pendingHighlightIndex: -1,
 
-    // 当前消息组，用于将同一问答对的 user + assistant 包裹在 .message-group 内
-    currentGroup: null,
-
     // 流式渲染相关
     accumulatedMarkdown: '',
     renderTimer: null,

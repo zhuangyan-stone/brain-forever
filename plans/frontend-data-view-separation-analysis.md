@@ -1,5 +1,7 @@
 # 前端数据与视图分离问题分析及重构计划
 
+> **文档版本**: v3 — 修正了对流式渲染的分析，区分了"流式路径"和"非流式路径"
+
 ## 一、当前架构概览
 
 ```
@@ -23,47 +25,49 @@
 
 ---
 
-## 二、核心问题分析
+## 二、关键区分：流式路径 vs 非流式路径
 
-### 问题 1：`state.messages` 与 DOM 绑定过紧
+这里需要做一个**重要的区分**。代码中有两条完全不同的数据路径，它们的耦合情况截然不同：
 
-**文件**：[`chat-ui.js`](../frontend/static/chat-ui.js:248)
+### 路径 A：流式输出路径（SSE 实时渲染）— ✅ 设计合理
 
-`addMessage()` 函数**同时**做了三件事——数据变更、DOM 创建、UI 滚动：
-
-```js
-export function addMessage(role, content, ...) {
-    // ── ① 创建 DOM 节点 ──
-    const div = document.createElement('div');
-    div.className = `message ${role}`;
-
-    if (role === 'user') {
-        // ── ② 操纵 state.currentGroup（DOM 引用！） ──
-        state.currentGroup = group;  // ← 状态里混入 DOM 引用
-        dom.chatContainer.appendChild(group);
-    } else {
-        // ── ③ 操纵 DOM 结构 ──
-        state.currentGroup.appendChild(div);
-    }
-
-    // ── ④ 更新数据计数器 ──
-    state.userMsgCount++;
-
-    // ── ⑤ UI 副作用 ──
-    autoScrollToBottom();
-
-    return div;  // 返回 DOM 元素
-}
+```
+SSE chunk arrives
+    → state.accumulatedMarkdown += content    (累积到缓冲区)
+    → throttleRender() 每 180ms:
+        → contentDiv.innerHTML = renderMarkdown(buffer)  (增量渲染)
+        → autoScrollToBottom()                           (自动滚动)
+    → SSE done event:
+        → 最终渲染 + 推入 state.messages                  (归档)
 ```
 
-**后果**：
-- 无法"只更新数据、不渲染"（没有数据层和视图层的分离）
-- `state.currentGroup` 是一个 **DOM 元素引用**，违反了数据与视图分离原则
-- 任何需要添加消息的场景（恢复对话、切换对话、发送消息）都必须走 DOM 创建流程
+**这条路径的实际做法是"增量渲染"，而非"全量刷新"**。它只更新了一个特定 DOM 元素的 innerHTML，没有重建整个消息列表。这本质上就是 **chunked incremental render**，是正确的流式渲染模式——即使使用 Vue/React，流式输出也走同一个模式（直接操作 ref 的 innerHTML）。
+
+> **结论**：流式路径没有问题。`accumulatedMarkdown` 作为渲染缓冲区而存在，未归档前不进入 `state.messages`，这是合理的。
+
+### 路径 B：非流式路径（恢复/切换/初始化）— ⚠️ 存在耦合问题
+
+```
+restoreChat / selectChat / switchToUser
+    → 清空 DOM（手动移除所有 .message-group）
+    → 清空 state（state.messages = []）
+    → 调后端 API 获取数据
+    → 遍历数据：
+        → addMessage() 创建 DOM 节点   (DOM 操作)
+        → state.messages.push()        (数据操作)
+    → 手动更新刻度导航、标题等
+```
+
+**这条路径的问题才是真正的关注点**：数据和 DOM 的同步是**完全手动且紧耦合的**。每处都需要：
+1. 手动清空 DOM
+2. 手动清空 state
+3. 手动遍历创建 + 推入
 
 ---
 
-### 问题 2：`state.currentGroup` —— 数据和 DOM 未分离的典型"坏味道"
+## 三、真正的核心问题
+
+### 问题 1：`state.currentGroup` 存储 DOM 引用（真正的坏味道）
 
 **文件**：[`chat-state.js`](../frontend/static/chat-state.js:126)
 
@@ -75,73 +79,39 @@ export const state = {
 };
 ```
 
-理想情况下，`currentGroup` 应该是**当前消息组的 ID 或索引**，而不是 DOM 元素。因为：
-- 如果消息组重新排序，这个 DOM 引用会悬空
-- 无法序列化、无法让框架接管渲染
-- 表明消息分组的逻辑落在了视图层
+`currentGroup` 在流式路径和非流式路径中都被使用：
+- 流式路径中用于 `state.currentGroup.appendChild(div)` 追加 assistant 消息到同一 group
+- 非流式路径中同样用于追加
 
----
+**问题**：如果 DOM 重建（如切换会话后），这个引用指向旧的 DOM 节点，会悬空。更合理的做法是存 `currentGroupMsgId`（消息组 ID），通过 ID 查找 DOM。
 
-### 问题 3：`currentChats`（对话列表）不在集中式 store 中
+### 问题 2：`currentChats`（对话列表）是 module 局部变量
 
 **文件**：[`chat-list.js`](../frontend/static/chat-list.js:154)
 
 ```js
-let currentChats = [];       // ← module 局部变量，非集中状态
+let currentChats = [];       // ← module 局部变量
 let activeChatSN = null;     // ← module 局部变量
 ```
 
-- 对话列表的数据存储在每个模块自己的作用域中，不是集中式 store
-- 其他模块要访问对话列表需要 import，且只能通过 `renderChatList()` 间接更新
-- 状态变更没有事件通知机制，无法监听变化
+- 其他模块要获取对话列表需要迂回方式
+- 没有事件通知机制——标题变更后需要手动调用 `updateCurrentChatTitle()` 来同步
+- `updateCurrentChatTitle()` 又通过 DOM 选择器定位元素（`querySelectorAll(.chat-item[data-sn="...])`），这是另一种 DOM 耦合
 
----
-
-### 问题 4：消息分组逻辑 = DOM 结构即数据模型
-
-当前消息的分组方式完全依赖 DOM 结构：
-
-```html
-<!-- 每个 .message-group 包含一对 user + assistant -->
-<div class="message-group" data-msg-id="xxx">
-    <div class="message user">...</div>
-    <div class="message assistant">...</div>
-    <button class="delete-msg-btn">...</button>
-    <div class="sources-panel">...</div>
-</div>
-```
-
-但 `state.messages` 数组是扁平的：
-
-```js
-state.messages = [
-    { role: 'user', content: '你好', id: 1 },
-    { role: 'assistant', content: '你好！', id: 1, usage: {...}, sources: [...] },
-    { role: 'user', content: '再问一个', id: 2 },
-    { role: 'assistant', content: '好的', id: 2, reasoning: '...' },
-];
-```
-
-**问题**：`state.messages` 中没有任何字段表示"这条消息属于哪个 group"。group 的概念完全由 DOM 结构隐式表达。如果要删除一个 group，需要在 `state.messages` 中同时删除两条记录，而这两条记录之间**没有显式的关联关系**。
-
----
-
-### 问题 5：reasoning（思考链）的 `rawText` 直接挂在 DOM 元素上
+### 问题 3：reasoning（思考链）的 `rawText` 挂在 DOM 元素上
 
 **文件**：[`chat-reasoning.js`](../frontend/static/chat-reasoning.js:174)
 
 ```js
-contentEl.rawText += event.content;  // ← 文本状态挂在 DOM 元素属性上
+contentEl.rawText += event.content;  // ← 文本状态挂在 DOM 元素的属性上
 ```
 
-思考链的累积文本保存在 DOM 元素的 `rawText` 属性中，而非 `state` 中。这意味着：
-- reasoning 内容无法独立于 DOM 存在
-- 切换对话时 reasoning 内容丢失（不会被清理）
-- 数据不可序列化、不可测试
+这意味着：
+- 切换对话后，旧 DOM 被移除，`rawText` 丢失（虽然切换时当前没有活跃的流式 reasoning）
+- 数据不可序列化、不可在修复后恢复
+- 与 addMessage 的 `state.messages.push({content, ...})` 不一致——消息内容进 state，reasoning 内容不进 state
 
----
-
-### 问题 6：刻度导航完全基于 DOM 属性
+### 问题 4：刻度导航依赖 DOM 查询而非数据源
 
 **文件**：[`chat-ticknav.js`](../frontend/static/chat-ticknav.js:31-33)
 
@@ -150,301 +120,196 @@ const userMessages = chatContainer.querySelectorAll('.message.user');
 const tickCount = userMessages.length;
 ```
 
-刻度导航通过读取 **DOM 中 `.message.user` 元素的数量** 来确定刻度数，通过 `data-msg-index` 属性定位：
+刻度导航通过 **查询 DOM** 来确定有多少条用户消息：
 
 ```js
 const targetMsg = scrollContainer.querySelector(`.message.user[data-msg-index="${i}"]`);
 ```
 
-如果 `state.messages` 能作为唯一数据源，刻度导航本应只需：
+如果用 `state.messages` 作为唯一数据源：
 
 ```js
 const userMessages = state.messages.filter(m => m.role === 'user');
+const tickCount = userMessages.length;
 ```
 
+这就不需要在 DOM 上挂 `data-msg-index` 属性了。
+
+### 问题 5：`addMessage()` 在非流式路径中耦合了数据和 DOM
+
+**文件**：[`chat-ui.js`](../frontend/static/chat-ui.js:248)
+
+当**非流式**（如 restoreChat/selectChat）调用 `addMessage()` 时：
+
+```js
+export function addMessage(role, content, ...) {
+    // ── 创建 DOM ──
+    const div = document.createElement('div');
+    // ── 管理分组（操作 DOM + state.currentGroup） ──
+    if (role === 'user') {
+        state.currentGroup = group;  // 记录 DOM 引用
+        dom.chatContainer.appendChild(group);
+    } else {
+        state.currentGroup.appendChild(div);
+    }
+    // ── 递增计数器 ──
+    state.userMsgCount++;
+    // ── 自动滚动 ──
+    autoScrollToBottom();
+    return div;  // 返回 DOM 元素供调用方使用
+}
+```
+
+**但注意**：对于流式路径，`addMessage('user', ...)` 和 `addMessage('assistant', '', ..., true)` 也是走这个函数——流式路径也依赖 `state.currentGroup`。如果修改 `currentGroup` 的行为，需要确保流式路径不受影响。
+
+### 问题 6：消息分组没有显式的数据模型
+
+`state.messages` 是扁平的：
+
+```js
+state.messages = [
+    { role: 'user', content: '你好', id: 1 },
+    { role: 'assistant', content: '你好！', id: 1, usage: {...} },
+    { role: 'user', content: '再问一个', id: 2 },
+    { role: 'assistant', content: '好的', id: 2, reasoning: '...' },
+];
+```
+
+"哪些消息属于同一个 group"完全由 DOM 结构隐式表达（`.message-group` 包裹层）。如果需要删除一个 group，当前的做法是通过 `msgId` 来匹配（因为 user 和 assistant 共享同一个 `msgId`），这实际上已经是一种隐式的分组 ID 方案。但 `state.messages` 中没有显式的 groupId 字段。
+
 ---
 
-### 问题 7：缺乏事件/通知机制
+## 四、复杂度具体表现（非流式路径）
 
-当前没有任何数据变更事件机制。例如：
-- 当 `state.messages` 变化时，刻度导航不会自动更新，必须在每个操作后手动调用 `updateTickNav()`
-- 当标题变化时，必须在调用处手动调用 `updateHeaderTitle()` + `updateCurrentChatTitle()`
-- 没有 computed/watch 机制，纯手动同步
-
----
-
-## 三、复杂度具体表现
-
-以下是当前代码中手动同步"数据 → DOM"的典型模式，在每个文件中都能找到：
+以下是非流式路径中手动同步"数据 → DOM"的典型模式：
 
 | 文件 | 手动同步代码片段 |
 |------|----------------|
-| `chat-restore.js:76-99` | 遍历消息 → `addMessage()` 创建 DOM → `state.messages.push()` |
-| `chat-list.js:384-471` (selectChat) | 清空 state → 清空 DOM → 调 API → 遍历结果创建 DOM + 填充 state |
-| `chat-sse.js:222-233` (addUserMessage) | `addMessage()` 创建 DOM → `state.messages.push()` |
-| `chat-sse.js:56-141` (handleDoneEvent) | 更新 DOM → 推入 state → 调用多个 UI 函数 |
-| `chat-api.js:177-250` (switchToUser) | 清空 state → 清空 DOM → 调 API → 创建 DOM → 填充 state |
+| [`chat-restore.js`](../frontend/static/chat-restore.js:76-99) | 遍历消息 → `addMessage()` 创建 DOM → `state.messages.push()` |
+| [`chat-list.js`](../frontend/static/chat-list.js:384-471) (selectChat) | 清空 state → 清空 DOM → 调 API → 遍历结果创建 DOM + 填充 state |
+| [`chat-api.js`](../frontend/static/chat-api.js:177-250) (switchToUser) | 清空 state → 清空 DOM → 调 API → 创建 DOM → 填充 state |
 
-**每增加一个新功能，都必须同时维护 3 个一致性**：
-1. **数据（state.messages / currentChats）** 正确
-2. **DOM 节点** 与数据一致
-3. **UI 状态**（滚动位置、刻度高亮、输入面板折叠）与上下文匹配
+另外还有标题变更的级联手动同步链：
 
----
-
-## 四、重构方向（渐进式）
-
-考虑到这是已有稳定功能的生产代码，建议**渐进式重构**而非推倒重来。分三个阶段：
-
-### 阶段一：数据层与视图层初步分离（低风险）
-
-**目标**：在不改变整体架构的前提下，把数据操作和 DOM 操作解耦。
-
-1. **封装 `store/messages.js`** — 消息操作中心
-   - 从 `chat-state.js` 中提取消息相关操作
-   - 添加 `addMessage()` / `removeMessage()` / `clearMessages()` 等纯数据方法
-   - 只在数据操作完成后通过回调通知视图更新
-
-2. **封装 `store/chats.js`** — 对话列表操作中心
-   - 将 `currentChats`、`activeChatSN` 移入集中 store
-   - 提供 `setChats()` / `setActiveChat()` / `updateChatTitle()` 等方法
-
-3. **消除 `state.currentGroup`（DOM 引用）**
-   - 改为存储当前 group 对应的 `msgId`
-   - 消息分组逻辑由数据驱动，不依赖 DOM 结构
-
-### 阶段二：引入简单的响应式机制（中等风险）
-
-**目标**：建立"数据变化 → 视图自动更新"的管道。
-
-1. **实现简单的订阅-发布模式**（或引入轻量级库如 `mitt`）
-2. **数据层变更时发布事件**，视图层订阅并自动更新
-3. **逐步替换手动 DOM 操作**，让视图自动响应数据变化
-
-示例伪代码：
-
-```js
-// 数据层
-store.messages.add({ role: 'user', content: '你好' });
-// → 自动发布 'messages:changed' 事件
-
-// 视图层（解耦）
-store.on('messages:changed', () => {
-    renderMessages();  // 重绘消息列表
-    updateTickNav();   // 更新刻度
-});
 ```
-
-### 阶段三：引入现代框架（高风险，但收益最大）
-
-**目标**：用 Vue/React/Svelte 等框架替换手动 DOM 操作。
-
-**考虑因素**：
-- 当前已是纯前端 SPA（无页面刷新），天然适合框架
-- 所有状态可放入响应式 store
-- 模板渲染替代命令式 DOM 操作
-- 但需要一次性较大改动，测试风险高
-
----
-
-## 五、阶段一详细实施步骤
-
-### Step 1：创建 `store/messages.js`
-
-提取消息数据操作：
-
-```js
-// store/messages.js
-import { state } from '../chat-state.js';
-
-let _nextTempId = -1;
-
-export const messageStore = {
-    get all() { return state.messages; },
-
-    add(role, content, extra = {}) {
-        const msg = {
-            role,
-            content,
-            id: extra.id || _nextTempId--,
-            usage: extra.usage || null,
-            created_at: extra.created_at || null,
-            sources: extra.sources || null,
-            reasoning: extra.reasoning || null,
-            deep_think: extra.deep_think || false,
-            msgIndex: role === 'user' ? state.userMsgCount++ : undefined,
-        };
-        state.messages.push(msg);
-        return msg;
-    },
-
-    removeByMsgId(msgId) {
-        // 移除匹配 msgId 的所有消息（user + assistant 一对）
-        state.messages = state.messages.filter(m => m.id !== msgId);
-    },
-
-    clear() {
-        state.messages = [];
-        state.userMsgCount = 0;
-    },
-
-    getLastUserMessage() {
-        for (let i = state.messages.length - 1; i >= 0; i--) {
-            if (state.messages[i].role === 'user') return state.messages[i];
-        }
-        return null;
-    },
-
-    getUserMessages() {
-        return state.messages.filter(m => m.role === 'user');
-    },
-};
-```
-
-### Step 2：消除 `state.currentGroup`
-
-**当前**：`state.currentGroup` 存 DOM 引用，`addMessage('assistant')` 追加到这个 DOM 中。
-
-**改为**：用 `state.currentGroupMsgId` 替代，视图层根据 `msgId` 查找对应的 DOM group。
-
-```js
-// chat-state.js
-export const state = {
-    messages: [],
-    currentGroupMsgId: null,  // ← 改为 msgId，非 DOM 引用
-    // currentGroup 移除
-};
-```
-
-视图层渲染时根据 `currentGroupMsgId` 定位 DOM group：
-
-```js
-function getCurrentGroupEl() {
-    const id = state.currentGroupMsgId;
-    if (id == null) return null;
-    return document.querySelector(`.message-group[data-msg-id="${id}"]`);
-}
-```
-
-### Step 3：创建 `store/chats.js`
-
-```js
-// store/chats.js
-// 将 chat-list.js 中的 module 级变量移入集中 store
-
-let _listeners = [];
-
-export const chatStore = {
-    chats: [],
-    activeSN: null,
-
-    setChats(chats) {
-        this.chats = chats || [];
-        this._notify();
-    },
-
-    setActiveSN(sn) {
-        this.activeSN = sn;
-        this._notify();
-    },
-
-    updateTitle(sn, title) {
-        const chat = this.chats.find(c => c.sn === sn);
-        if (chat) chat.title = title;
-        this._notify();
-    },
-
-    removeBySN(sn) {
-        this.chats = this.chats.filter(c => c.sn !== sn);
-        this._notify();
-    },
-
-    onChange(fn) {
-        _listeners.push(fn);
-        return () => { _listeners = _listeners.filter(l => l !== fn); };
-    },
-
-    _notify() {
-        _listeners.forEach(fn => fn(this.chats, this.activeSN));
-    },
-};
-```
-
-### Step 4：将 reasoning 文本从 DOM 元素移到 state
-
-**当前**：`contentEl.rawText` 挂在 DOM 元素上。
-
-**改为**：将 reasoning 内容作为 `state.messages` 的一部分。
-
-```js
-// state.messages 中的 assistant 消息新增字段
-{
-    role: 'assistant',
-    content: '...',
-    reasoning: '思考过程的累积文本',  // ← 新增
-}
-```
-
-### Step 5：提取视图渲染层
-
-将 DOM 操作从数据逻辑中分离：
-
-```js
-// views/message-renderer.js
-// 只负责：数据 → DOM 的渲染
-// 不负责：数据变更
-
-import { messageStore } from '../store/messages.js';
-import { dom } from '../chat-ui.js';
-
-export function renderAllMessages() {
-    const container = dom.chatContainer;
-    container.innerHTML = '';
-
-    // 按 msgId 分组
-    const groups = groupMessagesByPair(messageStore.all);
-    
-    for (const group of groups) {
-        const groupEl = createGroupElement(group);
-        container.appendChild(groupEl);
-    }
-}
-
-function groupMessagesByPair(messages) {
-    // 将扁平的消息数组按 id 分组为 [user, assistant] 对
-    const pairs = [];
-    let currentPair = null;
-    for (const msg of messages) {
-        if (msg.role === 'user') {
-            currentPair = { user: msg, assistant: null };
-            pairs.push(currentPair);
-        } else if (currentPair) {
-            currentPair.assistant = msg;
-        }
-    }
-    return pairs;
-}
+用户点击保存标题
+  → putChatTitle() 调 API
+  → updateHeaderTitle(newTitle)        // 更新 DOM
+  → state.dialogTitle = title          // 更新 state
+  → updateCurrentChatTitle(title)      // 更新侧边栏 DOM
+    → currentChats.find()              // 更新内存中数据
+    → querySelectorAll(.chat-item[data-sn="...])  // DOM 选择器更新
 ```
 
 ---
 
-## 六、过渡策略
+## 五、关于"无框架 = 刷新即生效"的思考
 
-| 阶段 | 改动范围 | 测试策略 | 预计风险 |
-|------|---------|---------|---------|
-| 数据层封装 | 新增文件，不改动现有逻辑 | 功能回归测试 | 低 |
-| 消除 DOM 引用 | 替换 `state.currentGroup` | 消息渲染回归 | 中低 |
-| 引入事件机制 | 新增 `store.on()` API | 功能回归 | 中 |
-| 提取视图层 | 新增视图文件，逐步迁移 | 逐个组件替换 | 中 |
-| 全面框架化 | 重写前端 | 全量回归 | 高 |
+你提到的这个优势非常实在。当前项目没有构建步骤，修改 JS 后刷新浏览器即生效。如果引入框架：
 
-**关键原则**：每个小步完成后**功能必须可正常工作**，不能有中间态不可用的情况。
+| 方面 | 无框架（当前） | 有框架 |
+|------|---------------|--------|
+| 修改后生效 | 刷新即生效 | 需要构建（npm run build/dev） |
+| 依赖管理 | 无 | package.json + node_modules |
+| 开发复杂度 | 低 | 中（需要了解框架生态） |
+| 状态/视图管理 | 手动 | 自动（响应式） |
+| 代码体积 | ~60KB 手写 JS | 额外增加框架体积（Vue ~30KB gzip） |
+
+**可能的中间路线**：给当前代码加上轻量的数据层封装，但不引入框架。这样既保留了"刷新即生效"的优势，又改善了数据管理的可维护性。
 
 ---
 
-## 七、后续建议
+## 六、当前代码的亮点（也应被认可）
 
-1. **不要在单次 PR 中完成全部重构**。建议逐个 Step 推进，每次只改一个模块。
-2. **先建好数据层**，再逐步迁移视图层。确保数据层有完整的单元测试。
-3. **保持向后兼容**：旧 API（如 `addMessage()`）在新架构上封装，调用方不必立即修改。
-4. **如果考虑引入框架**，建议从 Vue 3（组合式 API）入手，因为它可以逐块接入，不需要一次性重写全部。
+在批评之前，需要承认当前代码做了很多正确的事情：
+
+1. **ES modules 模块化**：按功能拆分成独立文件，职责清晰
+2. **`state` 集中管理**：尽管有瑕疵，但比全局变量满天飞好得多
+3. **流式处理路径清晰**：`chat-sse.js` 中的事件分发 `handleSSEEvent()` 设计合理
+4. **`throttleRender` 模式正确**：流式渲染用节流而非全量刷新
+5. **`applyStreamingState()` 集中管理 UI 状态**：替代了散落的 8 个 enable/disable 函数
+6. **刻度导航的锁定机制**：`tick-nav-locked` 状态管理平滑滚动期间的 UI 锁定，设计巧妙
+
+---
+
+## 七、重构建议（从最关键的开始）
+
+考虑到"刷新即生效"的开发和部署优势，建议**保持无框架路线**，只做精准的局部改善：
+
+### 优先级 P0（最关键，改动最小）
+
+**消除 `state.currentGroup` DOM 引用**
+
+- 将 `state.currentGroup` 改为 `state.currentGroupMsgId`（数字 ID）
+- 视图层通过 `document.querySelector(.message-group[data-msg-id="xxx"])` 查找 DOM
+- 这直接消除了数据层中的 DOM 引用，是架构层面的改善
+
+### 优先级 P1（重要，中等改动）
+
+**将 reasoning 文本从 DOM 属性移到 `state.messages` 中**
+
+- 在 `state.messages` 的 assistant 条目中增加 `reasoning` 字段
+- 流式输出期间，reasoning 内容也在 state 中累积
+- 恢复会话时可以直接从数据恢复 reasoning 区域，不需要额外处理
+
+### 优先级 P2（有价值，但不紧急）
+
+**将 `currentChats` 集中到 `chat-state.js` 或独立 store**
+
+- 提供统一的 `setChats()` / `getChats()` API
+- 添加简单的变更通知机制（回调或事件）
+- 减少模块间耦合
+
+### 优先级 P3（可做可不做）
+
+**将刻度导航改为使用 `state.messages` 而非 DOM 查询**
+
+- 不改变交互逻辑
+- 只是数据源从 DOM 改为 state
+- 可以消除 `data-msg-index` 这个只用于刻度导航的 DOM 属性
+
+---
+
+## 八、不做的事（明确排除）
+
+以下是不应该做的事：
+
+| ❌ 不应该做 | 原因 |
+|------------|------|
+| 把 `addMessage()` 拆分为"纯数据 + 纯渲染"的两步调用 | 流式路径需要增量渲染，不能全量刷新 |
+| 引入 Vue/React 等框架 | 破坏了"刷新即生效"的优势，且当前规模的 SPA 不值得 |
+| 全量重写前端 | 风险高，收益不确定 |
+| 给 `state.messages` 增加 group 嵌套结构 | 扁平数组 + msgId 隐式分组已经够用，增加嵌套反而不灵活 |
+
+---
+
+## 九、总结
+
+```mermaid
+flowchart LR
+    subgraph "流式路径 设计合理"
+        SSE[SSE chunk] --> BUF[state.accumulatedMarkdown]
+        BUF --> THROTTLE[throttleRender 180ms]
+        THROTTLE --> INNER[DOM innerHTML 增量更新]
+        THROTTLE --> SCROLL[autoScrollToBottom]
+        SSE_DONE[SSE done] --> FINAL[最终渲染 + 推入 state.messages]
+    end
+
+    subgraph "非流式路径 有改善空间"
+        API[后端数据] --> SYNC[手动同步 数据+DOM]
+        SYNC --> CLEAR[清空 state + 清空 DOM]
+        SYNC --> CREATE[遍历创建 DOM + 填充 state]
+        CREATE --> MANUAL[手动更新刻度/标题等]
+    end
+
+    subgraph "关键坏味道"
+        CG[state.currentGroup = DOM引用]
+        RAW[reasoning rawText 在 DOM 上]
+        CC[currentChats 是 module 变量]
+    end
+```
+
+**一句话总结**：
+- **流式渲染路径设计合理**，不需要动
+- **非流式路径（恢复/切换/初始化）** 有改善空间，但改善方式不是"拆分数据与渲染"，而是**消除数据层中的 DOM 引用**、**把散落的状态收拢**、**让数据模型更完整**
+- 最大的三个问题：`state.currentGroup` 存 DOM 引用、`rawText` 在 DOM 上、`currentChats` 不在集中 store

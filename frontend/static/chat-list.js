@@ -168,6 +168,52 @@ export function clearActiveChat() {
 }
 
 /**
+ * 重置对话列表（新对话时使用）
+ * 清空内存中的聊天列表和选中状态，避免旧数据残留。
+ * 后续由 refreshChatListIfNeeded 从后端重新加载。
+ */
+export function resetChatList() {
+    currentChats = [];
+    activeChatSN = null;
+    const sidebarContent = document.getElementById('sidebarContent');
+    if (sidebarContent) {
+        sidebarContent.innerHTML = '';
+    }
+    // 移除可能存在的上下文菜单
+    closeContextMenu();
+}
+
+/**
+ * 在侧边栏中插入一条 "脏" 的新对话条目。
+ * “脏” 的含义：该对话尚未在后端完全持久化（sn 为 null/空），
+ * 由前端在用户发出首条消息时立即创建，使用户能即时看到新增条目。
+ * 后续由 refreshChatListIfNeeded 从后端拉取完整数据后替换。
+ * @param {string} title - 新对话的标题（截取自首条用户消息）
+ */
+export function addDirtyChat(title) {
+    const dirtyChat = {
+        id: 0,           // 尚未在 DB 中创建，id 为 0
+        sn: null,        // 尚未分配 SN，后端保存后会分配
+        title: title,    // 标题由前端基于首条消息生成
+        title_state: 0,  // 原始标题
+        pinned: false,
+        category: 0,
+        role_no: 0,
+        create_at: new Date().toISOString(),
+        update_at: new Date().toISOString(),
+    };
+
+    // 插入到列表头部（最新消息位置）
+    currentChats.unshift(dirtyChat);
+
+    // 新对话不选中任何项
+    activeChatSN = null;
+
+    // 复用 renderChatList 的完整渲染逻辑
+    renderChatList(currentChats, null);
+}
+
+/**
  * 渲染对话列表到左侧栏
  * @param {Array} chats - 对话数组
  * @param {string} [activeSN] - 当前激活的对话 SN
@@ -386,7 +432,6 @@ async function selectChat(sn) {
     state.userMsgCount = 0;
     state.activeTickIndex = -1;
     state.tickScrollOffset = 0;
-    state.currentGroup = null;
     state.accumulatedMarkdown = '';
     if (state.renderTimer) {
         clearTimeout(state.renderTimer);
@@ -622,17 +667,28 @@ async function handleTogglePin(chat) {
 /**
  * 更新当前活动对话的标题并同步到侧边栏
  * 直接操作 DOM，不重新渲染整个列表
+ * 当 activeChatSN 为 null（新对话刚创建后，列表尚未从后端刷新）时，
+ * 尝试通过 currentChats 中标题为空的项来匹配新对话。
  * @param {string} newTitle - 新标题
  */
 export function updateCurrentChatTitle(newTitle) {
     if (!newTitle) return;
-    if (!activeChatSN) {
-        console.warn('updateCurrentChatTitle: activeChatSN is null, cannot update sidebar title');
+
+    let sn = activeChatSN;
+
+    // 新对话刚创建后 activeChatSN 为 null（clearActiveChat 清除了选中状态），
+    // 此时 currentChats 中最后一个（最旧的）对话可能有一个空标题或默认标题的占位。
+    // 但我们无法精确匹配到新对话，因此直接跳过 DOM 更新，
+    // 等待后续 refreshChatListIfNeeded 从后端拉取完整列表后再渲染。
+    if (!sn) {
+        // activeChatSN 为 null 时不更新 DOM（因为无法确定要更新的目标），
+        // 但可以更新 currentChats 中对应的条目——不过也无法确定哪个条目是新对话，
+        // 所以此处跳过，由后续的 refreshChatListIfNeeded 负责。
         return;
     }
 
     // 更新内存中的标题
-    const chat = currentChats.find(c => c.sn === activeChatSN);
+    const chat = currentChats.find(c => c.sn === sn);
     if (chat) {
         chat.title = newTitle;
     }
@@ -640,7 +696,7 @@ export function updateCurrentChatTitle(newTitle) {
     // 直接更新 DOM
     // 注意: querySelectorAll + forEach 以确保如果存在多个相同 data-sn 的项（Bug 3），
     // 所有项都更新而非只更新第一个
-    const activeItems = document.querySelectorAll(`.chat-item[data-sn="${activeChatSN}"] .chat-item-title`);
+    const activeItems = document.querySelectorAll(`.chat-item[data-sn="${sn}"] .chat-item-title`);
     if (activeItems.length > 0) {
         activeItems.forEach(el => {
             el.textContent = truncateTitle(newTitle);
