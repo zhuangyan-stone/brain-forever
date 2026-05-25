@@ -11,9 +11,22 @@
         await msgbox.warning('「xxx」删除后不可恢复，请确认是否删除？');
     ============================================================ */
 
+/* ---- 头部左侧：图标 + 标题 水平排列 ---- */
+.dialog-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ---- 头部图标 ---- */
+.msgbox-header-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
 /* ---- 消息框内容区 ---- */
 .msgbox-body {
-    text-align: center;
+    text-align: left;
     padding: 24px 20px 16px;
     font-size: 0.95rem;
     color: var(--text-primary);

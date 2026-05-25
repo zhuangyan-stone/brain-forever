@@ -52,17 +52,15 @@
     <!-- highlight.js 额外语言包: dos (cmd), powershell -->
     <script src="/static/lib/dos.min.js"></script>
     <script src="/static/lib/powershell.min.js"></script>
-    <!-- marked.js — Markdown 渲染 -->
-    <!-- CDN 备用: https://cdn.jsdelivr.net/npm/marked/marked.min.js -->
-    <script src="/static/lib/marked.min.js"></script>
+    <!-- remarkable.js — Markdown 渲染（替代 marked） -->
+    <!-- CDN 备用: https://cdn.jsdelivr.net/npm/remarkable/dist/remarkable.min.js -->
+    <script src="/static/lib/remarkable.min.js"></script>
     <!-- KaTeX — 数学公式渲染 -->
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css -->
     <link rel="stylesheet" href="/static/lib/styles/katex.min.css">
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js -->
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
-    <!-- marked-katex-extension — marked 的 KaTeX 扩展插件 -->
-    <!-- CDN 备用: https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js -->
-    <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.1.5/lib/index.umd.js" crossorigin="anonymous"></script>
+    <!-- KaTeX 集成由 chat-markdown.js 中的 remarkableKatex 插件处理（不再需要 marked-katex-extension） -->
     <!-- turndown.js — HTML 转 Markdown（用于剪贴板多格式复制） -->
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/turndown/dist/turndown.min.js -->
     <script src="/static/lib/turndown.min.js"></script>

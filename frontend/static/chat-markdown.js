@@ -8,59 +8,146 @@ import { ICON_COPY } from './svg_icons.js';
 
 'use strict';
 
-// 注册 marked-katex-extension，支持数学公式（行内 $...$ 和块级 $$...$$）
-try {
-    if (typeof markedKatex !== 'undefined') {
-        marked.use(markedKatex());
+// ============================================================
+// remarkable KaTeX 插件 — 支持行内 $...$ 和块级 $$...$$ 公式
+// ============================================================
+function remarkableKatex(md) {
+  // --- 块级公式 $$...$$ ---
+  md.inline.ruler.after('escape', 'katex_block', function katexBlock(state, silent) {
+    var start = state.pos;
+    var max = state.posMax;
+
+    if (state.src.charCodeAt(start) !== 0x24 /* $ */) return false;
+    if (start + 2 >= max) return false;
+    if (state.src.charCodeAt(start + 1) !== 0x24 /* $ */) return false;
+
+    // 查找结束 $$
+    var end = start + 2;
+    while (end < max - 1) {
+      if (state.src.charCodeAt(end) === 0x24 /* $ */ &&
+          state.src.charCodeAt(end + 1) === 0x24 /* $ */) {
+        // 跳过转义 \$
+        if (end > start + 2 && state.src.charCodeAt(end - 1) === 0x5C /* \ */) {
+          end += 2;
+          continue;
+        }
+        break;
+      }
+      end++;
     }
-} catch (e) {
-    console.warn('marked-katex-extension 加载失败，数学公式将不可用:', e);
+
+    if (end >= max - 1) return false; // 没有闭合 $$
+
+    if (!silent) {
+      var content = state.src.slice(start + 2, end);
+      // [诊断] 检测到块级公式
+      if (content.trim()) {
+        console.debug('[KaTeX诊断] 块级公式匹配: content=%o, context="%s"',
+          content, state.src.slice(Math.max(0, start - 15), end + 15));
+      }
+      state.push({
+        type: 'katex_block',
+        content: content,
+        block: true,
+        level: state.level
+      });
+    }
+
+    state.pos = end + 2;
+    return true;
+  });
+
+  // --- 行内公式 $...$ ---
+  md.inline.ruler.after('katex_block', 'katex_inline', function katexInline(state, silent) {
+    var start = state.pos;
+    var max = state.posMax;
+
+    if (state.src.charCodeAt(start) !== 0x24 /* $ */) return false;
+    if (start + 1 >= max) return false;
+    if (state.src.charCodeAt(start + 1) === 0x24 /* $ */) return false; // 跳过 $$
+
+    // 前一个字符是 \ 说明是转义
+    if (start > 0 && state.src.charCodeAt(start - 1) === 0x5C /* \ */) return false;
+
+    // 查找结束 $
+    var end = start + 1;
+    while (end < max) {
+      if (state.src.charCodeAt(end) === 0x24 /* $ */) {
+        // 跳过转义
+        if (end > start + 1 && state.src.charCodeAt(end - 1) === 0x5C /* \ */) {
+          end++;
+          continue;
+        }
+        break;
+      }
+      end++;
+    }
+
+    if (end >= max) return false; // 没有闭合 $
+
+    if (!silent) {
+      var content = state.src.slice(start + 1, end);
+      // [诊断] 检测到行内公式，记录上下文以排查误匹配
+      var context = state.src.slice(Math.max(0, start - 10), end + 10);
+      console.debug('[KaTeX诊断] 行内公式匹配: content=%o, end=%d, max=%d, context="%s"',
+        content, end, max, context);
+      state.push({
+        type: 'katex_inline',
+        content: content,
+        block: false,
+        level: state.level
+      });
+    }
+
+    state.pos = end + 1;
+    return true;
+  });
+
+  // --- 注册 renderer rules ---
+  md.renderer.rules['katex_block'] = function (tokens, idx, options, env, self) {
+    try {
+      var result = katex.renderToString(tokens[idx].content, {
+        displayMode: true,
+        throwOnError: false
+      });
+      return result;
+    } catch (e) {
+      console.debug('[KaTeX诊断] 块级公式渲染失败: content=%o, error=%o', tokens[idx].content, e.message);
+      return '<div class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</div>';
+    }
+  };
+
+  md.renderer.rules['katex_inline'] = function (tokens, idx, options, env, self) {
+    try {
+      var result = katex.renderToString(tokens[idx].content, {
+        displayMode: false,
+        throwOnError: false
+      });
+      return result;
+    } catch (e) {
+      console.debug('[KaTeX诊断] 行内公式渲染失败: content=%o, error=%o', tokens[idx].content, e.message);
+      return '<span class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</span>';
+    }
+  };
 }
 
-/**
- * 在标点符号与强调标记（**、*、__、_）之间插入零宽空格（\u200B），
- * 解决 marked 将标点后的 ** 错误识别为左定界符而非右定界符的问题。
- *
- * 问题背景：marked 遵循 CommonMark 规范，使用 Unicode 属性 \p{P}（标点符号）
- * 来判断 * 和 _ 的定界符类型。引号字符（如 " U+0022、" U+201C、" U+201D）
- * 以及 CJK 全角括号（如 ）U+FF09、（ U+FF08、》U+300B、《U+300A 等）
- * 都属于标点符号，导致紧随其后的 ** 被错误分类为左定界符，从而使前面的 **
- * 找不到配对的右定界符，strong/em 解析失败。
- *
- * 零宽空格（\u200B）不属于 \p{P}，插入后 marked 能正确识别定界符，
- * 且在最终渲染结果中不可见。
- */
-function fixPunctuationAroundEmphasis(text) {
-    return text
-        // 引号 + 强调标记 → 引号 + 零宽空格 + 强调标记
-        .replace(/(["\u201c\u201d])(?=[*_]{1,2})/g, '$1\u200B')
-        // 强调标记 + 引号 → 强调标记 + 零宽空格 + 引号
-        .replace(/(?<=[*_]{1,2})(["\u201c\u201d])/g, '\u200B$1')
-        // CJK 全角右括号（） 》 」 』 】 〗 等）+ * 或 ** → 右括号 + 零宽空格 + 强调标记
-        .replace(/([\u300B\u300D\u300F\u3011\u3017\uFF09])(?=[*]{1,2})/g, '$1\u200B')
-        // * 或 ** + CJK 全角左括号（（ 《 「 『 【 〖 等）→ 强调标记 + 零宽空格 + 左括号
-        .replace(/(?<=[*]{1,2})([\uFF08\u300A\u300C\u300E\u3010\u3016])/g, '\u200B$1');
-}
 
-/**
- * fixTableAlignment 修复 AI 模型输出的表格对齐分隔行中的多余冒号。
- *
- * 问题背景：某些 LLM（如 DeepSeek V4/Flash）在生成 GFM 表格时，
- * 对齐分隔行可能出现多余的冒号，例如 `::----` 或 `:::---`，
- * 导致 marked 无法正确解析表格，整个表格退化为纯文本。
- *
- * 标准 GFM 表格对齐分隔行格式：
- *   `----`  默认（通常左对齐）
- *   `:---`  左对齐
- *   `:--:`  居中对齐
- *   `---:`  右对齐
- *
- * 本函数将表格分隔行中连续 2 个以上的冒号缩减为 1 个，
- * 例如：`::----` → `:----`，`:::--:` → `:--:`。
- *
- * @param {string} text - Markdown 原文
- * @returns {string} 修复后的 Markdown 文本
- */
+// ============================================================
+// fixTableAlignment 修复 AI 模型输出的表格对齐分隔行中的多余冒号。
+//
+// 问题背景：某些 LLM（如 DeepSeek V4/Flash）在生成 GFM 表格时，
+// 对齐分隔行可能出现多余的冒号，例如 `::----` 或 `:::---`，
+// 导致 remarkable 无法正确解析表格，整个表格退化为纯文本。
+//
+// 标准 GFM 表格对齐分隔行格式：
+//   `----`  默认（通常左对齐）
+//   `:---`  左对齐
+//   `:--:`  居中对齐
+//   `---:`  右对齐
+//
+// 本函数将表格分隔行中连续 2 个以上的冒号缩减为 1 个，
+// 例如：`::----` → `:----`，`:::--:` → `:--:`。
+// ============================================================
 function fixTableAlignment(text) {
     // 只处理表格对齐分隔行：行内容仅包含 |、:、-、空格（即 GFM 表格的第二行）
     // 将其中连续 2+ 个冒号替换为单个冒号，覆盖所有位置：
@@ -73,6 +160,9 @@ function fixTableAlignment(text) {
         if (!/-/.test(line)) return line;
         // 检查是否包含连续冒号（2 个以上）
         if (!/:{2,}/.test(line)) return line;
+        // deepseek 当前输出的表格 markdown 中常有 :: 甚至 ::: 的错误，
+        // 当发现此问题时输出调试信息，以便后续 deepseek 官方修复后可移除本函数
+        console.debug("malformed table separator detected:", line);
         // 将连续 2+ 个冒号替换为单个冒号
         return line.replace(/:{2,}/g, ':');
     });
@@ -85,16 +175,29 @@ function fixTableAlignment(text) {
  */
 export function renderMarkdown(text) {
     if (!text) return '';
+    // [诊断] 记录输入文本是否包含 $ 符号
+    if (text.indexOf('$') !== -1) {
+        console.debug('[KaTeX诊断] renderMarkdown 输入含 $: text.length=%d, $出现次数=%d',
+            text.length, (text.match(/\$/g) || []).length);
+    }
     try {
-        // 修复标点与强调标记相邻时的定界符识别问题
-        let fixed = fixPunctuationAroundEmphasis(text);
         // 修复 AI 模型输出的表格对齐分隔行中的多余冒号（如 ::---- → :----）
-        fixed = fixTableAlignment(fixed);
-        // 使用 marked 渲染
-        const html = marked.parse(fixed, {
+        const fixed = fixTableAlignment(text);
+        // 使用 remarkable 渲染
+        const md = new remarkable.Remarkable({
+            html: true,
             breaks: true,      // 支持 GitHub 风格的换行
-            gfm: true,         // 启用 GitHub Flavored Markdown
+            langPrefix: 'language-',
         });
+        // 注册 KaTeX 插件
+        md.use(remarkableKatex);
+        const html = md.render(fixed);
+        // [诊断] 检查渲染结果是否包含公式
+        if (html.indexOf('katex') !== -1) {
+            var katexCount = (html.match(/class="katex"/g) || []).length;
+            var errorCount = (html.match(/katex-error/g) || []).length;
+            console.debug('[KaTeX诊断] 渲染完成: 成功公式=%d, 错误=%d', katexCount, errorCount);
+        }
         // 将 HTML 插入临时容器，对代码块执行语法高亮
         return highlightCodeBlocks(html);
     } catch (e) {
@@ -116,7 +219,7 @@ function highlightCodeBlocks(html) {
     temp.querySelectorAll('pre code').forEach((el) => {
         const pre = el.parentElement;
 
-        // 获取语言类名（marked 会添加 class="language-xxx"）
+        // 获取语言类名（remarkable 会添加 class="language-xxx"）
         const langClass = Array.from(el.classList).find(cls => cls.startsWith('language-'));
         if (langClass) {
             const lang = langClass.replace('language-', '');

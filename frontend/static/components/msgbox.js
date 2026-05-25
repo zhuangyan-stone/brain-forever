@@ -40,11 +40,21 @@ function closeDialog(overlay) {
 }
 
 /**
+ * 图标 Unicode 映射
+ */
+const MSGBOX_ICON_CHAR = {
+    info: '\u24D8',     // ⓘ
+    warning: '\u26A0',  // ⚠
+    question: '\u2753'  // ❓
+};
+
+/**
  * 创建基础对话框 DOM 结构
  * @param {string} title - 对话框标题
+ * @param {string} [iconType] - 图标类型：'info' | 'warning' | 'question'
  * @returns {{ overlay: HTMLElement, body: HTMLElement, footer: HTMLElement, closeBtn: HTMLElement }}
  */
-function createDialog(title) {
+function createDialog(title, iconType) {
     const overlay = document.createElement('div');
     overlay.className = 'dialog-overlay show';
 
@@ -54,13 +64,28 @@ function createDialog(title) {
     // ---- 头部 ----
     const header = document.createElement('div');
     header.className = 'dialog-header';
+
+    // 左侧：图标 + 标题
+    const leftGroup = document.createElement('div');
+    leftGroup.className = 'dialog-header-left';
+
+    if (iconType && MSGBOX_ICON_CHAR[iconType]) {
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'msgbox-header-icon';
+        iconSpan.textContent = MSGBOX_ICON_CHAR[iconType];
+        leftGroup.appendChild(iconSpan);
+    }
+
     const titleEl = document.createElement('h3');
     titleEl.textContent = title;
+    leftGroup.appendChild(titleEl);
+
+    header.appendChild(leftGroup);
+
     const closeBtn = document.createElement('button');
     closeBtn.className = 'dialog-close-btn';
     closeBtn.innerHTML = '&times;';
     closeBtn.setAttribute('aria-label', '关闭');
-    header.appendChild(titleEl);
     header.appendChild(closeBtn);
     box.appendChild(header);
 
@@ -115,7 +140,7 @@ const msgbox = {
      */
     alert(message) {
         return new Promise((resolve) => {
-            const { overlay, body, footer, closeBtn } = createDialog('信息');
+            const { overlay, body, footer, closeBtn } = createDialog('信息', 'info');
 
             // 消息内容
             const msgEl = document.createElement('p');
@@ -156,7 +181,7 @@ const msgbox = {
      */
     warning(message) {
         return new Promise((resolve) => {
-            const { overlay, body, footer, closeBtn } = createDialog('警告');
+            const { overlay, body, footer, closeBtn } = createDialog('警告', 'warning');
 
             // 消息内容
             const msgEl = document.createElement('p');
@@ -211,7 +236,7 @@ const msgbox = {
      */
     confirm(question) {
         return new Promise((resolve) => {
-            const { overlay, body, footer, closeBtn } = createDialog('提问');
+            const { overlay, body, footer, closeBtn } = createDialog('提问', 'question');
 
             // 问题内容
             const msgEl = document.createElement('p');

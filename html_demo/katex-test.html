@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KaTeX 公式转换测试</title>
+    <!-- KaTeX 样式：同时尝试 CDN 和本地 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css" />
+    <!-- highlight.js 样式 -->
+    <link rel="stylesheet" href="../frontend/static/lib/styles/atom-one-light.min.css" />
+    <!-- highlight.js -->
+    <script src="../frontend/static/lib/highlight.min.js"></script>
+    <script src="../frontend/static/lib/dos.min.js"></script>
+    <script src="../frontend/static/lib/powershell.min.js"></script>
+    <!-- remarkable -->
+    <script src="../frontend/static/lib/remarkable.min.js"></script>
+    <!-- KaTeX: CDN 确保可用 -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f7fa;
+            color: #1e293b;
+            padding: 24px;
+        }
+        h1 { font-size: 1.6rem; margin-bottom: 8px; }
+        .subtitle { color: #64748b; margin-bottom: 24px; font-size: 0.9rem; }
+        .subtitle .warn { color: #dc2626; font-weight: 600; }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+            gap: 16px;
+        }
+        .test-case {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .test-case.pass { border-left: 4px solid #22c55e; }
+        .test-case.fail { border-left: 4px solid #ef4444; }
+        .test-case.warn { border-left: 4px solid #f59e0b; }
+        .test-case.crash { border-left: 4px solid #7c3aed; }
+
+        .test-header {
+            padding: 10px 14px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .test-id { font-weight: 600; font-size: 0.8rem; color: #64748b; }
+        .test-label { font-weight: 600; font-size: 0.85rem; }
+        .test-status { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+        .status-pass { background: #dcfce7; color: #166534; }
+        .status-fail { background: #fce8e8; color: #991b1b; }
+        .status-warn { background: #fef3c7; color: #92400e; }
+        .status-crash { background: #f3e8ff; color: #6b21a8; }
+
+        .test-input-area {
+            padding: 10px 14px;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .test-input-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .test-input {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.8rem; color: #334155; word-break: break-all; white-space: pre-wrap; line-height: 1.5;
+        }
+        .test-output-area { padding: 10px 14px; }
+        .test-output-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .test-output { font-size: 0.95rem; line-height: 1.7; }
+        .katex-error {
+            color: #dc2626; background: #fef2f2; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.85rem; display: inline-block; border: 1px dashed #fca5a5;
+        }
+        .diagnostic {
+            padding: 8px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+            font-family: monospace; font-size: 0.7rem; color: #64748b;
+        }
+        .diagnostic .raw-html { max-height: 40px; overflow: hidden; cursor: pointer; word-break: break-all; }
+        .diagnostic .raw-html.expanded { max-height: none; }
+        .diagnostic .raw-html-label { color: #94a3b8; margin-bottom: 2px; }
+        .summary-bar {
+            position: sticky; bottom: 0; background: white; border-top: 2px solid #e2e8f0;
+            padding: 12px 24px; margin-top: 24px; display: flex; gap: 24px;
+            align-items: center; border-radius: 12px 12px 0 0; box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+        }
+        .summary-item { font-size: 0.85rem; }
+        .summary-count { font-weight: 700; font-size: 1.1rem; }
+        .summary-count.pass-count { color: #16a34a; }
+        .summary-count.fail-count { color: #dc2626; }
+        .summary-count.warn-count { color: #d97706; }
+        .controls { margin-bottom: 16px; display: flex; gap: 8px; align-items: center; }
+        .controls button {
+            padding: 6px 14px; border: 1px solid #cbd5e1; background: white; border-radius: 6px;
+            cursor: pointer; font-size: 0.8rem; transition: 0.15s;
+        }
+        .controls button:hover { background: #f1f5f9; border-color: #94a3b8; }
+        #envStatus { font-size: 0.8rem; margin-left: 16px; }
+        .env-ok { color: #16a34a; }
+        .env-bad { color: #dc2626; }
+    </style>
+</head>
+<body>
+
+<h1>🧪 KaTeX 公式转换测试</h1>
+<p class="subtitle">
+    验证 <code>chat-markdown.js</code> 中 remarkable + KaTeX 插件
+    <span id="envStatus">检查依赖加载中...</span>
+</p>
+
+<div class="controls">
+    <button onclick="rerunAll()">🔄 重新运行所有测试</button>
+    <button onclick="toggleAllHtml()">📄 展开/收起所有 HTML</button>
+    <span id="progressInfo" style="font-size:0.85rem;color:#64748b;"></span>
+</div>
+
+<div class="test-grid" id="testGrid"></div>
+
+<div class="summary-bar" id="summaryBar">
+    <div class="summary-item">总计: <span class="summary-count" id="totalCount">0</span></div>
+    <div class="summary-item">✅ 通过: <span class="summary-count pass-count" id="passCount">0</span></div>
+    <div class="summary-item">❌ 失败: <span class="summary-count fail-count" id="failCount">0</span></div>
+    <div class="summary-item">⚠️ 警告: <span class="summary-count warn-count" id="warnCount">0</span></div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// 依赖检查
+// ============================================================
+(function checkDeps() {
+    var status = document.getElementById('envStatus');
+    var issues = [];
+    if (typeof remarkable === 'undefined') issues.push('remarkable 未加载');
+    if (typeof katex === 'undefined') issues.push('katex 未加载');
+    if (typeof hljs === 'undefined') issues.push('hljs 未加载');
+
+    if (issues.length === 0) {
+        status.innerHTML = '✅ 所有依赖已就绪 (remarkable, katex, hljs)';
+        status.className = 'env-ok';
+    } else {
+        status.innerHTML = '❌ 依赖加载失败: ' + issues.join(', ');
+        status.className = 'env-bad';
+    }
+})();
+
+// ============================================================
+// 复制 chat-markdown.js 中的 remarkableKaTeX 插件（与生产一致）
+// ============================================================
+function remarkableKatex(md) {
+    md.inline.ruler.after('escape', 'katex_block', function katexBlock(state, silent) {
+        var start = state.pos, max = state.posMax;
+        if (state.src.charCodeAt(start) !== 0x24) return false;
+        if (start + 2 >= max) return false;
+        if (state.src.charCodeAt(start + 1) !== 0x24) return false;
+        var end = start + 2;
+        while (end < max - 1) {
+            if (state.src.charCodeAt(end) === 0x24 && state.src.charCodeAt(end + 1) === 0x24) {
+                if (end > start + 2 && state.src.charCodeAt(end - 1) === 0x5C) { end += 2; continue; }
+                break;
+            }
+            end++;
+        }
+        if (end >= max - 1) return false;
+        if (!silent) {
+            state.push({ type: 'katex_block', content: state.src.slice(start + 2, end), block: true, level: state.level });
+        }
+        state.pos = end + 2;
+        return true;
+    });
+
+    md.inline.ruler.after('katex_block', 'katex_inline', function katexInline(state, silent) {
+        var start = state.pos, max = state.posMax;
+        if (state.src.charCodeAt(start) !== 0x24) return false;
+        if (start + 1 >= max) return false;
+        if (state.src.charCodeAt(start + 1) === 0x24) return false;
+        if (start > 0 && state.src.charCodeAt(start - 1) === 0x5C) return false;
+        var end = start + 1;
+        while (end < max) {
+            if (state.src.charCodeAt(end) === 0x24) {
+                if (end > start + 1 && state.src.charCodeAt(end - 1) === 0x5C) { end++; continue; }
+                break;
+            }
+            end++;
+        }
+        if (end >= max) return false;
+        if (!silent) {
+            state.push({ type: 'katex_inline', content: state.src.slice(start + 1, end), block: false, level: state.level });
+        }
+        state.pos = end + 1;
+        return true;
+    });
+
+    md.renderer.rules['katex_block'] = function (tokens, idx, options, env, self) {
+        try { return katex.renderToString(tokens[idx].content, { displayMode: true, throwOnError: false }); }
+        catch (e) { return '<div class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</div>'; }
+    };
+    md.renderer.rules['katex_inline'] = function (tokens, idx, options, env, self) {
+        try { return katex.renderToString(tokens[idx].content, { displayMode: false, throwOnError: false }); }
+        catch (e) { return '<span class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</span>'; }
+    };
+}
+
+function fixTableAlignment(text) {
+    return text.replace(/^[\s|:\-]+$/gm, function(line) {
+        if (!/-/.test(line)) return line;
+        if (!/:{2,}/.test(line)) return line;
+        return line.replace(/:{2,}/g, ':');
+    });
+}
+
+function renderMarkdown(text) {
+    if (!text) return '';
+    try {
+        var md = new remarkable.Remarkable({ html: true, breaks: true, langPrefix: 'language-' });
+        md.use(remarkableKatex);
+        var html = md.render(fixTableAlignment(text));
+        return highlightCodeBlocks(html);
+    } catch (e) {
+        console.warn('[测试] Markdown 渲染失败:', e);
+        // 将错误信息显示在输出中
+        return '<div class="katex-error">⚠️ 渲染崩溃: ' + escapeHtml(e.message) + '</div>'
+             + '<pre>' + escapeHtml(text) + '</pre>';
+    }
+}
+
+function highlightCodeBlocks(html) {
+    var temp = document.createElement('div');
+    temp.innerHTML = html;
+    temp.querySelectorAll('pre code').forEach(function(el) {
+        var pre = el.parentElement;
+        var langClass = Array.from(el.classList).find(function(cls) { return cls.startsWith('language-'); });
+        if (langClass) {
+            var lang = langClass.replace('language-', '');
+            if (hljs.getLanguage(lang)) {
+                try { el.innerHTML = hljs.highlight(el.textContent, { language: lang }).value; pre.setAttribute('data-lang', lang); } catch (_) {}
+            } else {
+                try { el.innerHTML = hljs.highlightAuto(el.textContent).value; } catch (_) {}
+            }
+        } else {
+            try { el.innerHTML = hljs.highlightAuto(el.textContent).value; } catch (_) {}
+        }
+    });
+    return temp.innerHTML;
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+// ============================================================
+// 辅助统计函数 — 使用 indexOf 避免正则匹配 class 值顺序问题
+// ============================================================
+function hasKatex(html)           { return html.indexOf('class="katex"') !== -1; }
+function hasKatexDisplay(html)    { return html.indexOf('katex-display') !== -1; }
+function countKatexDisplay(html)  { return (html.match(/katex-display/g) || []).length; }
+function countKatexError(html)    { return (html.match(/katex-error/g) || []).length; }
+
+// 调试: 输出 HTML 中前 500 字符用于分析
+function debugHtml(html, label) {
+    var snippet = html.substring(0, 500);
+    console.debug('[测试-' + label + '] HTML片段:', snippet);
+    console.debug('[测试-' + label + '] hasKatex=%s, hasKatexDisplay=%s, errors=%d',
+        hasKatex(html), hasKatexDisplay(html), countKatexError(html));
+}
+
+// ============================================================
+// 测试用例定义
+// ============================================================
+var testCases = [
+    // ========== 基础公式 ==========
+    {
+        id: 'T01', label: '块级公式 $$...$$',
+        input: '爱因斯坦的质能方程：\n\n$$E=mc^2$$\n\n这是块级公式。',
+        check: function(html) { return hasKatexDisplay(html); }
+    },
+    {
+        id: 'T02', label: '行内公式 $...$',
+        input: '根据公式 $E=mc^2$，能量与质量等价。',
+        check: function(html) { return hasKatex(html); }
+    },
+    {
+        id: 'T03', label: '多行块级公式',
+        input: '二次方程求根公式：\n\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n这是标准公式。',
+        check: function(html) { return hasKatexDisplay(html) && countKatexError(html) === 0; }
+    },
+
+    // ========== 问题 #1：行内 $ 匹配过于激进 ==========
+    {
+        id: 'T04', label: '【问题】价格中的美元符号',
+        input: '价格为 $10 和 $20 元，总计 $30。',
+        check: function(html) {
+            if (countKatexError(html) > 0) console.warn('[T04] 美元价格被误匹配为公式');
+            return countKatexError(html) === 0;
+        },
+        expectedBehavior: '理想情况：不渲染为公式。如果不慎匹配应降级为 katex-error'
+    },
+    {
+        id: 'T05', label: '【问题】句末美元符号',
+        input: '每个售价 $5.99。\n他支付了 $100。',
+        check: function(html) { return countKatexError(html) === 0; },
+        expectedBehavior: '$5.99 不应被匹配为公式'
+    },
+    {
+        id: 'T06', label: '【问题】多个美元符号 + 公式混合',
+        input: '变量 $a$ 和 $b$ 满足 $a + b = c$，总价是 $10。',
+        check: function(html) {
+            debugHtml(html, 'T06');
+            return hasKatex(html) && countKatexError(html) === 0;
+        }
+    },
+
+    // ========== 问题 #2：转义 \$ ==========
+    {
+        id: 'T07', label: '【问题】转义美元符号 \\$',
+        input: '单价 \\$10.99，公式 $E=mc^2$。',
+        check: function(html) {
+            return countKatexError(html) === 0 && hasKatex(html);
+        }
+    },
+
+    // ========== 块级多行 ==========
+    {
+        id: 'T08', label: '块级公式多行内容（pmatrix）',
+        input: '矩阵定义：\n\n$$\n\\begin{pmatrix}\n1 & 2 \\\\\n3 & 4\n\\end{pmatrix}\n$$\n\n这是矩阵。',
+        check: function(html) { return hasKatexDisplay(html) && countKatexError(html) === 0; }
+    },
+    {
+        id: 'T09', label: '长公式换行（cases 环境）',
+        input: '方程组：\n\n$$\n\\begin{cases}\nx + y = 10 \\\\\n2x - y = 5\n\\end{cases}\n$$\n\n解为 $x=5, y=5$。',
+        check: function(html) { return hasKatexDisplay(html) && hasKatex(html); }
+    },
+
+    // ========== 问题 #4：公式与代码块交互 ==========
+    {
+        id: 'T10', label: '【问题】行内代码中含 $',
+        input: '使用 `` `$variable` `` 访问变量，公式 $E=mc^2$ 仍应正常。',
+        check: function(html) {
+            var div = document.createElement('div');
+            div.innerHTML = html;
+            var codeContent = '';
+            div.querySelectorAll('code').forEach(function(el) { codeContent += el.textContent; });
+            return codeContent.indexOf('$variable') !== -1 && hasKatex(html);
+        }
+    },
+    {
+        id: 'T11', label: '【问题】围栏代码块中含 $$',
+        input: '```\n// 不要被公式解析\nconst cost = 100; // $$ 不是公式\n$$\n```\n\n正常公式：$$E=mc^2$$',
+        check: function(html) {
+            var div = document.createElement('div');
+            div.innerHTML = html;
+            var inCode = '';
+            div.querySelectorAll('pre').forEach(function(pre) { inCode += pre.textContent; });
+            return inCode.indexOf('$$') !== -1 && hasKatexDisplay(html);
+        }
+    },
+    {
+        id: 'T12', label: '公式后的分隔线 ---',
+        input: '公式 $$E=mc^2$$\n\n---\n\n这是分隔线后的内容。',
+        check: function(html) { return hasKatexDisplay(html) && html.indexOf('<hr') !== -1; }
+    },
+
+    // ========== 问题 #5：嵌套 Markdown 语法 ==========
+    {
+        id: 'T13', label: '【问题】粗体 + 行内公式',
+        input: '**重要公式：$\\alpha + \\beta = \\gamma$**',
+        check: function(html) { return hasKatex(html) && html.indexOf('<strong>') !== -1; }
+    },
+    {
+        id: 'T14', label: '列表中的行内公式',
+        input: '- 牛顿第二定律：$F=ma$\n- 欧拉公式：$e^{i\\pi}+1=0$\n- 勾股定理：$a^2+b^2=c^2$',
+        check: function(html) { return hasKatex(html) && countKatexError(html) === 0; }
+    },
+
+    // ========== 边界情况 ==========
+    {
+        id: 'T15', label: '空的公式',
+        input: '行内空公式：$$ 和 块级空公式：\n\n$$\n$$\n\n测试。',
+        check: function() { return true; },
+        expectedBehavior: '不应导致页面崩溃'
+    },
+    {
+        id: 'T16', label: '连续行内公式',
+        input: '公式 $a$ 和 $b$ 以及 $c$ 是连续的。',
+        check: function(html) { return hasKatex(html); }
+    },
+    {
+        id: 'T17', label: '非法 LaTeX 的降级',
+        input: '坏公式：$\\notacommand{test}$',
+        check: function(html) {
+            debugHtml(html, 'T17');
+            // KaTeX 在 throwOnError:false 时可能将错误渲染为红色公式而非抛出异常
+            // 所以可能没有 katex-error 类。只要不崩溃即可。
+            return true;
+        },
+        expectedBehavior: '应显示为错误样式（红色），不崩溃即可'
+    },
+    {
+        id: 'T18', label: '中文 + 公式混合',
+        input: '根据爱因斯坦的质能方程 $E=mc^2$，可以推导出核反应释放的巨大能量。同时，薛定谔方程 $$i\\hbar\\frac{\\partial}{\\partial t}|\\Psi\\rangle=\\hat{H}|\\Psi\\rangle$$ 描述了量子系统的演化。',
+        check: function(html) { return hasKatex(html) && hasKatexDisplay(html); }
+    },
+    {
+        id: 'T19', label: '【问题】公式中的下划线',
+        input: '下标公式：$a_{i+1} = b_i + c_i$',
+        check: function(html) { return hasKatex(html) && countKatexError(html) === 0; }
+    },
+    {
+        id: 'T20', label: '表格 + 公式混合',
+        input: '| 变量 | 公式 | 结果 |\n|------|------|------|\n| α | $\\alpha$ | 0.05 |\n| β | $\\beta$ | 0.10 |\n\n公式 $\\gamma = \\alpha + \\beta$',
+        check: function(html) {
+            debugHtml(html, 'T20');
+            return html.indexOf('<table') !== -1 && hasKatex(html);
+        }
+    },
+];
+
+// ============================================================
+// 渲染测试
+// ============================================================
+var testGrid = document.getElementById('testGrid');
+
+function runAllTests() {
+    testGrid.innerHTML = '';
+    var pass = 0, fail = 0, warn = 0;
+
+    testCases.forEach(function(tc) {
+        var startTime = performance.now();
+        var html = '', error = null;
+        try {
+            html = renderMarkdown(tc.input);
+        } catch (e) {
+            error = e;
+            html = '<div class="katex-error">渲染崩溃: ' + escapeHtml(e.message) + '</div>';
+        }
+        var elapsed = (performance.now() - startTime).toFixed(1);
+
+        var status, statusClass, detailMsg = '';
+        try {
+            if (tc.check(html)) {
+                status = '通过'; statusClass = 'pass'; pass++;
+            } else {
+                status = '失败'; statusClass = 'fail'; fail++;
+                detailMsg = '检查条件未通过';
+            }
+        } catch (e) {
+            status = '警告'; statusClass = 'warn'; warn++;
+            detailMsg = '检查函数异常: ' + e.message;
+        }
+        if (error) { status = '崩溃'; statusClass = 'crash'; fail++; detailMsg = error.message; }
+
+        var card = document.createElement('div');
+        card.className = 'test-case ' + statusClass;
+        var expectedHtml = tc.expectedBehavior ? '<div style="font-size:0.75rem;color:#64748b;margin-top:4px;">期望: ' + escapeHtml(tc.expectedBehavior) + '</div>' : '';
+        var detailHtml = detailMsg ? '<div style="margin-top:4px;font-size:0.75rem;color:#dc2626;">' + escapeHtml(detailMsg) + '</div>' : '';
+
+        card.innerHTML =
+            '<div class="test-header">' +
+                '<div><span class="test-id">' + tc.id + '</span> <span class="test-label">' + escapeHtml(tc.label) + '</span></div>' +
+                '<span class="test-status status-' + statusClass + '">' + status + '</span>' +
+            '</div>' +
+            '<div class="test-input-area">' +
+                '<div class="test-input-label">输入 Markdown</div>' +
+                '<div class="test-input">' + escapeHtml(tc.input) + '</div>' +
+                expectedHtml +
+            '</div>' +
+            '<div class="test-output-area">' +
+                '<div class="test-output-label">渲染输出 <span style="float:right;font-weight:normal;color:#94a3b8;">' + elapsed + 'ms</span></div>' +
+                '<div class="test-output">' + html + '</div>' +
+                detailHtml +
+            '</div>' +
+            '<div class="diagnostic">' +
+                '<div class="raw-html-label">📄 原始 HTML <span style="font-weight:normal;color:#94a3b8;">（点击展开）</span></div>' +
+                '<div class="raw-html" onclick="this.classList.toggle(\'expanded\')">' + escapeHtml(html) + '</div>' +
+            '</div>';
+
+        testGrid.appendChild(card);
+    });
+
+    document.getElementById('totalCount').textContent = testCases.length;
+    document.getElementById('passCount').textContent = pass;
+    document.getElementById('failCount').textContent = fail;
+    document.getElementById('warnCount').textContent = warn;
+    document.getElementById('progressInfo').textContent = '运行完毕 (' + testCases.length + ' 用例)';
+}
+
+function rerunAll() {
+    document.getElementById('progressInfo').textContent = '重新运行中...';
+    runAllTests();
+}
+
+function toggleAllHtml() {
+    var allRaw = document.querySelectorAll('.raw-html');
+    var anyExpanded = Array.from(allRaw).some(function(el) { return el.classList.contains('expanded'); });
+    allRaw.forEach(function(el) {
+        anyExpanded ? el.classList.remove('expanded') : el.classList.add('expanded');
+    });
+}
+
+// 等待 DOM + 脚本加载完成后运行
+window.addEventListener('DOMContentLoaded', function() {
+    // 给 CDN 脚本一点加载时间
+    setTimeout(runAllTests, 500);
+});
+</script>
+
+</body>
+</html>
