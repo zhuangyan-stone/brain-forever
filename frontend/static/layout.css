@@ -120,6 +120,8 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ============================================================
@@ -393,6 +395,40 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     height: 20px;
     display: block;
     color: var(--text-primary);
+}
+
+/* ============================================================
+    Header 登录按钮 — 位于主题切换按钮左侧，带文字"登录"
+    ============================================================ */
+
+.header-login-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    user-select: none;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.header-login-btn:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.header-login-btn:active {
+    transform: scale(0.96);
 }
 
 /* ============================================================

@@ -88,7 +88,35 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     }
     // AI 回复复用用户消息的 ID（source ID）
     const usage = event.usage || null;
-    state.messages.push({ role: 'assistant', content: state.accumulatedMarkdown, id: msgId, usage });
+    const assistantCreatedAt = event.created_at || null;
+    state.messages.push({ role: 'assistant', content: state.accumulatedMarkdown, id: msgId, usage, created_at: assistantCreatedAt });
+
+    // 更新 assistant 气泡的角色标签，显示完成时间
+    // 如果有 reasoning 区域，时间显示在 reasoning-header 的 role-badge 中；
+    // 否则显示在独立的 role-label 中
+    if (assistantCreatedAt) {
+        const d = new Date(assistantCreatedAt);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        const timeText = `(${hh}:${mm}:${ss})`;
+
+        // 优先更新 reasoning-header 中的 role-badge（如果有 reasoning 区域）
+        const reasoningBadge = assistantBubble.querySelector('.reasoning-role-badge');
+        if (reasoningBadge) {
+            // 替换或追加时间文本（去除已有的时间，再追加新的）
+            const badgeText = reasoningBadge.textContent || 'AI';
+            const cleanBadge = badgeText.replace(/\s*\(\d{2}:\d{2}:\d{2}\)/, '');
+            reasoningBadge.textContent = `${cleanBadge} ${timeText}`;
+        } else {
+            // 没有 reasoning 区域，更新独立的 role-label
+            const roleLabel = assistantBubble.querySelector('.role-label');
+            if (roleLabel) {
+                const roleText = '🤖 AI';
+                roleLabel.textContent = `${roleText} ${timeText}`;
+            }
+        }
+    }
     // 显示 token 用量信息
     if (event.usage) {
         showTokenUsage(assistantBubble, event.usage);
@@ -200,7 +228,7 @@ function removeWelcomeMessage(chatContainer) {
  * @param {string} createdAt  ISO 格式时间戳
  */
 function addUserMessage(content, createdAt) {
-    addMessage('user', content);
+    addMessage('user', content, createdAt);
     state.messages.push({ role: 'user', content, id: 0, created_at: createdAt });
 
     if (!state.dialogTitle) {
@@ -278,7 +306,7 @@ function prepareChat() {
     setInputEnabled(false);
 
     // 创建空的 assistant 消息占位
-    const assistantBubble = addMessage('assistant', '', true);
+    const assistantBubble = addMessage('assistant', '', null, true);
     state.isStreaming = true;
 
     // 确保流式开始前页面已在底部。

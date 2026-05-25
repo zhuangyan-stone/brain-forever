@@ -1,0 +1,177 @@
+/* ============================================================
+   会话列表样式 — 左侧栏会话列表
+   依赖：theme.css（主题变量）
+   ============================================================ */
+
+/* ---------- 会话列表容器 ---------- */
+.session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.session-list-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem 1rem;
+    font-size: 0.875rem;
+}
+
+/* ---------- 分组 ---------- */
+.session-group {
+    margin-bottom: 4px;
+}
+
+.session-group-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 0.75rem 0.25rem;
+    user-select: none;
+}
+
+.session-group-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+/* ---------- 日期子分组（更早分组下） ---------- */
+.session-date-group {
+    margin-bottom: 2px;
+}
+
+.session-date-header {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 0.35rem 0.75rem 0.15rem;
+    user-select: none;
+    opacity: 0.8;
+}
+
+/* ---------- 单个会话项 ---------- */
+.session-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.15s ease;
+    min-height: 36px;
+    gap: 4px;
+}
+
+.session-item:hover {
+    background: var(--bg-user);
+}
+
+.session-item.active {
+    background: var(--bg-user);
+    border-left: 3px solid var(--accent);
+    padding-left: calc(0.75rem - 3px);
+}
+
+/* ---------- 会话标题 ---------- */
+.session-item-title {
+    flex: 1;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+    min-width: 0;
+}
+
+.session-item.active .session-item-title {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* ---------- 更多按钮（...） ---------- */
+.session-item-more-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    opacity: 0.6;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.session-item:hover .session-item-more-btn,
+.session-item.active .session-item-more-btn {
+    display: flex;
+}
+
+.session-item-more-btn:hover {
+    opacity: 1;
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+/* ---------- 上下文菜单（下拉菜单） ---------- */
+.session-context-menu {
+    position: fixed;
+    z-index: 1000;
+    min-width: 140px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 16px var(--shadow);
+    animation: contextMenuFadeIn 0.12s ease;
+}
+
+@keyframes contextMenuFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.session-context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background-color 0.1s ease;
+}
+
+.session-context-menu-item:hover {
+    background: var(--bg-user);
+}
+
+.session-context-menu-item svg {
+    flex-shrink: 0;
+}
+
+/* 删除菜单项 — 警告色 */
+.session-context-menu-item-danger {
+    color: var(--error-text);
+}
+
+.session-context-menu-item-danger:hover {
+    background: var(--error-bg);
+}

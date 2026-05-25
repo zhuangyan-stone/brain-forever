@@ -43,7 +43,14 @@ export function createReasoningArea(assistantBubble) {
 
     // 隐藏独立的 AI 角色标签，将其合并到 reasoning-header 中
     const roleLabel = assistantBubble.querySelector('.role-label-ai');
+    let roleTimeText = '';
     if (roleLabel) {
+        // 读取 role-label 中的时间文本（如果有），合并到 reasoning-header 中
+        const labelText = roleLabel.textContent || '';
+        const timeMatch = labelText.match(/\((\d{2}:\d{2}:\d{2})\)/);
+        if (timeMatch) {
+            roleTimeText = ` (${timeMatch[1]})`;
+        }
         roleLabel.style.display = 'none';
     }
 
@@ -52,7 +59,7 @@ export function createReasoningArea(assistantBubble) {
         <div class="reasoning-header">
             <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>
             <span class="reasoning-icon">🤖</span>
-            <span class="reasoning-role-badge">AI</span>
+            <span class="reasoning-role-badge">AI${roleTimeText}</span>
             <span class="reasoning-title">${titleText}</span>
         </div>
         <div class="reasoning-content"></div>
@@ -186,7 +193,14 @@ export function restoreReasoningArea(assistantBubble, reasoningText) {
 
     // 隐藏独立的 AI 角色标签，将其合并到 reasoning-header 中
     const roleLabel = assistantBubble.querySelector('.role-label-ai');
+    let roleTimeText = '';
     if (roleLabel) {
+        // 读取 role-label 中的时间文本（如果有），合并到 reasoning-header 中
+        const labelText = roleLabel.textContent || '';
+        const timeMatch = labelText.match(/\((\d{2}:\d{2}:\d{2})\)/);
+        if (timeMatch) {
+            roleTimeText = ` (${timeMatch[1]})`;
+        }
         roleLabel.style.display = 'none';
     }
 
@@ -198,7 +212,7 @@ export function restoreReasoningArea(assistantBubble, reasoningText) {
         <div class="reasoning-header">
             <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>
             <span class="reasoning-icon">🤖</span>
-            <span class="reasoning-role-badge">AI</span>
+            <span class="reasoning-role-badge">AI${roleTimeText}</span>
             <span class="reasoning-title">${titleText}</span>
         </div>
         <div class="reasoning-content">${renderMarkdown(reasoningText)}</div>

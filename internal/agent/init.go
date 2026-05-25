@@ -56,7 +56,7 @@ func InitEmbedder(cfg config.EmbedderConfig) embedder.Embedder {
 func InitVectorStore(cfg config.VectorStoreConfig, e embedder.Embedder) (*store.VectorStore, error) {
 	dbPath := cfg.DBPath
 	if dbPath == "" {
-		dbPath = "./brain.db"
+		dbPath = "./data/brain.db"
 	}
 
 	vs, err := store.NewVectorStore(dbPath, e)
@@ -87,38 +87,6 @@ func InitLLMClient(cfg config.ChatLLMConfig) llm.Client {
 	maxIter := cfg.MaxToolCallIterations
 	if maxIter <= 0 {
 		maxIter = 9
-	}
-
-	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{
-		ClientConfig: llm.ClientConfig{
-			EnvKey:                envKey,
-			BaseURL:               baseURL,
-			Model:                 model,
-			MaxToolCallIterations: maxIter,
-		},
-	})
-}
-
-// InitTraitLLMClient creates an LLM client for trait extraction.
-func InitTraitLLMClient(cfg config.TraitLLMConfig) llm.Client {
-	envKey := cfg.EnvKey
-	if envKey == "" {
-		envKey = "DEEPSEEK_API_KEY"
-	}
-
-	baseURL := cfg.BaseURL
-	if baseURL == "" {
-		baseURL = "https://api.deepseek.com/beta"
-	}
-
-	model := cfg.Model
-	if model == "" {
-		model = "deepseek-chat"
-	}
-
-	maxIter := cfg.MaxToolCallIterations
-	if maxIter <= 0 {
-		maxIter = 3
 	}
 
 	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{
@@ -202,30 +170,16 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// 3. Initialize Chat LLM Client
 	chatLLMClient := InitLLMClient(cfg.ChatLLM)
 
-	// 3.5. Initialize Trait LLM Client
-	traitLLMClient := InitTraitLLMClient(cfg.TraitLLM)
-
 	// 4. Initialize Web Search Client
 	webSearchClient := InitWebSearchClient(cfg.WebSearch)
 
 	// 5. Create ChatHandler
-	traitExtractInterval := cfg.TraitLLM.ExtractInterval
-	if traitExtractInterval <= 0 {
-		traitExtractInterval = 5
-	}
-	traitExtractTokenThreshold := cfg.TraitLLM.ExtractTokenThreshold
-	if traitExtractTokenThreshold <= 0 {
-		traitExtractTokenThreshold = 200
-	}
 	chatHandler := NewChatHandler(
 		&traitSearchAdapter{store: vectorStore},
 		webSearchClient,
 		chatLLMClient,
-		traitLLMClient,
 		cookieName,
 		defaultLang,
-		traitExtractInterval,
-		traitExtractTokenThreshold,
 	)
 
 	// 6. Start background session GC

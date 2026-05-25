@@ -3,10 +3,12 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/store"
 )
 
 // ============================================================
@@ -33,10 +35,6 @@ type Message struct {
 	Sources []toolimp.WebSource `json:"sources,omitempty"`
 
 	CreatedAt string `json:"created_at"` // UTC time string, e.g. "2026-05-02T16:30:00Z"
-
-	// Traited marks whether this message has been processed by the trait
-	// extraction system.
-	Traited bool `json:"traited,omitempty"`
 }
 
 // ChatRequest is the chat request sent from the frontend
@@ -62,6 +60,7 @@ type SSEEvent struct {
 	Usage      *Usage                `json:"usage,omitempty"`       // Used for done type
 	Message    string                `json:"message,omitempty"`     // Used for error type
 	MsgID      int64                 `json:"msg_id,omitempty"`      // Used for done type — ID of the user message
+	CreatedAt  string                `json:"created_at,omitempty"`  // Used for done type — assistant message creation time
 }
 
 // Usage represents token usage
@@ -89,28 +88,46 @@ const (
 	TitleStateUserModified                   // 2: user-modified title
 )
 
+type chat struct {
+	history []Message // The user's complete chat history
+
+	title      string     // Session title, generated from the first user message content
+	titleState TitleState // Title modification state
+
+	dbSessionID int64 // Corresponding chat_sessions.id in the database (0 means not persisted)
+}
+
 // session represents an individual user's session
 type session struct {
 	mu           sync.Mutex
-	history      []Message  // The user's complete chat history
-	lastActivity time.Time  // Last activity time, used by GC for cleanup
-	title        string     // Session title, generated from the first user message content
-	titleState   TitleState // Title modification state
+	lastActivity time.Time // Last activity time, used by GC for cleanup
+
+	currentChat *chat // Current active chat (history, title, titleState)
+
+	chats     []store.Session  // User's session list from the database (populated after login)
+	userNo    string           // Global unique user serial number; empty means not logged in
+	chatStore *store.ChatStore // Chat database store for the logged-in user; nil for anonymous users
 }
 
 func (s *session) GetTitle() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.title
+	if s.currentChat == nil {
+		return ""
+	}
+	return s.currentChat.title
 }
 
 func (s *session) SetTitle(newTitle string) {
-	s.mu.Lock()
+	s.mu.Lock() // <---- 死锁
 	defer s.mu.Unlock()
 
-	if newTitle != s.title {
-		s.title = newTitle
+	if s.currentChat == nil {
+		s.currentChat = &chat{}
+	}
+	if newTitle != s.currentChat.title {
+		s.currentChat.title = newTitle
 	}
 }
 
@@ -118,7 +135,10 @@ func (s *session) GetTitleState() TitleState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return s.titleState
+	if s.currentChat == nil {
+		return TitleStateOriginal
+	}
+	return s.currentChat.titleState
 }
 
 // SetTitleState sets the title modification state.
@@ -128,11 +148,46 @@ func (s *session) SetTitleState(newState TitleState) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if newState > s.titleState {
-		s.titleState = newState
+	if s.currentChat == nil {
+		s.currentChat = &chat{}
+	}
+	if newState > s.currentChat.titleState {
+		s.currentChat.titleState = newState
 		return true
 	}
 	return false
+}
+
+// switchToUser switches the session to a logged-in user.
+// It clears the current chat, opens (or creates)
+// the user's chat database, and loads the user's session list.
+func (s *session) switchToUser(sn string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Reset current chat (history, title, titleState)
+	s.currentChat = nil
+	// Set the user serial number
+	s.userNo = sn
+
+	// Open (or create) the user's chat database
+	dbFile := "data/" + sn + ".chats.db"
+	chatStore, err := store.CreateLocalChatScheme(dbFile)
+	if err != nil {
+		log.Printf("failed to create local chat scheme for user %s: %v", sn, err)
+		return
+	}
+
+	// Save the chat store for later use (message persistence)
+	s.chatStore = chatStore
+
+	// Load the user's session list (latest 100)
+	chats, err := chatStore.ListSessions(100)
+	if err != nil {
+		log.Printf("failed to list sessions for user %s: %v", sn, err)
+		return
+	}
+	s.chats = chats
 }
 
 // SessionManager manages all user sessions
@@ -155,9 +210,12 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	sm.mu.RUnlock()
 
 	if ok {
+		log.Printf("[DEBUG] GetOrCreate: session %s exists, acquiring s.mu", sessionID)
 		s.mu.Lock()
+		log.Printf("[DEBUG] GetOrCreate: session %s acquired s.mu", sessionID)
 		s.lastActivity = time.Now()
 		s.mu.Unlock()
+		log.Printf("[DEBUG] GetOrCreate: session %s released s.mu", sessionID)
 		return s
 	}
 
@@ -174,6 +232,7 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 
 	s = &session{
 		lastActivity: time.Now(),
+		currentChat:  &chat{},
 	}
 	sm.sessions[sessionID] = s
 	return s
@@ -192,8 +251,11 @@ func (sm *SessionManager) GetHistory(sessionID string) ([]Message, *session) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.lastActivity = time.Now()
-	cp := make([]Message, len(s.history))
-	copy(cp, s.history)
+	if s.currentChat == nil {
+		return []Message{}, s
+	}
+	cp := make([]Message, len(s.currentChat.history))
+	copy(cp, s.currentChat.history)
 	return cp, s
 }
 
@@ -275,9 +337,13 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	defer s.mu.Unlock()
 	s.lastActivity = time.Now()
 
+	if s.currentChat == nil {
+		return fmt.Errorf("no active chat")
+	}
+
 	// Find the first message with the given ID
 	start := -1
-	for i, msg := range s.history {
+	for i, msg := range s.currentChat.history {
 		if msg.ID == msgID {
 			start = i
 			break
@@ -290,10 +356,10 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 
 	// Find the end: keep deleting while ID matches, stop at first different ID
 	end := start + 1
-	for end < len(s.history) && s.history[end].ID == msgID {
+	for end < len(s.currentChat.history) && s.currentChat.history[end].ID == msgID {
 		end++
 	}
 
-	s.history = append(s.history[:start], s.history[end:]...)
+	s.currentChat.history = append(s.currentChat.history[:start], s.currentChat.history[end:]...)
 	return nil
 }

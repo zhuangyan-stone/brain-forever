@@ -148,3 +148,112 @@ export async function putSessionTitle(title, titleState = TITLE_STATE.USER) {
 		return false;
 	}
 }
+
+/**
+	* onChatLogin 调用后端 POST /api/chat/login 接口，切换当前会话到登录用户。
+	* 登录成功后调用 switchToUser 加载用户的对话列表。
+	* @param {string} userNo - 全局唯一用户系列号
+	* @returns {Promise<boolean>} 是否成功
+	*/
+export async function onChatLogin(userNo) {
+	if (!userNo) return false;
+	try {
+		const response = await fetch('/api/chat/login', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ user_no: userNo }),
+		});
+		if (!response.ok) {
+			console.warn('登录失败:', response.status);
+			return false;
+		}
+		const data = await response.json();
+		if (data.status === 'ok') {
+			await switchToUser(data);
+			return true;
+		}
+		return false;
+	} catch (e) {
+		console.warn('登录出错:', e);
+		return false;
+	}
+}
+
+/**
+	* switchToUser 切换前端状态到指定用户。
+	* 清空当前对话历史，重置标题，然后加载用户的对话列表。
+	* @param {object} data - 后端返回的登录响应数据 { user_no, sessions }
+	*/
+export async function switchToUser(data) {
+	// 清空消息状态
+	state.messages = [];
+	state.userMsgCount = 0;
+	state.activeTickIndex = -1;
+	state.tickScrollOffset = 0;
+	state.currentGroup = null;
+	state.accumulatedMarkdown = '';
+	if (state.renderTimer) {
+		clearTimeout(state.renderTimer);
+		state.renderTimer = null;
+	}
+
+	// 移除所有消息 DOM 节点
+	const chatContainer = document.getElementById('chatContainer');
+	if (chatContainer) {
+		chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
+	}
+
+	// 移除已有的欢迎消息
+	const existingWelcome = document.querySelector('.welcome-message');
+	if (existingWelcome) {
+		const inputArea = existingWelcome.querySelector('.input-area');
+		if (inputArea) {
+			const mainBody = document.getElementById('mainBody');
+			if (mainBody && mainBody.nextElementSibling?.classList?.contains('input-area')) {
+				// input-area 已经在正确位置
+			} else if (mainBody) {
+				mainBody.parentNode.insertBefore(inputArea, mainBody.nextSibling);
+			}
+		}
+		existingWelcome.remove();
+	}
+
+	// 清空刻度导航
+	const tickNav = document.getElementById('tickNav');
+	if (tickNav) {
+		tickNav.innerHTML = '';
+	}
+
+	// 移除 welcome-state 标记
+	const scrollContainer = document.getElementById('scrollContainer');
+	if (scrollContainer) {
+		scrollContainer.classList.remove('welcome-state');
+	}
+
+	// 清除所有便利贴
+	const { clearAllStickyNotes } = await import('./components/sticky-note.js');
+	clearAllStickyNotes();
+
+	// 更新标题
+	updateHeaderTitle('');
+
+	// 更新登录按钮文本
+	const loginBtn = document.getElementById('loginBtn');
+	if (loginBtn) {
+		loginBtn.textContent = `用户: ${data.user_no}`;
+	}
+
+	// 渲染会话列表
+	const { renderSessionList } = await import('./chat-session-list.js');
+	renderSessionList(data.sessions || [], data.current_sn || null);
+
+	// 显示欢迎消息
+	const { showWelcomeMessage } = await import('./chat-ui.js');
+	showWelcomeMessage();
+
+	// 聚焦输入框
+	const msgInput = document.getElementById('messageInput');
+	if (msgInput) {
+		msgInput.focus();
+	}
+}

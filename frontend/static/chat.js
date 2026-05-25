@@ -13,7 +13,7 @@ import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { restoreSession } from './chat-session.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
-import { fetchSessionTitle, putSessionTitle, TITLE_STATE } from './chat-api.js';
+import { fetchSessionTitle, putSessionTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
@@ -825,6 +825,31 @@ initCopyHandlers();
 
 // 初始化删除模态框事件绑定
 initDeleteModal();
+
+// ============================================================
+// 登录按钮 — 点击后调用后端登录接口，切换用户
+// ============================================================
+(function initLoginBtn() {
+    const loginBtn = document.getElementById('loginBtn');
+    if (!loginBtn) return;
+
+    loginBtn.addEventListener('click', async () => {
+        // 如果正在流式输出，先中止
+        if (state.isStreaming && state.abortController) {
+            state.abortController.abort();
+        }
+
+        // 简单模拟登录：使用固定 userNo 或生成一个测试号
+        // 后续可改为弹出对话框让用户输入
+        const userNo = 'test_user_001';
+        const success = await onChatLogin(userNo);
+        if (success) {
+            console.log('登录成功，已切换到用户:', userNo);
+        } else {
+            console.error('登录失败');
+        }
+    });
+})();
 
 // 页面加载后先恢复会话
 window.addEventListener('DOMContentLoaded', restoreSession);

@@ -175,3 +175,9 @@ body.small-screen-mode .new-chat-label {
         display: none !important;
     }
 }
+
+/* 小屏模式下 header 登录按钮缩小 padding */
+body.small-screen-mode .header-login-btn {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+}

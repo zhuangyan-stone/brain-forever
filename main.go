@@ -41,7 +41,7 @@ func main() {
 			Dimension: 2048,
 		},
 		VectorStore: config.VectorStoreConfig{
-			DBPath: "./brain.db",
+			DBPath: "./data/brain.db",
 		},
 		ChatLLM: config.ChatLLMConfig{
 			EnvKey:                "DEEPSEEK_API_KEY",
@@ -72,9 +72,16 @@ func main() {
 	theLogger.Infof("the logger is created with level. level %s. file %s", cfg.Logger.Level, cfg.Logger.File)
 
 	// ============================================================
+	// Ensure data directory exists for SQLite databases
+	// ============================================================
+	if err := os.MkdirAll("./data", 0755); err != nil {
+		theLogger.Fatalf("failed to create data directory: %v", err)
+	}
+
+	// ============================================================
 	// Initialize user store (separate user.db)
 	// ============================================================
-	userStore, err := store.NewUserStore("./users.db")
+	userStore, err := store.NewUserStore("./data/users.db")
 	if err != nil {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
 	} else {
@@ -118,7 +125,16 @@ func main() {
 	// API routes
 	mux.Handle("/api/chat", http.HandlerFunc(chatHandler.OnNewMessage))
 	mux.Handle("/api/chat/info/llm", http.HandlerFunc(chatHandler.OnGetLLMInfo))
-	mux.Handle("/api/session", http.HandlerFunc(chatHandler.OnRestoreSession))
+	mux.Handle("/api/session", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			chatHandler.OnRestoreSession(w, r)
+		case http.MethodDelete:
+			chatHandler.OnDeleteSession(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 	mux.Handle("/api/session/new", http.HandlerFunc(chatHandler.OnNewSession))
 	mux.Handle("/api/session/title", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -130,7 +146,9 @@ func main() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
+	mux.Handle("/api/session/pin", http.HandlerFunc(chatHandler.OnUpdateSessionPin))
 	mux.Handle("/api/history", http.HandlerFunc(chatHandler.OnDeleteMessage))
+	mux.Handle("/api/chat/login", http.HandlerFunc(chatHandler.OnLogin))
 
 	// Health check endpoint
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {

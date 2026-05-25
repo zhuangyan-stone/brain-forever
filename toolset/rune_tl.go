@@ -38,3 +38,32 @@ func IsEmoji(r rune) bool {
 		(r >= 0x1F1E0 && r <= 0x1F1FF) || // 区域指示符
 		(r >= 0x200D) // 零宽连接符（ZWJ，用于组合 emoji）
 }
+
+// TruncateTitle truncates a string to at most maxLen runes for use as a session title.
+// It also collapses whitespace/newlines into a single space.
+// If the string exceeds maxLen, it appends "…" at the end.
+func TruncateTitle(s string, maxLen int) string {
+	// Collapse whitespace and newlines
+	runes := []rune(s)
+	var result []rune
+	space := false
+	for _, r := range runes {
+		switch r {
+		case '\n', '\r', '\t', ' ':
+			if !space {
+				result = append(result, ' ')
+				space = true
+			}
+		default:
+			result = append(result, r)
+			space = false
+		}
+	}
+	trimmed := string(result)
+	// Limit to maxLen characters
+	runes2 := []rune(trimmed)
+	if len(runes2) > maxLen {
+		return string(runes2[:maxLen]) + "…"
+	}
+	return trimmed
+}

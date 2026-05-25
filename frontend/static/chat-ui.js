@@ -207,10 +207,11 @@ export function showTokenUsage(assistantBubble, usage) {
  * 返回创建的 .message 元素。
  * @param {'user'|'assistant'} role
  * @param {string} content
+ * @param {string|null} [createdAt=null] - ISO 格式时间戳，用于在角色标签后显示时间
  * @param {boolean} [isStreaming=false]
  * @returns {HTMLElement}
  */
-export function addMessage(role, content, isStreaming = false) {
+export function addMessage(role, content, createdAt = null, isStreaming = false) {
     const div = document.createElement('div');
     div.className = `message ${role}`;
 
@@ -262,10 +263,19 @@ export function addMessage(role, content, isStreaming = false) {
     const inner = document.createElement('div');
     inner.className = 'message-inner';
 
-    // 角色标签
+    // 角色标签（含时间）
     const label = document.createElement('div');
     label.className = 'role-label';
-    label.textContent = role === 'user' ? '我' : '🤖 AI';
+    const roleText = role === 'user' ? '我' : '🤖 AI';
+    if (createdAt) {
+        const d = new Date(createdAt);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        label.textContent = `${roleText} (${hh}:${mm}:${ss})`;
+    } else {
+        label.textContent = roleText;
+    }
     if (role === 'assistant') {
         label.classList.add('role-label-ai');
     }

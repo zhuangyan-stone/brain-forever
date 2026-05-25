@@ -38,7 +38,7 @@ export async function restoreSession() {
 
         // 有历史消息，恢复显示
         for (const msg of history) {
-            const msgDiv = addMessage(msg.role, msg.content);
+            const msgDiv = addMessage(msg.role, msg.content, msg.created_at || null);
             const entry = { role: msg.role, content: msg.content, id: msg.id, usage: msg.usage || null };
             state.messages.push(entry);
             // 将 data-msg-id 设置在 message-group 上（同一组的 user 和 assistant 共享同一 ID）
