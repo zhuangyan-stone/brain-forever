@@ -43,7 +43,6 @@ export async function restoreChat() {
 			// （可能是服务器重启导致内存 chat 丢失）
 			const savedUserNo = localStorage.getItem('brainforever_user_no');
 			if (savedUserNo && !data.is_new) {
-				console.log('[restoreChat] 检测到服务端 chat 丢失 user_no，自动重新登录:', savedUserNo);
 				const { onChatLogin } = await import('./chat-api.js');
 				await onChatLogin(savedUserNo);
 				// onChatLogin 内部会调用 switchToUser → restoreChat，

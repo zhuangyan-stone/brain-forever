@@ -54,13 +54,15 @@ export function createReasoningArea(assistantBubble) {
         roleLabel.style.display = 'none';
     }
 
+    // 将时间文本存储在 reasoning-area 上，供 finalizeReasoningArea 使用
+    reasoningArea.dataset.roleTimeText = roleTimeText || '';
     const titleText = '正在思考……';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
             <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>
             <span class="reasoning-icon">🤖</span>
-            <span class="reasoning-role-badge">AI${roleTimeText}</span>
-            <span class="reasoning-title">${titleText}</span>
+            <span class="reasoning-role-badge">AI</span>
+            <span class="reasoning-title">${titleText}${roleTimeText}</span>
         </div>
         <div class="reasoning-content"></div>
     `;
@@ -82,7 +84,7 @@ function getToolIcon(toolName) {
     switch (toolName) {
         case 'web_search':
             return '🔍';
-        case 'get_current_local_time':
+        case 'current_time':
             return '🕐';
         case 'personal_trait_search':
             return '🧑';
@@ -139,7 +141,8 @@ export function finalizeReasoningArea(assistantBubble) {
 
     const titleEl = area.querySelector('.reasoning-title');
     if (titleEl) {
-        titleEl.textContent = '思考完成';
+        const timeText = area.dataset.roleTimeText || '';
+        titleEl.textContent = `思考完成${timeText}`;
     }
     area.classList.remove('active');
     area.classList.add('done');
@@ -156,7 +159,6 @@ export function finalizeReasoningArea(assistantBubble) {
     }
 
     // reasoning 区域渲染完成，内容高度可能变化，同步滚动到底部
-    console.log(`[AutoScroll] 🧠 finalizeReasoningArea: reasoning渲染完成 → autoScrollToBottom userScrolledUp=${state.userScrolledUp}`);
     autoScrollToBottom();
 }
 
@@ -207,13 +209,15 @@ export function restoreReasoningArea(assistantBubble, reasoningText) {
     // 创建 reasoning 区域（默认折叠）
     const reasoningArea = document.createElement('div');
     reasoningArea.className = 'reasoning-area done collapsed';
+    // 将时间文本存储在 reasoning-area 上
+    reasoningArea.dataset.roleTimeText = roleTimeText || '';
     const titleText = '思考完成';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
             <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>
             <span class="reasoning-icon">🤖</span>
-            <span class="reasoning-role-badge">AI${roleTimeText}</span>
-            <span class="reasoning-title">${titleText}</span>
+            <span class="reasoning-role-badge">AI</span>
+            <span class="reasoning-title">${titleText}${roleTimeText}</span>
         </div>
         <div class="reasoning-content">${renderMarkdown(reasoningText)}</div>
     `;

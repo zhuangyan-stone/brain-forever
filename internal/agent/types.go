@@ -432,12 +432,9 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	sm.mu.RUnlock()
 
 	if ok {
-		log.Printf("[DEBUG] GetOrCreate: session %s exists, acquiring s.mu", sessionID)
 		s.mu.Lock()
-		log.Printf("[DEBUG] GetOrCreate: session %s acquired s.mu", sessionID)
 		s.lastActivity = time.Now()
 		s.mu.Unlock()
-		log.Printf("[DEBUG] GetOrCreate: session %s released s.mu", sessionID)
 		return s
 	}
 

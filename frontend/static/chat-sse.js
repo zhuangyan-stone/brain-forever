@@ -123,28 +123,20 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     }
     // 重置累积变量，为下一次流式做准备
     state.accumulatedMarkdown = '';
-    console.log(`[AutoScroll] 🏁 handleDoneEvent: 流式结束，尝试滚动到底部 userScrolledUp=${state.userScrolledUp}`);
     autoScrollToBottom();
 
     // 流式结束：展开输入面板（流式期间被折叠了）
     restoreInputArea();
     // 展开后布局可能变化，延迟再滚一次到底部
     setTimeout(() => {
-        console.log(`[AutoScroll] ⏱ handleDoneEvent: 500ms后二次滚动 userScrolledUp=${state.userScrolledUp}`);
         autoScrollToBottom();
     }, 500);
 
     // AI 回复完成后：如果用户已向上滚动（离开底部），才弹 Toast 提示
     if (state.userScrolledUp) {
-        console.log(
-            `%c[AutoScroll] 🍞 Toast提示: 用户已上滚(userScrolledUp=true)，弹窗"AI 回复完毕"`,
-            'background:purple; color:white; font-size:12px; padding:2px;'
-        );
         setTimeout(() => {
             showToast('AI 回复完毕', 'info');
         }, 600);
-    } else {
-        console.log(`[AutoScroll] ✅ 流式结束，用户未上滚，自动滚动正常`);
     }
 }
 
@@ -303,14 +295,7 @@ function prepareChat() {
     const createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
     // 新消息发出，即将滚动到底部，重置用户滚动状态
-    const prevUserScrolledUp = state.userScrolledUp;
     state.userScrolledUp = false;
-    if (prevUserScrolledUp) {
-        console.log(
-            `%c[AutoScroll] 🔄🔴 发送前重置: userScrolledUp ${prevUserScrolledUp} → false (之前被用户上滚阻塞)`,
-            'background:orange; color:black; font-size:13px; font-weight:bold; padding:3px;'
-        );
-    }
 
     // 添加用户消息
     addUserMessage(content, createdAt);
@@ -329,7 +314,6 @@ function prepareChat() {
     // addMessage 内部的 autoScrollToBottom 使用同步 scrollTop 赋值，
     // 如果 SSE 事件在 scroll 事件之前到达（如 reasoning 事件首条创建 DOM），
     // 再次滚动可确保位置正确。
-    console.log(`[AutoScroll] ▶️ 流式开始前 强制滚动到底部 userScrolledUp=${state.userScrolledUp}`);
     autoScrollToBottom();
 
     updateDeleteButtons();

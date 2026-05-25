@@ -125,14 +125,11 @@ if (aiTitleBtn) {
     aiTitleBtn.addEventListener('click', () => {
         // 正在 SSE 流式输出时，AI 标题按钮不可用
         if (state.isStreaming) {
-            console.log('[aiTitleBtn] streaming in progress, ignoring click');
             return;
         }
         if (aiTitleDebounceTimer) {
-            console.log('[aiTitleBtn] debounced, ignoring click');
             return;
         }
-        console.log('[aiTitleBtn] clicked, dialogTitle:', state.dialogTitle, 'titleState:', state.titleState);
         showToast('已向 AI 发出请求……', 'info');
         // 使用当前对话标题作为 originalTitle 传给后端
         // force=true 忽略 titleState 守卫，强制请求 AI 重新生成标题
@@ -836,7 +833,6 @@ initDeleteModal();
     loginBtn.addEventListener('click', async () => {
         // 流式输出时，登录按钮直接短路返回，不做任何操作
         if (state.isStreaming) {
-            console.log('[loginBtn] streaming in progress, ignoring click');
             return;
         }
 
@@ -845,7 +841,6 @@ initDeleteModal();
         const userNo = 'test_user_001';
         const success = await onChatLogin(userNo);
         if (success) {
-            console.log('登录成功，已切换到用户:', userNo);
         } else {
             console.error('登录失败');
         }
@@ -896,10 +891,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         collapseInputArea();
 
         if (state.userScrolledUp && isScrolledToBottom()) {
-            console.log(
-                `%c[AutoScroll] 🔄 scrollend: 已到底部 → userScrolledUp=false (恢复自动滚动)`,
-                'background:green; color:white; font-size:12px; font-weight:bold; padding:2px;'
-            );
             state.userScrolledUp = false;
         }
     });
@@ -920,20 +911,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                 // streaming 分支：只检测用户滚动状态，不操作输入面板（避免 scroll anchoring）
                 // auto-scroll 由 throttleRender 每 180ms 调用 autoScrollToBottom 负责
                 if (!isScrolledToBottom()) {
-                    if (!state.userScrolledUp) {
-                        console.log(
-                            `%c[AutoScroll] ⚠️⚠️⚠️ userScrolledUp → true (用户向上滚动，阻塞自动滚动) ⚠️⚠️⚠️`,
-                            'background:red; color:yellow; font-size:14px; font-weight:bold; padding:4px;'
-                        );
-                        console.log(`[AutoScroll] 📊 ${debugInfo} isScrolledToBottom=false`);
-                    }
                     state.userScrolledUp = true;
                 } else if (state.userScrolledUp) {
-                    console.log(
-                        `%c[AutoScroll] ✅✅✅ userScrolledUp → false (用户滚回底部，恢复自动滚动) ✅✅✅`,
-                        'background:green; color:white; font-size:14px; font-weight:bold; padding:4px;'
-                    );
-                    console.log(`[AutoScroll] 📊 ${debugInfo}`);
                     state.userScrolledUp = false;
                 }
 
