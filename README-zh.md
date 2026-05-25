@@ -139,7 +139,7 @@ brain-forever.exe
 |---|---|---|
 | `POST` | `/api/chat` | 发送消息，接收流式 AI 回复 |
 | `GET` | `/api/session` | 恢复当前会话的对话历史 |
-| `POST` | `/api/history` | 删除一条消息及其关联的 AI 回复 |
+| `DELETE` | `/api/chat/messages` | 删除一条消息及其关联的 AI 回复 |
 | `GET` | `/api/health` | 健康检查 |
 
 ## 项目结构

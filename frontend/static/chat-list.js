@@ -4,7 +4,7 @@
 // ============================================================
 
 import { state } from './chat-state.js';
-import { showToast, addMessage, updateHeaderTitle, showSources, showTokenUsage } from './chat-ui.js';
+import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showSources, showTokenUsage } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { restoreReasoningArea } from './chat-reasoning.js';
@@ -705,6 +705,53 @@ export function updateCurrentChatTitle(newTitle) {
 }
 
 /**
+ * 更新或添加侧边栏中的单个对话条目。
+ * 由 getCurrentChatIfNeeded 在第一轮对话完成后调用，
+ * 替换旧的 refreshChatListIfNeeded 全量刷新方式。
+ *
+ * 功能：
+ *   - 如果该 SN 已存在于 currentChats 中，更新其标题
+ *   - 如果不存在（新对话的脏数据尚未被后端确认），移除脏数据 (sn=null) 并添加新条目
+ *   - 然后重新渲染整个列表
+ *
+ * @param {string} sn - 对话 SN（来自后端）
+ * @param {string} title - 对话标题
+ * @param {number} titleState - 标题修改状态
+ */
+export function updateChatEntry(sn, title, titleState) {
+    if (!sn) return;
+
+    // 检查该 SN 是否已存在
+    const existing = currentChats.find(c => c.sn === sn);
+    if (existing) {
+        // 已存在：仅更新标题
+        existing.title = title;
+        existing.title_state = titleState;
+    } else {
+        // 不存在：移除脏数据（sn=null 的占位条目），然后添加真实条目
+        currentChats = currentChats.filter(c => c.sn !== null);
+
+        // 创建新条目
+        const now = new Date().toISOString();
+        const newChat = {
+            id: 0,
+            sn: sn,
+            title: title,
+            title_state: titleState,
+            pinned: false,
+            category: 0,
+            role_no: 0,
+            create_at: now,
+            update_at: now,
+        };
+        currentChats.unshift(newChat);
+    }
+
+    // 重新渲染列表
+    renderChatList(currentChats, activeChatSN);
+}
+
+/**
  * 删除对话
  */
 async function handleDelete(chat) {
@@ -726,7 +773,40 @@ async function handleDelete(chat) {
         if (idx >= 0) {
             currentChats.splice(idx, 1);
         }
-        // 重新渲染列表
+
+        // 如果删除的是当前活动对话，清空主界面（消息、标题、刻度导航等）
+        if (activeChatSN === chat.sn) {
+            // 清空消息状态
+            state.messages = [];
+            state.userMsgCount = 0;
+            state.activeTickIndex = -1;
+            state.tickScrollOffset = 0;
+            state.accumulatedMarkdown = '';
+            if (state.renderTimer) {
+                clearTimeout(state.renderTimer);
+                state.renderTimer = null;
+            }
+
+            // 移除所有消息 DOM
+            const chatContainer = document.getElementById('chatContainer');
+            if (chatContainer) {
+                chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
+            }
+
+            // 清空刻度导航
+            const tickNav = document.getElementById('tickNav');
+            if (tickNav) {
+                tickNav.innerHTML = '';
+            }
+
+            // 重置当前选中状态
+            activeChatSN = null;
+
+            // 显示欢迎消息（会同时清空 header 标题）
+            showWelcomeMessage();
+        }
+
+        // 重新渲染列表（activeChatSN 已置 null，侧边栏无选中项）
         renderChatList(currentChats, activeChatSN);
         showToast('已删除', 'success');
     } catch (e) {

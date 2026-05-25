@@ -109,19 +109,42 @@ func persistMessageToDB(session *session, msg *Message) {
 	}
 
 	// Also move the chat to the front of the in-memory list so that
-	// subsequent GET /api/session calls (e.g. refreshChatListIfNeeded)
-	// return the correct order.
+	// subsequent GET /api/session calls return the correct order.
 	// This is safe: addChatToList also locks chatsMu while session.mu is held.
+	//
+	// WARNING: Never use nested append like:
+	//   append(session.chats[:i], session.chats[i+1:]...)
+	// session.chats[:i] shares the same underlying array as session.chats.
+	// When there's spare capacity, the inner append mutates the shared array,
+	// corrupting session.chats (producing duplicate entries with same ID/SN).
 	session.chatsMu.Lock()
 	for i, c := range session.chats {
 		if c.ID == dbSessionID {
-			// Remove from current position and prepend
-			session.chats = append(
-				[]store.Chat{session.chats[i]},
-				append(session.chats[:i], session.chats[i+1:]...)...,
-			)
+			// Safe removal: copy all elements except index i into a new slice
+			removed := session.chats[i]
+			rest := make([]store.Chat, 0, len(session.chats)-1)
+			rest = append(rest, session.chats[:i]...)
+			rest = append(rest, session.chats[i+1:]...)
+			// Prepend the removed element
+			session.chats = append([]store.Chat{removed}, rest...)
 			break
 		}
 	}
 	session.chatsMu.Unlock()
+}
+
+// deduplicateChats removes duplicate entries from the in-memory chat list
+// by keeping only the first occurrence of each unique ID.
+// This is a safety net for any edge cases that might produce duplicates;
+// the primary fix is the safe slice manipulation in persistMessageToDB.
+func deduplicateChats(chats []store.Chat) []store.Chat {
+	seen := make(map[int64]bool, len(chats))
+	result := make([]store.Chat, 0, len(chats))
+	for _, c := range chats {
+		if !seen[c.ID] {
+			seen[c.ID] = true
+			result = append(result, c)
+		}
+	}
+	return result
 }

@@ -80,8 +80,9 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 				// Now make a copy of the (synced) chat list to return to the frontend
 				sess.chatsMu.Lock()
 				if len(sess.chats) > 0 {
-					chats = make([]store.Chat, len(sess.chats))
-					copy(chats, sess.chats)
+					// Deduplicate to guard against any lingering duplicates
+					// from the unsafe slice manipulation that was fixed in persistMessageToDB.
+					chats = deduplicateChats(sess.chats)
 				} else {
 					chats = []store.Chat{}
 				}

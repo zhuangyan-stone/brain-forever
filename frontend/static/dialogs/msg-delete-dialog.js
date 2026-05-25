@@ -112,7 +112,7 @@ async function confirmDelete() {
             group.remove();
         } else {
             // 有有效 ID，先调后端 API 删除
-            const response = await fetch('/api/history', {
+            const response = await fetch('/api/chat/messages', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ msg_id: msgId })

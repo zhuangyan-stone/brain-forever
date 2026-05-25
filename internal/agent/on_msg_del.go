@@ -7,7 +7,7 @@ import (
 )
 
 // ============================================================
-// DeleteMessageHandler — DELETE /api/history
+// DeleteMessageHandler — DELETE /api/chat/messages
 // ============================================================
 
 // DeleteMessageRequest is the request body for deleting a message pair
@@ -15,7 +15,7 @@ type DeleteMessageRequest struct {
 	MsgID int64 `json:"msg_id"` // Unique message ID of the user message to delete (along with its AI reply)
 }
 
-// OnDeleteMessage handles DELETE /api/history — deletes a user+assistant message pair by msg_id
+// OnDeleteMessage handles DELETE /api/chat/messages — deletes a user+assistant message pair by msg_id
 func (h *ChatAgent) OnDeleteMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

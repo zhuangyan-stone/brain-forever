@@ -258,6 +258,59 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
+// GetCurrentChat handler — GET /api/chat/current
+// Returns the current active chat's SN, title, and title_state
+// without loading the full chat list. Used by the frontend after
+// streaming completes to update the sidebar's single entry.
+// ============================================================
+
+// OnGetCurrentChat handles GET /api/chat/current — returns the
+// current active chat's identifier (SN), title, and title state.
+func (h *ChatAgent) OnGetCurrentChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	// Read current chat state under mu lock
+	session.mu.Lock()
+	dbSessionID := session.getDbSessionIDWithoutLock()
+	title, titleState := session.getTitleWithoutLock()
+	session.mu.Unlock()
+
+	if dbSessionID == 0 {
+		http.Error(w, "no active chat", http.StatusBadRequest)
+		return
+	}
+
+	// Find the corresponding SN from the in-memory chat list
+	session.chatsMu.Lock()
+	var sn string
+	for _, c := range session.chats {
+		if c.ID == dbSessionID {
+			sn = c.SN
+			break
+		}
+	}
+	session.chatsMu.Unlock()
+
+	if sn == "" {
+		http.Error(w, "current chat not found in list", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"sn":          sn,
+		"title":       title,
+		"title_state": int(titleState),
+	})
+}
+
+// ============================================================
 // SwitchChat handler — GET /api/chat/switch?sn=XXX
 // SwitchChat handler — switches the current active chat to a specified historical chat (topic switch).
 // ============================================================

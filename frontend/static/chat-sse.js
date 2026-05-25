@@ -476,35 +476,37 @@ function cleanupAfterStream(assistantBubble, wasAborted) {
 	// 标题自动修改
 	autoUpdateTitle(wasAborted);
 
-	// 第一轮对话完成后，刷新左侧对话列表（登录用户可见）
-	refreshChatListIfNeeded(wasAborted);
+	// 第一轮对话完成后，获取当前对话的信息并更新侧边栏单个条目（登录用户可见）
+	getCurrentChatIfNeeded(wasAborted);
 }
 
 /**
-	* refreshChatListIfNeeded 在第一轮对话完成后，从后端重新拉取对话列表并刷新左侧栏。
+	* getCurrentChatIfNeeded 在第一轮对话完成后，调用专用 API 获取当前对话的信息，
+	* 然后只更新侧边栏中对应的单个条目（而非刷新整个列表）。
+	* 这避免了 refreshChatListIfNeeded 的"全量替换"方式可能导致的重复条目和标题覆盖问题。
 	* 条件：
 	*   - 未被中断（AI 回复不完整时列表无意义）
 	*   - 仅在第一组消息后触发（state.messages.length <= 2）
 	*   - 仅登录用户需要刷新（通过 localStorage user_no 判断）
 	*/
-async function refreshChatListIfNeeded(wasAborted) {
+async function getCurrentChatIfNeeded(wasAborted) {
 	// 被中断或非第一轮对话，跳过
 	if (wasAborted || state.messages.length > 2) return;
 
-	// 未登录用户不刷新（匿名对话不会在左侧栏出现）
+	// 未登录用户不操作（匿名对话不会在左侧栏出现）
 	const userNo = localStorage.getItem('brainforever_user_no');
 	if (!userNo) return;
 
 	try {
-		const response = await fetch('/api/session');
+		const response = await fetch('/api/chat/current');
 		if (!response.ok) return;
 		const data = await response.json();
-		if (data.chats) {
-			const { renderChatList } = await import('./chat-list.js');
-			renderChatList(data.chats, data.current_chat_sn || null);
+		if (data.sn) {
+			const { updateChatEntry } = await import('./chat-list.js');
+			updateChatEntry(data.sn, data.title, data.title_state);
 		}
 	} catch (e) {
-		console.warn('刷新对话列表失败:', e);
+		console.warn('获取当前对话信息失败:', e);
 	}
 }
 
