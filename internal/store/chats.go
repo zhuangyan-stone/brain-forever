@@ -280,3 +280,21 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 	}
 	return nil
 }
+
+// TouchChat updates the update_at timestamp of a chat session to the current time.
+// This is used when a new message is inserted, so the chat moves to the top
+// of the list when ordered by update_at DESC (e.g., in ListChats).
+func (s *ChatStore) TouchChat(id int64) error {
+	result, err := s.db.Exec(
+		"UPDATE chat_sessions SET update_at = CURRENT_TIMESTAMP WHERE id = ?",
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to touch chat update_at: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("chat not found (id=%d)", id)
+	}
+	return nil
+}

@@ -87,8 +87,9 @@ export function throttleRender(timerHolder, targetEl, getText) {
  * 当 enabled=false（流式输出中）时，发送按钮变为停止按钮（红色方块），
  * 点击可中断 LLM 生成。停止按钮不可 disabled，始终保持可点击。
  * @param {boolean} enabled
+ * @private
  */
-export function setInputEnabled(enabled) {
+function setInputEnabled(enabled) {
     dom.messageInput.disabled = !enabled;
     if (dom.inputArea) {
         dom.inputArea.classList.toggle('streaming', !enabled);
@@ -115,6 +116,49 @@ export function updateDeleteButtons() {
     deleteBtns.forEach(btn => {
         btn.disabled = state.isStreaming;
     });
+}
+
+/**
+ * applyStreamingState 统一管理流式输出中所有 UI 组件的禁用状态。
+ *
+ * 当 isStreaming=true（流式输出中）：
+ *   - 输入框 disabled，发送按钮变为停止按钮（红色可点击）
+ *   - 停止按钮（折叠模式）可点击
+ *   - AI 标题按钮、登录按钮、新对话按钮 disabled
+ *   - 所有删除按钮 disabled
+ * 当 isStreaming=false（流式结束）：
+ *   - 输入框启用，停止按钮恢复为发送按钮
+ *   - 停止按钮（折叠模式）disabled 灰色
+ *   - AI 标题按钮、登录按钮、新对话按钮启用
+ *   - 所有删除按钮启用
+ *
+ * 替代 chat-sse.js 中散落的 8 个 enable/disable 函数，集中一处管理。
+ * @param {boolean} isStreaming
+ */
+export function applyStreamingState(isStreaming) {
+    // 1. 输入框 + 发送/停止按钮（复用已有逻辑）
+    setInputEnabled(!isStreaming);
+
+    // 2. 停止按钮（折叠模式下的独立中断按钮）
+    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
+    if (stopStreamingBtn) {
+        stopStreamingBtn.disabled = !isStreaming;
+    }
+
+    // 3. AI 标题按钮
+    const aiTitleBtn = document.getElementById('aiTitleBtn');
+    if (aiTitleBtn) aiTitleBtn.disabled = isStreaming;
+
+    // 4. 登录按钮
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) loginBtn.disabled = isStreaming;
+
+    // 5. 新对话按钮
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) newChatBtn.disabled = isStreaming;
+
+    // 6. 所有删除按钮
+    updateDeleteButtons();
 }
 
 /**
@@ -640,7 +684,7 @@ export function restoreInputArea() {
     if (inputArea) inputArea.classList.remove('collapsed');
     const stopStreamingBtn = document.getElementById('stopStreamingBtn');
     if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = true;
+        stopStreamingBtn.disabled = !state.isStreaming;
     }
 }
 

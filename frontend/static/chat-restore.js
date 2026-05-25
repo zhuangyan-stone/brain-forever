@@ -36,13 +36,16 @@ export async function restoreChat() {
 			// 刷新页面后，如果后端返回了对话列表，渲染到左侧栏
 			if (data.chats) {
 				const { renderChatList } = await import('./chat-list.js');
-				renderChatList(data.chats, data.current_sn || null);
+				renderChatList(data.chats, data.current_chat_sn || null);
 			}
 		} else {
 			// 后端未返回 user_no — 检查 localStorage 是否有之前保存的
 			// （可能是服务器重启导致内存 chat 丢失）
 			const savedUserNo = localStorage.getItem('brainforever_user_no');
-			if (savedUserNo && !data.is_new) {
+			if (savedUserNo) {
+				// 无论 isNew 是否为 true，只要 localStorage 中有 user_no 就尝试重新登录。
+				// 修复场景：后端重启后 session 内存数据丢失，GET /api/session 返回 isNew=true，
+				// 但 localStorage 中已有登录记录，此时应自动重新登录以恢复用户状态。
 				const { onChatLogin } = await import('./chat-api.js');
 				await onChatLogin(savedUserNo);
 				// onChatLogin 内部会调用 switchToUser → restoreChat，

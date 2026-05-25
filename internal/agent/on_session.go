@@ -28,15 +28,20 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 	titleState := int(TitleStateOriginal)
 	userNo := ""
 	var chats []store.Chat
+	currentChatSN := ""
 
 	if !isNew {
 		// Get a snapshot of messages (copy) — lock is released inside GetMessages
 		var sess *session
 		msgs, sess = h.sessionManager.GetMessages(sessionID)
 
-		if msgs == nil || sess == nil {
+		if sess == nil {
 			msgs = []Message{}
 		} else {
+			if msgs == nil {
+				panic("session's messages is nil")
+			}
+
 			savedTitle, savedState := sess.GetTitle()
 			if savedTitle != "" {
 				title = savedTitle
@@ -51,15 +56,29 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// Read the user_no from session (empty string if not logged in)
+			// Read the user_no and current chat's dbSessionID from session
+			var dbSessionID int64
 			sess.mu.Lock()
 			userNo = sess.userNo
+			if sess.currentChat != nil {
+				dbSessionID = sess.currentChat.dbSessionID
+			}
 			sess.mu.Unlock()
 
-			// If the user is logged in, also read the session list for the sidebar
+			// If the user is logged in, also build the chat list for the sidebar
 			if userNo != "" {
+				// IMPORTANT: First sync the current title back to sess.chats.
+				// When ensureDBSession adds a new chat via addChatToList,
+				// its title is empty (no title exists at creation time).
+				// OnRestoreSession then derives/sets a title on currentChat,
+				// but this must also be synced to sess.chats so that the
+				// copy returned to the frontend has the correct title.
+				// Without this, the sidebar shows "新对话" instead of the
+				// correct title for newly created chats.
+				sess.syncCurrentChatTitleToChatList(title, titleState)
+
+				// Now make a copy of the (synced) chat list to return to the frontend
 				sess.chatsMu.Lock()
-				// Make a copy to avoid data races
 				if len(sess.chats) > 0 {
 					chats = make([]store.Chat, len(sess.chats))
 					copy(chats, sess.chats)
@@ -67,6 +86,16 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 					chats = []store.Chat{}
 				}
 				sess.chatsMu.Unlock()
+
+				// Determine the current session's SN by matching dbSessionID
+				if dbSessionID > 0 {
+					for _, c := range chats {
+						if c.ID == dbSessionID {
+							currentChatSN = c.SN
+							break
+						}
+					}
+				}
 			}
 		}
 	}
@@ -78,13 +107,14 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]interface{}{
-		"session_id":  sessionID,
-		"is_new":      isNew,
-		"messages":    msgs,
-		"title":       title,
-		"title_state": titleState,
-		"user_no":     userNo,
-		"chats":       chats,
+		"session_id":      sessionID,
+		"is_new":          isNew,
+		"messages":        msgs,
+		"title":           title,
+		"title_state":     titleState,
+		"user_no":         userNo,
+		"chats":           chats,
+		"current_chat_sn": currentChatSN,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -97,8 +127,9 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 
 // OnNewSession handles POST /api/session/new — generates a new session ID,
 // sets a new cookie, and returns the new session info.
-// The old session is immediately cleaned up from the session manager
-// to avoid holding abandoned session data in memory for days.
+// Only the currentChat is reset; login state (userNo, chats, chatStore)
+// is preserved so that logged-in users continue to have their chat list
+// and DB persistence for the new session.
 func (h *ChatAgent) OnNewSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -108,16 +139,20 @@ func (h *ChatAgent) OnNewSession(w http.ResponseWriter, r *http.Request) {
 	// Read current session ID from cookie
 	sessionID, isNew := h.getSessionID(w, r)
 
-	// If a session already existed, clean it up immediately and refresh the cookie
 	if !isNew {
-		h.sessionManager.Remove(sessionID)
+		// Preserve login state: only reset currentChat to empty,
+		// keep userNo, chats, chatStore intact.
+		session := h.sessionManager.GetOrCreate(sessionID)
+		session.mu.Lock()
+		session.currentChat = &chat{}
+		session.mu.Unlock()
 
 		// Refresh the cookie MaxAge to avoid premature expiry
 		h.refreshSession(w, sessionID)
+	} else {
+		// Brand new session (no cookie at all)
+		h.sessionManager.GetOrCreate(sessionID)
 	}
-
-	// Create a new empty session in the session manager
-	h.sessionManager.GetOrCreate(sessionID)
 
 	resp := map[string]interface{}{
 		"session_id": sessionID,

@@ -235,7 +235,7 @@ export async function switchToUser(data) {
 
 	// 渲染对话列表
 	const { renderChatList } = await import('./chat-list.js');
-	renderChatList(data.chats || [], data.current_sn || null);
+	renderChatList(data.chats || [], data.current_chat_sn || null);
 
 	// 恢复合并后的对话（后端 switchToUser 已将匿名聊天持久化并设置为当前对话）
 	// 调用 GET /api/session 恢复匿名聊天的历史消息，实现无缝过渡

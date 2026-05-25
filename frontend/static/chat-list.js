@@ -157,6 +157,17 @@ let contextMenuEl = null;       // 当前打开的右键菜单
 let contextTargetSN = null;     // 右键菜单目标对话 SN
 
 /**
+ * 清除当前激活的选中状态（新对话等场景使用）
+ * 移除所有 .chat-item 的 .active 类，重置 activeChatSN 为 null
+ */
+export function clearActiveChat() {
+    activeChatSN = null;
+    document.querySelectorAll('.chat-item').forEach(el => {
+        el.classList.remove('active');
+    });
+}
+
+/**
  * 渲染对话列表到左侧栏
  * @param {Array} chats - 对话数组
  * @param {string} [activeSN] - 当前激活的对话 SN
@@ -615,15 +626,25 @@ async function handleTogglePin(chat) {
  */
 export function updateCurrentChatTitle(newTitle) {
     if (!newTitle) return;
+    if (!activeChatSN) {
+        console.warn('updateCurrentChatTitle: activeChatSN is null, cannot update sidebar title');
+        return;
+    }
+
     // 更新内存中的标题
     const chat = currentChats.find(c => c.sn === activeChatSN);
     if (chat) {
         chat.title = newTitle;
     }
+
     // 直接更新 DOM
-    const activeItem = document.querySelector(`.chat-item[data-sn="${activeChatSN}"] .chat-item-title`);
-    if (activeItem) {
-        activeItem.textContent = truncateTitle(newTitle);
+    // 注意: querySelectorAll + forEach 以确保如果存在多个相同 data-sn 的项（Bug 3），
+    // 所有项都更新而非只更新第一个
+    const activeItems = document.querySelectorAll(`.chat-item[data-sn="${activeChatSN}"] .chat-item-title`);
+    if (activeItems.length > 0) {
+        activeItems.forEach(el => {
+            el.textContent = truncateTitle(newTitle);
+        });
     }
 }
 

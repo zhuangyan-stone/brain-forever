@@ -582,3 +582,60 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	s.deleteMessagesRangeWithoutLock(start, end)
 	return nil
 }
+
+// addChatToList adds a store.Chat to the in-memory chat list (session.chats)
+// if it's not already present. Must be called with session.mu NOT held
+// (it locks chatsMu internally).
+// This is called from ensureDBSession after creating a new DB chat record,
+// so that the new chat immediately appears in the left sidebar's chat list.
+func (s *session) addChatToList(chat store.Chat) {
+	s.chatsMu.Lock()
+	defer s.chatsMu.Unlock()
+
+	if s.chatStore == nil {
+		return
+	}
+
+	// Avoid duplicates
+	for _, c := range s.chats {
+		if c.SN == chat.SN {
+			return
+		}
+	}
+
+	// Prepend to list (newest first)
+	s.chats = append([]store.Chat{chat}, s.chats...)
+}
+
+// syncCurrentChatTitleToChatList syncs the current chat's title back to the
+// in-memory sess.chats list. This is necessary because:
+//   - addChatToList adds a chat with an empty title (at creation time, no title exists)
+//   - OnRestoreSession later derives/sets a title on currentChat but not on sess.chats
+//   - OnPutChatTitle updates currentChat.title but previously did not update sess.chats
+//
+// This causes the sidebar to show stale/empty titles when the frontend re-renders
+// from the sess.chats list. Call this after setting a title on currentChat.
+// Must be called with session.mu NOT held (locks chatsMu internally).
+func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
+	if s.chatStore == nil {
+		return
+	}
+
+	s.mu.Lock()
+	dbSessionID := s.getDbSessionIDWithoutLock()
+	s.mu.Unlock()
+
+	if dbSessionID == 0 {
+		return
+	}
+
+	s.chatsMu.Lock()
+	defer s.chatsMu.Unlock()
+	for i := range s.chats {
+		if s.chats[i].ID == dbSessionID {
+			s.chats[i].Title = title
+			s.chats[i].TitleState = int8(titleState)
+			return
+		}
+	}
+}

@@ -3,7 +3,7 @@
 // ============================================================
 
 import { state, resetStreamingState } from './chat-state.js';
-import { addMessage, setInputEnabled, updateDeleteButtons, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender, restoreInputArea } from './chat-ui.js';
+import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender, restoreInputArea } from './chat-ui.js';
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -130,13 +130,13 @@ function handleDoneEvent(event, assistantBubble, contentDiv) {
     // 展开后布局可能变化，延迟再滚一次到底部
     setTimeout(() => {
         autoScrollToBottom();
-    }, 500);
+    }, 480);
 
     // AI 回复完成后：如果用户已向上滚动（离开底部），才弹 Toast 提示
     if (state.userScrolledUp) {
         setTimeout(() => {
             showToast('AI 回复完毕', 'info');
-        }, 600);
+        }, 500);
     }
 }
 
@@ -233,48 +233,6 @@ function addUserMessage(content, createdAt) {
 }
 
 /**
- * 启用中断按钮
- */
-function enableStopButton() {
-    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
-    if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = false;
-    }
-}
-
-/**
- * 流式开始时禁用 AI 标题按钮
- */
-function disableAiTitleButton() {
-    const btn = document.getElementById('aiTitleBtn');
-    if (btn) btn.disabled = true;
-}
-
-/**
- * 流式结束后启用 AI 标题按钮
- */
-function enableAiTitleButton() {
-    const btn = document.getElementById('aiTitleBtn');
-    if (btn) btn.disabled = false;
-}
-
-/**
- * 流式开始时禁用登录按钮
- */
-function disableLoginButton() {
-    const btn = document.getElementById('loginBtn');
-    if (btn) btn.disabled = true;
-}
-
-/**
- * 流式结束后启用登录按钮
- */
-function enableLoginButton() {
-    const btn = document.getElementById('loginBtn');
-    if (btn) btn.disabled = false;
-}
-
-/**
  * 发送前准备：验证输入、清理 UI、初始化状态
  * @returns {{ content: string, createdAt: string, assistantBubble: HTMLElement } | null}
  */
@@ -303,9 +261,6 @@ function prepareChat() {
     // 更新刻度导航
     updateTickNav();
 
-    // 禁用输入
-    setInputEnabled(false);
-
     // 创建空的 assistant 消息占位
     const assistantBubble = addMessage('assistant', '', null, true);
     state.isStreaming = true;
@@ -316,14 +271,8 @@ function prepareChat() {
     // 再次滚动可确保位置正确。
     autoScrollToBottom();
 
-    updateDeleteButtons();
-
-    // 启用中断按钮
-    enableStopButton();
-    // 流式进行中，禁用 AI 标题修改按钮
-    disableAiTitleButton();
-    // 流式进行中，禁用登录按钮
-    disableLoginButton();
+    // 统一切换所有 UI 组件到流式状态
+    applyStreamingState(true);
 
     // 创建 AbortController
     state.abortController = new AbortController();
@@ -492,43 +441,63 @@ function autoUpdateTitle(wasAborted) {
  * @param {boolean} wasAborted  是否被用户中断
  */
 function cleanupAfterStream(assistantBubble, wasAborted) {
-    // 清理中断标记（默认 false，确保每次 sendMessage 调用都有干净的初始值）
-    state._wasAborted = false;
-    state.isStreaming = false;
-    state.abortController = null;
-    setInputEnabled(true);
-    updateDeleteButtons();
-    document.getElementById('messageInput').focus();
+	// 清理中断标记（默认 false，确保每次 sendMessage 调用都有干净的初始值）
+	state._wasAborted = false;
+	state.isStreaming = false;
+	state.abortController = null;
+	// 统一切换所有 UI 组件到非流式状态
+	applyStreamingState(false);
+	document.getElementById('messageInput').focus();
 
-    // 流式结束：禁用中断按钮（变为灰色）
-    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
-    if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = true;
-    }
+	// 移除 streaming 类
+	const contentDiv = assistantBubble.querySelector('.bubble');
+	if (contentDiv) {
+		contentDiv.classList.remove('streaming');
+	}
 
-    // 流式结束：启用 AI 标题修改按钮
-    enableAiTitleButton();
-    // 流式结束：启用登录按钮
-    enableLoginButton();
+	// 清理渲染状态（防止取消请求后定时器残留）
+	resetStreamingState();
 
-    // 移除 streaming 类
-    const contentDiv = assistantBubble.querySelector('.bubble');
-    if (contentDiv) {
-        contentDiv.classList.remove('streaming');
-    }
+	// 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
+	const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
+	if (reasoningContentEl && reasoningContentEl.renderTimer) {
+		clearTimeout(reasoningContentEl.renderTimer);
+		reasoningContentEl.renderTimer = null;
+	}
 
-    // 清理渲染状态（防止取消请求后定时器残留）
-    resetStreamingState();
+	// 标题自动修改
+	autoUpdateTitle(wasAborted);
 
-    // 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
-    const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
-    if (reasoningContentEl && reasoningContentEl.renderTimer) {
-        clearTimeout(reasoningContentEl.renderTimer);
-        reasoningContentEl.renderTimer = null;
-    }
+	// 第一轮对话完成后，刷新左侧对话列表（登录用户可见）
+	refreshChatListIfNeeded(wasAborted);
+}
 
-    // 标题自动修改
-    autoUpdateTitle(wasAborted);
+/**
+	* refreshChatListIfNeeded 在第一轮对话完成后，从后端重新拉取对话列表并刷新左侧栏。
+	* 条件：
+	*   - 未被中断（AI 回复不完整时列表无意义）
+	*   - 仅在第一组消息后触发（state.messages.length <= 2）
+	*   - 仅登录用户需要刷新（通过 localStorage user_no 判断）
+	*/
+async function refreshChatListIfNeeded(wasAborted) {
+	// 被中断或非第一轮对话，跳过
+	if (wasAborted || state.messages.length > 2) return;
+
+	// 未登录用户不刷新（匿名对话不会在左侧栏出现）
+	const userNo = localStorage.getItem('brainforever_user_no');
+	if (!userNo) return;
+
+	try {
+		const response = await fetch('/api/session');
+		if (!response.ok) return;
+		const data = await response.json();
+		if (data.chats) {
+			const { renderChatList } = await import('./chat-list.js');
+			renderChatList(data.chats, data.current_chat_sn || null);
+		}
+	} catch (e) {
+		console.warn('刷新对话列表失败:', e);
+	}
 }
 
 // ============================================================
@@ -536,8 +505,8 @@ function cleanupAfterStream(assistantBubble, wasAborted) {
 // ============================================================
 
 /**
- * sendMessage 发送用户消息并启动 SSE 流式接收
- */
+	* sendMessage 发送用户消息并启动 SSE 流式接收
+	*/
 export async function sendMessage() {
     const chatData = prepareChat();
     if (!chatData) return;

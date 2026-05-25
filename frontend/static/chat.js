@@ -15,6 +15,7 @@ import { restoreChat } from './chat-restore.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
+import { clearActiveChat } from './chat-list.js';
 import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
 
 'use strict';
@@ -148,9 +149,9 @@ if (aiTitleBtn) {
 // ============================================================
 
 async function startNewSession() {
-    // 如果正在流式输出，先中止
-    if (state.isStreaming && state.abortController) {
-        state.abortController.abort();
+    // 如果正在流式输出，直接返回（按钮已 disabled，再加一层防御）
+    if (state.isStreaming) {
+        return;
     }
 
     try {
@@ -215,10 +216,13 @@ async function startNewSession() {
         // 6. 清除所有便利贴（新会话不需要旧的标题推荐）
         clearAllStickyNotes();
 
-        // 7. 重新显示欢迎消息（会设置标题为"欢迎开始新对话"）
+        // 7. 清除左侧栏对话列表的选中状态
+        clearActiveChat();
+
+        // 8. 重新显示欢迎消息（会设置标题为"欢迎开始新对话"）
         showWelcomeMessage();
 
-        // 8. 确保输入面板展开并同步内部折叠状态
+        // 9. 确保输入面板展开并同步内部折叠状态
         //    showWelcomeMessage 中已移除 collapsed 类，但 IIFE 闭包中的 isCollapsed
         //    变量可能仍为 true，通过触发 focus 事件让 restoreInputArea 同步状态
         const msgInput = document.getElementById('messageInput');

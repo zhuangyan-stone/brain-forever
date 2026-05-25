@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"BrainForever/infra/llm"
+	"BrainForever/internal/store"
 	"BrainForever/toolset"
 )
 
@@ -43,9 +44,19 @@ func ensureDBSession(session *session) {
 	}
 
 	session.setDbSessionIDWithoutLock(dbChat.ID)
+
+	// Add the new chat to the in-memory list so it immediately appears
+	// in the left sidebar's chat list (without requiring a page refresh).
+	// NOTE: addChatToList locks chatsMu internally and is safe to call
+	// while session.mu is held (no reverse lock ordering exists in the codebase).
+	session.addChatToList(*dbChat)
 }
 
 // persistMessageToDB inserts a single message into the chat_messages table.
+//
+// After insertion, it also updates the chat session's update_at timestamp
+// (via TouchChat) and moves the chat to the front of the in-memory list
+// so active chats float to the top of the sidebar.
 //
 // Exception: anonymous users (chatStore == nil) have no DB persistence,
 // so messages are not stored in the database.
@@ -54,7 +65,8 @@ func persistMessageToDB(session *session, msg *Message) {
 	if session.chatStore == nil {
 		return // Anonymous user, no DB persistence
 	}
-	if session.getDbSessionIDWithoutLock() == 0 {
+	dbSessionID := session.getDbSessionIDWithoutLock()
+	if dbSessionID == 0 {
 		log.Printf("cannot persist message: no DB session ID for user %s", session.userNo)
 		return
 	}
@@ -80,12 +92,36 @@ func persistMessageToDB(session *session, msg *Message) {
 	}
 
 	if err := session.chatStore.InsertMessage(
-		session.getDbSessionIDWithoutLock(),
+		dbSessionID,
 		groupIndex,
 		role,
 		msg.Content,
 		reasoning,
 	); err != nil {
 		log.Printf("failed to persist message to DB for user %s: %v", session.userNo, err)
+		return
 	}
+
+	// Touch the chat session's update_at so it floats to the top
+	// when the list is ordered by update_at DESC.
+	if err := session.chatStore.TouchChat(dbSessionID); err != nil {
+		log.Printf("failed to touch chat update_at for user %s: %v", session.userNo, err)
+	}
+
+	// Also move the chat to the front of the in-memory list so that
+	// subsequent GET /api/session calls (e.g. refreshChatListIfNeeded)
+	// return the correct order.
+	// This is safe: addChatToList also locks chatsMu while session.mu is held.
+	session.chatsMu.Lock()
+	for i, c := range session.chats {
+		if c.ID == dbSessionID {
+			// Remove from current position and prepend
+			session.chats = append(
+				[]store.Chat{session.chats[i]},
+				append(session.chats[:i], session.chats[i+1:]...)...,
+			)
+			break
+		}
+	}
+	session.chatsMu.Unlock()
 }

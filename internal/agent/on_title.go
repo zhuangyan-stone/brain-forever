@@ -129,10 +129,12 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		session.mu.Lock()
 		session.setTitleWithoutLock(newTitle, titleState)
 
+		dbSessionID := session.getDbSessionIDWithoutLock()
+
 		// Sync title to DB if the user is logged in and has a DB session
-		if session.chatStore != nil && session.currentChat != nil && session.getDbSessionIDWithoutLock() != 0 {
+		if session.chatStore != nil && session.currentChat != nil && dbSessionID != 0 {
 			if err := session.chatStore.UpdateChatTitle(
-				session.getDbSessionIDWithoutLock(),
+				dbSessionID,
 				newTitle,
 				int8(titleState),
 			); err != nil {
@@ -140,6 +142,10 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		session.mu.Unlock()
+
+		// Sync the title to the in-memory chat list (sess.chats) so that
+		// subsequent GET /api/session calls return the correct title for the sidebar.
+		session.syncCurrentChatTitleToChatList(newTitle, int(titleState))
 	}
 
 	// Return simple 200 OK
