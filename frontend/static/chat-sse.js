@@ -496,8 +496,12 @@ async function getCurrentChatIfNeeded(wasAborted) {
 		if (!response.ok) return;
 		const data = await response.json();
 		if (data.sn) {
+			// 后端在新对话时 currentChat.title 为空字符串（尚未设置），
+			// 此时前端已有正确的原始标题（来自用户首条消息截取），
+			// 因此仅当后端返回的 title 非空时才更新，避免空标题覆盖前端已有标题。
+			const title = data.title || undefined;
 			const { updateChatEntry } = await import('./chat-list.js');
-			updateChatEntry(data.sn, data.title, data.title_state);
+			updateChatEntry(data.sn, title, data.title_state);
 		}
 	} catch (e) {
 		console.warn('获取当前对话信息失败:', e);

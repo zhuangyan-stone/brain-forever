@@ -206,11 +206,18 @@ export function addDirtyChat(title, sn) {
     // 插入到列表头部（最新消息位置）
     currentChats.unshift(dirtyChat);
 
-    // 新对话不选中任何项
-    activeChatSN = null;
+    // 如果已有 SN（通过 newChat 预先获取），设置 activeChatSN，
+    // 这样后续 updateCurrentChatTitle 才能正确找到 DOM 元素并更新标题。
+    // 之前设为 null 导致 AI 推荐标题后侧边栏仍显示旧标题，
+    // 必须用户手动点击条目后才更新。
+    if (sn) {
+        activeChatSN = sn;
+    } else {
+        activeChatSN = null;
+    }
 
     // 复用 renderChatList 的完整渲染逻辑
-    renderChatList(currentChats, null);
+    renderChatList(currentChats, activeChatSN);
 }
 
 /**
@@ -732,7 +739,11 @@ export function updateChatEntry(sn, title, titleState) {
     const existing = currentChats.find(c => c.sn === sn);
     if (existing) {
         // 已存在：仅更新标题
-        existing.title = title;
+        // 注意：后端在新对话时 currentChat.title 为空字符串，
+        // 此时前端已有正确的原始标题，因此仅当 title 有值时更新。
+        if (title) {
+            existing.title = title;
+        }
         existing.title_state = titleState;
     } else {
         // 不存在：移除脏数据（sn=null 的占位条目），然后添加真实条目
@@ -743,7 +754,7 @@ export function updateChatEntry(sn, title, titleState) {
         const newChat = {
             id: 0,
             sn: sn,
-            title: title,
+            title: title || '',
             title_state: titleState,
             pinned: false,
             category: 0,

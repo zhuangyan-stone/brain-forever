@@ -68,7 +68,7 @@ body {
     ============================================================ */
 
 .left-sidebar {
-    width: 380px;
+    width: 360px;
     flex-shrink: 0;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
@@ -86,7 +86,7 @@ body {
 }
 
 .left-sidebar.hidden {
-    margin-left: -380px;
+    margin-left: -360px;
     visibility: hidden;
     opacity: 0;
 }
@@ -145,6 +145,9 @@ body {
     flex-shrink: 0;
     min-height: 72px;
     border-bottom: 1px solid var(--border);
+    /* 限制宽度为父容器宽度，触发 flex 压缩机制 */
+    width: 100%;
+    max-width: 100%;
 }
 
 /* 主栏品牌区域容器 */
@@ -398,7 +401,8 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 /* ============================================================
-    Header 登录按钮 — 位于主题切换按钮左侧，带文字"登录"
+    Header 登录按钮 — 位于主题切换按钮右侧，带文字"登录"
+    登录后显示 "用户: SNxxx"，变宽时向左伸展（不溢出右侧）
     ============================================================ */
 
 .header-login-btn {
