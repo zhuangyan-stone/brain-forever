@@ -55,6 +55,23 @@ type Message struct {
 	UpdateAt string `db:"update_at"`
 }
 
+// WebSource represents a web search result source stored in the database.
+// This is the store-layer equivalent of toolimp.WebSource, defined separately
+// to avoid circular dependencies between store and agent packages.
+type WebSource struct {
+	ID          int64   `db:"id"`         // Auto-increment primary key
+	SessionID   int64   `db:"session_id"` // References chat_sessions.id
+	MsgID       int64   `db:"msg_id"`     // Message group index (= agent.Message.ID)
+	Title       string  `db:"title"`
+	Content     string  `db:"content"`
+	URL         string  `db:"url"`
+	SiteName    string  `db:"site_name"`
+	SiteIcon    string  `db:"site_icon"`
+	PublishDate string  `db:"publish_date"`
+	Score       float64 `db:"score"`
+	CreateAt    string  `db:"create_at"`
+}
+
 func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
 	// Check if the database specified by dbFile (path + filename) exists.
 	// If not, create it. Contains two tables: chat_sessions and chat_messages,
@@ -114,6 +131,23 @@ func (s *ChatStore) initSchema() error {
 			create_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
+
+		CREATE TABLE IF NOT EXISTS web_sources (
+			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			session_id   INTEGER NOT NULL REFERENCES chat_sessions(id),
+			msg_id       INTEGER NOT NULL,
+			title        TEXT    NOT NULL DEFAULT '',
+			content      TEXT    NOT NULL DEFAULT '',
+			url          TEXT    NOT NULL DEFAULT '',
+			site_name    TEXT    NOT NULL DEFAULT '',
+			site_icon    TEXT    NOT NULL DEFAULT '',
+			publish_date TEXT    NOT NULL DEFAULT '',
+			score        REAL    NOT NULL DEFAULT 0,
+			create_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_web_sources_session_msg
+			ON web_sources(session_id, msg_id);
 
 		CREATE TRIGGER IF NOT EXISTS trg_chat_sessions_update_at
 			BEFORE UPDATE ON chat_sessions

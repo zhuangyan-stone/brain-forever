@@ -60,41 +60,39 @@ func (h *ChatAgent) OnRestoreSession(w http.ResponseWriter, r *http.Request) {
 			var dbSessionID int64
 			sess.mu.Lock()
 			userNo = sess.userNo
-			if sess.currentChat != nil {
-				dbSessionID = sess.currentChat.dbSessionID
+			if sess.currentChat.dbChat != nil {
+				dbSessionID = sess.currentChat.dbChat.ID
 			}
 			sess.mu.Unlock()
 
-			// If the user is logged in, also build the chat list for the sidebar
-			if userNo != "" {
-				// IMPORTANT: First sync the current title back to sess.chats.
-				// When ensureDBSession adds a new chat via addChatToList,
-				// its title is empty (no title exists at creation time).
-				// OnRestoreSession then derives/sets a title on currentChat,
-				// but this must also be synced to sess.chats so that the
-				// copy returned to the frontend has the correct title.
-				// Without this, the sidebar shows "新对话" instead of the
-				// correct title for newly created chats.
-				sess.syncCurrentChatTitleToChatList(title, titleState)
+			// Build the chat list for the sidebar (works for both anonymous and logged-in users)
+			// IMPORTANT: First sync the current title back to sess.chats.
+			// When ensureDBSession adds a new chat via addChatToList,
+			// its title is empty (no title exists at creation time).
+			// OnRestoreSession then derives/sets a title on currentChat,
+			// but this must also be synced to sess.chats so that the
+			// copy returned to the frontend has the correct title.
+			// Without this, the sidebar shows "新对话" instead of the
+			// correct title for newly created chats.
+			sess.syncCurrentChatTitleToChatList(title, titleState)
 
-				// Now make a copy of the (synced) chat list to return to the frontend
-				sess.chatsMu.Lock()
-				if len(sess.chats) > 0 {
-					// Deduplicate to guard against any lingering duplicates
-					// from the unsafe slice manipulation that was fixed in persistMessageToDB.
-					chats = deduplicateChats(sess.chats)
-				} else {
-					chats = []store.Chat{}
-				}
-				sess.chatsMu.Unlock()
+			// Now make a copy of the (synced) chat list to return to the frontend
+			sess.chatsMu.Lock()
+			if len(sess.chats) > 0 {
+				// Deduplicate to guard against any lingering duplicates
+				// from the unsafe slice manipulation that was fixed in persistMessageToDB.
+				chats = deduplicateChats(sess.chats)
+			} else {
+				chats = []store.Chat{}
+			}
+			sess.chatsMu.Unlock()
 
-				// Determine the current session's SN by matching dbSessionID
-				if dbSessionID > 0 {
-					for _, c := range chats {
-						if c.ID == dbSessionID {
-							currentChatSN = c.SN
-							break
-						}
+			// Determine the current session's SN by matching dbSessionID
+			if dbSessionID > 0 {
+				for _, c := range chats {
+					if c.ID == dbSessionID {
+						currentChatSN = c.SN
+						break
 					}
 				}
 			}
@@ -187,11 +185,6 @@ func (h *ChatAgent) OnDeleteSession(w http.ResponseWriter, r *http.Request) {
 
 	session.chatsMu.Lock()
 	defer session.chatsMu.Unlock()
-
-	if session.chatStore == nil {
-		http.Error(w, "user not logged in", http.StatusBadRequest)
-		return
-	}
 
 	if err := session.chatStore.LogicDelete(sn); err != nil {
 		log.Printf("failed to delete session: %v", err)

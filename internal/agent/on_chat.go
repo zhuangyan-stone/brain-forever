@@ -71,12 +71,14 @@ func (h *ChatAgent) Close() error {
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
+// anonymousStore: the ChatStore for anonymous users (data/anonymous.db), must not be nil.
 func NewChatHandler(
 	traitSearcher toolimp.TraitSearcher,
 	webSearcher toolimp.WebSearcher,
 	chatLLMClient llm.Client,
 	cookieName string,
 	defaultLang string,
+	anonymousStore *store.ChatStore,
 ) *ChatAgent {
 	if defaultLang == "" {
 		defaultLang = "en"
@@ -85,7 +87,7 @@ func NewChatHandler(
 		traitSearcher:  traitSearcher,
 		webSearcher:    webSearcher,
 		charLLMClient:  chatLLMClient,
-		sessionManager: NewSessionManager(),
+		sessionManager: NewSessionManager(anonymousStore),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
 	}
@@ -102,7 +104,9 @@ func makeAssistantBrokenMessage(lang string, id int64) Message {
 	}
 }
 
-// Enqueue a new message for request, assign an ID
+// Enqueue a new message for request, assign an ID.
+// Writes directly to DB — no in-memory message storage.
+// Must be called with session.mu held.
 func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 	if reqMsg.ID != 0 {
 		panic(fmt.Sprintf("new request message's ID is not 0, but %d", reqMsg.ID))
@@ -110,55 +114,31 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 
 	var lastID int64 = 0
 
-	// Assign new ID if ID==0 (frontend no longer manages IDs)
-	if session.getMessagesLenWithoutLock() > 0 {
-		lastMsg := session.getMessagesLastMsgWithoutLock()
-		lastID = lastMsg.ID
+	// Load the last message from DB to determine the next ID
+	dbSessionID := session.currentChat.dbChat.ID
+	if dbSessionID > 0 {
+		dbMessages, err := session.chatStore.ListMessages(dbSessionID)
+		if err == nil && len(dbMessages) > 0 {
+			lastMsg := dbMessages[len(dbMessages)-1]
+			lastID = int64(lastMsg.GroupIndex)
 
-		// Also check if the last message is a user message!
-		// When the AI is interrupted mid-thought or mid-response, we won't get an assistant message,
-		// so the last message will be a user message.
-		// In this case, we need to manually append an assistant message.
-		if lastMsg.Role == llm.RoleUser {
-			assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
-			session.appendMessagesWithoutLock(assistantMsg)
-
-			// Also persist the broken assistant message to DB if logged in
-			persistMessageToDB(session, &assistantMsg)
+			// If the last message is a user message, the AI was interrupted.
+			// Insert a broken assistant message.
+			if lastMsg.Role == 0 { // 0 = user
+				assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
+				persistMessageToDB(session, &assistantMsg)
+				lastID = assistantMsg.ID
+			}
 		}
 	}
 
 	reqMsg.ID = lastID + 1
 
-	// Append to messages
-	session.appendMessagesWithoutLock(*reqMsg)
-
-	// Ensure a DB session record exists for logged-in users
+	// Ensure a DB session record exists
 	ensureDBSession(session)
 
-	// Persist the user message to DB if logged in
+	// Persist the user message to DB
 	persistMessageToDB(session, reqMsg)
-}
-
-// Enqueue a new message for response (message's ID must != 0)
-func appendNewResponseMessage(session *session, resMsg *Message) {
-	if resMsg.ID == 0 {
-		panic("new response message's ID is 0")
-	}
-
-	session.appendMessagesWithoutLock(*resMsg)
-
-	// Persist the assistant message to DB if logged in
-	persistMessageToDB(session, resMsg)
-}
-
-// toRawMessages converts agent.Message slice to llm.Message slice.
-func toRawMessages(msgs []Message) []llm.Message {
-	result := make([]llm.Message, len(msgs))
-	for i, m := range msgs {
-		result[i] = llm.Message{Role: m.Role, Content: m.Content}
-	}
-	return result
 }
 
 // resolveNewMessageRequest parses and validates the incoming chat request.
@@ -201,7 +181,6 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	session.mu.Lock()
-	defer session.mu.Unlock()
 
 	// 3. Determine the language for this request.
 	// Priority: request header Accept-Language > handler defaultLang > "en"
@@ -214,14 +193,18 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	appendNewRequestMessage(session, &req.Message, lang)
 
 	if req.Message.ID <= 0 {
+		session.mu.Unlock()
 		panic("new message's ID is zero still after append to messages")
 	}
 
-	// 5. Create SSE writer
-	sseWriter := sse.NewSSEWriter(w)
+	// 5. Load messages from DB for the LLM call
+	llmMsgs, err := loadMessagesAsLLMMessages(session)
+	session.mu.Unlock()
 
-	// Convert agent.Message history to llm.Message for the API call
-	llmMsgs := toRawMessages(session.getMessagesWithoutLock())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to load messages: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	startSystemMsg := llm.Message{
 		Role:    llm.RoleSystem,
@@ -231,7 +214,10 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	messages = append(messages, startSystemMsg)
 	messages = append(messages, llmMsgs...)
 
-	// 6. Build tool definitions with translated descriptions.
+	// 6. Create SSE writer
+	sseWriter := sse.NewSSEWriter(w)
+
+	// 7. Build tool definitions with translated descriptions.
 	// time_query tool is always available.
 	// web_search tool is only provided when WebSearchEnabled is true.
 	timeQueryToolImp := toolimp.MakeTimeQueryTool(lang)
@@ -242,9 +228,11 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		toolsImp = append(toolsImp, webSearchToolImp)
 	}
 
-	// 7. Stream with tool call handling
+	// 8. Stream with tool call handling
 	// callLLMWithPipeline handles the streaming LLM call, tool loop, and SSE events.
-	// It returns the assistant message that the caller persists to session history.
+	// It returns the assistant message that the caller persists to DB.
+	// NOTE: session.mu is NOT held during streaming, allowing other handlers
+	// (e.g., OnSwitchChat) to proceed concurrently.
 	assistantMsg := h.callLLMWithPipeline(r.Context(), sseWriter,
 		req.Message.ID,
 		messages,
@@ -252,8 +240,11 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		req.DeepThink,
 		lang)
 
+	// 9. Persist the assistant message to DB
 	if assistantMsg != nil {
-		appendNewResponseMessage(session, assistantMsg)
+		session.mu.Lock()
+		persistMessageToDB(session, assistantMsg)
+		session.mu.Unlock()
 	}
 }
 
@@ -277,8 +268,9 @@ func (h *ChatAgent) OnGetCurrentChat(w http.ResponseWriter, r *http.Request) {
 
 	// Read current chat state under mu lock
 	session.mu.Lock()
-	dbSessionID := session.getDbSessionIDWithoutLock()
-	title, titleState := session.getTitleWithoutLock()
+	dbSessionID := session.currentChat.dbChat.ID
+	title := session.currentChat.title
+	titleState := int(session.currentChat.titleState)
 	session.mu.Unlock()
 
 	if dbSessionID == 0 {
@@ -317,7 +309,7 @@ func (h *ChatAgent) OnGetCurrentChat(w http.ResponseWriter, r *http.Request) {
 
 // OnSwitchChat handles GET /api/chat/switch — switches the current
 // active chat to a historical chat identified by its SN, loading
-// its messages from the database into memory. Returns the chat's
+// its messages from the database. Returns the chat's
 // messages, title, and title state.
 func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -339,9 +331,25 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load messages from DB (no in-memory storage)
 	session.mu.Lock()
-	msgs := session.copyMessagesWithoutLock()
-	title, titleState := session.getTitleWithoutLock()
+	dbSessionID := session.currentChat.dbChat.ID
+	session.mu.Unlock()
+
+	var msgs []Message
+	if dbSessionID > 0 {
+		dbMessages, err := session.chatStore.ListMessages(dbSessionID)
+		if err == nil {
+			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatStore, dbSessionID)
+		}
+	}
+	if msgs == nil {
+		msgs = []Message{}
+	}
+
+	session.mu.Lock()
+	title := session.currentChat.title
+	titleState := int(session.currentChat.titleState)
 	session.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -380,11 +388,6 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 
 	session.chatsMu.Lock()
 	defer session.chatsMu.Unlock()
-
-	if session.chatStore == nil {
-		http.Error(w, "user not logged in", http.StatusBadRequest)
-		return
-	}
 
 	// Find the session by SN
 	var targetChat *store.Chat

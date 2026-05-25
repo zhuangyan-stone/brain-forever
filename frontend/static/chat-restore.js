@@ -12,8 +12,7 @@ import { updateTickNav } from './chat-ticknav.js';
 /**
  * restoreChat 从后端获取当前 chat 的历史消息并恢复显示。
  * 同时从返回的 user_no 恢复登录按钮状态（页面刷新后仍显示已登录）。
- * 如果服务端 chat 已丢失（服务重启）但 localStorage 中有 user_no，
- * 则自动重新登录以恢复对话。
+ * 匿名用户也会返回 user_no="anonymous"，因此无需区分登录状态。
  */
 export async function restoreChat() {
 	try {
@@ -23,35 +22,19 @@ export async function restoreChat() {
 		const data = await response.json();
 
 		// ============================================================
-		// 恢复登录状态：后端返回 user_no 表示当前 chat 已登录
+		// 恢复登录状态：后端始终返回 user_no（匿名用户为 "anonymous"）
 		// ============================================================
 		if (data.user_no) {
 			const loginBtn = document.getElementById('loginBtn');
 			if (loginBtn) {
 				loginBtn.textContent = `用户: ${data.user_no}`;
 			}
-			// 同步到 localStorage，确保后续刷新时也能恢复
-			localStorage.setItem('brainforever_user_no', data.user_no);
+		}
 
-			// 刷新页面后，如果后端返回了对话列表，渲染到左侧栏
-			if (data.chats) {
-				const { renderChatList } = await import('./chat-list.js');
-				renderChatList(data.chats, data.current_chat_sn || null);
-			}
-		} else {
-			// 后端未返回 user_no — 检查 localStorage 是否有之前保存的
-			// （可能是服务器重启导致内存 chat 丢失）
-			const savedUserNo = localStorage.getItem('brainforever_user_no');
-			if (savedUserNo) {
-				// 无论 isNew 是否为 true，只要 localStorage 中有 user_no 就尝试重新登录。
-				// 修复场景：后端重启后 session 内存数据丢失，GET /api/session 返回 isNew=true，
-				// 但 localStorage 中已有登录记录，此时应自动重新登录以恢复用户状态。
-				const { onChatLogin } = await import('./chat-api.js');
-				await onChatLogin(savedUserNo);
-				// onChatLogin 内部会调用 switchToUser → restoreChat，
-				// 因此这里直接返回，避免重复处理
-				return;
-			}
+		// 如果后端返回了对话列表，渲染到左侧栏（匿名用户也有自己的 chat 列表）
+		if (data.chats) {
+			const { renderChatList } = await import('./chat-list.js');
+			renderChatList(data.chats, data.current_chat_sn || null);
 		}
 
 		// 保存当前对话的 SN

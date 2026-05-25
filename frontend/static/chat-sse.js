@@ -230,13 +230,11 @@ function addUserMessage(content, createdAt) {
             updateHeaderTitle(title);
             state.titleState = TITLE_STATE.ORIGINAL;
 
-            // 登录用户的首次消息：立即在侧边栏插入一条新对话条目
+            // 首次消息：立即在侧边栏插入一条新对话条目
             // newChat() 已预先获取了 SN（state.currentChatSN），直接传给 addDirtyChat
             // 这样侧边栏条目从创建起就拥有真实 SN，点击即可正常切换
-            const userNo = localStorage.getItem('brainforever_user_no');
-            if (userNo) {
-                addDirtyChat(title, state.currentChatSN || null);
-            }
+            // 匿名用户和登录用户都会添加侧边栏条目
+            addDirtyChat(title, state.currentChatSN || null);
         }
     }
 }
@@ -488,15 +486,10 @@ function cleanupAfterStream(assistantBubble, wasAborted) {
 	* 条件：
 	*   - 未被中断（AI 回复不完整时列表无意义）
 	*   - 仅在第一组消息后触发（state.messages.length <= 2）
-	*   - 仅登录用户需要刷新（通过 localStorage user_no 判断）
 	*/
 async function getCurrentChatIfNeeded(wasAborted) {
 	// 被中断或非第一轮对话，跳过
 	if (wasAborted || state.messages.length > 2) return;
-
-	// 未登录用户不操作（匿名对话不会在左侧栏出现）
-	const userNo = localStorage.getItem('brainforever_user_no');
-	if (!userNo) return;
 
 	try {
 		const response = await fetch('/api/chat/current');

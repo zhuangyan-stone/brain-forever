@@ -173,16 +173,23 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// 4. Initialize Web Search Client
 	webSearchClient := InitWebSearchClient(cfg.WebSearch)
 
-	// 5. Create ChatHandler
+	// 5. Initialize anonymous user ChatStore (data/anonymous.db)
+	anonymousStore, err := store.CreateLocalChatScheme("data/anonymous.db")
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize anonymous chat store: %w", err)
+	}
+
+	// 6. Create ChatHandler
 	chatHandler := NewChatHandler(
 		&traitSearchAdapter{store: vectorStore},
 		webSearchClient,
 		chatLLMClient,
 		cookieName,
 		defaultLang,
+		anonymousStore,
 	)
 
-	// 6. Start background session GC
+	// 7. Start background session GC
 	chatHandler.StartGC(ctx)
 
 	return chatHandler, nil

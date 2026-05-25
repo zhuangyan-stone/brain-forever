@@ -28,33 +28,16 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Lock session.mu to safely call ensureDBSession and read dbSessionID
+	// Lock session.mu to safely call ensureDBSession and read fields.
+	// SN is read directly from dbChat.SN (store.Chat has the SN field),
+	// eliminating the need for a separate chatsMu lock + O(n) traversal of session.chats.
 	session.mu.Lock()
 	ensureDBSession(session)
-	dbSessionID := session.getDbSessionIDWithoutLock()
 
-	// For anonymous users (chatStore == nil), title is not set yet — no-op
-	var title string
-	var titleState int
-	if session.currentChat != nil {
-		t, ts := session.getTitleWithoutLock()
-		title = t
-		titleState = int(ts)
-	}
+	sn := session.currentChat.dbChat.SN
+	title := session.currentChat.title
+	titleState := int(session.currentChat.titleState)
 	session.mu.Unlock()
-
-	// Now find the SN from the in-memory chat list (only for logged-in users)
-	var sn string
-	if dbSessionID > 0 {
-		session.chatsMu.Lock()
-		for _, c := range session.chats {
-			if c.ID == dbSessionID {
-				sn = c.SN
-				break
-			}
-		}
-		session.chatsMu.Unlock()
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{

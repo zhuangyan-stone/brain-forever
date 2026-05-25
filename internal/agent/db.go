@@ -22,20 +22,14 @@ func generateSessionSN() string {
 // ensureDBSession ensures that the current chat has a corresponding record
 // in the chat_sessions table. If dbSessionID is 0, it creates a new session
 // record and sets dbSessionID.
-//
-// Exception: anonymous users (chatStore == nil) have no DB persistence,
-// so no DB session record is created.
 // Must be called with session.mu held.
 func ensureDBSession(session *session) {
-	if session.chatStore == nil {
-		return // Anonymous user, no DB persistence
-	}
-	if session.getDbSessionIDWithoutLock() != 0 {
+	if session.currentChat.dbChat != nil && session.currentChat.dbChat.ID != 0 {
 		return // Already has a DB session
 	}
 
 	sn := generateSessionSN()
-	title, _ := session.getTitleWithoutLock()
+	title := session.currentChat.title
 
 	dbChat, err := session.chatStore.InsertChat(sn, 0, title, 0)
 	if err != nil {
@@ -43,7 +37,7 @@ func ensureDBSession(session *session) {
 		return
 	}
 
-	session.setDbSessionIDWithoutLock(dbChat.ID)
+	session.currentChat.dbChat = dbChat
 
 	// Add the new chat to the in-memory list so it immediately appears
 	// in the left sidebar's chat list (without requiring a page refresh).
@@ -57,15 +51,9 @@ func ensureDBSession(session *session) {
 // After insertion, it also updates the chat session's update_at timestamp
 // (via TouchChat) and moves the chat to the front of the in-memory list
 // so active chats float to the top of the sidebar.
-//
-// Exception: anonymous users (chatStore == nil) have no DB persistence,
-// so messages are not stored in the database.
 // Must be called with session.mu held.
 func persistMessageToDB(session *session, msg *Message) {
-	if session.chatStore == nil {
-		return // Anonymous user, no DB persistence
-	}
-	dbSessionID := session.getDbSessionIDWithoutLock()
+	dbSessionID := session.currentChat.dbChat.ID
 	if dbSessionID == 0 {
 		log.Printf("cannot persist message: no DB session ID for user %s", session.userNo)
 		return
@@ -100,6 +88,27 @@ func persistMessageToDB(session *session, msg *Message) {
 	); err != nil {
 		log.Printf("failed to persist message to DB for user %s: %v", session.userNo, err)
 		return
+	}
+
+	// Persist WebSources if present (assistant messages with web search results)
+	if len(msg.Sources) > 0 {
+		storeSources := make([]store.WebSource, 0, len(msg.Sources))
+		for _, src := range msg.Sources {
+			storeSources = append(storeSources, store.WebSource{
+				SessionID:   dbSessionID,
+				MsgID:       msg.ID,
+				Title:       src.Title,
+				Content:     src.Content,
+				URL:         src.URL,
+				SiteName:    src.SiteName,
+				SiteIcon:    src.SiteIcon,
+				PublishDate: src.PublishDate,
+				Score:       src.Score,
+			})
+		}
+		if err := session.chatStore.InsertWebSources(dbSessionID, msg.ID, storeSources); err != nil {
+			log.Printf("failed to persist web sources for user %s: %v", session.userNo, err)
+		}
 	}
 
 	// Touch the chat session's update_at so it floats to the top

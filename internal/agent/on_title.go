@@ -76,12 +76,6 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 
 		session.chatsMu.Lock()
 
-		if session.chatStore == nil {
-			session.chatsMu.Unlock()
-			http.Error(w, "user not logged in", http.StatusBadRequest)
-			return
-		}
-
 		// Find the session by SN (under lock)
 		var targetIndex = -1
 		for i := range session.chats {
@@ -127,12 +121,15 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		// This uses session.mu because it modifies currentChat, which is also
 		// accessed by OnNewMessage during streaming.
 		session.mu.Lock()
-		session.setTitleWithoutLock(newTitle, titleState)
+		session.currentChat.title = newTitle
+		if titleState > session.currentChat.titleState {
+			session.currentChat.titleState = titleState
+		}
 
-		dbSessionID := session.getDbSessionIDWithoutLock()
+		dbSessionID := session.currentChat.dbChat.ID
 
-		// Sync title to DB if the user is logged in and has a DB session
-		if session.chatStore != nil && session.currentChat != nil && dbSessionID != 0 {
+		// Sync title to DB if the current chat has a DB session
+		if dbSessionID != 0 {
 			if err := session.chatStore.UpdateChatTitle(
 				dbSessionID,
 				newTitle,
@@ -220,9 +217,22 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
+	// Load messages from DB (no in-memory storage)
 	session.mu.Lock()
-	samples := extractMessagesForTitle(session.getMessagesWithoutLock())
+	dbSessionID := session.currentChat.dbChat.ID
 	session.mu.Unlock()
+
+	var msgs []Message
+	if dbSessionID > 0 {
+		dbMessages, err := session.chatStore.ListMessages(dbSessionID)
+		if err == nil {
+			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatStore, dbSessionID)
+		}
+	}
+	if msgs == nil {
+		msgs = []Message{}
+	}
+	samples := extractMessagesForTitle(msgs)
 
 	// Build the LLM prompt with i18n support
 	systemPrompt := i18n.SystemPrompt.TL(lang, "title")
