@@ -136,6 +136,26 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER) {
 }
 
 /**
+ * newChat 调用后端 POST /api/chat/new 接口，为当前新对话初始化一个 SN。
+ * 仅当当前对话尚未初始化（sn 为空）时调用。后端会创建 DB 记录（登录用户）
+ * 或直接返回（匿名用户），并返回当前对话的 SN。
+ * @returns {Promise<{sn: string, title: string, title_state: number}|null>}
+ */
+export async function newChat() {
+    try {
+        const response = await fetch('/api/chat/new', { method: 'POST' });
+        if (!response.ok) {
+            console.warn('初始化对话失败:', response.status);
+            return null;
+        }
+        return await response.json();
+    } catch (e) {
+        console.warn('初始化对话出错:', e);
+        return null;
+    }
+}
+
+/**
 	* onChatLogin 调用后端 POST /api/chat/login 接口，切换当前会话到登录用户。
 	* 登录成功后调用 switchToUser 加载用户的对话列表，
 	* 并将 user_no 持久化到 localStorage 以在页面刷新后恢复。

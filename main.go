@@ -146,6 +146,7 @@ func main() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
+	mux.Handle("/api/chat/new", http.HandlerFunc(chatHandler.OnNewChat))
 	mux.Handle("/api/chat/pin", http.HandlerFunc(chatHandler.OnChatPin))
 	mux.Handle("/api/chat/switch", http.HandlerFunc(chatHandler.OnSwitchChat))
 	mux.Handle("/api/chat/current", http.HandlerFunc(chatHandler.OnGetCurrentChat))

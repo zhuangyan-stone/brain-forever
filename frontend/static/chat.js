@@ -168,6 +168,7 @@ async function startNewSession() {
 
         // 1. 清空消息状态及相关计数器
         state.messages = [];
+        state.currentChatSN = ''; // 新对话重置 SN
         state.userMsgCount = 0;
         state.activeTickIndex = -1;
         state.tickScrollOffset = 0;

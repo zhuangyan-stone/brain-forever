@@ -7,7 +7,7 @@ import { addMessage, applyStreamingState, showError, showSources, showTokenUsage
 import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { TITLE_STATE, fetchChatTitle, truncateTitle } from './chat-api.js';
+import { TITLE_STATE, fetchChatTitle, truncateTitle, newChat } from './chat-api.js';
 import { addDirtyChat } from './chat-list.js';
 
 'use strict';
@@ -230,11 +230,12 @@ function addUserMessage(content, createdAt) {
             updateHeaderTitle(title);
             state.titleState = TITLE_STATE.ORIGINAL;
 
-            // 登录用户的首次消息：立即在侧边栏插入一条脏数据条目
-            // （sn 为空，等后端刷新后替换为完整数据）
+            // 登录用户的首次消息：立即在侧边栏插入一条新对话条目
+            // newChat() 已预先获取了 SN（state.currentChatSN），直接传给 addDirtyChat
+            // 这样侧边栏条目从创建起就拥有真实 SN，点击即可正常切换
             const userNo = localStorage.getItem('brainforever_user_no');
             if (userNo) {
-                addDirtyChat(title);
+                addDirtyChat(title, state.currentChatSN || null);
             }
         }
     }
@@ -515,9 +516,29 @@ async function getCurrentChatIfNeeded(wasAborted) {
 // ============================================================
 
 /**
+ * isNewChat 判断当前对话是否为新对话（尚未初始化 SN）。
+ * 新对话特征：SN 为空且没有消息历史。
+ * @returns {boolean}
+ */
+function isNewChat() {
+    return !state.currentChatSN && state.messages.length === 0;
+}
+
+/**
 	* sendMessage 发送用户消息并启动 SSE 流式接收
+	* 如果是新对话（SN 为空），先调用 POST /api/chat/new 初始化并获取 SN，
+	* 然后再发送用户消息。
 	*/
 export async function sendMessage() {
+    // 新对话：先向后台初始化对话并获取 SN
+    if (isNewChat()) {
+        const data = await newChat();
+        if (data && data.sn) {
+            state.currentChatSN = data.sn;
+        }
+        // 即使匿名用户返回空 SN，也不阻塞后续流程
+    }
+
     const chatData = prepareChat();
     if (!chatData) return;
 

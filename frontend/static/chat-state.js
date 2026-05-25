@@ -138,6 +138,11 @@ export const state = {
     // 发送模式状态: false = Enter发送/Shift+Enter换行, true = Enter换行/Shift+Enter发送
     // 由 UserSettings.sendMode 驱动（0→false, 1→true）
     sendModeAlternate: false,
+
+    // 当前对话的 SN（序列号），由后端分配
+    // 新对话初始为空字符串，首次发送消息前通过 POST /api/chat/new 获取
+    // 页面刷新时由 restoreChat 从后端恢复
+    currentChatSN: '',
 };
 
 /**

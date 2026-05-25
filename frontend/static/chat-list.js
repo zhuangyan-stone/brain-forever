@@ -184,16 +184,16 @@ export function resetChatList() {
 }
 
 /**
- * 在侧边栏中插入一条 "脏" 的新对话条目。
- * “脏” 的含义：该对话尚未在后端完全持久化（sn 为 null/空），
- * 由前端在用户发出首条消息时立即创建，使用户能即时看到新增条目。
- * 后续由 refreshChatListIfNeeded 从后端拉取完整数据后替换。
+ * 在侧边栏中插入一条新对话条目。
+ * 如果已有 SN（通过 newChat 预先获取），直接使用真实 SN；
+ * 否则 sn 为 null，后续由 getCurrentChatIfNeeded 替换。
  * @param {string} title - 新对话的标题（截取自首条用户消息）
+ * @param {string} [sn] - 可选的 SN，预先从后端获取
  */
-export function addDirtyChat(title) {
+export function addDirtyChat(title, sn) {
     const dirtyChat = {
         id: 0,           // 尚未在 DB 中创建，id 为 0
-        sn: null,        // 尚未分配 SN，后端保存后会分配
+        sn: sn || null,  // 优先使用预先获取的 SN
         title: title,    // 标题由前端基于首条消息生成
         title_state: 0,  // 原始标题
         pinned: false,
@@ -423,6 +423,7 @@ async function selectChat(sn) {
         el.classList.toggle('active', el.dataset.sn === sn);
     });
     activeChatSN = sn;
+    state.currentChatSN = sn; // 同步到全局状态
 
     // 关闭右键菜单
     closeContextMenu();
@@ -614,6 +615,12 @@ function closeContextMenu() {
  * 重命名对话
  */
 async function handleRename(chat) {
+    // 正在流式输出时不允许修改标题（同 HEADER 点击标题的逻辑一致）
+    if (state.isStreaming) {
+        showToast('正在生成回复，请稍后再修改标题', 'info');
+        return;
+    }
+
     showTitleEditDialog({
         currentTitle: chat.title || '',
         onConfirm: async (newTitle) => {
