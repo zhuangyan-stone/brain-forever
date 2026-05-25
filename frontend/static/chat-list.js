@@ -542,6 +542,12 @@ async function selectChat(sn) {
         session.contentDiv = contentDiv;
 
         // 将已有累积内容渲染到 DOM
+        // 注意：不渲染 sources/webSources，因为历史消息渲染阶段（步骤 8）
+        // 已经通过 addMessage 渲染了所有历史消息的 sources。
+        // streamingMsg.webSources 是 SSE 流式处理中累积的增量数据，
+        // 如果历史消息中已有对应的 assistant 回复，其 sources 已在步骤 8 渲染。
+        // 如果 streamingMsg.webSources 包含的是新数据（流未完成），
+        // 后续 SSE 事件会通过 onSources() 触发 showSources() 渲染。
         const msg = session.streamingMsg;
         if (msg.reasoning) {
             restoreReasoningArea(assistantBubble, msg.reasoning);
@@ -549,9 +555,6 @@ async function selectChat(sn) {
         if (msg.content) {
             contentDiv.innerHTML = msg.content;
             contentDiv.classList.add('streaming');
-        }
-        if (msg.webSources.length > 0) {
-            showSources(msg.webSources, 'web');
         }
 
         // 标记流式状态
@@ -566,6 +569,10 @@ async function selectChat(sn) {
         session.contentDiv = contentDiv;
 
         // 现在 flushToDOM 可以正常工作了
+        // 注意：flushToDOM() 内部会渲染 sources，但此时历史消息中的 sources
+        // 已在步骤 8 渲染完毕。如果 streamingMsg.webSources 与历史消息中的 sources
+        // 重叠，由于 showSources() 已改为幂等（先移除同类型 section 再重建），
+        // 不会导致重复显示，而是正确替换。
         session.responser.flushToDOM();
     }
 

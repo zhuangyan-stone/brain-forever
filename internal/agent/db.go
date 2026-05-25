@@ -53,6 +53,10 @@ func ensureDBSession(session *session) {
 // so active chats float to the top of the sidebar.
 // Must be called with session.mu held.
 func persistMessageToDB(session *session, msg *Message) {
+	if session.currentChat.dbChat == nil {
+		log.Printf("cannot persist message: no DB session for user %s", session.userNo)
+		return
+	}
 	dbSessionID := session.currentChat.dbChat.ID
 	if dbSessionID == 0 {
 		log.Printf("cannot persist message: no DB session ID for user %s", session.userNo)

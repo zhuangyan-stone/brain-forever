@@ -115,7 +115,10 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 	var lastID int64 = 0
 
 	// Load the last message from DB to determine the next ID
-	dbSessionID := session.currentChat.dbChat.ID
+	var dbSessionID int64
+	if session.currentChat.dbChat != nil {
+		dbSessionID = session.currentChat.dbChat.ID
+	}
 	if dbSessionID > 0 {
 		dbMessages, err := session.chatStore.ListMessages(dbSessionID)
 		if err == nil && len(dbMessages) > 0 {
@@ -268,6 +271,11 @@ func (h *ChatAgent) OnGetCurrentChat(w http.ResponseWriter, r *http.Request) {
 
 	// Read current chat state under mu lock
 	session.mu.Lock()
+	if session.currentChat.dbChat == nil {
+		session.mu.Unlock()
+		http.Error(w, "no active chat", http.StatusBadRequest)
+		return
+	}
 	dbSessionID := session.currentChat.dbChat.ID
 	title := session.currentChat.title
 	titleState := int(session.currentChat.titleState)

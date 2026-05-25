@@ -77,19 +77,30 @@ export class SSEResponser {
 
     /**
      * 处理 sources 事件
+     *
+     * 幂等保证：基于 URL 对 sources 做 Set 去重，避免 SSE 推送重复数据。
+     * 同时 showSources() 内部也已改为幂等（先移除同类型 section 再重建），
+     * 双重防护确保 sources 不会重复显示。
+     *
      * @param {object} event
      */
     onSources(event) {
         if (event.sources) {
-            this.session.streamingMsg.webSources.push(...(event.sources || []));
-            if (this.isActive) {
-                showSources(event.sources, 'rag');
+            const newSources = dedupeSources(event.sources, this.session.streamingMsg.webSources);
+            if (newSources.length > 0) {
+                this.session.streamingMsg.webSources.push(...newSources);
+                if (this.isActive) {
+                    showSources(newSources, 'rag');
+                }
             }
         }
         if (event.web_sources) {
-            this.session.streamingMsg.webSources.push(...(event.web_sources || []));
-            if (this.isActive) {
-                showSources(event.web_sources, 'web');
+            const newWebSources = dedupeSources(event.web_sources, this.session.streamingMsg.webSources);
+            if (newWebSources.length > 0) {
+                this.session.streamingMsg.webSources.push(...newWebSources);
+                if (this.isActive) {
+                    showSources(newWebSources, 'web');
+                }
             }
         }
     }
@@ -255,4 +266,40 @@ export class SSEResponser {
 
         autoScrollToBottom();
     }
+}
+
+// ============================================================
+// 辅助函数 — sources 去重
+// ============================================================
+
+/**
+ * 对 sources 数组做 Set 去重，基于 URL 判断重复。
+ * 仅返回 newSources 中尚未存在于 existingSources 的条目。
+ *
+ * @param {Array} newSources - 新收到的 sources
+ * @param {Array} existingSources - 已累积的 sources
+ * @returns {Array} 去重后的新 sources（仅包含真正新增的条目）
+ */
+function dedupeSources(newSources, existingSources) {
+    if (!newSources || newSources.length === 0) return [];
+    if (!existingSources || existingSources.length === 0) return newSources;
+
+    // 用 Set 记录已有 sources 的 URL（以 URL 为唯一标识）
+    const existingUrls = new Set();
+    for (const src of existingSources) {
+        if (src.url) {
+            existingUrls.add(src.url);
+        } else if (src.title) {
+            // 无 URL 时用 title 作为兜底标识
+            existingUrls.add(src.title);
+        }
+    }
+
+    return newSources.filter(src => {
+        const key = src.url || src.title;
+        if (!key) return true; // 无 URL 也无 title，无法去重，保留
+        if (existingUrls.has(key)) return false;
+        existingUrls.add(key);
+        return true;
+    });
 }

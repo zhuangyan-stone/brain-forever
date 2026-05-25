@@ -144,6 +144,10 @@ func (h *ChatAgent) OnNewSession(w http.ResponseWriter, r *http.Request) {
 		session := h.sessionManager.GetOrCreate(sessionID)
 		session.mu.Lock()
 		session.currentChat = &chat{}
+		// ensureDBSession creates a DB record and sets currentChat.dbChat,
+		// so that subsequent GetMessages (e.g., after page refresh) won't
+		// panic on nil dbChat.
+		ensureDBSession(session)
 		session.mu.Unlock()
 
 		// Refresh the cookie MaxAge to avoid premature expiry

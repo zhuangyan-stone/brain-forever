@@ -2,7 +2,6 @@ package agent
 
 import (
 	"BrainForever/toolset"
-	"context"
 	"net/http"
 	"sync/atomic"
 )
@@ -19,13 +18,6 @@ var sessionAutoIncID atomic.Uint64
 // Delegates to toolset.GenerateSN with prefix "s".
 func generateSessionID() string {
 	return toolset.GenerateSN("s")
-}
-
-// StartGC starts the background session GC goroutine.
-// It delegates to SessionManager.StartGC so that main.go can start GC
-// without needing to access the unexported sessionManager field.
-func (h *ChatAgent) StartGC(ctx context.Context) {
-	h.sessionManager.StartGC(ctx)
 }
 
 // getSessionID gets the sessionID from the request

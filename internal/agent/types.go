@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -258,6 +257,9 @@ func (sm *SessionManager) GetMessages(sessionID string) ([]Message, *session) {
 	s.lastActivity = time.Now()
 
 	// Load messages from DB
+	if s.currentChat.dbChat == nil {
+		return []Message{}, s
+	}
 	dbSessionID := s.currentChat.dbChat.ID
 	if dbSessionID == 0 {
 		return []Message{}, s
@@ -278,60 +280,6 @@ func (sm *SessionManager) Remove(sessionID string) {
 	delete(sm.sessions, sessionID)
 }
 
-// sessionTTL is the time-to-live for idle sessions.
-// Sessions idle longer than this will be cleaned up by GC.
-const sessionTTL = 7 * 24 * time.Hour // 7 days, matching cookie MaxAge
-
-// gcInterval is how often the GC goroutine runs.
-const gcInterval = 1 * time.Hour
-
-// gcMinSessions is the minimum number of sessions before GC bothers to check timestamps.
-// When the total session count is below this threshold, GC is a no-op.
-const gcMinSessions = 5
-
-// GC cleans up sessions that have been idle longer than sessionTTL.
-// It is safe for concurrent use.
-// As an optimization, if the total session count is below gcMinSessions,
-// GC returns immediately without checking any timestamps.
-func (sm *SessionManager) GC() {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	// Optimization: skip timestamp checks when there are few sessions
-	if len(sm.sessions) < gcMinSessions {
-		return
-	}
-
-	now := time.Now()
-	for id, s := range sm.sessions {
-		s.mu.Lock()
-		idle := now.Sub(s.lastActivity)
-		s.mu.Unlock()
-
-		if idle > sessionTTL {
-			delete(sm.sessions, id)
-		}
-	}
-}
-
-// StartGC starts a background goroutine that periodically runs GC.
-// The goroutine stops when the given context is cancelled.
-func (sm *SessionManager) StartGC(ctx context.Context) {
-	go func() {
-		ticker := time.NewTicker(gcInterval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				sm.GC()
-			}
-		}
-	}()
-}
-
 // DeleteMessage deletes a user message and all associated messages (AI reply, etc.)
 // that share the same source ID. It finds the first message with the given msgID,
 // then removes all consecutive messages with the same ID. Stops at the first message
@@ -348,6 +296,9 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	defer s.mu.Unlock()
 	s.lastActivity = time.Now()
 
+	if s.currentChat.dbChat == nil {
+		return fmt.Errorf("no DB session")
+	}
 	dbSessionID := s.currentChat.dbChat.ID
 	if dbSessionID == 0 {
 		return fmt.Errorf("no DB session")
@@ -393,6 +344,10 @@ func (s *session) addChatToList(chat store.Chat) {
 // Must be called with session.mu NOT held (locks chatsMu internally).
 func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 	s.mu.Lock()
+	if s.currentChat.dbChat == nil {
+		s.mu.Unlock()
+		return
+	}
 	dbSessionID := s.currentChat.dbChat.ID
 	s.mu.Unlock()
 
@@ -485,6 +440,9 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 // loadMessagesAsLLMMessages 从 DB 加载消息并转换为 llm.Message 切片。
 // 调用者必须持有 session.mu。
 func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
+	if s.currentChat.dbChat == nil {
+		return nil, fmt.Errorf("no DB session")
+	}
 	dbSessionID := s.currentChat.dbChat.ID
 	if dbSessionID == 0 {
 		return nil, fmt.Errorf("no DB session")

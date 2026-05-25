@@ -126,7 +126,10 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 			session.currentChat.titleState = titleState
 		}
 
-		dbSessionID := session.currentChat.dbChat.ID
+		var dbSessionID int64
+		if session.currentChat.dbChat != nil {
+			dbSessionID = session.currentChat.dbChat.ID
+		}
 
 		// Sync title to DB if the current chat has a DB session
 		if dbSessionID != 0 {
@@ -219,7 +222,10 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Load messages from DB (no in-memory storage)
 	session.mu.Lock()
-	dbSessionID := session.currentChat.dbChat.ID
+	var dbSessionID int64
+	if session.currentChat.dbChat != nil {
+		dbSessionID = session.currentChat.dbChat.ID
+	}
 	session.mu.Unlock()
 
 	var msgs []Message

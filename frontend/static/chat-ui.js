@@ -349,6 +349,11 @@ export function addMessage(role, content, createdAt = null, isStreaming = false)
 
 /**
  * showSources 显示引用来源面板
+ *
+ * 幂等保证：同一个 message-group 中，同一类型（rag/web）的 sources section
+ * 只会存在一份。如果已存在则更新其内容，不存在则创建。
+ * 避免因多次调用导致同一批 sources 重复显示。
+ *
  * @param {Array} sources - 来源数据
  * @param {'rag'|'web'} type - 'rag' 表示知识库引用，'web' 表示联网搜索结果
  */
@@ -379,14 +384,23 @@ export function showSources(sources, type) {
         }
     }
 
+    // 查找是否已有同类型的 section，有则复用（更新内容），无则创建
+    let section = panel.querySelector(`.sources-section[data-source-type="${type}"]`);
+    const isNew = !section;
+    if (isNew) {
+        section = document.createElement('div');
+        section.className = 'sources-section';
+        section.dataset.sourceType = type;
+    }
+
     // 强制搜索按钮的 globe 图标（缩小版）
     const globeIconSvg = '<svg class="sources-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_GLOBE + '</svg>';
 
-    const section = document.createElement('div');
-    section.className = 'sources-section';
-
     if (type === 'rag') {
         // ---- 知识库引用 ----
+        // 复用 section 时清空内容重新填充
+        section.innerHTML = '';
+
         const title = document.createElement('div');
         title.className = 'sources-title sources-collapsible';
         title.innerHTML = `${globeIconSvg} 参考了以下知识库内容`;
@@ -427,6 +441,9 @@ export function showSources(sources, type) {
         sources = withUrl.concat(withoutUrl);
         const PAGE_SIZE = 5;
         const totalPages = Math.ceil(sources.length / PAGE_SIZE);
+
+        // 复用 section 时清空内容重新填充
+        section.innerHTML = '';
 
         const title = document.createElement('div');
         title.className = 'sources-title sources-collapsible';
@@ -534,7 +551,10 @@ export function showSources(sources, type) {
         });
     }
 
-    panel.appendChild(section);
+    // 仅新创建的 section 需要追加到 panel
+    if (isNew) {
+        panel.appendChild(section);
+    }
     autoScrollToBottom();
 }
 

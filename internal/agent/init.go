@@ -189,8 +189,5 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		anonymousStore,
 	)
 
-	// 7. Start background session GC
-	chatHandler.StartGC(ctx)
-
 	return chatHandler, nil
 }

@@ -34,7 +34,10 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 	session.mu.Lock()
 	ensureDBSession(session)
 
-	sn := session.currentChat.dbChat.SN
+	var sn string
+	if session.currentChat.dbChat != nil {
+		sn = session.currentChat.dbChat.SN
+	}
 	title := session.currentChat.title
 	titleState := int(session.currentChat.titleState)
 	session.mu.Unlock()
