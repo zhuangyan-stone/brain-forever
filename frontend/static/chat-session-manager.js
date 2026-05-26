@@ -132,7 +132,7 @@ class ChatSessionManager {
 
     /**
      * 获取当前活跃 session 的 isStreaming 状态
-     * 用于兼容 state.isStreaming 的委托访问
+     * 其他模块通过 sessionManager.isStreaming 访问
      * @returns {boolean}
      */
     get isStreaming() {

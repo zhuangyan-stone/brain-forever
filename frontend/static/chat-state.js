@@ -98,29 +98,6 @@ export const state = {
     // 状态只能从低往高变，不能从高往低变
     titleState: 0,
 
-    // ---- 以下字段委托给 $store.chats（过渡期） ----
-    // 最终目标：所有代码改为直接读取 $store.chats.active
-    // 此处的 getter/setter 仅用于兼容现有 JS 代码
-
-    /**
-     * 是否正在流式接收
-     * 委托给 $store.chats.active.isStreaming
-     */
-    get isStreaming() {
-        try {
-            var chats = window.Alpine.store('chats');
-            return chats.active ? chats.active.isStreaming : false;
-        } catch(e) {
-            return false;
-        }
-    },
-    set isStreaming(val) {
-        try {
-            var chats = window.Alpine.store('chats');
-            if (chats.active) chats.active.isStreaming = val;
-        } catch(e) {}
-    },
-
     /**
      * 用于取消请求的 AbortController
      * 委托给 sessionManager.getActive()?.abortController

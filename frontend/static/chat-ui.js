@@ -5,6 +5,7 @@
 import { escapeHtml, truncate } from './toolsets.js';
 import { updateCurrentChatTitle } from './chat-list.js';
 import { state } from './chat-state.js';
+import { sessionManager } from './chat-session-manager.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
 import { getDefaultFormatLabel } from './chat-copy.js';
@@ -86,7 +87,7 @@ export function throttleRender(timerHolder, targetEl, getText) {
  * setInputEnabled 启用/禁用输入
  *
  * 注意：sendBtn 的 SVG 图标、.stop-btn class、data-tooltip 等已由 Alpine
- * 通过 $store.settings.isStreaming 响应式管理（见 index.html 中 sendBtn
+ * 通过 $store.chats.active?.isStreaming 响应式管理（见 index.html 中 sendBtn
  * 的 x-if / :class / :data-tooltip 绑定），此处不再手动操作。
  * 此函数只处理 Alpine 未覆盖的元素（messageInput、input-area class）。
  *
@@ -106,7 +107,7 @@ function setInputEnabled(enabled) {
 export function updateDeleteButtons() {
     const deleteBtns = dom.chatContainer.querySelectorAll('.delete-msg-btn');
     deleteBtns.forEach(btn => {
-        btn.disabled = state.isStreaming;
+        btn.disabled = sessionManager.isStreaming;
     });
 }
 
@@ -114,16 +115,13 @@ export function updateDeleteButtons() {
  * applyStreamingState 统一管理流式输出中 UI 组件的禁用状态。
  *
  * 注意：大部分按钮的 disabled 状态已由 Alpine 组件通过
- * $store.settings.isStreaming 响应式绑定。此处同步 Alpine store
- * 并处理 Alpine 未覆盖的手动 DOM 元素。
+ * $store.chats.active?.isStreaming 响应式绑定（per-chat），
+ * 此处只需处理 Alpine 未覆盖的手动 DOM 元素。
  *
  * @param {boolean} isStreaming
  */
 export function applyStreamingState(isStreaming) {
-    // 0. 同步 isStreaming 到 Alpine store（驱动 Alpine 按钮组件的 disabled 状态）
-    Alpine.store('settings').isStreaming = isStreaming;
-
-    // 1. 输入框禁用/启用
+    // 0. 输入框禁用/启用
     setInputEnabled(!isStreaming);
 
     // 2. 停止按钮（折叠模式，非 Alpine 组件）
@@ -248,7 +246,7 @@ export function addMessage(role, content, createdAt = null, isStreaming = false)
         groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
         groupDeleteBtn.dataset.tooltip = '删除本组对话';
         groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
-        groupDeleteBtn.disabled = state.isStreaming;
+        groupDeleteBtn.disabled = sessionManager.isStreaming;
         group.appendChild(groupDeleteBtn);
 
         dom.chatContainer.appendChild(group);
@@ -271,7 +269,7 @@ export function addMessage(role, content, createdAt = null, isStreaming = false)
             groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
             groupDeleteBtn.dataset.tooltip = '删除本组对话';
             groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
-            groupDeleteBtn.disabled = state.isStreaming;
+            groupDeleteBtn.disabled = sessionManager.isStreaming;
             group.appendChild(groupDeleteBtn);
 
             dom.chatContainer.appendChild(group);
@@ -674,7 +672,7 @@ export function collapseInputArea() {
     if (inputArea) inputArea.classList.add('collapsed');
     const stopStreamingBtn = document.getElementById('stopStreamingBtn');
     if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = !state.isStreaming;
+        stopStreamingBtn.disabled = !sessionManager.isStreaming;
     }
 }
 
@@ -688,7 +686,7 @@ export function restoreInputArea() {
     if (inputArea) inputArea.classList.remove('collapsed');
     const stopStreamingBtn = document.getElementById('stopStreamingBtn');
     if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = !state.isStreaming;
+        stopStreamingBtn.disabled = !sessionManager.isStreaming;
     }
 }
 

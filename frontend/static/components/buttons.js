@@ -36,7 +36,7 @@
 //
 //   <!-- 带 disabled 控制 -->
 //   <button class="icon-btn icon-btn--small"
-//           x-data="iconBtn({ size: 'small', disabled: () => $store.settings.isStreaming })"
+//           x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
 //           :disabled="disabled">
 //       <svg>...</svg>
 //   </button>
@@ -71,7 +71,7 @@ window.iconBtn = function(config = {}) {
 //
 // 使用方式：
 //   <button class="text-btn"
-//           x-data="textBtn({ disabled: () => $store.settings.isStreaming })"
+//           x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
 //           :disabled="disabled">
 //       <svg class="text-btn-icon"><use href="#icon-new-chat"/></svg>
 //       <span class="text-btn-label">新对话</span>
@@ -146,7 +146,7 @@ window.toggleBtn = function(config = {}) {
 //
 // 使用方式：
 //   <button id="sendBtn" class="send-btn"
-//           x-data="sendBtn({ active: () => $store.settings.isStreaming })"
+//           x-data="sendBtn({ active: () => $store.chats.active?.isStreaming })"
 //           :class="{ 'stop-btn': active }"
 //           :data-tooltip="active ? '停止生成' : '发送'">
 //       <template x-if="!active">

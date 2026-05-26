@@ -59,24 +59,6 @@ document.addEventListener('alpine:init', function() {
         sendMode: typeof _bfSettings.sendMode === 'number' ? _bfSettings.sendMode : 0,
         theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 0,
 
-        // 流式状态（由 chat-session-manager 驱动更新）
-        // isStreaming 改为 getter/setter，数据源为 $store.chats.active
-        // 过渡期策略：所有读写最终指向 $store.chats.active.isStreaming
-        get isStreaming() {
-            try {
-                var chats = Alpine.store('chats');
-                return chats.active ? chats.active.isStreaming : false;
-            } catch(e) {
-                return false;
-            }
-        },
-        set isStreaming(val) {
-            try {
-                var chats = Alpine.store('chats');
-                if (chats.active) chats.active.isStreaming = val;
-            } catch(e) {}
-        },
-
         // ---- 持久化 ----
         _save: function() {
             localStorage.setItem('brainforever_settings', JSON.stringify({

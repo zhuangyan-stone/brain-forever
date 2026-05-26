@@ -50,7 +50,7 @@ export function truncateTitle(s) {
 }
 
 /**
- * 异步调用后端 /api/session/title 接口，让 AI 为当前对话生成标题。
+ * 异步调用后端 /api/session/title 接口，让 AI 为指定对话生成标题。
  *
  * 调用条件：
  *   - titleState !== 2（用户手动修改过的标题不再覆盖）
@@ -62,9 +62,10 @@ export function truncateTitle(s) {
  *
  * @param {string} originalTitle - 原标题（用户第一条消息的截取）
  * @param {boolean} [force=false] - 是否强制请求（忽略 titleState 守卫条件），用于用户手动点击 AI 标题按钮
+ * @param {string} [sn] - 当前对话的 SN，传递给后端以便返回时确认目标 chat
  * @returns {Promise<void>}
  */
-export async function fetchChatTitle(originalTitle, force = false) {
+export async function fetchChatTitle(originalTitle, force = false, sn) {
     // 如果标题已被修改过（AI 修改或用户手动修改），不再请求
     // 状态只能从低往高变（0→1, 0→2, 1→2），>= 1 即表示已非原始状态
     // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制请求 AI 重新生成
@@ -73,9 +74,17 @@ export async function fetchChatTitle(originalTitle, force = false) {
     }
 
     try {
-        const response = await fetch('/api/session/title?title=' + encodeURIComponent(originalTitle));
+        // 构建 URL：携带 sn 参数（如果提供）
+        let url = '/api/session/title?title=' + encodeURIComponent(originalTitle);
+        if (sn) {
+            url += '&sn=' + encodeURIComponent(sn);
+        }
+        const response = await fetch(url);
         if (!response.ok) return;
         const data = await response.json();
+
+        // 从返回数据中提取目标 chat SN，用于后续精确定位
+        const targetSN = data.sn || sn || null;
 
         if (data.title && data.changed === true) {
             // 异步调用期间用户可能已手动修改标题，再次检查防止覆盖
@@ -87,13 +96,24 @@ export async function fetchChatTitle(originalTitle, force = false) {
             // ---- 显示便利贴让用户选择 ----
             const stickyOptions = {
                 onApply: async (newTitle) => {
-                    // 定时到点或用户点击"试试"：更新标题，标记为 AI 修改
-                    updateHeaderTitle(newTitle);
-                    state.titleState = TITLE_STATE.AI;
-                    // 同步到后端：用户已确认接受，调用 PUT 保存，标记为机改
-                    await putChatTitle(newTitle, TITLE_STATE.AI);
+                    // 严格依据返回的 sn 找到对应的 chat 来更新标题
+                    // 即使 chat 已被删除（不存在于 currentChats），前端也能正确处理
+                    const { updateChatTitleBySN } = await import('./chat-list.js');
+                    
+                    // 先调用后端 PUT 保存标题（携带 sn 确保更新到正确的 chat）
+                    const success = await putChatTitle(newTitle, TITLE_STATE.AI, targetSN);
+                    if (!success) return;
+
+                    // 如果 targetSN 匹配当前活跃 chat，更新 header 标题
+                    if (state.currentChatSN === targetSN) {
+                        updateHeaderTitle(newTitle);
+                        state.titleState = TITLE_STATE.AI;
+                    }
+
+                    // 尝试在侧边栏中找到该 chat 并更新标题（如果 chat 已被删除则跳过）
+                    updateChatTitleBySN(targetSN, newTitle);
                 },
-                onDismiss: (newTitle) => {
+                onDismiss: () => {
                     // 用户取消：不做任何修改，状态保持当前值
                     // 下一轮仍可继续尝试推荐
                 },
@@ -112,13 +132,17 @@ export async function fetchChatTitle(originalTitle, force = false) {
  * 成功后标记 titleState 为指定状态，并更新本地标题。
  * @param {string} title - 新标题
  * @param {number} [titleState=TITLE_STATE.USER] - 标题修改状态，默认用户修改（2）
+ * @param {string} [sn] - 可选，指定要更新的 chat SN（不传则更新当前活跃 chat）
  * @returns {Promise<boolean>} 是否成功
  */
-export async function putChatTitle(title, titleState = TITLE_STATE.USER) {
+export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 	if (!title) return false;
 	try {
-		const url = '/api/session/title?title=' + encodeURIComponent(title) +
+		let url = '/api/session/title?title=' + encodeURIComponent(title) +
 			'&state=' + encodeURIComponent(titleState);
+		if (sn) {
+			url += '&sn=' + encodeURIComponent(sn);
+		}
 		const response = await fetch(url, {
 			method: 'PUT',
 		});
@@ -126,8 +150,11 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER) {
 			console.warn('更新标题失败:', response.status);
 			return false;
 		}
-		// 成功后标记为指定状态
-		state.titleState = titleState;
+		// 不携带 sn 时更新的是当前活跃 chat，更新本地 state
+		// 携带 sn 时由调用方自行处理本地状态
+		if (!sn) {
+			state.titleState = titleState;
+		}
 		return true;
 	} catch (e) {
 		console.warn('更新标题出错:', e);

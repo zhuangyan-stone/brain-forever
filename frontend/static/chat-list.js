@@ -152,7 +152,7 @@ function truncateTitle(title, maxLen = 25) {
 // 对话列表渲染
 // ============================================================
 
-let currentChats = [];       // 当前对话列表
+export let currentChats = [];       // 当前对话列表
 let activeChatSN = null;     // 当前选中的对话 SN
 let contextMenuEl = null;       // 当前打开的右键菜单
 let contextTargetSN = null;     // 右键菜单目标对话 SN
@@ -693,11 +693,17 @@ function closeContextMenu() {
 
 /**
  * 重命名对话
+ *
+ * 注意：此处检查目标 chat 自身的 streaming 状态（而非 active chat），
+ * 因为侧边栏重命名操作针对的是右键点击的特定对话，不一定是当前活跃对话。
+ * header 标题编辑（chat.js:747）仍使用 sessionManager.isStreaming，
+ * 因为 header 始终对应 active chat。
  */
 async function handleRename(chat) {
-    // 正在流式输出时不允许修改标题（同 HEADER 点击标题的逻辑一致）
-    if (state.isStreaming) {
-        showToast('正在生成回复，请稍后再修改标题', 'info');
+    // 检查目标对话自身的 streaming 状态（而非 active chat）
+    const targetSession = sessionManager.sessions.get(chat.sn);
+    if (targetSession && targetSession.isStreaming) {
+        showToast('该对话正在生成回复，请稍后再修改标题', 'info');
         return;
     }
 
@@ -786,6 +792,39 @@ export function updateCurrentChatTitle(newTitle) {
     const activeItems = document.querySelectorAll(`.chat-item[data-sn="${sn}"] .chat-item-title`);
     if (activeItems.length > 0) {
         activeItems.forEach(el => {
+            el.textContent = truncateTitle(newTitle);
+        });
+    }
+}
+
+/**
+ * 根据 SN 更新指定对话的标题（仅当该 chat 仍存在于 currentChats 中时）。
+ * 用于 AI 标题推荐的回调中，确保标题始终更新到正确的对话上，
+ * 即使当前活跃对话已切换，或该对话已被删除。
+ *
+ * 如果 chat 不存在于 currentChats 中（已被删除），则静默跳过。
+ * 成功更新后重新渲染侧边栏列表。
+ *
+ * @param {string} sn - 目标对话的 SN
+ * @param {string} newTitle - 新标题
+ */
+export function updateChatTitleBySN(sn, newTitle) {
+    if (!sn || !newTitle) return;
+
+    // 在 currentChats 中查找目标 chat
+    const chat = currentChats.find(c => c.sn === sn);
+    if (!chat) {
+        // chat 已被删除（不存在于列表中），静默跳过
+        return;
+    }
+
+    // 更新内存中的标题
+    chat.title = newTitle;
+
+    // 直接更新 DOM
+    const targetItems = document.querySelectorAll(`.chat-item[data-sn="${sn}"] .chat-item-title`);
+    if (targetItems.length > 0) {
+        targetItems.forEach(el => {
             el.textContent = truncateTitle(newTitle);
         });
     }

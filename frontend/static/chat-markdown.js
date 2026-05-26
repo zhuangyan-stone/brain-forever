@@ -3,7 +3,7 @@
 // ============================================================
 
 import { escapeHtml } from './toolsets.js';
-import { state } from './chat-state.js';
+import { sessionManager } from './chat-session-manager.js';
 import { ICON_COPY } from './svg_icons.js';
 
 'use strict';
@@ -272,7 +272,7 @@ function addCopyButton(pre) {
     const btn = document.createElement('button');
     btn.className = 'copy-btn code-copy-btn';
     btn.dataset.tooltip = '复制代码块';
-    btn.disabled = state.isStreaming; // 流式输出时禁用
+    btn.disabled = sessionManager.isStreaming; // 流式输出时禁用
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 Markdown</span>';
 
     pre.appendChild(btn);

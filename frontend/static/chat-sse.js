@@ -79,7 +79,7 @@ function prepareChat() {
     const messageInput = document.getElementById('messageInput');
     const chatContainer = document.getElementById('chatContainer');
     const content = messageInput.value.trim();
-    if (!content || state.isStreaming) return null;
+    if (!content || sessionManager.isStreaming) return null;
 
     // 清空输入框
     messageInput.value = '';
@@ -112,6 +112,11 @@ function prepareChat() {
     session.assistantBubble = assistantBubble;
     session.contentDiv = contentDiv;
     session.resetStreaming();
+
+    // 同步更新 Alpine store 的 isStreaming，确保 :disabled 绑定即时生效
+    try {
+        window.Alpine.store('chats').startStreaming(sn);
+    } catch(e) {}
 
     // 确保流式开始前页面已在底部。
     // addMessage 内部的 autoScrollToBottom 使用同步 scrollTop 赋值，
@@ -325,7 +330,8 @@ function autoUpdateTitle(wasAborted) {
     // 如果 dialogTitle 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
     const originalTitle = state.dialogTitle || '';
     // 异步调用，不阻塞后续操作
-    fetchChatTitle(originalTitle);
+    // 传递当前 chat SN，确保后端返回时前端能精确定位到正确的对话
+    fetchChatTitle(originalTitle, false, state.currentChatSN);
 }
 
 /**

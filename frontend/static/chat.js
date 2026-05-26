@@ -78,7 +78,7 @@ if (aiTitleBtn) {
     let aiTitleDebounceTimer = null;
     aiTitleBtn.addEventListener('click', () => {
         // 正在 SSE 流式输出时，AI 标题按钮不可用（Alpine :disabled 已处理，再加一层防御）
-        if (state.isStreaming) {
+        if (sessionManager.isStreaming) {
             return;
         }
         if (aiTitleDebounceTimer) {
@@ -87,8 +87,9 @@ if (aiTitleBtn) {
         showToast('已向 AI 发出请求……', 'info');
         // 使用当前对话标题作为 originalTitle 传给后端
         // force=true 忽略 titleState 守卫，强制请求 AI 重新生成标题
+        // 传递当前 chat SN，确保后端返回时前端能精确定位到正确的对话
         const originalTitle = state.dialogTitle || '';
-        fetchChatTitle(originalTitle, true);
+        fetchChatTitle(originalTitle, true, state.currentChatSN);
         // 设置防抖定时器，5 秒内不再响应点击
         aiTitleDebounceTimer = setTimeout(() => {
             aiTitleDebounceTimer = null;
@@ -103,7 +104,7 @@ if (aiTitleBtn) {
 
 async function startNewSession() {
     // 如果正在流式输出，直接返回（按钮已 disabled，再加一层防御）
-    if (state.isStreaming) {
+    if (sessionManager.isStreaming) {
         return;
     }
 
@@ -691,7 +692,7 @@ messageInput.addEventListener('keydown', (e) => {
 
 // 发送按钮：流式输出中点击停止，否则发送消息
 sendBtn.addEventListener('click', () => {
-    if (state.isStreaming) {
+    if (sessionManager.isStreaming) {
         // 正在流式输出：停止生成
         if (state.abortController) {
             state.abortController.abort();
@@ -744,7 +745,7 @@ initTickNav();
 
     headerTitle.addEventListener('click', () => {
         // 正在流式输出时不允许修改标题
-        if (state.isStreaming) {
+        if (sessionManager.isStreaming) {
             showToast('正在生成回复，请稍后再修改标题', 'info');
             return;
         }
@@ -789,7 +790,7 @@ initDeleteModal();
 
     loginBtn.addEventListener('click', async () => {
         // 流式输出时，登录按钮直接短路返回，不做任何操作
-        if (state.isStreaming) {
+        if (sessionManager.isStreaming) {
             return;
         }
 
@@ -842,7 +843,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // ---- scrollend：滚动完全停止后，折叠输入面板 + 恢复自动滚动 ----
     chatContainer.addEventListener('scrollend', () => {
-        if (!state.isStreaming) return;
+        if (!sessionManager.isStreaming) return;
 
         // 滚动停止后才折叠输入面板，避免 scroll anchoring 干扰滚动过程中的检测
         collapseInputArea();
@@ -864,7 +865,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const sc = chatContainer;
             const debugInfo = `scrollTop=${sc.scrollTop} scrollHeight=${sc.scrollHeight} clientHeight=${sc.clientHeight}`;
 
-            if (state.isStreaming) {
+            if (sessionManager.isStreaming) {
                 // streaming 分支：只检测用户滚动状态，不操作输入面板（避免 scroll anchoring）
                 // auto-scroll 由 throttleRender 每 180ms 调用 autoScrollToBottom 负责
                 if (!isScrolledToBottom()) {

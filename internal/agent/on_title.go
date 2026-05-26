@@ -193,8 +193,13 @@ func extractMessagesForTitle(msgs []Message) []Message {
 
 // OnProposeChatTitle handles GET /api/session/title requests.
 // It reads the "title" query parameter as the original title,
-// takes messages from the session, sends them to the LLM
-// to generate a new concise title, and returns the new title as JSON.
+// and optionally a "sn" parameter specifying which chat to generate a title for.
+// If "sn" is provided, messages are loaded from that specific chat.
+// If "sn" is omitted (or empty), the current active chat's messages are used (backward compatible).
+//
+// It sends the messages to the LLM to generate a new concise title,
+// and returns the new title along with the chat SN (so the frontend can
+// correctly identify which chat to update) as JSON.
 // On error or empty LLM response, returns the original title.
 //
 // NOTE: This handler does NOT save the generated title to the session.
@@ -210,6 +215,10 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 	// Read the original title from query parameter
 	originalTitle := r.URL.Query().Get("title")
 
+	// Read the optional sn parameter — if provided, generate a title
+	// for that specific chat instead of the current active chat.
+	chatSN := r.URL.Query().Get("sn")
+
 	// Determine the language for this request.
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
@@ -220,13 +229,37 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Load messages from DB (no in-memory storage)
-	session.mu.Lock()
+	// Resolve which chat's messages to use
 	var dbSessionID int64
-	if session.currentChat.dbChat != nil {
-		dbSessionID = session.currentChat.dbChat.ID
+	if chatSN != "" {
+		// Look up the chat by SN from the session's chat list
+		session.chatsMu.Lock()
+		for _, c := range session.chats {
+			if c.SN == chatSN {
+				dbSessionID = c.ID
+				break
+			}
+		}
+		session.chatsMu.Unlock()
+
+		if dbSessionID == 0 {
+			// Chat not found (may have been deleted) — return original title
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"sn":      chatSN,
+				"title":   originalTitle,
+				"changed": false,
+			})
+			return
+		}
+	} else {
+		// No sn provided: use the current active chat (backward compatible)
+		session.mu.Lock()
+		if session.currentChat.dbChat != nil {
+			dbSessionID = session.currentChat.dbChat.ID
+		}
+		session.mu.Unlock()
 	}
-	session.mu.Unlock()
 
 	var msgs []Message
 	if dbSessionID > 0 {
@@ -292,9 +325,21 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 		titleChanged = true
 	}
 
-	// Return the new title as JSON
+	// Resolve the SN to return — use the requested chatSN if provided,
+	// otherwise read the current chat's SN from the session.
+	responseSN := chatSN
+	if responseSN == "" {
+		session.mu.Lock()
+		if session.currentChat.dbChat != nil {
+			responseSN = session.currentChat.dbChat.SN
+		}
+		session.mu.Unlock()
+	}
+
+	// Return the new title and the SN as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
+		"sn":      responseSN,
 		"title":   newTitle,
 		"changed": titleChanged,
 	})
