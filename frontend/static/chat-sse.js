@@ -338,9 +338,27 @@ function cleanupAfterStream(session, wasAborted) {
     state._wasAborted = false;
     session.isStreaming = false;
     session.abortController = null;
-    // 统一切换所有 UI 组件到非流式状态
-    applyStreamingState(false);
-    document.getElementById('messageInput').focus();
+
+    // 仅当此 session 仍是活跃 session 时，才操作全局 UI
+    // 避免后台流完成时错误地影响当前 active chat 的 UI 状态
+    const isActiveSession = sessionManager.getActive() === session;
+    if (isActiveSession) {
+        applyStreamingState(false);
+        document.getElementById('messageInput').focus();
+    } else {
+        // 后台流完成：仅更新 Alpine store 中对应 chat 的 isStreaming，
+        // 不触碰全局 UI（当前 active chat 的 streaming 状态不受影响）
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats) {
+                var chatData = chats.getOrCreate(session.sn);
+                if (chatData) {
+                    chatData.isStreaming = false;
+                    // streamingMsg 由 SSEResponser.onDone() 中的 finalizeStreaming() 负责归档清理
+                }
+            }
+        } catch(e) {}
+    }
 
     // 移除 streaming 类
     const contentDiv = session.contentDiv;

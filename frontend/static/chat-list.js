@@ -446,6 +446,17 @@ async function selectChat(sn) {
     // 新 session 标记为活跃（_isActive = true）
     sessionManager.switchTo(sn);
 
+    // 0.1 同步 Alpine store 的 active chat
+    // 确保 Alpine 绑定（:disabled, :class 等）引用正确的 chat
+    // 避免切换到非流式 chat 后输入面板仍被禁用
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            chats.getOrCreate(sn);  // 确保 items 中有此 chat
+            chats.switchTo(sn);     // 切换 activeIndex
+        }
+    } catch(e) {}
+
     // 1. 清空当前消息状态
     state.messages = [];
     state.userMsgCount = 0;
@@ -574,6 +585,12 @@ async function selectChat(sn) {
         // 重叠，由于 showSources() 已改为幂等（先移除同类型 section 再重建），
         // 不会导致重复显示，而是正确替换。
         session.responser.flushToDOM();
+
+        // 流已结束，确保非 Alpine 管理的 DOM 元素（停止按钮、删除按钮）重置
+        applyStreamingState(false);
+    } else {
+        // 新增：切换到无流式状态的普通 chat，确保 UI 处于非流式状态
+        applyStreamingState(false);
     }
 
     // 10. 更新刻度导航
