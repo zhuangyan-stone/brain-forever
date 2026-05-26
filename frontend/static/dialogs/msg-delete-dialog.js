@@ -1,6 +1,11 @@
 // ============================================================
 // msg-delete-dialog.js — 消息删除对话框
 // ============================================================
+// 显隐状态由 Alpine 组件 deleteDialog 管理（x-data + :class="{ show }"），
+// 不再手动操作 classList。
+// 内容填充（从 DOM 提取消息预览）仍由本模块负责，
+// 因为内容来自运行时 DOM，不适合在 Alpine 模板中预先定义。
+// ============================================================
 
 import { escapeHtml } from '../toolsets.js';
 import { state } from '../chat-state.js';
@@ -11,6 +16,9 @@ import { updateTickNav } from '../chat-ticknav.js';
 
 /**
  * showDeleteModal 显示删除确认模态框
+ *
+ * 通过 Alpine.$data 操作 Alpine 组件的响应式状态，
+ * Alpine 自动触发 :class="{ show: true }" 更新 DOM 显隐。
  */
 export function showDeleteModal() {
     const deleteModal = document.getElementById('deleteModal');
@@ -21,27 +29,25 @@ export function showDeleteModal() {
 
     if (state.activeTickIndex < 0) return;
 
-    // 将当前活动索引保存到模态框，避免 mouseleave 清除 activeTickIndex 后丢失
-    deleteModal.dataset.deleteIndex = state.activeTickIndex;
+    // ---- 填充内容 ----
+    const deleteIndex = state.activeTickIndex;
 
     // 获取用户消息
-    const userMsg = chatContainer.querySelector(`.message.user[data-msg-index="${state.activeTickIndex}"]`);
+    const userMsg = chatContainer.querySelector(`.message.user[data-msg-index="${deleteIndex}"]`);
     let html = '';
     if (userMsg) {
         const rawContent = userMsg.querySelector('.bubble').textContent || '';
-        // 用户消息完整保留在 DOM 中（CSS 控制单行截断）
         const userPreview = escapeHtml(rawContent);
         html += '<div class="del-preview-msg del-preview-user">'
             + '<div class="role-label">我</div>'
             + '<div class="del-preview-bubble">' + userPreview + '</div>'
             + '</div>';
-        // 在同一个 .message-group 内查找 AI 回复（不依赖 data-msg-id 配对）
+        // 在同一个 .message-group 内查找 AI 回复
         const group = userMsg.closest('.message-group');
         if (group) {
             const assistantMsg = group.querySelector('.message.assistant');
             if (assistantMsg) {
                 const assistantContent = assistantMsg.querySelector('.bubble').textContent || '';
-                // 助手消息完整保留在 DOM 中（CSS 控制单行截断）
                 const assistantPreview = escapeHtml(assistantContent.trim());
                 if (assistantPreview) {
                     html += '<div class="del-preview-msg del-preview-assistant">'
@@ -60,54 +66,45 @@ export function showDeleteModal() {
         modalNote.style.display = html ? 'block' : 'none';
     }
 
-    deleteModal.classList.add('show');
+    // ---- 通过 Alpine 打开对话框 ----
+    Alpine.$data(deleteModal).open(deleteIndex);
 }
 
 /**
- * hideDeleteModal 隐藏删除模态框
+ * confirmDelete 确认删除（由 Alpine @click 调用，注册在 window 上）
  */
-function hideDeleteModal() {
-    const deleteModal = document.getElementById('deleteModal');
-    if (!deleteModal) return;
-    deleteModal.classList.remove('show');
-    delete deleteModal.dataset.deleteIndex;
-}
-
-/**
- * confirmDelete 确认删除
- */
-async function confirmDelete() {
+window.confirmDelete = async function() {
     const deleteModal = document.getElementById('deleteModal');
     const chatContainer = document.getElementById('chatContainer');
     if (!deleteModal || !chatContainer) return;
 
-    const index = parseInt(deleteModal.dataset.deleteIndex, 10);
-    if (isNaN(index) || index < 0) return;
+    const deleteData = Alpine.$data(deleteModal);
+    const index = deleteData.deleteIndex;
+    if (index < 0) return;
 
     // 获取要删除的用户消息
     const userMsg = chatContainer.querySelector(`.message.user[data-msg-index="${index}"]`);
     if (!userMsg) {
-        hideDeleteModal();
+        deleteData.close();
         return;
     }
 
     // 找到该消息所在的 .message-group
     const group = userMsg.closest('.message-group');
     if (!group) {
-        hideDeleteModal();
+        deleteData.close();
         return;
     }
 
-    // 从 message-group 获取 msg_id（同一组的 user 和 assistant 共享同一 ID）
+    // 从 message-group 获取 msg_id
     const msgId = parseInt(group.dataset.msgId, 10);
 
-    // 在移除 DOM 之前，先收集该组中所有消息的 ID（用于后续清理 messages 数组）
+    // 在移除 DOM 之前，先收集该组中所有消息的 ID
     const groupMsgIds = new Set();
-    // 同一组的 user 和 assistant 共享同一 ID，只需添加一次
     if (!isNaN(msgId)) groupMsgIds.add(msgId);
 
     try {
-        // msgId 为 0 或无效（NaN）表示提交未完成（失败或尚未分配），仅删除前端 DOM
+        // msgId 为 0 或无效（NaN）表示提交未完成，仅删除前端 DOM
         if (!msgId || isNaN(msgId)) {
             group.remove();
         } else {
@@ -127,7 +124,7 @@ async function confirmDelete() {
             group.remove();
         }
 
-        // 从 messages 数组中删除该组中所有消息（包括 id=0 的条目）
+        // 从 messages 数组中删除该组中所有消息
         state.messages = state.messages.filter(msg => !groupMsgIds.has(msg.id));
 
         // 重新编号所有 user 消息的 data-msg-index
@@ -139,10 +136,6 @@ async function confirmDelete() {
         // 更新 userMsgCount
         state.userMsgCount = remainingUsers.length;
 
-        // currentGroup 已取消，不再需要维护。
-        // addMessage('assistant') 会通过 dom.chatContainer.querySelector('.message-group:last-child')
-        // 自动找到当前组，因此无需设置 state.currentGroup。
-
         // 更新刻度导航
         updateTickNav();
 
@@ -150,29 +143,19 @@ async function confirmDelete() {
         console.error('删除失败:', e);
         showToast('删除失败: ' + e.message, 'error');
     } finally {
-        hideDeleteModal();
+        deleteData.close();
     }
-}
+};
 
 /**
- * 初始化删除模态框的事件绑定
+ * 初始化删除模态框
+ *
+ * ⚠️ 注意：Alpine 已通过 @click 处理关闭按钮和遮罩层点击，
+ *    不再需要手动绑定事件监听器。
+ *    此函数保留为空，确保调用方（chat.js）不会因缺少导出而报错。
+ *
+ * 若将来需要与其他非 Alpine 逻辑集成，在此添加。
  */
 export function initDeleteModal() {
-    const deleteModal = document.getElementById('deleteModal');
-    const modalCloseBtn = document.getElementById('modalCloseBtn');
-    const modalCancelBtn = document.getElementById('modalCancelBtn');
-    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-
-    if (!deleteModal || !modalCloseBtn || !modalCancelBtn || !modalConfirmBtn) return;
-
-    modalCloseBtn.addEventListener('click', hideDeleteModal);
-    modalCancelBtn.addEventListener('click', hideDeleteModal);
-    modalConfirmBtn.addEventListener('click', confirmDelete);
-
-    // 点击模态框外部关闭
-    deleteModal.addEventListener('click', (e) => {
-        if (e.target === deleteModal) {
-            hideDeleteModal();
-        }
-    });
+    // 事件绑定已由 Alpine 的 @click 处理，无需额外操作
 }

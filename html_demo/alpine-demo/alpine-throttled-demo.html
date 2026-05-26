@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpine.js 节流追加 & 自动滚动 Demo</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #f0f4f8 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            width: 100%;
+            max-width: 640px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #e9edf2;
+        }
+
+        .card-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .card-header .subtitle {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .card-header .subtitle code {
+            background: #edf2f7;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* ===== 滚动列表容器 ===== */
+        .scroll-container {
+            height: 360px;
+            overflow-y: auto;
+            padding: 12px 24px;
+            background: #fafbfc;
+            border-bottom: 1px solid #e9edf2;
+            scroll-behavior: smooth;
+        }
+
+        .scroll-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* ===== 数据列表项 ===== */
+        .list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e9edf2;
+            transition: border-color 0.15s;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .list-item:hover {
+            border-color: #bee3f8;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .item-index {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #ebf4ff;
+            color: #3182ce;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .item-time {
+            font-size: 11px;
+            color: #a0aec0;
+            font-weight: 500;
+        }
+
+        .item-text {
+            font-size: 14px;
+            color: #2d3748;
+            line-height: 1.5;
+            margin-top: 2px;
+        }
+
+        .empty-hint {
+            text-align: center;
+            color: #a0aec0;
+            padding: 80px 20px;
+            font-size: 14px;
+        }
+
+        .empty-hint .icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        /* ===== 控制栏 ===== */
+        .controls {
+            padding: 16px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn:active { transform: scale(0.97); }
+
+        .btn-start {
+            background: #48bb78;
+            color: #fff;
+        }
+        .btn-start:hover:not(:disabled) { background: #38a169; }
+        .btn-start:disabled { background: #c6f6d5; color: #9ae6b4; cursor: not-allowed; }
+
+        .btn-stop {
+            background: #fc8181;
+            color: #fff;
+        }
+        .btn-stop:hover:not(:disabled) { background: #f56565; }
+        .btn-stop:disabled { background: #fed7d7; color: #feb2b2; cursor: not-allowed; }
+
+        .btn-clear {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        .btn-clear:hover { background: #cbd5e0; }
+
+        .status-bar {
+            margin-left: auto;
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .status-bar .count {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        .status-dot.running { background: #48bb78; animation: pulse 1.2s infinite; }
+        .status-dot.stopped { background: #a0aec0; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.3; }
+        }
+
+        /* ===== 参数控制 ===== */
+        .params {
+            padding: 0 24px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .param-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        .param-group label {
+            white-space: nowrap;
+        }
+
+        .param-group input[type="range"] {
+            width: 100px;
+            accent-color: #4299e1;
+        }
+
+        .param-group .value {
+            min-width: 28px;
+            text-align: center;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* ===== 滚动状态提示 ===== */
+        .scroll-hint {
+            padding: 6px 24px 0;
+            font-size: 12px;
+            color: #ecc94b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .scroll-hint:empty {
+            display: none;
+        }
+
+        /* ===== Footer ===== */
+        .card-footer {
+            padding: 12px 24px;
+            background: #f7fafc;
+            border-top: 1px solid #e9edf2;
+            font-size: 12px;
+            color: #a0aec0;
+            text-align: center;
+        }
+
+        .card-footer a {
+            color: #4299e1;
+            text-decoration: none;
+        }
+
+        .card-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 12px; }
+            .scroll-container { height: 280px; padding: 8px 12px; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .status-bar { margin-left: 0; text-align: center; }
+            .params { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card" x-data="throttledList()">
+    <!-- Header -->
+    <div class="card-header">
+        <h1>📋 Alpine.js 节流追加 & 自动滚动</h1>
+        <div class="subtitle">
+            <code>x-data</code> + <code>x-for</code> 纯 JS 数组响应式追加 · 
+            节流间隔 <span x-text="interval"></span>ms · 
+            每批 <span x-text="batchSize"></span> 条
+        </div>
+    </div>
+
+    <!-- 滚动容器 -->
+    <div class="scroll-container" x-ref="scrollContainer" @scroll="onScroll">
+        <!-- 空状态提示 -->
+        <template x-if="items.length === 0">
+            <div class="empty-hint">
+                <div class="icon">📭</div>
+                <div>数据列表为空</div>
+                <div style="font-size:12px;margin-top:6px;">点击「▶ 开始」启动节流追加</div>
+            </div>
+        </template>
+
+        <!-- 数据列表 - x-for 增量渲染 -->
+        <template x-for="(item, index) in items" :key="item.id">
+            <div class="list-item">
+                <div class="item-index" x-text="index + 1"></div>
+                <div class="item-body">
+                    <div class="item-time" x-text="item.time"></div>
+                    <div class="item-text" x-text="item.text"></div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- 滚动状态提示 -->
+    <div class="scroll-hint" x-show="userScrolledUp && items.length > 0">
+        ⬆️ 已暂停自动滚动 — 滚动到底部以恢复
+    </div>
+
+    <!-- 控制按钮 -->
+    <div class="controls">
+        <button class="btn btn-start" @click="start()" :disabled="isRunning">
+            ▶ 开始
+        </button>
+        <button class="btn btn-stop" @click="stop()" :disabled="!isRunning">
+            ■ 停止
+        </button>
+        <button class="btn btn-clear" @click="clear()">
+            ✕ 清空
+        </button>
+        <div class="status-bar">
+            <span class="status-dot" :class="isRunning ? 'running' : 'stopped'"></span>
+            <span x-text="isRunning ? '运行中' : '已停止'"></span>
+            &nbsp;·&nbsp; 已追加 <span class="count" x-text="items.length"></span> 条
+        </div>
+    </div>
+
+    <!-- 参数调节 -->
+    <div class="params">
+        <div class="param-group">
+            <label>节流间隔:</label>
+            <input type="range" min="50" max="2000" step="50"
+                   x-model.number="interval" :disabled="isRunning">
+            <span class="value" x-text="interval + 'ms'"></span>
+        </div>
+        <div class="param-group">
+            <label>每批条数:</label>
+            <input type="range" min="1" max="20" step="1"
+                   x-model.number="batchSize" :disabled="isRunning">
+            <span class="value" x-text="batchSize"></span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="card-footer">
+        <a href="https://alpinejs.dev/" target="_blank">Alpine.js</a> ·
+        纯 JS 数据 · 无 DOM 数据读取 ·
+        <a href="https://github.com/OpenBrainGrow/BrainForever" target="_blank">BrainForever</a>
+    </div>
+</div>
+
+<script>
+/**
+ * Alpine.js 组件：节流追加 + 自动滚动
+ *
+ * 核心机制：
+ * 1. 用递归 setTimeout 实现节流（间隔可控）
+ * 2. 每次向 items 数组 push batchSize 条新数据
+ * 3. Alpine x-for 自动响应式渲染新增 DOM 节点
+ * 4. $nextTick 后执行 scrollTop = scrollHeight 自动滚动
+ *
+ * 数据流动：纯 JS → items[] → x-for 渲染 → DOM
+ * 不从 DOM 中读取任何数据。
+ */
+function throttledList() {
+    return {
+        // ========== 响应式数据（Alpine 自动追踪） ==========
+        items: [],             // 纯 JS 数据数组
+        isRunning: false,      // 运行状态
+        interval: 300,         // 节流间隔 (ms)
+        batchSize: 3,          // 每批追加条数
+        userScrolledUp: false, // 用户是否手动向上滚动
+
+        // ========== 非响应式内部状态 ==========
+        _timer: null,          // 节流定时器
+        _count: 0,             // 数据生成计数器
+        _autoScrolling: false, // 是否正在程序化自动滚动（屏蔽误触发的 scroll 事件）
+
+        // ========== 句子池 ==========
+        _sentences: [
+            'Alpine.js 是一个轻量级的前端框架，提供响应式数据绑定能力。',
+            'x-data 用于声明组件的状态数据，所有属性都是响应式的。',
+            'x-for 指令用于列表渲染，按 :key 匹配复用已有 DOM 节点。',
+            '每次追加新数据时，x-for 只创建新增节点，不重建已有节点。',
+            '$nextTick 确保在 Alpine 完成 DOM 更新后执行回调。',
+            '响应式系统基于 Proxy 实现，数据变化自动触发视图更新。',
+            'setTimeout 递归调用实现节流控制，避免高频触发渲染。',
+            'scrollTop = scrollHeight 实现容器自动滚动到底部。',
+            '用户手动向上滚动时，自动暂停滚动；回到底部后恢复。',
+            '纯 JS 数据与 DOM 分离，数据是唯一的状态来源。',
+            '无需构建步骤，通过 CDN 引入即可使用，零配置成本。',
+            'x-model 实现双向数据绑定，输入与状态实时同步。',
+            'x-ref 引用 DOM 元素，用于执行命令式 DOM 操作。',
+            'Alpine 组件可以嵌套组合，实现复杂的 UI 交互逻辑。',
+            '每个组件实例拥有独立的作用域，数据互不干扰。',
+            '节流与防抖是前端性能优化的两种常用策略。',
+            '递归 setTimeout 比 setInterval 更可控，适合异步场景。',
+            '增量渲染避免全量 DOM 替换，提升大列表性能表现。',
+            'BrainForever 项目使用原生 JS 模块化架构。',
+            '本 Demo 验证 Alpine.js 在列表追加场景下的适用性。',
+        ],
+
+        // ============================================================
+        // 生命周期
+        // ============================================================
+        init() {
+            // 组件初始化时不做任何事，等待用户点击"开始"
+        },
+
+        // ============================================================
+        // 启动节流追加
+        // ============================================================
+        start() {
+            if (this.isRunning) return;
+            this.isRunning = true;
+            this.userScrolledUp = false;
+            this._scheduleNext();
+        },
+
+        // ============================================================
+        // 停止追加
+        // ============================================================
+        stop() {
+            this.isRunning = false;
+            if (this._timer) {
+                clearTimeout(this._timer);
+                this._timer = null;
+            }
+        },
+
+        // ============================================================
+        // 清空数据
+        // ============================================================
+        clear() {
+            this.stop();
+            this.items = [];
+            this._count = 0;
+            this.userScrolledUp = false;
+        },
+
+        // ============================================================
+        // 滚动事件监听 — 检测用户是否手动向上滚动
+        // ============================================================
+        onScroll(event) {
+            // 程序化滚动触发的 scroll 事件直接忽略，防止 scrollHeight
+            // 尚未稳定导致的误判
+            if (this._autoScrolling) return;
+
+            const el = event.target;
+            const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 5;
+            this.userScrolledUp = !isAtBottom;
+        },
+
+        // ============================================================
+        // 核心：追加一批数据（纯 JS 数据操作）
+        // ============================================================
+        _appendBatch() {
+            if (!this.isRunning) return;
+
+            // 生成 batchSize 条新数据
+            const newItems = [];
+            for (let i = 0; i < this.batchSize; i++) {
+                newItems.push({
+                    id: Date.now() + i + Math.random(),   // 唯一标识
+                    time: new Date().toLocaleTimeString(), // 时间戳
+                    text: this._sentences[this._count % this._sentences.length], // 循环取句子
+                });
+                this._count++;
+            }
+
+            // 追加到响应式数组 → Alpine 自动触发 x-for 渲染
+            this.items.push(...newItems);
+
+            // 自动滚动（仅在用户未手动上滚时）
+            if (!this.userScrolledUp) {
+                this._scrollToBottom();
+            }
+
+            // 递归调度下一次追加（节流核心）
+            this._scheduleNext();
+        },
+
+        // ============================================================
+        // 调度下一次追加
+        // ============================================================
+        _scheduleNext() {
+            if (!this.isRunning) return;
+            this._timer = setTimeout(() => {
+                this._timer = null;
+                this._appendBatch();
+            }, this.interval);
+        },
+
+        // ============================================================
+        // 自动滚动到底部
+        // ============================================================
+        _scrollToBottom() {
+            this.$nextTick(() => {
+                const el = this.$refs.scrollContainer;
+                if (el) {
+                    this._autoScrolling = true;
+                    el.scrollTop = el.scrollHeight;
+                    // scroll 事件可能同步或异步触发。
+                    // 用 setTimeout(0) 确保在 scroll 事件处理完成后清除标志
+                    setTimeout(() => {
+                        this._autoScrolling = false;
+                    }, 0);
+                }
+            });
+        },
+    };
+}
+</script>
+
+</body>
+</html>

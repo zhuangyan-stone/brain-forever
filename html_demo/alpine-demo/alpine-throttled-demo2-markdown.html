@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpine.js Markdown 流式输出（单内容追加）Demo</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script src="../../frontend/static/lib/remarkable.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #f0f4f8 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            width: 100%;
+            max-width: 720px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #e9edf2;
+        }
+
+        .card-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .card-header .subtitle {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .card-header .subtitle code {
+            background: #edf2f7;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* ===== 滚动容器（模拟聊天消息气泡） ===== */
+        .scroll-container {
+            height: 420px;
+            overflow-y: auto;
+            padding: 20px 24px;
+            background: #fafbfc;
+            border-bottom: 1px solid #e9edf2;
+        }
+
+        .scroll-container::-webkit-scrollbar { width: 8px; }
+        .scroll-container::-webkit-scrollbar-track { background: transparent; }
+        .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+        .scroll-container::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+
+        /* ===== 消息气泡 ===== */
+        .message-group {
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .message-group.assistant {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #2d3748;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        .bubble-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4299e1;
+            margin-bottom: 6px;
+        }
+
+        /* ===== 流式内容 =====— */
+        .streaming-content {
+            min-height: 1em;
+        }
+
+        .streaming-content p {
+            margin: 4px 0;
+        }
+        .streaming-content p:first-child { margin-top: 0; }
+        .streaming-content p:last-child { margin-bottom: 0; }
+
+        .streaming-content h1, .streaming-content h2, .streaming-content h3,
+        .streaming-content h4, .streaming-content h5, .streaming-content h6 {
+            margin: 10px 0 6px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+        .streaming-content h1 { font-size: 17px; }
+        .streaming-content h2 { font-size: 16px; }
+        .streaming-content h3 { font-size: 15px; }
+
+        .streaming-content ul, .streaming-content ol {
+            margin: 4px 0;
+            padding-left: 20px;
+        }
+        .streaming-content li { margin: 2px 0; }
+
+        .streaming-content code {
+            background: #edf2f7;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .streaming-content pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px 14px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 6px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .streaming-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+            font-size: inherit;
+        }
+
+        .streaming-content blockquote {
+            border-left: 3px solid #4299e1;
+            margin: 6px 0;
+            padding: 4px 12px;
+            color: #4a5568;
+            background: #f7fafc;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .streaming-content table {
+            border-collapse: collapse;
+            margin: 6px 0;
+            width: 100%;
+            font-size: 13px;
+        }
+        .streaming-content th, .streaming-content td {
+            border: 1px solid #e2e8f0;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .streaming-content th { background: #edf2f7; font-weight: 600; }
+
+        .streaming-content hr {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 8px 0;
+        }
+
+        .streaming-content a { color: #4299e1; text-decoration: none; }
+        .streaming-content a:hover { text-decoration: underline; }
+        .streaming-content strong { font-weight: 600; }
+
+        /* 空状态 */
+        .empty-hint {
+            text-align: center;
+            color: #a0aec0;
+            padding: 100px 20px;
+            font-size: 14px;
+        }
+        .empty-hint .icon { font-size: 36px; margin-bottom: 12px; opacity: 0.6; }
+
+        /* ===== 控制栏 ===== */
+        .controls {
+            padding: 16px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-start { background: #48bb78; color: #fff; }
+        .btn-start:hover:not(:disabled) { background: #38a169; }
+        .btn-start:disabled { background: #c6f6d5; color: #9ae6b4; cursor: not-allowed; }
+
+        .btn-stop { background: #fc8181; color: #fff; }
+        .btn-stop:hover:not(:disabled) { background: #f56565; }
+        .btn-stop:disabled { background: #fed7d7; color: #feb2b2; cursor: not-allowed; }
+
+        .btn-clear { background: #e2e8f0; color: #4a5568; }
+        .btn-clear:hover { background: #cbd5e0; }
+
+        .status-bar {
+            margin-left: auto;
+            font-size: 13px;
+            color: #718096;
+        }
+        .status-bar .count { font-weight: 600; color: #2d3748; }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .status-dot.running { background: #48bb78; animation: pulse 1.2s infinite; }
+        .status-dot.stopped { background: #a0aec0; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.3; }
+        }
+
+        .params {
+            padding: 0 24px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+        .param-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #4a5568;
+        }
+        .param-group label { white-space: nowrap; }
+        .param-group input[type="range"] {
+            width: 100px;
+            accent-color: #4299e1;
+        }
+        .param-group .value {
+            min-width: 28px;
+            text-align: center;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .scroll-hint {
+            padding: 6px 24px 0;
+            font-size: 12px;
+            color: #ecc94b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .scroll-hint:empty { display: none; }
+
+        .card-footer {
+            padding: 12px 24px;
+            background: #f7fafc;
+            border-top: 1px solid #e9edf2;
+            font-size: 12px;
+            color: #a0aec0;
+            text-align: center;
+        }
+        .card-footer a { color: #4299e1; text-decoration: none; }
+        .card-footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 480px) {
+            body { padding: 12px; }
+            .scroll-container { height: 320px; padding: 12px; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .status-bar { margin-left: 0; text-align: center; }
+            .params { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card" x-data="mdStream()">
+    <!-- Header -->
+    <div class="card-header">
+        <h1>📝 Alpine + Markdown 单内容流式输出</h1>
+        <div class="subtitle">
+            <code>x-data</code> + <code>x-html</code> ·
+            单字符串累积 <code>content += chunk</code> ·
+            节流 <span x-text="interval"></span>ms 全量渲染 ·
+            <code>remarkable</code> Markdown → HTML
+        </div>
+    </div>
+
+    <!-- 滚动容器 -->
+    <div class="scroll-container" x-ref="scrollContainer" @scroll="onScroll">
+        <!-- 空状态 -->
+        <template x-if="!content">
+            <div class="empty-hint">
+                <div class="icon">💬</div>
+                <div>等待流式输出...</div>
+                <div style="font-size:12px;margin-top:6px;">点击「▶ 开始」模拟 SSE 流式输出</div>
+            </div>
+        </template>
+
+        <!-- 单条消息气泡：content 是不断增长的字符串 -->
+        <div class="message-group assistant" x-show="content">
+            <div class="bubble">
+                <div class="bubble-header">🤖 AI 助手</div>
+                <!--
+                    关键点：x-html 绑定 renderedContent。
+                    content 是原始 Markdown 字符串（不断累加），
+                    renderedContent 是节流后 renderedContent = renderMarkdown(content) 的结果，
+                    x-html 自动更新 DOM。
+                -->
+                <div class="streaming-content" x-html="renderedContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 滚动状态提示 -->
+    <div class="scroll-hint" x-show="userScrolledUp && content">
+        ⬆️ 已暂停自动滚动 — 滚动到底部以恢复
+    </div>
+
+    <!-- 控制按钮 -->
+    <div class="controls">
+        <button class="btn btn-start" @click="start()" :disabled="isRunning">▶ 开始</button>
+        <button class="btn btn-stop" @click="stop()" :disabled="!isRunning">■ 停止</button>
+        <button class="btn btn-clear" @click="clear()">✕ 清空</button>
+        <div class="status-bar">
+            <span class="status-dot" :class="isRunning ? 'running' : 'stopped'"></span>
+            <span x-text="isRunning ? '流式输出中' : '已停止'"></span>
+            &nbsp;·&nbsp; 累计 <span class="count" x-text="content.length"></span> 字符
+        </div>
+    </div>
+
+    <!-- 参数 -->
+    <div class="params">
+        <div class="param-group">
+            <label>节流间隔:</label>
+            <input type="range" min="50" max="2000" step="50"
+                   x-model.number="interval" :disabled="isRunning">
+            <span class="value" x-text="interval + 'ms'"></span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="card-footer">
+        <a href="https://alpinejs.dev/" target="_blank">Alpine.js</a> ·
+        <code>content += chunk</code> 单字符串累积 ·
+        <code>x-html</code> 响应式渲染 ·
+        <a href="https://github.com/OpenBrainGrow/BrainForever" target="_blank">BrainForever</a>
+    </div>
+</div>
+
+<script>
+/**
+ * Alpine.js 组件：单内容 Markdown 流式输出 Demo
+ *
+ * 模拟 SSE 流式场景：
+ *   1. Markdown chunk 逐段到达（通过定时器模拟）
+ *   2. 累积到 content 字符串：content += chunk
+ *   3. 节流（默认 300ms）触发一次渲染：
+ *      renderedContent = renderMarkdown(content)
+ *   4. Alpine x-html 检测到 renderedContent 变化 → 更新 DOM
+ *   5. 自动滚动到底部
+ *
+ * 与实际项目的区别：
+ *   - 实际项目有多个对话，每个对话有自己的 streamingMsg.content
+ *   - 实际项目使用 SSR responser 的 throttleRender（180ms）
+ *   - 实际项目需要 renderMarkdown（含 KaTeX 和代码高亮）
+ *   - 本 Demo 简化了以上三点，聚焦 Alpine x-html 的核心行为
+ */
+function mdStream() {
+    return {
+        // ========== 响应式数据 ==========
+        content: '',             // 原始 Markdown 字符串（不断累加）
+        renderedContent: '',     // remarkable 渲染后的 HTML
+        isRunning: false,
+        interval: 300,
+        userScrolledUp: false,
+
+        // ========== 内部状态 ==========
+        _timer: null,            // 节流定时器
+        _sentences: [            // Markdown 句子池，逐个追加到 content
+            '你好！我是 **AI 助手**，很高兴为你服务。\n\n',
+            '我可以帮你完成各种任务，包括：\n\n1. **编程开发** — 写代码、调试、重构\n2. **文档处理** — 撰写、翻译、总结\n3. **数据分析** — 统计、可视化、报表\n\n',
+            '### 技术能力\n\n| 领域 | 能力 | 水平 |\n|------|------|------|\n| 前端 | HTML/CSS/JS | ⭐⭐⭐⭐⭐ |\n| 后端 | Go/Python | ⭐⭐⭐⭐ |\n| 数据库 | SQL/NoSQL | ⭐⭐⭐⭐ |\n| DevOps | Docker/K8s | ⭐⭐⭐ |\n\n',
+            '### 代码示例\n\n以下是一个简单的 Go HTTP 服务：\n\n```go\npackage main\n\nimport (\n    "fmt"\n    "net/http"\n)\n\nfunc main() {\n    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {\n        fmt.Fprintf(w, "Hello, World!")\n    })\n    http.ListenAndServe(":8080", nil)\n}\n```\n\n',
+            '> **提示**：以上代码可以直接运行，但需要先安装 Go 环境。\n\n对于前端项目，推荐使用 Alpine.js 来管理交互逻辑——**零构建步骤**，直接在 HTML 中编写。\n\n',
+            '### 自动滚动策略\n\n流式输出时，自动滚动到底部。如果用户手动向上滚动查看历史内容，暂停自动滚动；当用户回到底部附近时，恢复自动滚动。\n\n```javascript\n// 自动滚动核心逻辑\nfunction scrollToBottom(el) {\n    el.scrollTop = el.scrollHeight;\n}\n```\n\n',
+            '## 总结\n\n通过以上分析，我们可以得出以下结论：\n\n- Alpine.js 适用于**列表结构管理**和**UI 状态绑定**\n- 对于 SSE 流式内容渲染（单字符串 innerHTML 全量替换），**Alpine 的 x-html 等价于手动 innerHTML**\n- 节流 + Markdown 渲染 + 自动滚动的代码量**不会因为框架而减少**\n\n---\n\n*本次对话到此结束，如有问题欢迎继续提问！* 🎉\n',
+        ],
+        _idx: 0,
+        _autoScrolling: false,
+
+        // ============================================================
+        // 初始化
+        // ============================================================
+        init() {},
+
+        // ============================================================
+        // 启动流式输出
+        // ============================================================
+        start() {
+            if (this.isRunning) return;
+            this.isRunning = true;
+            this.userScrolledUp = false;
+            this._scheduleNext();
+        },
+
+        // ============================================================
+        // 停止
+        // ============================================================
+        stop() {
+            this.isRunning = false;
+            if (this._timer) {
+                clearTimeout(this._timer);
+                this._timer = null;
+            }
+        },
+
+        // ============================================================
+        // 清空
+        // ============================================================
+        clear() {
+            this.stop();
+            this.content = '';
+            this.renderedContent = '';
+            this._idx = 0;
+            this.userScrolledUp = false;
+        },
+
+        // ============================================================
+        // 滚动事件
+        // ============================================================
+        onScroll(event) {
+            if (this._autoScrolling) return;
+            const el = event.target;
+            const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 5;
+            this.userScrolledUp = !isAtBottom;
+        },
+
+        // ============================================================
+        // 核心：追加一段 Markdown → 节流渲染
+        // ============================================================
+        _appendChunk() {
+            if (!this.isRunning) return;
+
+            // ❶ 追加一段 Markdown 到 content（模拟 SSE chunk 到达）
+            const chunk = this._sentences[this._idx % this._sentences.length];
+            this._idx++;
+
+            // 注意：这里直接修改 content 会触发 Alpine 响应式更新，
+            // 但在 _throttleRender 中我们通过 renderedContent 控制渲染频率，
+            // 所以 content 的每次变化不会直接导致 DOM 更新。
+            this.content += chunk;
+
+            // ❷ 执行节流渲染
+            this._throttleRender();
+
+            // ❸ 递归调度下一次 chunk 到达
+            this._scheduleNext();
+        },
+
+        // ============================================================
+        // 调度下一次
+        // ============================================================
+        _scheduleNext() {
+            if (!this.isRunning) return;
+            this._timer = setTimeout(() => {
+                this._timer = null;
+                this._appendChunk();
+            }, this.interval);
+        },
+
+        // ============================================================
+        // 节流渲染：每间隔内只执行一次 renderedContent 更新
+        // ============================================================
+        _throttleRender() {
+            if (this._renderTimer) return;
+            this._renderTimer = setTimeout(() => {
+                this._renderTimer = null;
+
+                // ❶ remarkable 渲染（全量）
+                this.renderedContent = this._renderMarkdown(this.content);
+
+                // ❷ 自动滚动
+                if (!this.userScrolledUp) {
+                    this._scrollToBottom();
+                }
+            }, this.interval);
+        },
+
+        // ============================================================
+        // remarkable Markdown → HTML 渲染
+        // ============================================================
+        _renderMarkdown(text) {
+            if (!text) return '';
+            try {
+                const md = new remarkable.Remarkable({
+                    html: true,
+                    breaks: true,
+                    langPrefix: 'language-',
+                });
+                return md.render(text);
+            } catch (e) {
+                console.warn('remarkable 渲染失败:', e);
+                return this._escapeHtml(text);
+            }
+        },
+
+        // ============================================================
+        // 自动滚动到底部
+        // ============================================================
+        _scrollToBottom() {
+            this.$nextTick(() => {
+                const el = this.$refs.scrollContainer;
+                if (el) {
+                    this._autoScrolling = true;
+                    el.scrollTop = el.scrollHeight;
+                    setTimeout(() => {
+                        this._autoScrolling = false;
+                    }, 0);
+                }
+            });
+        },
+
+        // ============================================================
+        // HTML 转义（渲染失败回退）
+        // ============================================================
+        _escapeHtml(text) {
+            const map = { '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' };
+            return String(text).replace(/[&<>"']/g, c => map[c]);
+        },
+    };
+}
+</script>
+
+</body>
+</html>

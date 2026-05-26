@@ -16,7 +16,7 @@ import { clearAllStickyNotes } from './components/sticky-note.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, addDirtyChat } from './chat-list.js';
-import { ICON_MOON, ICON_SUN, ICON_TOGGLE, ICON_AI_TITLE } from './svg_icons.js';
+import { ICON_TOGGLE } from './svg_icons.js';
 import { sessionManager } from './chat-session-manager.js';
 
 'use strict';
@@ -50,85 +50,34 @@ initTooltip();
 state._sessionManager = sessionManager;
 
 // ============================================================
-// 切换按钮状态（深度思考 / 智能搜索）
+// 主题切换 — applyTheme 被 Alpine store toggleTheme() 通过
+// 'theme-changed' 自定义事件触发
 // ============================================================
-
-const deepThinkBtn = document.getElementById('deepThinkBtn');
-const webSearchBtn = document.getElementById('webSearchBtn');
-
-/**
- * toggleButton 切换按钮的选中/未选中状态
- * @param {HTMLElement} btn - 按钮元素
- * @param {boolean} active - 是否选中
- */
-function toggleButton(btn, active) {
-    btn.dataset.active = active ? 'true' : 'false';
-}
-
-// ---- 从 UserSettings 恢复按钮状态 ----
-state.deepThinkActive = UserSettings.deepThink;
-toggleButton(deepThinkBtn, state.deepThinkActive);
-
-state.webSearchActive = UserSettings.webSearch;
-toggleButton(webSearchBtn, state.webSearchActive);
-
-// 深度思考按钮点击
-deepThinkBtn.addEventListener('click', () => {
-    state.deepThinkActive = !state.deepThinkActive;
-    toggleButton(deepThinkBtn, state.deepThinkActive);
-    UserSettings.deepThink = state.deepThinkActive;
-    UserSettings.save();
-});
-
-// 智能搜索按钮点击
-webSearchBtn.addEventListener('click', () => {
-    state.webSearchActive = !state.webSearchActive;
-    toggleButton(webSearchBtn, state.webSearchActive);
-    UserSettings.webSearch = state.webSearchActive;
-    UserSettings.save();
-});
-
-// ============================================================
-// 主题切换
-// ============================================================
-
-const themeToggle = document.getElementById('themeToggle');
 
 /** 应用主题到页面 */
 function applyTheme(themeVal) {
     const themeStr = resolveTheme(themeVal);
     document.documentElement.setAttribute('data-theme', themeStr);
-    updateThemeButton(themeStr);
     switchHighlightTheme(themeStr);
 }
 
 // 初始化主题
 applyTheme(UserSettings.theme);
 
-themeToggle.addEventListener('click', () => {
-    // 主页切换仅在 亮(0) 和 暗(1) 之间切换，跳过 跟随系统(2)
-    UserSettings.theme = UserSettings.theme === 0 ? 1 : 0;
-    applyTheme(UserSettings.theme);
-    UserSettings.save();
+// 监听 Alpine store 发起的主题变更事件
+document.addEventListener('theme-changed', (e) => {
+    applyTheme(e.detail.theme);
 });
 
-function updateThemeButton(themeStr) {
-    themeToggle.innerHTML = themeStr === 'dark'
-        ? `<svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_MOON}</svg>`
-        : `<svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SUN}</svg>`;
-    themeToggle.dataset.tooltip = themeStr === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
-}
-
 // ============================================================
-// AI 标题按钮 — 使用 ICON_AI_TITLE 注入 SVG，点击触发 AI 重新生成标题
-// 防抖动：5 秒内重复点击只生效一次
+// AI 标题按钮 — 点击触发 AI 重新生成标题（防抖动：5 秒内只生效一次）
+// SVG 图标已在 HTML 中通过 Alpine 渲染，此处仅处理点击逻辑
 // ============================================================
 const aiTitleBtn = document.getElementById('aiTitleBtn');
 if (aiTitleBtn) {
-    aiTitleBtn.innerHTML = '<svg class="ai-title-icon" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_AI_TITLE + '</svg>';
     let aiTitleDebounceTimer = null;
     aiTitleBtn.addEventListener('click', () => {
-        // 正在 SSE 流式输出时，AI 标题按钮不可用
+        // 正在 SSE 流式输出时，AI 标题按钮不可用（Alpine :disabled 已处理，再加一层防御）
         if (state.isStreaming) {
             return;
         }
@@ -315,7 +264,7 @@ function createBrandElement() {
 function getToggleButton() {
     if (!globalToggleButton) {
         globalToggleButton = document.createElement('button');
-        globalToggleButton.className = 'small-icon-btn menu-toggle-btn';
+        globalToggleButton.className = 'icon-btn icon-btn--small menu-toggle-btn';
         globalToggleButton.setAttribute('aria-label', '切换侧边栏');
         globalToggleButton.dataset.tooltip = '切换侧边栏';
         globalToggleButton.innerHTML = TOGGLE_BTN_SVG;

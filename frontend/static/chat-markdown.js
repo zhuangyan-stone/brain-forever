@@ -300,3 +300,8 @@ export function switchHighlightTheme(theme) {
         lightTheme.disabled = theme !== 'light';
     }
 }
+
+// ---- 注册 Alpine 可调用的 Markdown 渲染器 ----
+// 供 Alpine 模板中 x-html="AlpineRenderMarkdown(msg.content)" 使用。
+// 见 alpine-store.js 中的 window.AlpineRenderMarkdown 桩函数定义。
+window._alpineRenderMarkdown = renderMarkdown;

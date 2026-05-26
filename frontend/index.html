@@ -36,7 +36,8 @@
     <link rel="stylesheet" href="/static/dialogs/title-edit-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
     <link rel="stylesheet" href="/static/responsive.css">
-    <link rel="stylesheet" href="/static/components/toast.css">
+    <link rel="stylesheet" href="/static/components/toast/toast.css">
+    <link rel="stylesheet" href="/static/components/buttons.css">
     <link rel="stylesheet" href="/static/components/tick.css">
     <link rel="stylesheet" href="/static/components/tooltip.css">
     <link rel="stylesheet" href="/static/components/sticky-note.css">
@@ -64,6 +65,26 @@
     <!-- turndown.js — HTML 转 Markdown（用于剪贴板多格式复制） -->
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/turndown/dist/turndown.min.js -->
     <script src="/static/lib/turndown.min.js"></script>
+
+    <!-- Alpine Store 注册 — 必须在 Alpine.js 处理 DOM 前注册全局 store，
+         使 HTML 中 $store.* 引用立即可用。
+         此文件为普通 <script>（非 ES Module），因为 Alpine 的 DOM 扫描
+         时机早于 ES Module 的加载。 -->
+    <script src="/static/alpine-store.js"></script>
+
+    <!-- Alpine 组件函数 — 必须在 Alpine.js 之前加载（普通<script>），
+         因为 Alpine 在处理 DOM 时就需要这些函数在全局作用域中。
+         若用 ES Module（type="module"），执行时机晚于 Alpine 的 x-data 扫描，
+         将导致 ReferenceError。 -->
+    <script src="/static/components/buttons.js"></script>
+
+    <!-- Alpine.js — 渐进式响应式框架 -->
+    <!--
+         Store 由 alpine-store.js 在 alpine:init 事件中注册，
+         组件函数已由上方普通 <script> 加载到全局（window.toggleBtn 等），
+         Alpine x-data 表达式及 $store.* 引用在 Alpine 处理 DOM 时立即可用。
+    -->
+    <script defer src="/static/lib/alpine.min.js"></script>
 </head>
 <body>
     <!-- 隐藏的 SVG 定义区，供各按钮通过 <use> 引用 -->
@@ -84,7 +105,9 @@
             <div class="sidebar-header">
                 <div class="left-brand-area" id="leftBrandContainer"></div>
                 <div class="sidebar-new-chat-area" id="sidebarNewChatArea"></div>
-                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="关闭侧栏">
+                <button class="icon-btn icon-btn--normal sidebar-close-btn" id="sidebarCloseBtn"
+                        x-data="iconBtn({ size: 'normal' })"
+                        aria-label="关闭侧栏">
                     <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="3" y1="3" x2="13" y2="13"/>
                         <line x1="13" y1="3" x2="3" y2="13"/>
@@ -99,22 +122,54 @@
         <main class="main-content">
             <div class="main-header">
                 <div class="main-brand-area" id="mainBrandContainer"></div>
-                <button id="newChatBtn" class="new-chat-btn" data-tooltip="开启新对话">
-                    <svg class="new-chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button id="newChatBtn" class="text-btn"
+                        x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
+                        :disabled="disabled"
+                        data-tooltip="开启新对话">
+                    <svg class="text-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <use href="#icon-new-chat"/>
                     </svg>
-                    <span class="new-chat-label">新对话</span>
+                    <span class="text-btn-label">新对话</span>
                 </button>
                 <span class="main-title" id="headerTitle"></span>
-                <button class="small-icon-btn ai-title-btn" id="aiTitleBtn" data-tooltip="让 AI 重新生成标题">
+                <button id="aiTitleBtn" class="icon-btn icon-btn--small ai-title-btn"
+                        x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
+                        :disabled="disabled"
+                        data-tooltip="让 AI 重新生成标题">
+                    <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m45.581,25.9a21.781,21.781 0 1 1 -21.781,-21.781" stroke-width="3.8"></path>
+                        <path d="m22.0,2.40l-9,-12.8 m9.50,12.50l2.0,-13" stroke-linecap="round" stroke-width="2.4" transform="rotate(-94.4893, 24.85, 0.18)"></path>
+                        <text fill="currentColor" font-family="Sans-serif" font-weight="bold" font-size="28.4" stroke-linecap="round" text-anchor="middle" x="25" y="34.8">AI</text>
+                    </svg>
                 </button>
                 <div class="main-header-right">
-                    <button id="themeToggle" class="theme-toggle" data-tooltip="切换主题">
-                        <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                        </svg>
+                    <button id="themeToggle" class="icon-btn icon-btn--normal"
+                            x-data="iconBtn({ size: 'normal' })"
+                            @click="$store.settings.toggleTheme()"
+                            :data-tooltip="$store.settings.theme === 1 ? '切换到亮色主题' : '切换到暗色主题'">
+                        <template x-if="$store.settings.theme === 1">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </template>
+                        <template x-if="$store.settings.theme !== 1">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="5"/>
+                                <line x1="12" y1="1" x2="12" y2="3"/>
+                                <line x1="12" y1="21" x2="12" y2="23"/>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                                <line x1="1" y1="12" x2="3" y2="12"/>
+                                <line x1="21" y1="12" x2="23" y2="12"/>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.32"/>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                            </svg>
+                        </template>
                     </button>
-                    <button id="loginBtn" class="header-login-btn" data-tooltip="登录">登录</button>
+                    <button id="loginBtn" class="text-btn"
+                            x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
+                            :disabled="disabled"
+                            data-tooltip="登录">登录</button>
                 </div>
             </div>
 
@@ -130,7 +185,14 @@
             </div>
 
             <!-- 输入区域 -->
-            <footer class="input-area">
+            <!--
+                 注意：input-area 的 .streaming class 由 Alpine 通过
+                 $store.chats.active?.isStreaming 响应式控制（per-chat）。
+                 同时输入面板折叠（.collapsed class）由 chat-ui.js 的
+                 collapseInputArea() / restoreInputArea() 管理，两者互不冲突。
+            -->
+            <footer class="input-area" x-data
+                 :class="{ streaming: $store.chats.active?.isStreaming }">
                 <div class="send-mode-corner">
                     <label class="send-mode-switch">
                         <input type="checkbox" id="sendModeToggle">
@@ -139,16 +201,30 @@
                     <span class="send-mode-label" id="sendModeLabel"></span>
                 </div>
                 <div class="input-wrapper">
+                    <!--
+                         messageInput 的 disabled 状态已由 Alpine 通过
+                         $store.chats.active?.isStreaming 响应式管理（per-chat）。
+                         Alpine 未加载时，由 setInputEnabled() 的降级路径控制。
+                    -->
                     <textarea
                         id="messageInput"
                         class="message-input"
                         placeholder="想说点什么？"
                         rows="1"
                         autofocus
+                        :disabled="$store.chats.active?.isStreaming"
                     ></textarea>
                     <span class="newline-hint" id="newlineHint"></span>
                     <!-- 折叠状态下的中断按钮（折叠时始终显示，非流式时 disabled 灰色） -->
-                    <button id="stopStreamingBtn" class="stop-streaming-btn" disabled data-tooltip="停止生成">
+                    <!--
+                         stopStreamingBtn 的 disabled 状态同样由 Alpine 管理，
+                         逻辑为：流式输出中才可点击（!isStreaming === false → disabled=false），
+                         非流式时 disabled → 灰色不可点。
+                    -->
+                    <button id="stopStreamingBtn" class="stop-streaming-btn"
+                            x-data
+                            :disabled="!$store.chats.active?.isStreaming"
+                            data-tooltip="停止生成">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                             <rect x="6" y="6" width="12" height="12" rx="2"/>
                         </svg>
@@ -156,13 +232,21 @@
                 </div>
                 <div class="input-footer">
                     <div class="input-footer-left">
-                        <button id="deepThinkBtn" class="toggle-btn" data-active="false" data-tooltip="显示AI的思考过程">
+                        <button id="deepThinkBtn" class="toggle-btn"
+                                x-data="toggleBtn({ active: () => $store.settings.deepThink, onToggle: () => $store.settings.toggleDeepThink() })"
+                                :data-active="active ? 'true' : 'false'"
+                                @click="onToggle"
+                                :data-tooltip="active ? '已开启思考过程，单击关闭' : '已关闭思考过程，单击开启'">
                             <svg class="toggle-icon" viewBox="0 0 86 89" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <use href="/static/img/deep-think.svg#brain-path"/>
                             </svg>
                             <span>深度思考</span>
                         </button>
-                        <button id="webSearchBtn" class="toggle-btn" data-active="true" data-tooltip="AI 认为必要时，自动从互联网搜索信息">
+                        <button id="webSearchBtn" class="toggle-btn"
+                                x-data="toggleBtn({ active: () => $store.settings.webSearch, onToggle: () => $store.settings.toggleWebSearch() })"
+                                :data-active="active ? 'true' : 'false'"
+                                @click="onToggle"
+                                :data-tooltip="active ? 'AI 将自动搜索互联网，单击关闭' : '已关闭联网搜索，单击开启'">
                             <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
                                 <path d="M2 12h20"/>
@@ -173,15 +257,25 @@
                     </div>
                     <div class="input-footer-right">
                         <input type="file" id="fileInput" style="display:none" multiple>
-                        <button id="attachBtn" class="attach-btn" data-tooltip="上传附件">
+                        <button id="attachBtn" class="attach-btn" x-data="attachBtn()" data-tooltip="上传附件">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                             </svg>
                         </button>
-                        <button id="sendBtn" class="send-btn" data-tooltip="发送">
-                            <svg viewBox="0 0 24 24" width="20" height="20">
-                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
-                            </svg>
+                        <button id="sendBtn" class="send-btn"
+                                x-data="sendBtn({ active: () => $store.chats.active?.isStreaming })"
+                                :class="{ 'stop-btn': active }"
+                                :data-tooltip="active ? '停止生成' : '发送'">
+                            <template x-if="!active">
+                                <svg viewBox="0 0 24 24" width="20" height="20">
+                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
+                                </svg>
+                            </template>
+                            <template x-if="active">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+                                </svg>
+                            </template>
                         </button>
                     </div>
                 </div>
@@ -189,21 +283,68 @@
         </main>
     </div>
 
-    <!-- Toast 消息容器 -->
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- Toast 消息容器（Alpine 组件：通过 $store.ui 共享状态） -->
+    <!--
+         注意：此处 x-data 为空对象（无本地状态），toast 数据由 Alpine.store('ui')
+         管理，模板中通过 $store.ui.toasts 访问。这种方式避免了 CustomEvent
+         事件监听机制的时序问题——showToast() 直接操作 Alpine.store，响应式系统
+         自动触发 x-for/x-show 更新。
+    -->
+    <div class="toast-container" id="toastContainer"
+         x-data="{}">
+        <template x-for="toast in $store.ui.toasts" :key="toast.id">
+            <div class="toast"
+                 :class="'toast-' + toast.type"
+                 x-text="toast.message"
+                 x-show="toast.visible"
+                 x-transition:enter="toast-enter-active"
+                 x-transition:enter-start="toast-enter-from"
+                 x-transition:enter-end=""
+                 x-transition:leave="toast-leave-active"
+                 x-transition:leave-start=""
+                 x-transition:leave-end="toast-leave-to">
+            </div>
+        </template>
+    </div>
 
     <!-- 删除确认对话框 -->
-    <div class="dialog-overlay" id="deleteModal">
+    <div class="dialog-overlay" id="deleteModal"
+         x-data="deleteDialog()"
+         :class="{ show: show }"
+         @click.self="close">
         <div class="dialog-box">
             <div class="dialog-header">
                 <h3 id="modalTitle">删除对话消息组</h3>
-                <button class="dialog-close-btn" id="modalCloseBtn">&times;</button>
+                <button class="dialog-close-btn" id="modalCloseBtn"
+                        @click="close">&times;</button>
             </div>
             <div class="dialog-body" id="modalBody"></div>
             <div class="del-preview-note" id="modalDeleteNote" style="display:none">提醒：<br>① 消息（用户和助手）将成组删除<br>② 下一轮对话会有大段词元缓存失效</div>
             <div class="dialog-footer">
-                <button class="dialog-btn dialog-btn-cancel" id="modalCancelBtn">取消</button>
-                <button class="dialog-btn dialog-btn-delete" id="modalConfirmBtn">确认删除</button>
+                <button class="dialog-btn dialog-btn-cancel" id="modalCancelBtn"
+                        @click="close">取消</button>
+                <button class="dialog-btn dialog-btn-delete" id="modalConfirmBtn"
+                        @click="window.confirmDelete">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改对话框标题对话框 -->
+    <div class="dialog-overlay" id="titleEditDialog"
+         x-data="titleEditDialog()"
+         :class="{ show: show }"
+         @click.self="cancel">
+        <div class="dialog-box">
+            <div class="dialog-header">
+                <h3>修改对话标题</h3>
+                <button class="dialog-close-btn" @click="cancel" aria-label="关闭">&times;</button>
+            </div>
+            <div class="dialog-body"><div class="title-edit-original" x-text="displayTitle"></div><label class="title-edit-label">新标题</label><input type="text" class="title-edit-input" x-model="editingTitle" maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel"></div>
+            <div class="dialog-footer">
+                <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>
+                <button class="dialog-btn dialog-btn-confirm" @click="confirm"
+                        :disabled="!editingTitle.trim() || submitting"
+                        x-text="submitting ? '提交中…' : '确认'">确认</button>
             </div>
         </div>
     </div>

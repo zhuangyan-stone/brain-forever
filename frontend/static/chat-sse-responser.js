@@ -40,6 +40,51 @@ export class SSEResponser {
         return this.session._isActive;
     }
 
+    // ---- Alpine store 同步辅助 ----
+
+    /**
+     * 获取 Alpine store 中当前 session 对应的 chatData。
+     * 用于将 SSE 数据同步到响应式数据模型。
+     * @returns {object|null}
+     */
+    _getChatData() {
+        try {
+            return window.Alpine.store('chats').getOrCreate(this.session.sn);
+        } catch(e) {
+            return null;
+        }
+    }
+
+    /**
+     * 将当前 session 的 streamingMsg 同步到 Alpine store。
+     * 保持 ChatSession（旧路径）和 Alpine store（新路径）数据一致。
+     */
+    _syncStreamingToAlpine() {
+        var chatData = this._getChatData();
+        if (!chatData) return;
+        var sm = this.session.streamingMsg;
+        if (!chatData.streamingMsg && sm) {
+            // ChatSession 已有 streamingMsg 但 Alpine store 尚未建立
+            chatData.isStreaming = true;
+            chatData.streamingMsg = {
+                reasoning: sm.reasoning,
+                content: sm.content,
+                sources: sm.webSources ? sm.webSources.slice() : [],
+                usage: sm.usage,
+                msgId: sm.msgId,
+                createdAt: sm.createdAt,
+                isDone: sm.isDone,
+                error: sm.error,
+            };
+        } else if (chatData.streamingMsg) {
+            chatData.streamingMsg.reasoning = sm.reasoning;
+            chatData.streamingMsg.content = sm.content;
+            chatData.streamingMsg.sources = sm.webSources ? sm.webSources.slice() : [];
+            chatData.streamingMsg.isDone = sm.isDone;
+            chatData.streamingMsg.error = sm.error;
+        }
+    }
+
     // ---- 事件处理方法 ----
 
     /**
@@ -48,6 +93,7 @@ export class SSEResponser {
      */
     onReasoning(event) {
         this.session.streamingMsg.reasoning += event.content || '';
+        this._syncStreamingToAlpine();
         if (this.isActive && this.session.assistantBubble) {
             handleReasoningEvent(event, this.session.assistantBubble);
         }
@@ -68,6 +114,7 @@ export class SSEResponser {
      */
     onText(event) {
         this.session.streamingMsg.content += event.content || '';
+        this._syncStreamingToAlpine();
         if (this.isActive && this.session.contentDiv) {
             const contentDiv = this.session.contentDiv;
             contentDiv.classList.add('streaming');
@@ -89,6 +136,7 @@ export class SSEResponser {
             const newSources = dedupeSources(event.sources, this.session.streamingMsg.webSources);
             if (newSources.length > 0) {
                 this.session.streamingMsg.webSources.push(...newSources);
+                this._syncStreamingToAlpine();
                 if (this.isActive) {
                     showSources(newSources, 'rag');
                 }
@@ -98,6 +146,7 @@ export class SSEResponser {
             const newWebSources = dedupeSources(event.web_sources, this.session.streamingMsg.webSources);
             if (newWebSources.length > 0) {
                 this.session.streamingMsg.webSources.push(...newWebSources);
+                this._syncStreamingToAlpine();
                 if (this.isActive) {
                     showSources(newWebSources, 'web');
                 }
@@ -116,6 +165,12 @@ export class SSEResponser {
         msg.createdAt = event.created_at || null;
         msg.usage = event.usage || null;
 
+        // 同步到 Alpine store：归档 streamingMsg → messages
+        this._syncStreamingToAlpine();
+        try {
+            window.Alpine.store('chats').finalizeStreaming(this.session.sn);
+        } catch(e) {}
+
         if (this.isActive && this.session.assistantBubble) {
             this._applyDoneToDOM(event);
         }
@@ -127,6 +182,7 @@ export class SSEResponser {
      */
     onError(event) {
         this.session.streamingMsg.error = event.message || '未知错误';
+        this._syncStreamingToAlpine();
         if (this.isActive && this.session.assistantBubble) {
             showError(this.session.assistantBubble, this.session.streamingMsg.error);
         }
@@ -229,6 +285,9 @@ export class SSEResponser {
      */
     flushToDOM() {
         const msg = this.session.streamingMsg;
+
+        // 同步到 Alpine store（确保切换回对话时数据一致）
+        this._syncStreamingToAlpine();
 
         // 如果还没有 assistantBubble，无法渲染
         if (!this.session.assistantBubble) {

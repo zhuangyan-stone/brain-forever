@@ -8,7 +8,7 @@ import { state } from './chat-state.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
 import { getDefaultFormatLabel } from './chat-copy.js';
-import { ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE } from './svg_icons.js';
+import { ICON_COPY, ICON_SPINNER, ICON_DELETE, ICON_GLOBE } from './svg_icons.js';
 
 'use strict';
 
@@ -84,8 +84,12 @@ export function throttleRender(timerHolder, targetEl, getText) {
 
 /**
  * setInputEnabled 启用/禁用输入
- * 当 enabled=false（流式输出中）时，发送按钮变为停止按钮（红色方块），
- * 点击可中断 LLM 生成。停止按钮不可 disabled，始终保持可点击。
+ *
+ * 注意：sendBtn 的 SVG 图标、.stop-btn class、data-tooltip 等已由 Alpine
+ * 通过 $store.settings.isStreaming 响应式管理（见 index.html 中 sendBtn
+ * 的 x-if / :class / :data-tooltip 绑定），此处不再手动操作。
+ * 此函数只处理 Alpine 未覆盖的元素（messageInput、input-area class）。
+ *
  * @param {boolean} enabled
  * @private
  */
@@ -93,18 +97,6 @@ function setInputEnabled(enabled) {
     dom.messageInput.disabled = !enabled;
     if (dom.inputArea) {
         dom.inputArea.classList.toggle('streaming', !enabled);
-    }
-    if (enabled) {
-        dom.sendBtn.disabled = false;
-        dom.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20">${ICON_SEND}</svg>`;
-        dom.sendBtn.classList.remove('stop-btn');
-        dom.sendBtn.dataset.tooltip = '发送';
-    } else {
-        // 流式输出中：显示停止按钮（红色方块），按钮保持可点击
-        dom.sendBtn.disabled = false;
-        dom.sendBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
-        dom.sendBtn.classList.add('stop-btn');
-        dom.sendBtn.dataset.tooltip = '停止生成';
     }
 }
 
@@ -119,79 +111,47 @@ export function updateDeleteButtons() {
 }
 
 /**
- * applyStreamingState 统一管理流式输出中所有 UI 组件的禁用状态。
+ * applyStreamingState 统一管理流式输出中 UI 组件的禁用状态。
  *
- * 当 isStreaming=true（流式输出中）：
- *   - 输入框 disabled，发送按钮变为停止按钮（红色可点击）
- *   - 停止按钮（折叠模式）可点击
- *   - AI 标题按钮、登录按钮、新对话按钮 disabled
- *   - 所有删除按钮 disabled
- * 当 isStreaming=false（流式结束）：
- *   - 输入框启用，停止按钮恢复为发送按钮
- *   - 停止按钮（折叠模式）disabled 灰色
- *   - AI 标题按钮、登录按钮、新对话按钮启用
- *   - 所有删除按钮启用
+ * 注意：大部分按钮的 disabled 状态已由 Alpine 组件通过
+ * $store.settings.isStreaming 响应式绑定。此处同步 Alpine store
+ * 并处理 Alpine 未覆盖的手动 DOM 元素。
  *
- * 替代 chat-sse.js 中散落的 8 个 enable/disable 函数，集中一处管理。
  * @param {boolean} isStreaming
  */
 export function applyStreamingState(isStreaming) {
-    // 1. 输入框 + 发送/停止按钮（复用已有逻辑）
+    // 0. 同步 isStreaming 到 Alpine store（驱动 Alpine 按钮组件的 disabled 状态）
+    Alpine.store('settings').isStreaming = isStreaming;
+
+    // 1. 输入框禁用/启用
     setInputEnabled(!isStreaming);
 
-    // 2. 停止按钮（折叠模式下的独立中断按钮）
+    // 2. 停止按钮（折叠模式，非 Alpine 组件）
     const stopStreamingBtn = document.getElementById('stopStreamingBtn');
     if (stopStreamingBtn) {
         stopStreamingBtn.disabled = !isStreaming;
     }
 
-    // 3. AI 标题按钮
-    const aiTitleBtn = document.getElementById('aiTitleBtn');
-    if (aiTitleBtn) aiTitleBtn.disabled = isStreaming;
-
-    // 4. 登录按钮
-    const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn) loginBtn.disabled = isStreaming;
-
-    // 5. 新对话按钮
-    const newChatBtn = document.getElementById('newChatBtn');
-    if (newChatBtn) newChatBtn.disabled = isStreaming;
-
-    // 6. 所有删除按钮
+    // 3. 所有删除按钮（动态创建，非 Alpine 组件）
     updateDeleteButtons();
 }
 
 /**
  * showToast 显示一个自动消失的 Toast 消息
+ *
+ * 通过 Alpine.store('ui').showToast() 直接操作响应式数据，
+ * Alpine 自动触发 x-for/x-show/x-transition 更新 DOM。
+ * 不再保留原生 JS 降级路径——Alpine 为本地文件，始终可用。
+ *
  * @param {string} message
  * @param {'error'|'success'|'info'} [type='error']
  * @param {number} [duration=4000] - 显示时长（毫秒）
  */
 export function showToast(message, type, duration) {
-    if (!dom.toastContainer) return;
     type = type || 'error';
     duration = duration || 4000;
 
-    const toast = document.createElement('div');
-    toast.className = 'toast toast-' + type;
-    toast.textContent = message;
-    dom.toastContainer.appendChild(toast);
-
-    // 触发动画
-    requestAnimationFrame(() => {
-        toast.classList.add('show');
-    });
-
-    // 自动移除
-    setTimeout(() => {
-        toast.classList.remove('show');
-        // 等过渡动画结束后移除 DOM
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 300);
-    }, duration);
+    Alpine.store('ui').showToast(message, type, duration);
 }
 
 /**
@@ -248,6 +208,30 @@ export function showTokenUsage(assistantBubble, usage) {
 export function addMessage(role, content, createdAt = null, isStreaming = false) {
     const div = document.createElement('div');
     div.className = `message ${role}`;
+
+    // ---- 双写：同步数据到 Alpine store（Phase B 过渡期） ----
+    // 用户消息写入 $store.chats.active.messages；
+    // assistant 消息由 SSEResponser.onDone → finalizeStreaming() 写入（Phase C）。
+    // 此处仅在非流式（历史恢复）和非 air-bubble（assistant 占位）时写入，
+    // 避免 prepareChat() 创建的空气泡被错误地添加为已完成消息。
+    if (role === 'user') {
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats && chats.active) {
+                var lastMsg = chats.active.messages[chats.active.messages.length - 1];
+                var newId = lastMsg ? lastMsg.id + 1 : 1;
+                chats.active.messages.push({
+                    id: newId,
+                    role: 'user',
+                    content: content,
+                    createdAt: createdAt || undefined,
+                });
+            }
+        } catch(e) {
+            // Alpine store 尚未初始化（极早期场景），忽略
+        }
+    }
+    // ---- 双写结束 ----
 
     // 为用户消息添加 data-msg-index 属性，用于刻度导航定位
     if (role === 'user') {

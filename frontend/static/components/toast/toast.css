@@ -1,0 +1,66 @@
+/* ============================================================
+    components/toast/toast.css — Toast 消息提示样式
+    ============================================================
+    原文件: frontend/static/components/toast.css
+    迁移原因: Alpine.js 组件化，样式随组件目录走
+    ============================================================ */
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: none;
+    max-width: calc(100% - 40px);
+}
+
+.toast {
+    pointer-events: auto;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    max-width: 480px;
+    text-align: left;
+    word-break: break-word;
+}
+
+/* 颜色变体 */
+.toast.toast-error {
+    background: #e53935;
+}
+.toast.toast-success {
+    background: #43a047;
+}
+.toast.toast-info {
+    background: #1e88e5;
+}
+
+/* ============================================================
+    Alpine x-transition 动画类
+    由 template 中的 x-transition:enter/leave 指令引用
+    ============================================================ */
+
+/* 进入/离开的过渡期间应用 */
+.toast-enter-active {
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
+}
+.toast-leave-active {
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
+}
+
+/* 进入起点 / 离开终点（从右侧滑入 + 淡入） */
+.toast-enter-from {
+    opacity: 0;
+    transform: translateX(20px);
+}
+.toast-leave-to {
+    opacity: 0;
+    transform: translateX(20px);
+}

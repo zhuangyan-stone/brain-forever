@@ -41,6 +41,20 @@ export async function restoreChat() {
 		// 保存当前对话的 SN
 		state.currentChatSN = data.current_chat_sn || '';
 
+		// ---- 初始化 Alpine store 中的 chat 数据 ----
+		var chatData = null;
+		try {
+			var chats = window.Alpine.store('chats');
+			if (chats && data.current_chat_sn) {
+				chatData = chats.getOrCreate(data.current_chat_sn);
+				if (chatData) {
+					chatData.title = data.title || '';
+					chatData.titleState = typeof data.title_state === 'number' ? data.title_state : 0;
+				}
+			}
+		} catch(e) {}
+		// ---- Alpine store 初始化结束 ----
+
 		// 全新会话（is_new）→ 显示欢迎消息
 		// 非新会话：即使 messages 为空（如后端异常），也要展示标题等信息
 		const history = data.messages || [];
@@ -59,11 +73,24 @@ export async function restoreChat() {
 			state.titleState = data.title_state;
 		}
 
-		// 有历史消息，恢复显示
+		// 有历史消息，恢复显示（双写：DOM + Alpine store）
 		for (const msg of history) {
 			const msgDiv = addMessage(msg.role, msg.content, msg.created_at || null);
 			const entry = { role: msg.role, content: msg.content, id: msg.id, usage: msg.usage || null };
 			state.messages.push(entry);
+
+			// 同步到 Alpine store
+			if (chatData) {
+				chatData.messages.push({
+					id: msg.id,
+					role: msg.role,
+					content: msg.content,
+					reasoning: msg.reasoning || undefined,
+					sources: msg.sources && msg.sources.length > 0 ? msg.sources : undefined,
+					usage: msg.usage || undefined,
+					createdAt: msg.created_at || undefined,
+				});
+			}
 			// 将 data-msg-id 设置在 message-group 上（同一组的 user 和 assistant 共享同一 ID）
 			if (msgDiv && msg.id) {
 				const group = msgDiv.closest('.message-group');

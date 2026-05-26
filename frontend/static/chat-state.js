@@ -98,28 +98,27 @@ export const state = {
     // 状态只能从低往高变，不能从高往低变
     titleState: 0,
 
-    // ---- 以下字段委托给 sessionManager ----
-    // 实际存储在 ChatSession 中，通过 sessionManager 的 getter/setter 访问
+    // ---- 以下字段委托给 $store.chats（过渡期） ----
+    // 最终目标：所有代码改为直接读取 $store.chats.active
+    // 此处的 getter/setter 仅用于兼容现有 JS 代码
 
     /**
      * 是否正在流式接收
-     * 委托给 sessionManager.getActive()?.isStreaming
+     * 委托给 $store.chats.active.isStreaming
      */
     get isStreaming() {
-        // 如果 sessionManager 尚未初始化，返回 false
-        if (!this._sessionManager) return false;
-        return this._sessionManager.isStreaming;
+        try {
+            var chats = window.Alpine.store('chats');
+            return chats.active ? chats.active.isStreaming : false;
+        } catch(e) {
+            return false;
+        }
     },
     set isStreaming(val) {
-        // 兼容旧代码中 state.isStreaming = true/false 的直接赋值
-        // 但实际 isStreaming 应由 ChatSession 管理
-        // 这里仅做兼容处理，不真正存储
-        if (this._sessionManager) {
-            const active = this._sessionManager.getActive();
-            if (active) {
-                active.isStreaming = val;
-            }
-        }
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats.active) chats.active.isStreaming = val;
+        } catch(e) {}
     },
 
     /**
@@ -136,11 +135,21 @@ export const state = {
         }
     },
 
-    // 深度思考按钮状态（同步自 UserSettings.deepThink）
-    deepThinkActive: false,
+    /**
+     * 深度思考按钮状态（委托给 UserSettings，为 Alpine store 和旧代码的共享数据源）
+     * 注意：这是一个 getter，每次读取都从 UserSettings 获取最新值。
+     * Alpine store 的 toggleDeepThink() 会更新 UserSettings，因此这里无需手动同步。
+     */
+    get deepThinkActive() {
+        return UserSettings.deepThink;
+    },
 
-    // 智能搜索按钮状态（同步自 UserSettings.webSearch）
-    webSearchActive: true,
+    /**
+     * 智能搜索按钮状态（同上）
+     */
+    get webSearchActive() {
+        return UserSettings.webSearch;
+    },
 
     // 当前会话的快照：发送消息时锁定，SSE 处理期间基于此判断
     sessionDeepThinkingEnabled: false,
