@@ -9,3 +9,6 @@ other = "Oops! Server error!\n{{.Error}}"
 
 [assistant_broken_message]
 other = "Oops! My reply process was forcibly interrupted..."
+
+[welcome_message]
+other = "Hello! Chat with me more, and I will become your second brain."

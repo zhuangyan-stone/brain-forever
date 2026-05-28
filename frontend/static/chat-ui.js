@@ -4,14 +4,15 @@
 
 import { escapeHtml, truncate } from './toolsets.js';
 import { updateCurrentChatTitle } from './chat-list.js';
-import { state } from './chat-state.js';
 import { sessionManager } from './chat-session-manager.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
-import { getDefaultFormatLabel } from './chat-copy.js';
-import { ICON_COPY, ICON_SPINNER, ICON_DELETE, ICON_GLOBE } from './svg_icons.js';
+import { ICON_GLOBE } from './svg_icons.js';
 
 'use strict';
+
+/** UI 渲染节流间隔（毫秒） */
+const UI_RENDER_INTERVAL = 180;
 
 /** 判断"滚动到底部"的误差容限（px），底部剩余内容小于此值即视为已到底 */
 export const SCROLL_BOTTOM_THRESHOLD = 4;
@@ -49,9 +50,13 @@ export function autoScrollToBottom() {
     const clientHeight = sc.clientHeight;
     const isAtBottom = scrollHeight - scrollTop - clientHeight < SCROLL_BOTTOM_THRESHOLD;
 
-    if (state.userScrolledUp) {
-        return;
-    }
+    // 从 Alpine store 获取当前活跃 chat 的滚动状态
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats && chats.active && chats.active.userScrolledUp) {
+            return;
+        }
+    } catch(e) {}
 
     sc.scrollTop = scrollHeight;
 }
@@ -80,58 +85,40 @@ export function throttleRender(timerHolder, targetEl, getText) {
         timerHolder.renderTimer = null;
         targetEl.innerHTML = renderMarkdown(getText());
         autoScrollToBottom();
-    }, state.RENDER_INTERVAL);
+    }, UI_RENDER_INTERVAL);
 }
 
 /**
- * setInputEnabled 启用/禁用输入
+ * setInputEnabled 切换输入区域的 streaming 样式
  *
- * 注意：sendBtn 的 SVG 图标、.stop-btn class、data-tooltip 等已由 Alpine
- * 通过 $store.chats.active?.isStreaming 响应式管理（见 index.html 中 sendBtn
- * 的 x-if / :class / :data-tooltip 绑定），此处不再手动操作。
- * 此函数只处理 Alpine 未覆盖的元素（messageInput、input-area class）。
+ * 注意：
+ *   - messageInput.disabled 已由 Alpine 的 :disabled 绑定
+ *     ($store.chats.active?.isStreaming ?? false) 响应式管理，此处不再手动设置。
+ *   - input-area 的 streaming class 未被 Alpine 管理，仍需手动切换。
  *
  * @param {boolean} enabled
  * @private
  */
 function setInputEnabled(enabled) {
-    dom.messageInput.disabled = !enabled;
     if (dom.inputArea) {
         dom.inputArea.classList.toggle('streaming', !enabled);
     }
 }
 
 /**
- * updateDeleteButtons 更新所有删除按钮的禁用状态
- */
-export function updateDeleteButtons() {
-    const deleteBtns = dom.chatContainer.querySelectorAll('.delete-msg-btn');
-    deleteBtns.forEach(btn => {
-        btn.disabled = sessionManager.isStreaming;
-    });
-}
-
-/**
- * applyStreamingState 统一管理流式输出中 UI 组件的禁用状态。
+ * applyStreamingState 统一管理流式输出中 UI 组件的状态。
  *
- * 注意：大部分按钮的 disabled 状态已由 Alpine 组件通过
- * $store.chats.active?.isStreaming 响应式绑定（per-chat），
- * 此处只需处理 Alpine 未覆盖的手动 DOM 元素。
+ * 职责范围（Alpine 未覆盖的 DOM 元素）：
+ *   1. input-area 的 streaming class（控制输入区域样式）
+ *
+ * messageInput.disabled、stopStreamingBtn 和删除按钮的 disabled
+ * 已由 Alpine 的 :disabled / x-show 绑定响应式管理，此处不再处理。
  *
  * @param {boolean} isStreaming
  */
 export function applyStreamingState(isStreaming) {
-    // 0. 输入框禁用/启用
+    // 1. 输入区域 streaming 样式
     setInputEnabled(!isStreaming);
-
-    // 2. 停止按钮（折叠模式，非 Alpine 组件）
-    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
-    if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = !isStreaming;
-    }
-
-    // 3. 所有删除按钮（动态创建，非 Alpine 组件）
-    updateDeleteButtons();
 }
 
 /**
@@ -193,140 +180,49 @@ export function showTokenUsage(assistantBubble, usage) {
 }
 
 /**
- * addMessage 添加消息气泡到聊天区域
- * 用户消息（role='user'）会创建新的 .message-group 包裹层；
- * 助手消息（role='assistant'）追加到当前 .message-group 内。
- * 返回创建的 .message 元素。
+ * addMessage 添加消息到 Alpine store 的 groups 数组。
+ * 不再创建 DOM — 由 Alpine x-for 模板自动渲染。
+ *
+ * 用户消息（role='user'）会创建新的 group；
+ * 助手消息（role='assistant'）更新最后一个 group 的 assistant 数据。
+ *
  * @param {'user'|'assistant'} role
  * @param {string} content
- * @param {string|null} [createdAt=null] - ISO 格式时间戳，用于在角色标签后显示时间
- * @param {boolean} [isStreaming=false]
- * @returns {HTMLElement}
+ * @param {string|null} [createdAt=null] - ISO 格式时间戳
+ * @param {boolean} [isStreaming=false] - 是否为流式占位（assistant 空气泡）
+ * @returns {number} group.id（用户消息时返回新 group 的 id，assistant 时返回 -1）
  */
 export function addMessage(role, content, createdAt = null, isStreaming = false) {
-    const div = document.createElement('div');
-    div.className = `message ${role}`;
+    try {
+        var chats = window.Alpine.store('chats');
+        if (!chats || !chats.active) return -1;
 
-    // ---- 双写：同步数据到 Alpine store（Phase B 过渡期） ----
-    // 用户消息写入 $store.chats.active.messages；
-    // assistant 消息由 SSEResponser.onDone → finalizeStreaming() 写入（Phase C）。
-    // 此处仅在非流式（历史恢复）和非 air-bubble（assistant 占位）时写入，
-    // 避免 prepareChat() 创建的空气泡被错误地添加为已完成消息。
-    if (role === 'user') {
-        try {
-            var chats = window.Alpine.store('chats');
-            if (chats && chats.active) {
-                var lastMsg = chats.active.messages[chats.active.messages.length - 1];
-                var newId = lastMsg ? lastMsg.id + 1 : 1;
-                chats.active.messages.push({
-                    id: newId,
-                    role: 'user',
-                    content: content,
-                    createdAt: createdAt || undefined,
-                });
-            }
-        } catch(e) {
-            // Alpine store 尚未初始化（极早期场景），忽略
-        }
-    }
-    // ---- 双写结束 ----
-
-    // 为用户消息添加 data-msg-index 属性，用于刻度导航定位
-    if (role === 'user') {
-        div.dataset.msgIndex = state.userMsgCount;
-        state.userMsgCount++;
-
-        // 创建新的消息组包裹层，添加到聊天区域
-        const group = document.createElement('div');
-        group.className = 'message-group';
-        group.appendChild(div);
-
-        // 为消息组添加左上角删除按钮
-        const groupDeleteBtn = document.createElement('button');
-        groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
-        groupDeleteBtn.dataset.tooltip = '删除本组对话';
-        groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
-        groupDeleteBtn.disabled = sessionManager.isStreaming;
-        group.appendChild(groupDeleteBtn);
-
-        dom.chatContainer.appendChild(group);
-
-        // user 消息创建的新组即当前组，后续 assistant 消息会追加到此组内
-        // 通过 dom.chatContainer.querySelector('.message-group:last-child') 查找
-    } else {
-        // assistant 消息：追加到当前消息组（即 DOM 中最后一个 .message-group）
-        const lastGroup = dom.chatContainer.querySelector('.message-group:last-child');
-        if (lastGroup) {
-            lastGroup.appendChild(div);
+        if (role === 'user') {
+            // 用户消息：创建新 group
+            var groupId = chats.addGroup(content, createdAt);
+            autoScrollToBottom();
+            return groupId;
         } else {
-            // 兜底：没有当前组时（如欢迎消息），创建一个独立的消息组
-            const group = document.createElement('div');
-            group.className = 'message-group';
-            group.appendChild(div);
+            // assistant 消息：更新最后一个 group 的 assistant 数据
+            var lastGroup = chats.getLastGroup();
+            if (!lastGroup) return -1;
 
-            // 为消息组添加左上角删除按钮
-            const groupDeleteBtn = document.createElement('button');
-            groupDeleteBtn.className = 'msg-action-btn delete-msg-btn group-delete-btn';
-            groupDeleteBtn.dataset.tooltip = '删除本组对话';
-            groupDeleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg>';
-            groupDeleteBtn.disabled = sessionManager.isStreaming;
-            group.appendChild(groupDeleteBtn);
-
-            dom.chatContainer.appendChild(group);
+            if (!isStreaming) {
+                // 非流式（历史恢复）：assistant 已预先初始化，只需填充数据
+                lastGroup.assistant.content = content || '';
+                lastGroup.assistant.createdAt = createdAt || null;
+                lastGroup.assistant.contentHTML = renderMarkdown(content || '');
+            }
+            // 流式占位：assistant 已由 addGroup() 预先初始化（内容为空），
+            // 不需要额外操作，SSEResponser.onText 会逐步更新 content/contentHTML
+            autoScrollToBottom();
+            return -1;
         }
+    } catch(e) {
+        // Alpine store 尚未初始化（极早期场景），忽略
+        console.warn('addMessage: Alpine store 不可用', e);
+        return -1;
     }
-
-    const inner = document.createElement('div');
-    inner.className = 'message-inner';
-
-    // 角色标签（含时间）
-    const label = document.createElement('div');
-    label.className = 'role-label';
-    const roleText = role === 'user' ? '我' : '🤖 AI';
-    if (createdAt) {
-        const d = new Date(createdAt);
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        label.textContent = `${roleText} (${hh}:${mm}:${ss})`;
-    } else {
-        label.textContent = roleText;
-    }
-    if (role === 'assistant') {
-        label.classList.add('role-label-ai');
-    }
-    inner.appendChild(label);
-
-    // 气泡
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    if (isStreaming) {
-        // 流式输出时用 textContent 保留原始 Markdown
-        bubble.textContent = content;
-        bubble.classList.add('streaming');
-    } else {
-        // 非流式（如欢迎消息）直接渲染 Markdown
-        bubble.innerHTML = renderMarkdown(content);
-    }
-    inner.appendChild(bubble);
-
-    // 添加操作按钮（仅复制按钮），放在气泡下方
-    const actions = document.createElement('div');
-    actions.className = 'message-actions';
-
-    // 复制按钮
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'msg-action-btn copy-msg-btn';
-    copyBtn.dataset.tooltip = '复制当前消息内容';
-    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 ' + getDefaultFormatLabel() + '</span>';
-    actions.appendChild(copyBtn);
-
-    inner.appendChild(actions);
-
-    div.appendChild(inner);
-
-    autoScrollToBottom();
-    return div;
 }
 
 /**
@@ -616,7 +512,13 @@ export function updateHeaderTitle(title) {
             el.textContent = title;
         }
     }
-    state.dialogTitle = title;
+    // 同步更新 Alpine store 中当前对话的标题
+    try {
+        var activeChat = window.Alpine.store('chats').active;
+        if (activeChat) {
+            activeChat.title = title;
+        }
+    } catch(e) {}
 
     // 同步更新侧边栏中当前对话的标题
     if (title) {
@@ -625,33 +527,40 @@ export function updateHeaderTitle(title) {
 }
 
 /**
- * showWelcomeMessage 显示独立于消息系统的欢迎信息
+ * showWelcomeMessage 通过 Alpine store 显示欢迎信息，
+ * 同时将输入面板移动到欢迎消息内部，实现欢迎词与输入面板一起垂直居中。
+ * 欢迎文本由调用方预先设置到 store（chats.welcomeMessage），
+ * 若 store 中为空则使用默认文本兜底。
  */
 export function showWelcomeMessage() {
-    // 避免重复添加
-    if (dom.chatContainer.querySelector('.welcome-message')) return;
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            if (!chats.welcomeMessage) {
+                chats.welcomeMessage = '你好！请多和我聊，我来构建你的第2大脑';
+            }
+        }
+    } catch(e) {}
+    
+    // 清空 header 标题（欢迎页不需要显示对话标题）
+    updateHeaderTitle('');
 
-    const el = document.createElement('div');
-    el.className = 'welcome-message';
-    el.textContent = '你好！我是‘第2大脑’ AI助手，多和我聊，我来构建你的第2大脑';
-    dom.chatContainer.appendChild(el);
-
-    // 将输入区域移动到欢迎消息内部，使二者作为一个整体居中
-    const inputArea = document.querySelector('.input-area');
-    if (inputArea) {
-        el.appendChild(inputArea);
-        // 欢迎状态必须显示完整输入面板，移除折叠状态
-        inputArea.classList.remove('collapsed');
+    // 将输入面板移动到 welcome-message 内部，实现垂直居中
+    // 同时移除 margin-top: auto（在 flex 容器中会推到最底部），改为普通 margin-top
+    var welcomeMsgEl = document.querySelector('.welcome-message');
+    var inputArea = document.querySelector('.input-area');
+    console.log('[showWelcomeMessage] welcomeMsgEl:', welcomeMsgEl, 'inputArea:', inputArea, 'inputArea.parentNode:', inputArea?.parentNode);
+    if (welcomeMsgEl && inputArea && inputArea.parentNode !== welcomeMsgEl) {
+        welcomeMsgEl.appendChild(inputArea);
+        inputArea.style.marginTop = '12px';
+        console.log('[showWelcomeMessage] moved inputArea into welcomeMsgEl, new parent:', inputArea.parentNode);
     }
 
-    // 标记欢迎状态（新布局下标记在 .scroll-container 上）
-    const scrollContainer = document.getElementById('scrollContainer');
+    // 显式添加 welcome-state，使 scroll-container 切换为 flex 垂直居中布局
+    var scrollContainer = document.getElementById('scrollContainer');
     if (scrollContainer) {
         scrollContainer.classList.add('welcome-state');
     }
-
-    // 设置 header 标题为欢迎语
-    updateHeaderTitle('');
 }
 
 // ============================================================
@@ -663,17 +572,15 @@ let _isInputCollapsed = false;
 
 /**
  * 折叠输入面板（隐藏 send-mode-corner 和 input-footer）
- * 折叠时始终显示中断按钮（非流式时 disabled 灰色，流式时红色可点击）
+ * 同步 isCollapsed 到 Alpine chats store，使 Alpine 模板可响应式感知折叠状态。
  */
 export function collapseInputArea() {
     if (_isInputCollapsed) return;
     _isInputCollapsed = true;
     const inputArea = document.querySelector('.input-area');
     if (inputArea) inputArea.classList.add('collapsed');
-    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
-    if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = !sessionManager.isStreaming;
-    }
+    // 同步到 Alpine store，使 x-show 等绑定可响应折叠状态变化
+    try { Alpine.store('chats').inputCollapsed = true; } catch(e) {}
 }
 
 /**
@@ -684,10 +591,8 @@ export function restoreInputArea() {
     _isInputCollapsed = false;
     const inputArea = document.querySelector('.input-area');
     if (inputArea) inputArea.classList.remove('collapsed');
-    const stopStreamingBtn = document.getElementById('stopStreamingBtn');
-    if (stopStreamingBtn) {
-        stopStreamingBtn.disabled = !sessionManager.isStreaming;
-    }
+    // 同步到 Alpine store
+    try { Alpine.store('chats').inputCollapsed = false; } catch(e) {}
 }
 
 /**

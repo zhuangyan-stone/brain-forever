@@ -450,6 +450,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     height: 24px;
     background: var(--border);
     flex-shrink: 0;
+    margin-right: -8px
 }
 
 /* ============================================================
@@ -666,11 +667,12 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 .message.user {
-    max-width: 85%;
+    width: 85%;
     margin-left: auto;
 }
 
 .message.assistant {
+    width: 100%;
     margin-right: auto;
 }
 
@@ -692,6 +694,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 
 .bubble {
     position: relative;
+    width: 100%;
     padding: 12px 16px;
     border-radius: 12px;
     line-height: 1.6;
@@ -756,6 +759,20 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     box-sizing: border-box;
 }
 
+/* 热点内容容器 — 位于欢迎面板上方，固定在顶部，不参与居中。
+   空时高度为 0，有内容时自然撑开。 */
+.hotContent {
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 欢迎文本 — 在 .welcome-message 的 flex 布局中作为第一个子项 */
+.welcome-message .welcome-text {
+    margin: 0;
+    padding: 0;
+}
+
 /* 欢迎状态下，整个 .scroll-container 切换为垂直居中布局，
    使欢迎信息与底部输入框一起在页面中垂直居中 */
 .scroll-container.welcome-state {
@@ -766,7 +783,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 .scroll-container.welcome-state .chat-container {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     justify-content: center;

@@ -2,96 +2,23 @@
 // chat-reasoning.js — Reasoning（深度思考）状态管理
 // ============================================================
 
-import { state } from './chat-state.js';
 import { renderMarkdown } from './chat-markdown.js';
-import { throttleRender, autoScrollToBottom } from './chat-ui.js';
 
 'use strict';
 
 /**
- * 获取或创建 assistant 气泡中的 reasoning 状态区域
- * @param {HTMLElement} assistantBubble
- * @returns {HTMLElement}
+ * Reasoning 状态 → 标题文本映射
+ *
+ * reasoningState 取值：
+ *   'thinking'    — 流式进行中，显示"正在思考……"
+ *   'done'        — 正常完成，显示"思考完成"
+ *   'interrupted' — 被中断，显示"AI 思路已被掐断"
  */
-function getOrCreateReasoningArea(assistantBubble) {
-    let area = assistantBubble.querySelector('.reasoning-area');
-    if (!area) {
-        area = document.createElement('div');
-        area.className = 'reasoning-area';
-        // 插入到气泡之前
-        const bubble = assistantBubble.querySelector('.bubble');
-        if (bubble) {
-            bubble.insertAdjacentElement('beforebegin', area);
-        } else {
-            assistantBubble.appendChild(area);
-        }
-    }
-    return area;
-}
-
-/**
- * 创建 reasoning 区域（含标题栏和内容区）
- * @param {HTMLElement} assistantBubble
- * @returns {HTMLElement} reasoning-area 元素
- */
-export function createReasoningArea(assistantBubble) {
-    let reasoningArea = assistantBubble.querySelector('.reasoning-area');
-    if (reasoningArea) return reasoningArea;
-
-    reasoningArea = getOrCreateReasoningArea(assistantBubble);
-    reasoningArea.className = 'reasoning-area active';
-
-    // 隐藏独立的 AI 角色标签，将其合并到 reasoning-header 中
-    const roleLabel = assistantBubble.querySelector('.role-label-ai');
-    let roleTimeText = '';
-    if (roleLabel) {
-        // 读取 role-label 中的时间文本（如果有），合并到 reasoning-header 中
-        const labelText = roleLabel.textContent || '';
-        const timeMatch = labelText.match(/\((\d{2}:\d{2}:\d{2})\)/);
-        if (timeMatch) {
-            roleTimeText = ` (${timeMatch[1]})`;
-        }
-        roleLabel.style.display = 'none';
-    }
-
-    // 将时间文本存储在 reasoning-area 上，供 finalizeReasoningArea 使用
-    reasoningArea.dataset.roleTimeText = roleTimeText || '';
-    const titleText = '正在思考……';
-    reasoningArea.innerHTML = `
-        <div class="reasoning-header">
-            <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>
-            <span class="reasoning-icon">🤖</span>
-            <span class="reasoning-role-badge">AI</span>
-            <span class="reasoning-title">${titleText}${roleTimeText}</span>
-        </div>
-        <div class="reasoning-content"></div>
-    `;
-    // 点击 header 切换折叠/展开
-    const header = reasoningArea.querySelector('.reasoning-header');
-    header.addEventListener('click', (e) => {
-        toggleReasoningCollapse(header);
-    });
-
-    return reasoningArea;
-}
-
-/**
- * 根据工具名称返回对应的图标 emoji
- * @param {string} toolName - 工具函数名
- * @returns {string} 图标字符串
- */
-function getToolIcon(toolName) {
-    switch (toolName) {
-        case 'web_search':
-            return '🔍';
-        case 'current_time':
-            return '🕐';
-        case 'personal_trait_search':
-            return '🧑';
-        default:
-            return '⚙';
-    }
-}
+const REASONING_TITLES = {
+    thinking: '正在思考……',
+    done: '思考完成',
+    interrupted: 'AI 思路已被掐断',
+};
 
 /**
  * 切换 reasoning 区域的折叠/展开状态
@@ -111,93 +38,21 @@ export function toggleReasoningCollapse(headerEl) {
 }
 
 /**
- * 确保 reasoning 区域存在，返回其 content 元素
- * @param {HTMLElement} assistantBubble
- * @returns {HTMLElement|null}
- */
-export function ensureReasoningContent(assistantBubble) {
-    let reasoningArea = assistantBubble.querySelector('.reasoning-area');
-    if (!reasoningArea) {
-        reasoningArea = createReasoningArea(assistantBubble);
-    }
-    return reasoningArea.querySelector('.reasoning-content');
-}
-
-/**
- * 对 reasoning-content 元素执行节流渲染
- * @param {HTMLElement} contentEl
- */
-export function scheduleReasoningRender(contentEl) {
-    throttleRender(contentEl, contentEl, () => contentEl.rawText);
-}
-
-/**
- * 将 reasoning 区域标记为"思考完成"：标题改为"思考完成"、移除 active、添加 done、立即最终渲染
- * @param {HTMLElement} assistantBubble
- */
-export function finalizeReasoningArea(assistantBubble) {
-    const area = assistantBubble.querySelector('.reasoning-area.active');
-    if (!area) return;
-
-    const titleEl = area.querySelector('.reasoning-title');
-    if (titleEl) {
-        const timeText = area.dataset.roleTimeText || '';
-        titleEl.textContent = `思考完成${timeText}`;
-    }
-    area.classList.remove('active');
-    area.classList.add('done');
-
-    const contentEl = area.querySelector('.reasoning-content');
-    if (contentEl) {
-        if (contentEl.renderTimer) {
-            clearTimeout(contentEl.renderTimer);
-            contentEl.renderTimer = null;
-        }
-        if (contentEl.rawText) {
-            contentEl.innerHTML = renderMarkdown(contentEl.rawText);
-        }
-    }
-
-    // reasoning 区域渲染完成，内容高度可能变化，同步滚动到底部
-    autoScrollToBottom();
-}
-
-/**
- * 处理 reasoning 事件
- * @param {object} event
- * @param {HTMLElement} assistantBubble
- */
-export function handleReasoningEvent(event, assistantBubble) {
-    const contentEl = ensureReasoningContent(assistantBubble);
-    if (!contentEl || !event.content) return;
-
-    if (!contentEl.rawText) contentEl.rawText = '';
-
-    if (event.subject === 'tool-pending') {
-        // tool-pending：显示工具调用提示（带图标）
-        const icon = getToolIcon(event.tool);
-        contentEl.rawText += `\n> ${icon} ${event.content}\n`;
-    } else {
-        // 真正的 LLM 思考内容
-        contentEl.rawText += event.content;
-    }
-
-    scheduleReasoningRender(contentEl);
-}
-
-/**
  * 在 assistant 消息气泡中恢复 reasoning（深度思考链）区域
  * @param {HTMLElement} assistantBubble - .message.assistant 元素
  * @param {string} reasoningText - 思考链的原始 Markdown 文本
+ * @param {string} [reasoningState='done'] - 推理状态（'thinking' | 'done' | 'interrupted'）
  */
-export function restoreReasoningArea(assistantBubble, reasoningText) {
+export function restoreReasoningArea(assistantBubble, reasoningText, reasoningState) {
     if (!assistantBubble || !reasoningText) return;
+
+    reasoningState = reasoningState || 'done';
+    const titleText = REASONING_TITLES[reasoningState] || REASONING_TITLES.done;
 
     // 隐藏独立的 AI 角色标签，将其合并到 reasoning-header 中
     const roleLabel = assistantBubble.querySelector('.role-label-ai');
     let roleTimeText = '';
     if (roleLabel) {
-        // 读取 role-label 中的时间文本（如果有），合并到 reasoning-header 中
         const labelText = roleLabel.textContent || '';
         const timeMatch = labelText.match(/\((\d{2}:\d{2}:\d{2})\)/);
         if (timeMatch) {
@@ -211,7 +66,6 @@ export function restoreReasoningArea(assistantBubble, reasoningText) {
     reasoningArea.className = 'reasoning-area done collapsed';
     // 将时间文本存储在 reasoning-area 上
     reasoningArea.dataset.roleTimeText = roleTimeText || '';
-    const titleText = '思考完成';
     reasoningArea.innerHTML = `
         <div class="reasoning-header">
             <span class="reasoning-toggle" data-tooltip="折叠思考过程">▶</span>

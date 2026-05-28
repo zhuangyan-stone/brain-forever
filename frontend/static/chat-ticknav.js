@@ -2,7 +2,7 @@
 // chat-ticknav.js — 刻度导航
 // ============================================================
 
-import { state } from './chat-state.js';
+import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, targetTickIndex, setTargetTickIndex, pendingHighlightIndex, setPendingHighlightIndex, MAX_VISIBLE_TICKS, resetTickState } from './tick-state.js';
 import { truncate } from './toolsets.js';
 
 'use strict';
@@ -37,15 +37,15 @@ export function updateTickNav() {
     tickNav.innerHTML = '';
 
     // 根据偏移量计算当前显示的刻度范围
-    const startIdx = state.tickScrollOffset;
-    const endIdx = Math.min(startIdx + state.MAX_VISIBLE_TICKS, tickCount);
+    const startIdx = tickScrollOffset;
+    const endIdx = Math.min(startIdx + MAX_VISIBLE_TICKS, tickCount);
 
     // 判断是否还有更多刻度
-    const hasPrev = state.tickScrollOffset > 0;
+    const hasPrev = tickScrollOffset > 0;
     const hasNext = endIdx < tickCount;
 
     // 是否需要滚动（超过 MAX_VISIBLE_TICKS 条）
-    const needsScroll = tickCount > state.MAX_VISIBLE_TICKS;
+    const needsScroll = tickCount > MAX_VISIBLE_TICKS;
 
     // 顶部箭头 — 仅当需要滚动且还有上方刻度时显示
     if (needsScroll) {
@@ -54,8 +54,8 @@ export function updateTickNav() {
         topArrow.dataset.tooltip = '向上翻动';
         topArrow.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (state.tickScrollOffset <= 0) return;
-            state.tickScrollOffset--;
+            if (tickScrollOffset <= 0) return;
+            setTickScrollOffset(tickScrollOffset - 1);
             updateTickNav();
         });
         tickNav.appendChild(topArrow);
@@ -100,7 +100,7 @@ export function updateTickNav() {
                 setActiveTick(i);
                 // 记录目标索引，锁定面板保持展开态，利用展开态 CSS 隐藏刻度值，
                 // 避免滚动过程中刻度值频繁显/隐闪烁
-                state.targetTickIndex = i;
+                setTargetTickIndex(i);
                 tickNav.classList.add('tick-nav-locked');
                 targetMsg.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 // 面板解锁由 updateActiveTickOnScroll 在检测到目标消息进入视口时自动完成，
@@ -124,9 +124,9 @@ export function updateTickNav() {
             e.stopPropagation();
             const chatContainer = document.getElementById('chatContainer');
             if (!chatContainer) return;
-            const maxOffset = chatContainer.querySelectorAll('.message.user').length - state.MAX_VISIBLE_TICKS;
-            if (state.tickScrollOffset >= maxOffset) return;
-            state.tickScrollOffset++;
+            const maxOffset = chatContainer.querySelectorAll('.message.user').length - MAX_VISIBLE_TICKS;
+            if (tickScrollOffset >= maxOffset) return;
+            setTickScrollOffset(tickScrollOffset + 1);
             updateTickNav();
         });
         tickNav.appendChild(bottomArrow);
@@ -144,8 +144,8 @@ export function updateTickNav() {
     }
 
     // 重建后重新应用 active 状态（如果有）
-    if (state.activeTickIndex >= 0) {
-        setActiveTick(state.activeTickIndex);
+    if (activeTickIndex >= 0) {
+        setActiveTick(activeTickIndex);
     }
 }
 
@@ -154,7 +154,7 @@ export function updateTickNav() {
  * @param {number} index
  */
 export function setActiveTick(index) {
-    state.activeTickIndex = index;
+    setActiveTickIndex(index);
     const tickNav = document.getElementById('tickNav');
     if (!tickNav) return;
     const ticks = tickNav.querySelectorAll('.tick');
@@ -199,7 +199,7 @@ function updateActiveTickOnScroll() {
     // 如果先检查 :hover 会直接 return，导致锁定检测永远不会执行，面板无法解锁。
     if (tickNav.classList.contains('tick-nav-locked')) {
         // 检测目标消息（targetTickIndex）是否已进入视口
-        const targetIdx = state.targetTickIndex;
+        const targetIdx = targetTickIndex;
         if (targetIdx >= 0 && targetIdx < userMessages.length) {
             const targetRect = userMessages[targetIdx].getBoundingClientRect();
             const containerRect = scrollContainer.getBoundingClientRect();
@@ -208,12 +208,12 @@ function updateActiveTickOnScroll() {
                         && targetRect.bottom > containerRect.top;
             if (arrived) {
                 // 更新活动刻度为目标索引
-                state.activeTickIndex = targetIdx;
-                state.targetTickIndex = -1;
+                setActiveTickIndex(targetIdx);
+                setTargetTickIndex(-1);
                 tickNav.classList.remove('tick-nav-locked');
                 // 不立即触发高亮动画，而是标记为待高亮，
                 // 等滚动完全停止后再触发（由 scrollDebounceTimer 处理）
-                state.pendingHighlightIndex = targetIdx;
+                setPendingHighlightIndex(targetIdx);
                 // 重建刻度导航以反映新的活动刻度
                 updateTickNav();
             }
@@ -245,19 +245,19 @@ function updateActiveTickOnScroll() {
     // - 活动消息仍然可见 → 更新为更精确的 targetIdx
     // - 活动消息已滚出顶部但已是最后一条 → 保持不动（targetIdx 会等于 activeTickIndex）
     let shouldUpdate = false;
-    if (state.activeTickIndex < 0 || state.activeTickIndex >= userMessages.length) {
+    if (activeTickIndex < 0 || activeTickIndex >= userMessages.length) {
         shouldUpdate = true;
     } else {
-        const activeRect = userMessages[state.activeTickIndex].getBoundingClientRect();
-        if (activeRect.bottom <= containerTop && state.activeTickIndex < userMessages.length - 1) {
+        const activeRect = userMessages[activeTickIndex].getBoundingClientRect();
+        if (activeRect.bottom <= containerTop && activeTickIndex < userMessages.length - 1) {
             shouldUpdate = true;
         } else if (activeRect.bottom > containerTop) {
             shouldUpdate = true;
         }
     }
 
-    if (shouldUpdate && targetIdx !== state.activeTickIndex) {
-        state.activeTickIndex = targetIdx;
+    if (shouldUpdate && targetIdx !== activeTickIndex) {
+        setActiveTickIndex(targetIdx);
         adjustTickOffset();
         updateTickNav();
     }
@@ -271,11 +271,11 @@ function adjustTickOffset() {
     if (!chatContainer) return;
     const userMessages = chatContainer.querySelectorAll('.message.user');
     const tickCount = userMessages.length;
-    if (tickCount > state.MAX_VISIBLE_TICKS) {
-        if (state.activeTickIndex < state.tickScrollOffset) {
-            state.tickScrollOffset = state.activeTickIndex;
-        } else if (state.activeTickIndex >= state.tickScrollOffset + state.MAX_VISIBLE_TICKS) {
-            state.tickScrollOffset = state.activeTickIndex - state.MAX_VISIBLE_TICKS + 1;
+    if (tickCount > MAX_VISIBLE_TICKS) {
+        if (activeTickIndex < tickScrollOffset) {
+            setTickScrollOffset(activeTickIndex);
+        } else if (activeTickIndex >= tickScrollOffset + MAX_VISIBLE_TICKS) {
+            setTickScrollOffset(activeTickIndex - MAX_VISIBLE_TICKS + 1);
         }
     }
 }
@@ -298,15 +298,15 @@ export function initTickNav() {
         if (!chatContainer) return;
         const userMessages = chatContainer.querySelectorAll('.message.user');
         const tickCount = userMessages.length;
-        if (tickCount <= state.MAX_VISIBLE_TICKS) return; // 不需要滚动
+        if (tickCount <= MAX_VISIBLE_TICKS) return; // 不需要滚动
 
         const delta = e.deltaY > 0 ? 1 : -1;
-        const newOffset = state.tickScrollOffset + delta;
+        const newOffset = tickScrollOffset + delta;
         // 限制范围：0 到 (tickCount - MAX_VISIBLE_TICKS)
-        const maxOffset = tickCount - state.MAX_VISIBLE_TICKS;
+        const maxOffset = tickCount - MAX_VISIBLE_TICKS;
         if (newOffset < 0 || newOffset > maxOffset) return;
 
-        state.tickScrollOffset = newOffset;
+        setTickScrollOffset(newOffset);
         updateTickNav();
     }, { passive: false });
 
@@ -345,12 +345,12 @@ export function initTickNav() {
         scrollDebounceTimer = setTimeout(() => {
             scrollDebounceTimer = null;
             // 滚动已停止，检查是否有待高亮的目标消息
-            if (state.pendingHighlightIndex >= 0) {
+            if (pendingHighlightIndex >= 0) {
                 const scrollContainer = getScrollContainer();
                 if (scrollContainer) {
                     const userMessages = scrollContainer.querySelectorAll('.message.user');
-                    const idx = state.pendingHighlightIndex;
-                    state.pendingHighlightIndex = -1;
+                    const idx = pendingHighlightIndex;
+                    setPendingHighlightIndex(-1);
                     if (idx >= 0 && idx < userMessages.length) {
                         const bubble = userMessages[idx].querySelector('.bubble');
                         if (bubble) {

@@ -5,6 +5,13 @@
     作用域：底部输入框、发送按钮、模式切换、折叠状态
     ============================================================ */
 
+/* Alpine.js x-cloak：在 Alpine 初始化前隐藏带 x-cloak 属性的元素，
+   防止 x-show 元素在 Alpine 评估表达式前短暂可见（Flash of Uninitialized x-show）。
+   Alpine 初始化后自动移除该属性。 */
+[x-cloak] {
+    display: none !important;
+}
+
 /* ============================================================
     输入区域
     ============================================================ */
@@ -163,10 +170,14 @@
 }
 
 /* ============================================================
-    折叠状态下的中断按钮 — 输入框右侧内部
+    中断按钮 — 输入框右侧内部
+    显示/隐藏由 Alpine 的 x-show 控制（绑定 isStreaming）
+    
+    防闪现机制：按钮元素已添加 x-cloak 属性，在 Alpine 初始化前
+    由 [x-cloak] { display: none !important; } 隐藏，Alpine 初始化
+    后自动移除 x-cloak，随后 x-show 按条件控制显隐。
     ============================================================ */
 
-/* 中断按钮：默认隐藏，折叠时始终显示（disabled 灰色 / 流式红色） */
 .stop-streaming-btn {
     flex-shrink: 0;
     width: 28px;
@@ -176,7 +187,7 @@
     background: #e74c3c;
     color: #fff;
     cursor: pointer;
-    display: none;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     margin-left: 4px;
@@ -191,7 +202,7 @@
     transform: scale(0.95);
 }
 
-/* 禁用状态：灰色，不可点击，用于非流式时提示用户"这里有个停止按钮" */
+/* 禁用状态（备用，x-show 已控制显示/隐藏） */
 .stop-streaming-btn:disabled {
     background: #999;
     cursor: not-allowed;
@@ -204,11 +215,6 @@
 
 .stop-streaming-btn:disabled:active {
     transform: none;
-}
-
-/* 折叠时：始终显示中断按钮（无论是否流式），输入框缩短 */
-.input-area.collapsed .stop-streaming-btn {
-    display: inline-flex;
 }
 
 .input-area.collapsed .message-input {
@@ -271,28 +277,20 @@
     欢迎状态 — 输入区域覆盖
     ============================================================ */
 
-.welcome-message .input-area {
-    flex: 0 0 auto;
-    border-top: none;
-    width: 100%;
-    margin-top: 0;
-    margin-bottom: 0;    
-}
-
 /* 欢迎状态下输入框边框直接使用主题色（青色 --accent），聚焦时加深 */
-#app.welcome-state .input-wrapper {
+.main-body:has(.scroll-container.welcome-state) + .input-area .input-wrapper {
     border-color: var(--accent);
 }
 
-#app.welcome-state .input-wrapper:focus-within {
+.main-body:has(.scroll-container.welcome-state) + .input-area .input-wrapper:focus-within {
     border-color: var(--accent-hover);
 }
 
 /* 欢迎状态下发送按钮使用主题色背景 */
-#app.welcome-state .send-btn {
+.main-body:has(.scroll-container.welcome-state) + .input-area .send-btn {
     background: var(--accent);
 }
 
-#app.welcome-state .send-btn:hover {
+.main-body:has(.scroll-container.welcome-state) + .input-area .send-btn:hover {
     background: var(--accent-hover);
 }

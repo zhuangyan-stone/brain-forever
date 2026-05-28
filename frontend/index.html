@@ -114,7 +114,155 @@
                     </svg>
                 </button>
             </div>
-            <div class="sidebar-content" id="sidebarContent">
+
+            <!-- 侧边栏 Tab 切换 -->
+            <div class="sidebar-tabs" x-data>
+                <button class="sidebar-tab"
+                        :class="{ active: $store.chats.sidebarTab === 'timeline' }"
+                        @click="$store.chats.switchSidebarTab('timeline')">
+                    <span class="sidebar-tab-icon">&#x1F4C5;</span>
+                    <span>时间</span>
+                </button>
+                <button class="sidebar-tab"
+                        :class="{ active: $store.chats.sidebarTab === 'category' }"
+                        @click="$store.chats.switchSidebarTab('category')">
+                    <span class="sidebar-tab-icon">🏷️</span>
+                    <span>类别</span>
+                </button>
+            </div>
+
+            <!-- 时间线 Tab 内容 -->
+            <div class="sidebar-content" id="sidebarContent"
+                 x-data
+                 x-show="$store.chats.sidebarTab === 'timeline'">
+                <!-- 空状态 -->
+                <template x-if="$store.chats.chatsLists && $store.chats.chatsLists.length === 0">
+                    <div class="chat-list-empty">暂无对话记录</div>
+                </template>
+
+                <!-- 分组列表 -->
+                <template x-for="group in ($store.chats.chatsLists || [])" :key="group.label">
+                    <div class="chat-group">
+                        <!-- 普通分组（置顶、今天、昨天、7天内、30天内） -->
+                        <template x-if="group.type === 'normal'">
+                            <div>
+                                <div class="chat-group-header"
+                                     @click="$store.chats.toggleCollapse(group.label)">
+                                    <span class="collapse-arrow"
+                                          :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
+                                    <span x-text="group.label"></span>
+                                </div>
+                                <div class="chat-group-body"
+                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
+                                    <template x-for="chat in group.items" :key="chat.sn">
+                                        <div class="chat-item"
+                                             :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                             :data-sn="chat.sn"
+                                             @click="window.__selectChat(chat.sn)">
+                                            <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                            <button class="chat-item-more-btn"
+                                                    data-tooltip="更多操作"
+                                                    @click.stop="window.__showContextMenu($event, chat)">
+                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                                                    <circle cx="8" cy="3" r="1.5"/>
+                                                    <circle cx="8" cy="8" r="1.5"/>
+                                                    <circle cx="8" cy="13" r="1.5"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- 更早分组（含日期子分组） -->
+                        <template x-if="group.type === 'earlier'">
+                            <div>
+                                <div class="chat-group-header"
+                                     @click="$store.chats.toggleCollapse(group.label)">
+                                    <span class="collapse-arrow"
+                                          :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
+                                    <span x-text="group.label"></span>
+                                </div>
+                                <div class="chat-group-body"
+                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
+                                    <template x-for="sub in group.subGroups" :key="sub.dateLabel">
+                                        <div class="chat-date-group">
+                                            <div class="chat-date-header"
+                                                 @click="$store.chats.toggleCollapse(group.label + '|' + sub.dateLabel)">
+                                                <span class="collapse-arrow date-arrow"
+                                                      x-text="$store.chats.isCollapsed(group.label + '|' + sub.dateLabel) ? '+' : '−'"></span>
+                                                <span x-text="sub.dateLabel"></span>
+                                            </div>
+                                            <div class="chat-date-body"
+                                                 :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
+                                                <template x-for="chat in sub.items" :key="chat.sn">
+                                                    <div class="chat-item"
+                                                         :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                                         :data-sn="chat.sn"
+                                                         @click="window.__selectChat(chat.sn)">
+                                                        <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                                        <button class="chat-item-more-btn"
+                                                                data-tooltip="更多操作"
+                                                                @click.stop="window.__showContextMenu($event, chat)">
+                                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                                                                <circle cx="8" cy="3" r="1.5"/>
+                                                                <circle cx="8" cy="8" r="1.5"/>
+                                                                <circle cx="8" cy="13" r="1.5"/>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <!-- 分类 Tab 内容 — 只显示一级分类 -->
+            <div class="sidebar-content"
+                 x-data
+                 x-show="$store.chats.sidebarTab === 'category'">
+                <template x-if="$store.chats.categoryGroups && $store.chats.categoryGroups.length === 0">
+                    <div class="chat-list-empty">暂无分类</div>
+                </template>
+
+                <div class="chat-list">
+                    <template x-for="catGroup in ($store.chats.categoryGroups || [])" :key="catGroup.label">
+                        <div class="chat-group">
+                            <div class="chat-group-header"
+                                 @click="$store.chats.toggleCollapse('cat|' + catGroup.label)">
+                                <span class="collapse-arrow"
+                                      :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">&#x276F;</span>
+                                <span x-text="catGroup.label"></span>
+                            </div>
+                            <div class="chat-group-body"
+                                 :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">
+                                <template x-for="chat in catGroup.items" :key="chat.sn">
+                                    <div class="chat-item"
+                                         :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                         :data-sn="chat.sn"
+                                         @click="window.__selectChat(chat.sn)">
+                                        <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                        <button class="chat-item-more-btn"
+                                                data-tooltip="更多操作"
+                                                @click.stop="window.__showContextMenu($event, chat)">
+                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                                                <circle cx="8" cy="3" r="1.5"/>
+                                                <circle cx="8" cy="8" r="1.5"/>
+                                                <circle cx="8" cy="13" r="1.5"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
             </div>
         </aside>
 
@@ -123,7 +271,7 @@
             <div class="main-header">
                 <div class="main-brand-area" id="mainBrandContainer"></div>
                 <button id="newChatBtn" class="text-btn"
-                        x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
+                        x-data="textBtn({ disabled: () => false })"
                         :disabled="disabled"
                         data-tooltip="开启新对话">
                     <svg class="text-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -169,15 +317,124 @@
                     <button id="loginBtn" class="text-btn"
                             x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
                             :disabled="disabled"
-                            data-tooltip="登录">登录</button>
+                            data-tooltip="登录"
+                            x-text="$store.chats.currentUserNo ? '用户: ' + $store.chats.currentUserNo : '登录'">登录</button>
                 </div>
             </div>
 
             <div class="main-body" id="mainBody">
-                <div class="scroll-container" id="scrollContainer">
-                    <!-- 聊天区域 -->
-                    <main class="chat-container" id="chatContainer">
-                        <!-- 消息由 JS 动态渲染 -->
+                <!-- scroll-container 初始为欢迎状态（welcome-state），
+                     当用户切换到已有对话时由 Alpine 的 :class 移除该 class。
+                     注意：welcome-state 必须作为静态 class 存在，因为 Alpine 的 :class
+                     绑定在初始化时可能因时序问题无法正确添加。 -->
+                <div class="scroll-container welcome-state" id="scrollContainer"
+                     :class="{ 'welcome-state': $store.chats.activeIndex === -1 }">
+                    <!-- 未来热点内容容器，由 JS 动态填充，位于欢迎面板上方 -->
+                    <div class="hotContent"
+                         x-show="$store.chats.activeIndex === -1">
+                    </div>
+                    <!-- 聊天区域 — Alpine x-for 数据驱动渲染 -->
+                    <main class="chat-container" id="chatContainer"
+                          x-data="chatContainer()"
+                          x-init="init($el)">
+                        <!-- 欢迎消息（Alpine 响应式驱动，activeIndex === -1 时显示）
+                             注意：不能在此元素上使用 x-text，因为 JS 会动态将 .input-area 移入此元素，
+                             x-text 的 textContent 赋值会覆盖所有子节点导致输入面板丢失。
+                             改用独立的 <p> 元素显示文本。 -->
+                        <div class="welcome-message"
+                             x-show="$store.chats.activeIndex === -1">
+                            <p class="welcome-text"
+                               x-text="$store.chats.welcomeMessage || '你好！我是「第2大脑」AI助手'">
+                            </p>
+                        </div>
+                        <!-- 消息组列表 -->
+                        <template x-for="(group, idx) in $store.chats.active?.groups ?? []" :key="group.id">
+                            <div class="message-group" :data-msg-id="group.msgId">
+                                <!-- 删除按钮（Alpine 响应式 disabled） -->
+                                <button class="msg-action-btn delete-msg-btn group-delete-btn"
+                                        :disabled="$store.chats.active?.isStreaming ?? false"
+                                        data-tooltip="删除本组对话"
+                                        @click="showDeleteModal(idx)">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 6h18"/>
+                                        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        <path d="M10 11v6"/>
+                                        <path d="M14 11v6"/>
+                                    </svg>
+
+                                </button>
+
+                                <!-- 用户消息 -->
+                                <div class="message user" x-show="group.user">
+                                    <div class="message-inner">
+                                        <div class="role-label" x-text="'我' + (group.user.createdAt ? ' (' + formatTime(group.user.createdAt) + ')' : '')"></div>
+                                        <div class="bubble" x-html="group.user.contentHTML"></div>
+                                        <div class="message-actions">
+                                            <button class="msg-action-btn copy-msg-btn"
+                                                    data-tooltip="复制当前消息内容">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                                                </svg>
+                                                <span class="copy-btn-label">复制为 Markdown</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 助手消息（统一模板）
+                                     ★ 方案B：同一 group.assistant 贯穿流式中→已完成。
+                                     流式期间：contentHTML/reasoningHTML 持续增长，createdAt=null
+                                     完成之后：createdAt 被设置 → 角色标签显示时间、操作按钮出现
+                                     模板完全由数据驱动，无需感知 isStreaming。 -->
+                                <div class="message assistant" x-show="group.assistant">
+                                    <div class="message-inner">
+                                        <!-- 外层角色标签：当 reasoningHTML 存在时由 reasoning-header 替代显示，
+                                             避免与内层 reasoning-role-badge 形成两层 "AI" 标题 -->
+                                        <div class="role-label role-label-ai"
+                                             x-show="!group.assistant.reasoningHTML"
+                                             x-text="'🤖 AI' + (group.assistant.createdAt ? ' (' + formatTime(group.assistant.createdAt) + ')' : '')"></div>
+                                        <!-- reasoning 区域（Alpine 数据驱动，默认折叠）
+                                             注意：active/done class 用于控制 CSS 动画和样式，
+                                             reasoningState 在流式期间为 undefined/'thinking'，
+                                             完成后由 SSEResponser.onReasoningEnd 设为 'done'。 -->
+                                        <div class="reasoning-area"
+                                             :class="{ collapsed: collapsed, active: group.assistant.reasoningHTML && group.assistant.reasoningState !== 'done', done: group.assistant.reasoningState === 'done' }"
+                                             x-data="{ collapsed: true }"
+                                             x-show="group.assistant.reasoningHTML">
+                                            <div class="reasoning-header" @click="collapsed = !collapsed">
+                                                <span class="reasoning-toggle"
+                                                      :data-tooltip="collapsed ? '展开思考内容' : '折叠思考内容'">▶</span>
+                                                <span class="reasoning-icon">🤖</span>
+                                                <span class="reasoning-role-badge">AI</span>
+                                                <span class="reasoning-title"
+                                                      x-text="group.assistant.reasoningState === 'done' ? '思考完成' : '正在思考……'"></span>
+                                            </div>
+                                            <div class="reasoning-content" x-html="group.assistant.reasoningHTML"></div>
+                                        </div>
+                                        <!-- 气泡：contentHTML 贯穿流式中→已完成 -->
+                                        <div class="bubble"
+                                             :class="{ streaming: !group.assistant.createdAt }"
+                                             x-html="group.assistant.contentHTML"
+                                             x-show="group.assistant.contentHTML"></div>
+                                        <!-- 操作按钮（仅已完成，以 createdAt 为标志） -->
+                                        <div class="message-actions" x-show="group.assistant.createdAt">
+                                            <button class="msg-action-btn copy-msg-btn"
+                                                    data-tooltip="复制当前消息内容">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                                                </svg>
+                                                <span class="copy-btn-label">复制为 Markdown</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- sources-panel 由 JS 动态管理 -->
+                            </div>
+                        </template>
                     </main>
                 </div>
                 <!-- 刻度导航 -->
@@ -186,10 +443,13 @@
 
             <!-- 输入区域 -->
             <!--
-                 注意：input-area 的 .streaming class 由 Alpine 通过
-                 $store.chats.active?.isStreaming 响应式控制（per-chat）。
-                 同时输入面板折叠（.collapsed class）由 chat-ui.js 的
-                 collapseInputArea() / restoreInputArea() 管理，两者互不冲突。
+                  注意：input-area 的 .streaming class 由 Alpine 通过
+                  $store.chats.active?.isStreaming 响应式控制（per-chat）。
+                  同时输入面板折叠（.collapsed class）由 chat-ui.js 的
+                  collapseInputArea() / restoreInputArea() 管理，两者互不冲突。
+
+                  优化：使用阻塞式内联脚本在 Alpine 处理 DOM 之前就将 input-area
+                  移入 welcome-message，消除刷新时输入面板从底部跳到中间的视觉跳动。
             -->
             <footer class="input-area" x-data
                  :class="{ streaming: $store.chats.active?.isStreaming }">
@@ -212,18 +472,15 @@
                         placeholder="想说点什么？"
                         rows="1"
                         autofocus
-                        :disabled="$store.chats.active?.isStreaming"
+                        :disabled="$store.chats.active?.isStreaming ?? false"
                     ></textarea>
                     <span class="newline-hint" id="newlineHint"></span>
-                    <!-- 折叠状态下的中断按钮（折叠时始终显示，非流式时 disabled 灰色） -->
-                    <!--
-                         stopStreamingBtn 的 disabled 状态同样由 Alpine 管理，
-                         逻辑为：流式输出中才可点击（!isStreaming === false → disabled=false），
-                         非流式时 disabled → 灰色不可点。
-                    -->
+                    <!-- 中断按钮：仅折叠状态 + 流式输出时显示，展开状态时隐藏（由 sendBtn 承担停止功能）
+                         添加 x-cloak 防止 Alpine 初始化前红色按钮闪现 -->
                     <button id="stopStreamingBtn" class="stop-streaming-btn"
                             x-data
-                            :disabled="!$store.chats.active?.isStreaming"
+                            x-cloak
+                            x-show="($store.chats.isCollapsed ?? false) && ($store.chats.active?.isStreaming ?? false)"
                             data-tooltip="停止生成">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                             <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -263,7 +520,7 @@
                             </svg>
                         </button>
                         <button id="sendBtn" class="send-btn"
-                                x-data="sendBtn({ active: () => $store.chats.active?.isStreaming })"
+                                x-data="sendBtn({ active: () => ($store.chats.active?.isStreaming ?? false) && !($store.chats.isCollapsed ?? false) })"
                                 :class="{ 'stop-btn': active }"
                                 :data-tooltip="active ? '停止生成' : '发送'">
                             <template x-if="!active">
@@ -280,6 +537,20 @@
                     </div>
                 </div>
             </footer>
+
+            <!-- 阻塞式内联脚本：在 Alpine 处理 DOM 之前就将 input-area 移入 welcome-message，
+                 消除刷新时输入面板从底部跳到中间的视觉跳动。
+                 此脚本会在 Alpine（defer）执行之前运行，因为 inline script 是同步执行的。 -->
+            <script>
+                (function() {
+                    var inputArea = document.querySelector('.input-area');
+                    var welcomeMsg = document.querySelector('.welcome-message');
+                    if (inputArea && welcomeMsg && inputArea.parentNode !== welcomeMsg) {
+                        welcomeMsg.appendChild(inputArea);
+                        inputArea.style.marginTop = '12px';
+                    }
+                })();
+            </script>
         </main>
     </div>
 

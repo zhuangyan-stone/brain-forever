@@ -301,7 +301,9 @@ export function switchHighlightTheme(theme) {
     }
 }
 
-// ---- 注册 Alpine 可调用的 Markdown 渲染器 ----
-// 供 Alpine 模板中 x-html="AlpineRenderMarkdown(msg.content)" 使用。
-// 见 alpine-store.js 中的 window.AlpineRenderMarkdown 桩函数定义。
+// ---- 注册 Markdown 渲染器到全局（供 alpine-store.js 预渲染使用） ----
+// alpine-store.js 是普通 <script>（非 ES Module），无法直接 import，
+// 但 store 方法（addGroup, finalizeStreamingToGroup, setChatMessageGroups）
+// 需要在写入数据时预渲染 contentHTML，因此通过全局引用调用 renderMarkdown。
+// 由于这些方法在用户交互时才执行，此时 ES Module 已加载完毕，函数一定可用。
 window._alpineRenderMarkdown = renderMarkdown;

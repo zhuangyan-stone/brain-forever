@@ -105,7 +105,7 @@ type session struct {
 	id          string           // HTTP cookie session ID (e.g., "s-<32hex>-<digits>"), set at creation time
 	currentChat *chat            // Current active chat (messages, title, titleState)
 	chats       []store.Chat     // User's chat list from the database
-	userNo      string           // Global unique user serial number; "anonymous" by default
+	userNo      string           // Global unique user serial number; empty string for anonymous users
 	chatStore   *store.ChatStore // Chat database store; never nil after Phase A
 }
 
@@ -133,7 +133,12 @@ func (s *session) SetTitle(newTitle string, newState TitleState) {
 // This simply opens the user's DB file and loads their chat list.
 func (s *session) switchToUser(sn string) {
 	// Phase 1: IO operations (no lock needed — DB creation + query)
-	dbFile := "data/" + sn + ".chats.db"
+	// If sn is empty, use "anonymous" as the filename part (for anonymous user DB)
+	dbFilePart := sn
+	if dbFilePart == "" {
+		dbFilePart = "anonymous"
+	}
+	dbFile := "data/" + dbFilePart + ".chats.db"
 	chatStore, err := store.CreateLocalChatScheme(dbFile)
 	if err != nil {
 		log.Printf("failed to create local chat scheme for user %s: %v", sn, err)
@@ -234,7 +239,7 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	s = &session{
 		id:           sessionID,
 		lastActivity: time.Now(),
-		userNo:       "anonymous",
+		userNo:       "",
 		chatStore:    sm.anonymousStore,
 		currentChat:  &chat{},
 	}
@@ -260,15 +265,15 @@ func (sm *SessionManager) GetMessages(sessionID string) ([]Message, *session) {
 	if s.currentChat.dbChat == nil {
 		return []Message{}, s
 	}
-	dbSessionID := s.currentChat.dbChat.ID
-	if dbSessionID == 0 {
+	chatID := s.currentChat.dbChat.ID
+	if chatID == 0 {
 		return []Message{}, s
 	}
-	dbMessages, err := s.chatStore.ListMessages(dbSessionID)
+	dbMessages, err := s.chatStore.ListMessages(chatID)
 	if err != nil {
 		return []Message{}, s
 	}
-	msgs := convertDBMessagesToAgentMessages(dbMessages, s.chatStore, dbSessionID)
+	msgs := convertDBMessagesToAgentMessages(dbMessages, s.chatStore, chatID)
 	return msgs, s
 }
 
@@ -299,18 +304,18 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	if s.currentChat.dbChat == nil {
 		return fmt.Errorf("no DB session")
 	}
-	dbSessionID := s.currentChat.dbChat.ID
-	if dbSessionID == 0 {
+	chatID := s.currentChat.dbChat.ID
+	if chatID == 0 {
 		return fmt.Errorf("no DB session")
 	}
 
 	// Delete web sources first, then messages
-	if err := s.chatStore.DeleteWebSourcesByGroup(dbSessionID, int(msgID)); err != nil {
+	if err := s.chatStore.DeleteWebSourcesByGroup(chatID, int(msgID)); err != nil {
 		log.Printf("failed to delete web sources for group %d: %v", msgID, err)
 	}
 
 	// Delete messages from DB
-	return s.chatStore.DeleteMessageGroup(dbSessionID, int(msgID))
+	return s.chatStore.DeleteMessageGroup(chatID, int(msgID))
 }
 
 // addChatToList adds a store.Chat to the in-memory chat list (session.chats)
@@ -348,17 +353,17 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 		s.mu.Unlock()
 		return
 	}
-	dbSessionID := s.currentChat.dbChat.ID
+	chatID := s.currentChat.dbChat.ID
 	s.mu.Unlock()
 
-	if dbSessionID == 0 {
+	if chatID == 0 {
 		return
 	}
 
 	s.chatsMu.Lock()
 	defer s.chatsMu.Unlock()
 	for i := range s.chats {
-		if s.chats[i].ID == dbSessionID {
+		if s.chats[i].ID == chatID {
 			s.chats[i].Title = title
 			s.chats[i].TitleState = int8(titleState)
 			return
@@ -385,16 +390,16 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 // convertDBMessagesToAgentMessages 将 store.Message 切片转换为 agent.Message 切片，
 // 并从 DB 加载关联的 WebSources 按 group_index 匹配填充。
 //
-// chatStore 和 sessionID 用于查询 web_sources 表；如果 chatStore 为 nil 或 sessionID 为 0，
+// chatStore 和 chatID 用于查询 web_sources 表；如果 chatStore 为 nil 或 chatID 为 0，
 // 则 Sources 保持为空（兼容匿名用户等无 DB 场景）。
-func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, sessionID int64) []Message {
-	// Load web sources for this session (if available)
+func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatID int64) []Message {
+	// Load web sources for this chat (if available)
 	var sourcesByMsgID map[int64][]store.WebSource
-	if chatStore != nil && sessionID > 0 {
+	if chatStore != nil && chatID > 0 {
 		var err error
-		sourcesByMsgID, err = chatStore.ListWebSourcesBySession(sessionID)
+		sourcesByMsgID, err = chatStore.ListWebSourcesByChat(chatID)
 		if err != nil {
-			log.Printf("failed to list web sources for session %d: %v", sessionID, err)
+			log.Printf("failed to list web sources for chat %d: %v", chatID, err)
 		}
 	}
 
@@ -443,11 +448,11 @@ func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 	if s.currentChat.dbChat == nil {
 		return nil, fmt.Errorf("no DB session")
 	}
-	dbSessionID := s.currentChat.dbChat.ID
-	if dbSessionID == 0 {
+	chatID := s.currentChat.dbChat.ID
+	if chatID == 0 {
 		return nil, fmt.Errorf("no DB session")
 	}
-	dbMessages, err := s.chatStore.ListMessages(dbSessionID)
+	dbMessages, err := s.chatStore.ListMessages(chatID)
 	if err != nil {
 		return nil, err
 	}

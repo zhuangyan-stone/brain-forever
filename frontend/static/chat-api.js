@@ -2,8 +2,8 @@
 // chat-api.js — API 调用封装
 // ============================================================
 
-import { state } from './chat-state.js';
 import { updateHeaderTitle } from './chat-ui.js';
+import { resetTickState } from './tick-state.js';
 import { showStickyNote } from './components/sticky-note.js';
 
 /**
@@ -69,7 +69,9 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
     // 如果标题已被修改过（AI 修改或用户手动修改），不再请求
     // 状态只能从低往高变（0→1, 0→2, 1→2），>= 1 即表示已非原始状态
     // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制请求 AI 重新生成
-    if (!force && state.titleState >= TITLE_STATE.AI) {
+    var chats = window.Alpine.store('chats');
+    var activeTitleState = (chats && chats.active) ? chats.active.titleState : 0;
+    if (!force && activeTitleState >= TITLE_STATE.AI) {
         return;
     }
 
@@ -89,7 +91,9 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
         if (data.title && data.changed === true) {
             // 异步调用期间用户可能已手动修改标题，再次检查防止覆盖
             // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制显示推荐
-            if (!force && state.titleState === TITLE_STATE.USER) {
+            var chats2 = window.Alpine.store('chats');
+            var currentTitleState = (chats2 && chats2.active) ? chats2.active.titleState : 0;
+            if (!force && currentTitleState === TITLE_STATE.USER) {
                 return;
             }
 
@@ -105,9 +109,13 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
                     if (!success) return;
 
                     // 如果 targetSN 匹配当前活跃 chat，更新 header 标题
-                    if (state.currentChatSN === targetSN) {
+                    var chats3 = window.Alpine.store('chats');
+                    var activeSN = (chats3 && chats3.active) ? chats3.active.sn : null;
+                    if (activeSN === targetSN) {
                         updateHeaderTitle(newTitle);
-                        state.titleState = TITLE_STATE.AI;
+                        if (chats3 && chats3.active) {
+                            chats3.active.titleState = TITLE_STATE.AI;
+                        }
                     }
 
                     // 尝试在侧边栏中找到该 chat 并更新标题（如果 chat 已被删除则跳过）
@@ -150,10 +158,13 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 			console.warn('更新标题失败:', response.status);
 			return false;
 		}
-		// 不携带 sn 时更新的是当前活跃 chat，更新本地 state
+		// 不携带 sn 时更新的是当前活跃 chat，更新 Alpine store
 		// 携带 sn 时由调用方自行处理本地状态
 		if (!sn) {
-			state.titleState = titleState;
+			var chats4 = window.Alpine.store('chats');
+			if (chats4 && chats4.active) {
+				chats4.active.titleState = titleState;
+			}
 		}
 		return true;
 	} catch (e) {
@@ -217,21 +228,19 @@ export async function onChatLogin(userNo) {
 
 /**
 	* switchToUser 切换前端状态到指定用户。
-	* 清空当前对话历史，重置标题，然后加载用户的对话列表。
+	* 清空当前对话历史，重置标题，然后通过 GET /api/chat/list 加载新用户的对话列表。
 	* 登录后自动恢复当前会话（包含合并的匿名聊天历史）。
-	* @param {object} data - 后端返回的登录响应数据 { user_no, sessions }
+	* @param {object} data - 后端返回的登录响应数据 { user_no }
 	*/
 export async function switchToUser(data) {
 	// 清空消息状态
-	state.messages = [];
-	state.userMsgCount = 0;
-	state.activeTickIndex = -1;
-	state.tickScrollOffset = 0;
-	state.accumulatedMarkdown = '';
-	if (state.renderTimer) {
-		clearTimeout(state.renderTimer);
-		state.renderTimer = null;
-	}
+	resetTickState();
+	try {
+		var chats = window.Alpine.store('chats');
+		if (chats) {
+			chats.reset();
+		}
+	} catch(e) {}
 
 	// 移除所有消息 DOM 节点
 	const chatContainer = document.getElementById('chatContainer');
@@ -273,20 +282,17 @@ export async function switchToUser(data) {
 	// 更新标题
 	updateHeaderTitle('');
 
-	// 更新登录按钮文本
-	const loginBtn = document.getElementById('loginBtn');
-	if (loginBtn) {
-		loginBtn.textContent = `用户: ${data.user_no}`;
-	}
+	// 更新登录按钮文本（Alpine 响应式渲染）
+	try {
+		var chats = window.Alpine.store('chats');
+		if (chats) {
+			chats.currentUserNo = data.user_no;
+		}
+	} catch(e) {}
 
-	// 渲染对话列表
-	const { renderChatList } = await import('./chat-list.js');
-	renderChatList(data.chats || [], data.current_chat_sn || null);
-
-	// 恢复合并后的对话（后端 switchToUser 已将匿名聊天持久化并设置为当前对话）
-	// 调用 GET /api/session 恢复匿名聊天的历史消息，实现无缝过渡
-	const { restoreChat } = await import('./chat-restore.js');
-	await restoreChat();
+	// TODO: 渐进式重构 — 后续再实现登录后的对话列表刷新
+	// 原逻辑通过 import('./chat-restore.js') 的 fetchChatList 和 restoreChat 实现，
+	// chat-restore.js 已删除，后续需改为调用 initPage() 或独立刷新逻辑。
 
 	// 聚焦输入框
 	const msgInput = document.getElementById('messageInput');

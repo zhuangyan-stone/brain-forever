@@ -3,12 +3,11 @@
 // ============================================================
 // 显隐状态由 Alpine 组件 deleteDialog 管理（x-data + :class="{ show }"），
 // 不再手动操作 classList。
-// 内容填充（从 DOM 提取消息预览）仍由本模块负责，
-// 因为内容来自运行时 DOM，不适合在 Alpine 模板中预先定义。
+// 内容填充从 Alpine store 的 groups 数组获取，不再从 DOM 提取。
+// 确认删除时操作 Alpine store 的 groups 数组，Alpine x-for 自动更新 DOM。
 // ============================================================
 
 import { escapeHtml } from '../toolsets.js';
-import { state } from '../chat-state.js';
 import { showToast } from '../chat-ui.js';
 import { updateTickNav } from '../chat-ticknav.js';
 
@@ -17,44 +16,44 @@ import { updateTickNav } from '../chat-ticknav.js';
 /**
  * showDeleteModal 显示删除确认模态框
  *
- * 通过 Alpine.$data 操作 Alpine 组件的响应式状态，
- * Alpine 自动触发 :class="{ show: true }" 更新 DOM 显隐。
+ * 从 Alpine store 的 groups 数组中获取消息内容预览，
+ * 不再从 DOM 中查找（因为 DOM 由 Alpine 管理，无 data-msg-index 属性）。
+ *
+ * @param {number} index - groups 数组中的索引
  */
-export function showDeleteModal() {
+export function showDeleteModal(index) {
     const deleteModal = document.getElementById('deleteModal');
     const modalBody = document.getElementById('modalBody');
     const modalNote = document.getElementById('modalDeleteNote');
-    const chatContainer = document.getElementById('chatContainer');
-    if (!deleteModal || !modalBody || !chatContainer) return;
+    if (!deleteModal || !modalBody) return;
 
-    if (state.activeTickIndex < 0) return;
+    if (index < 0) return;
 
-    // ---- 填充内容 ----
-    const deleteIndex = state.activeTickIndex;
+    // ---- 从 Alpine store 获取消息内容预览 ----
+    var chats = window.Alpine.store('chats');
+    var group = chats && chats.active ? chats.active.groups[index] : null;
+    if (!group) return;
 
-    // 获取用户消息
-    const userMsg = chatContainer.querySelector(`.message.user[data-msg-index="${deleteIndex}"]`);
     let html = '';
-    if (userMsg) {
-        const rawContent = userMsg.querySelector('.bubble').textContent || '';
-        const userPreview = escapeHtml(rawContent);
+
+    // 用户消息预览
+    if (group.user) {
+        const userPreview = escapeHtml(group.user.content || '');
         html += '<div class="del-preview-msg del-preview-user">'
             + '<div class="role-label">我</div>'
             + '<div class="del-preview-bubble">' + userPreview + '</div>'
             + '</div>';
-        // 在同一个 .message-group 内查找 AI 回复
-        const group = userMsg.closest('.message-group');
-        if (group) {
-            const assistantMsg = group.querySelector('.message.assistant');
-            if (assistantMsg) {
-                const assistantContent = assistantMsg.querySelector('.bubble').textContent || '';
-                const assistantPreview = escapeHtml(assistantContent.trim());
-                if (assistantPreview) {
-                    html += '<div class="del-preview-msg del-preview-assistant">'
-                        + '<div class="role-label">AI</div>'
-                        + '<div class="del-preview-bubble"><span class="del-preview-text">' + assistantPreview + '</span></div>'
-                        + '</div>';
-                }
+
+        // AI 回复预览（从 group.assistant.content 获取）
+        // ★ 方案B：group.assistant 始终存在，直接取其 content
+        const assistantContent = group.assistant ? group.assistant.content : '';
+        if (assistantContent) {
+            const assistantPreview = escapeHtml(assistantContent.trim());
+            if (assistantPreview) {
+                html += '<div class="del-preview-msg del-preview-assistant">'
+                    + '<div class="role-label">AI</div>'
+                    + '<div class="del-preview-bubble"><span class="del-preview-text">' + assistantPreview + '</span></div>'
+                    + '</div>';
             }
         }
     }
@@ -67,47 +66,36 @@ export function showDeleteModal() {
     }
 
     // ---- 通过 Alpine 打开对话框 ----
-    Alpine.$data(deleteModal).open(deleteIndex);
+    Alpine.$data(deleteModal).open(index);
 }
 
 /**
  * confirmDelete 确认删除（由 Alpine @click 调用，注册在 window 上）
+ *
+ * 操作 Alpine store 的 groups 数组（splice），Alpine x-for 自动移除 DOM。
+ * 同时清理 Alpine store 中对应的 messages 条目。
  */
 window.confirmDelete = async function() {
     const deleteModal = document.getElementById('deleteModal');
-    const chatContainer = document.getElementById('chatContainer');
-    if (!deleteModal || !chatContainer) return;
+    if (!deleteModal) return;
 
     const deleteData = Alpine.$data(deleteModal);
     const index = deleteData.deleteIndex;
     if (index < 0) return;
 
-    // 获取要删除的用户消息
-    const userMsg = chatContainer.querySelector(`.message.user[data-msg-index="${index}"]`);
-    if (!userMsg) {
-        deleteData.close();
-        return;
-    }
-
-    // 找到该消息所在的 .message-group
-    const group = userMsg.closest('.message-group');
+    var chats = window.Alpine.store('chats');
+    var group = chats && chats.active ? chats.active.groups[index] : null;
     if (!group) {
         deleteData.close();
         return;
     }
 
-    // 从 message-group 获取 msg_id
-    const msgId = parseInt(group.dataset.msgId, 10);
-
-    // 在移除 DOM 之前，先收集该组中所有消息的 ID
-    const groupMsgIds = new Set();
-    if (!isNaN(msgId)) groupMsgIds.add(msgId);
+    // 获取 msgId 用于后端删除和 Alpine store messages 清理
+    const msgId = group.msgId || 0;
 
     try {
-        // msgId 为 0 或无效（NaN）表示提交未完成，仅删除前端 DOM
-        if (!msgId || isNaN(msgId)) {
-            group.remove();
-        } else {
+        // msgId 为 0 表示提交未完成，仅删除前端数据
+        if (msgId) {
             // 有有效 ID，先调后端 API 删除
             const response = await fetch('/api/chat/messages', {
                 method: 'DELETE',
@@ -119,22 +107,10 @@ window.confirmDelete = async function() {
                 const errText = await response.text();
                 throw new Error(`删除失败 [${response.status}]: ${errText}`);
             }
-
-            // 后端删除成功后，移除整个消息组
-            group.remove();
         }
 
-        // 从 messages 数组中删除该组中所有消息
-        state.messages = state.messages.filter(msg => !groupMsgIds.has(msg.id));
-
-        // 重新编号所有 user 消息的 data-msg-index
-        const remainingUsers = chatContainer.querySelectorAll('.message.user');
-        remainingUsers.forEach((msg, i) => {
-            msg.dataset.msgIndex = i;
-        });
-
-        // 更新 userMsgCount
-        state.userMsgCount = remainingUsers.length;
+        // 从 Alpine store 的 groups 数组中移除（Alpine x-for 自动更新 DOM）
+        chats.active.groups.splice(index, 1);
 
         // 更新刻度导航
         updateTickNav();

@@ -125,17 +125,7 @@ func main() {
 	// API routes
 	mux.Handle("/api/chat", http.HandlerFunc(chatHandler.OnNewMessage))
 	mux.Handle("/api/chat/info/llm", http.HandlerFunc(chatHandler.OnGetLLMInfo))
-	mux.Handle("/api/session", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			chatHandler.OnRestoreSession(w, r)
-		case http.MethodDelete:
-			chatHandler.OnDeleteSession(w, r)
-		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		}
-	}))
-	mux.Handle("/api/session/new", http.HandlerFunc(chatHandler.OnNewSession))
+	mux.Handle("/api/session", http.HandlerFunc(chatHandler.OnSession))
 	mux.Handle("/api/session/title", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -146,6 +136,7 @@ func main() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
+	mux.Handle("/api/chat/list", http.HandlerFunc(chatHandler.OnGetChats))
 	mux.Handle("/api/chat/new", http.HandlerFunc(chatHandler.OnNewChat))
 	mux.Handle("/api/chat/pin", http.HandlerFunc(chatHandler.OnChatPin))
 	mux.Handle("/api/chat/switch", http.HandlerFunc(chatHandler.OnSwitchChat))

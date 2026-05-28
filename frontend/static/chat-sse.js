@@ -9,10 +9,8 @@
 // 数据累积到 ChatSession.streamingMsg 中，不丢失。
 // ============================================================
 
-import { state } from './chat-state.js';
 import { sessionManager } from './chat-session-manager.js';
-import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, throttleRender, restoreInputArea } from './chat-ui.js';
-import { handleReasoningEvent, finalizeReasoningArea } from './chat-reasoning.js';
+import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, restoreInputArea } from './chat-ui.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { TITLE_STATE, fetchChatTitle, truncateTitle, newChat } from './chat-api.js';
@@ -25,23 +23,33 @@ import { addDirtyChat } from './chat-list.js';
 // ============================================================
 
 /**
- * 删除欢迎消息，将输入区域移回 main-content 底部
- * @param {HTMLElement} chatContainer
+ * 删除欢迎消息（通过 Alpine store 清空 welcomeMessage）
+ * 不再直接操作 DOM，由 Alpine 响应式模板驱动隐藏。
+ * @param {HTMLElement} chatContainer - 保留参数以兼容调用方
  */
 function removeWelcomeMessage(chatContainer) {
-    const welcomeEl = chatContainer.querySelector('.welcome-message');
-    if (!welcomeEl) return;
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            chats.welcomeMessage = '';
+        }
+    } catch(e) {}
 
-    const inputArea = welcomeEl.querySelector('.input-area');
-    if (inputArea) {
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            mainContent.appendChild(inputArea);
+    // 将输入面板移回原位（.main-body 之后），恢复 margin-top: auto
+    var inputArea = document.querySelector('.input-area');
+    if (inputArea && inputArea.parentNode?.classList?.contains('welcome-message')) {
+        var mainBody = document.getElementById('mainBody');
+        if (mainBody) {
+            mainBody.parentNode.insertBefore(inputArea, mainBody.nextSibling);
+            inputArea.style.marginTop = '';
         }
     }
-    welcomeEl.remove();
 
-    const scrollContainer = document.getElementById('scrollContainer');
+    // 显式移除 welcome-state，确保 scroll-container 回到块级流式布局（非 flex 居中）。
+    // 注：Alpine 的 :class 绑定是"追加式"的，不会移除静态 class 中的同名类，
+    // 因此必须通过 JS 显式移除，否则消息内容会被 flex justify-content:center 垂直居中，
+    // 导致顶部消息无法通过滚动看到。
+    var scrollContainer = document.getElementById('scrollContainer');
     if (scrollContainer) {
         scrollContainer.classList.remove('welcome-state');
     }
@@ -54,19 +62,23 @@ function removeWelcomeMessage(chatContainer) {
  */
 function addUserMessage(content, createdAt) {
     addMessage('user', content, createdAt);
-    state.messages.push({ role: 'user', content, id: 0, created_at: createdAt });
 
-    if (!state.dialogTitle) {
+    // messages 已由 addMessage() → addGroup() 管理，不再需要单独的 messages push
+
+    var chats = window.Alpine.store('chats');
+    var activeChat = chats ? chats.active : null;
+
+    if (!activeChat || !activeChat.title) {
         const title = truncateTitle(content);
         if (title) {
             updateHeaderTitle(title);
-            state.titleState = TITLE_STATE.ORIGINAL;
+            if (activeChat) activeChat.titleState = TITLE_STATE.ORIGINAL;
 
             // 首次消息：立即在侧边栏插入一条新对话条目
-            // newChat() 已预先获取了 SN（state.currentChatSN），直接传给 addDirtyChat
+            // newChat() 已预先获取了 SN，直接传给 addDirtyChat
             // 这样侧边栏条目从创建起就拥有真实 SN，点击即可正常切换
             // 匿名用户和登录用户都会添加侧边栏条目
-            addDirtyChat(title, state.currentChatSN || null);
+            addDirtyChat(title, activeChat ? activeChat.sn : null);
         }
     }
 }
@@ -79,7 +91,11 @@ function prepareChat() {
     const messageInput = document.getElementById('messageInput');
     const chatContainer = document.getElementById('chatContainer');
     const content = messageInput.value.trim();
-    if (!content || sessionManager.isStreaming) return null;
+    if (!content) return null;
+    // 仅检查当前活跃对话是否正在流式，不阻塞其他对话的流式状态
+    var chats = window.Alpine.store('chats');
+    var activeChat = chats ? chats.active : null;
+    if (activeChat && activeChat.isStreaming) return null;
 
     // 清空输入框
     messageInput.value = '';
@@ -92,7 +108,18 @@ function prepareChat() {
     const createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
     // 新消息发出，即将滚动到底部，重置用户滚动状态
-    state.userScrolledUp = false;
+    var chats = window.Alpine.store('chats');
+    if (chats && chats.active) {
+        chats.active.userScrolledUp = false;
+    }
+
+    // 获取当前对话的 SN（blankItem 方案保证 chats.active 始终有效）
+    var activeChat = chats ? chats.active : null;
+    const sn = activeChat ? activeChat.sn : '';
+    const session = sessionManager.getOrCreate(sn);
+
+    // 标记为流式状态（startStreaming 会设置 isStreaming=true 并创建 streamingMsg）
+    chats.startStreaming(sn);
 
     // 添加用户消息
     addUserMessage(content, createdAt);
@@ -100,28 +127,24 @@ function prepareChat() {
     // 更新刻度导航
     updateTickNav();
 
-    // 创建空的 assistant 消息占位
-    const assistantBubble = addMessage('assistant', '', null, true);
-    const contentDiv = assistantBubble.querySelector('.bubble');
+    // 创建空的 assistant 消息占位（通过 Alpine store 数据驱动）
+    addMessage('assistant', '', null, true);
 
-    // 获取或创建当前对话的 ChatSession
-    const sn = state.currentChatSN;
-    const session = sessionManager.getOrCreate(sn);
-    session.isStreaming = true;
-    session._isActive = true;
-    session.assistantBubble = assistantBubble;
-    session.contentDiv = contentDiv;
-    session.resetStreaming();
-
-    // 同步更新 Alpine store 的 isStreaming，确保 :disabled 绑定即时生效
-    try {
-        window.Alpine.store('chats').startStreaming(sn);
-    } catch(e) {}
+    // 等待 Alpine 渲染完成后获取 DOM 引用
+    requestAnimationFrame(function() {
+        var chatContainer = document.getElementById('chatContainer');
+        if (!chatContainer) return;
+        var lastGroupEl = chatContainer.querySelector('.message-group:last-child');
+        if (!lastGroupEl) return;
+        var streamingBubble = lastGroupEl.querySelector('.bubble.streaming');
+        var assistantMsgEl = lastGroupEl.querySelector('.message.assistant');
+        if (assistantMsgEl) {
+            session.assistantBubble = assistantMsgEl;
+            session.contentDiv = streamingBubble || assistantMsgEl.querySelector('.bubble');
+        }
+    });
 
     // 确保流式开始前页面已在底部。
-    // addMessage 内部的 autoScrollToBottom 使用同步 scrollTop 赋值，
-    // 如果 SSE 事件在 scroll 事件之前到达（如 reasoning 事件首条创建 DOM），
-    // 再次滚动可确保位置正确。
     autoScrollToBottom();
 
     // 统一切换所有 UI 组件到流式状态
@@ -230,8 +253,7 @@ function dispatchEventToResponser(event, session) {
  * @param {string} createdAt
  */
 async function fetchStream(session, content, createdAt) {
-    // 锁定本轮会话的深度思考状态（防止流式过程中用户乱点按钮导致状态漂移）
-    state.sessionDeepThinkingEnabled = state.deepThinkActive;
+    var settings = window.__settingsStore;
 
     // 发送请求 — 只传用户最新的一句话，历史由后端维护
     const response = await fetch('/api/chat', {
@@ -240,8 +262,8 @@ async function fetchStream(session, content, createdAt) {
         body: JSON.stringify({
             message: { id: 0, role: 'user', content, created_at: createdAt },
             stream: true,
-            deep_think: state.deepThinkActive,
-            web_search_enabled: state.webSearchActive
+            deep_think: settings ? settings.deepThink : false,
+            web_search_enabled: settings ? settings.webSearch : false
         }),
         signal: session.abortController.signal
     });
@@ -265,6 +287,17 @@ async function fetchStream(session, content, createdAt) {
 function handleAbortError(session) {
     const assistantBubble = session.assistantBubble;
     if (!assistantBubble) return;
+
+    // 设置 Alpine store 中的 reasoningState = 'interrupted'
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            var chatData = chats.getOrCreate(session.sn);
+            if (chatData && chatData.streamingMsg) {
+                chatData.streamingMsg.reasoningState = 'interrupted';
+            }
+        }
+    } catch(e) {}
 
     // 请求已取消：将 reasoning 标题改为"AI 思路已被掐断"
     const area = assistantBubble.querySelector('.reasoning-area.active');
@@ -299,7 +332,7 @@ function handleAbortError(session) {
 function handleStreamError(err, session) {
     if (err.name === 'AbortError') {
         // 标记为中断，cleanupAfterStream 据此跳过标题自动修改等操作
-        state._wasAborted = true;
+        session.wasAborted = true;
         handleAbortError(session);
     } else {
         console.error('请求失败:', err);
@@ -321,17 +354,20 @@ function autoUpdateTitle(wasAborted) {
     // 条件：
     //   - 未被中断（AI 回复被掐断时不取标题，因为回复不完整）
     //   - 标题未被修改过（titleState >= 1 表示已被 AI 或用户修改，不再请求）
-    //   - 仅在第一组消息时允许（messages.length <= 2，即第一条用户消息 + 第一条 AI 回复）
+    //   - 仅在第一组消息时允许（groups.length <= 1，即第一轮对话）
     // 更严格的触发条件：仅在第一轮对话后自动请求 AI 生成标题，后续轮次不再自动触发
-    if (wasAborted || state.titleState >= TITLE_STATE.AI || state.messages.length > 2) return;
+    var chats = window.Alpine.store('chats');
+    var activeChat = chats ? chats.active : null;
+    if (!activeChat) return;
+    if (wasAborted || activeChat.titleState >= TITLE_STATE.AI || activeChat.groups.length > 1) return;
 
     // 原标题：使用当前已有的标题（可能是 AI 已修改过的），而不是重新从第一条消息截取
     // 这样后端可以基于当前标题判断是否需要更新
-    // 如果 dialogTitle 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
-    const originalTitle = state.dialogTitle || '';
+    // 如果 title 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
+    const originalTitle = activeChat.title || '';
     // 异步调用，不阻塞后续操作
     // 传递当前 chat SN，确保后端返回时前端能精确定位到正确的对话
-    fetchChatTitle(originalTitle, false, state.currentChatSN);
+    fetchChatTitle(originalTitle, false, activeChat.sn);
 }
 
 /**
@@ -340,9 +376,6 @@ function autoUpdateTitle(wasAborted) {
  * @param {boolean} wasAborted  是否被用户中断
  */
 function cleanupAfterStream(session, wasAborted) {
-    // 清理中断标记（默认 false，确保每次 sendMessage 调用都有干净的初始值）
-    state._wasAborted = false;
-    session.isStreaming = false;
     session.abortController = null;
 
     // 仅当此 session 仍是活跃 session 时，才操作全局 UI
@@ -398,11 +431,13 @@ function cleanupAfterStream(session, wasAborted) {
  * 这避免了 refreshChatListIfNeeded 的"全量替换"方式可能导致的重复条目和标题覆盖问题。
  * 条件：
  *   - 未被中断（AI 回复不完整时列表无意义）
- *   - 仅在第一组消息后触发（state.messages.length <= 2）
+ *   - 仅在第一组消息后触发（groups.length <= 1）
  */
 async function getCurrentChatIfNeeded(wasAborted) {
     // 被中断或非第一轮对话，跳过
-    if (wasAborted || state.messages.length > 2) return;
+    var chats = window.Alpine.store('chats');
+    var activeChat = chats ? chats.active : null;
+    if (wasAborted || !activeChat || activeChat.groups.length > 1) return;
 
     try {
         const response = await fetch('/api/chat/current');
@@ -431,7 +466,12 @@ async function getCurrentChatIfNeeded(wasAborted) {
  * @returns {boolean}
  */
 function isNewChat() {
-    return !state.currentChatSN && state.messages.length === 0;
+    var chats = window.Alpine.store('chats');
+    if (!chats) return true;
+    // blankItem 存在且 activeIndex === -1 表示处于空白对话状态
+    if (chats.blankItem && chats.activeIndex === -1) return true;
+    var activeChat = chats.active;
+    return !activeChat || (!activeChat.sn && (!activeChat.groups || activeChat.groups.length === 0));
 }
 
 /**
@@ -444,7 +484,14 @@ export async function sendMessage() {
     if (isNewChat()) {
         const data = await newChat();
         if (data && data.sn) {
-            state.currentChatSN = data.sn;
+            var chats = window.Alpine.store('chats');
+            if (chats) {
+                // ★★★ blankItem 方案：将 blankItem 提升到 items[] 中 ★★★
+                var item = chats.promoteBlankItem();
+                if (item) {
+                    item.sn = data.sn;
+                }
+            }
         }
         // 即使匿名用户返回空 SN，也不阻塞后续流程
     }
@@ -459,6 +506,6 @@ export async function sendMessage() {
     } catch (err) {
         handleStreamError(err, session);
     } finally {
-        cleanupAfterStream(session, !!state._wasAborted);
+        cleanupAfterStream(session, session.wasAborted);
     }
 }

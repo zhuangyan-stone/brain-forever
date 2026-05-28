@@ -3,7 +3,6 @@
 // 导入各功能模块并完成初始化
 // ============================================================
 
-import { state, UserSettings } from './chat-state.js';
 import { switchHighlightTheme } from './chat-markdown.js';
 import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, collapseInputArea, restoreInputArea, isInputCollapsed, isScrolledToBottom } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
@@ -11,25 +10,26 @@ import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
-import { restoreChat } from './chat-restore.js';
+import { initPage } from './chat-init.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, addDirtyChat } from './chat-list.js';
-import { ICON_TOGGLE } from './svg_icons.js';
+import { ICON_TOGGLE, ICON_DELETE, ICON_EDIT } from './svg_icons.js';
 import { sessionManager } from './chat-session-manager.js';
+import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 
 'use strict';
+
+// 暴露图标常量给 Alpine 模板（x-html 引用）
+window.ICON_DELETE = ICON_DELETE;
+window.ICON_EDIT = ICON_EDIT;
 
 // ============================================================
 // 从 cookie 加载用户设置
 // ============================================================
-UserSettings.load();
+window.__settingsStore.load();
 
-// ============================================================
-// 主题映射工具
-// ============================================================
-// UserSettings.theme: 0=明亮, 1=暗色, 2=跟随系统（保留值，未来系统设置中使用）
 const THEME_VALUES = ['light', 'dark', 'system'];
 
 function resolveTheme(theme) {
@@ -46,9 +46,6 @@ function resolveTheme(theme) {
 initDom();
 initTooltip();
 
-// 初始化 sessionManager 到全局状态
-state._sessionManager = sessionManager;
-
 // ============================================================
 // 主题切换 — applyTheme 被 Alpine store toggleTheme() 通过
 // 'theme-changed' 自定义事件触发
@@ -62,7 +59,7 @@ function applyTheme(themeVal) {
 }
 
 // 初始化主题
-applyTheme(UserSettings.theme);
+applyTheme(window.__settingsStore.theme);
 
 // 监听 Alpine store 发起的主题变更事件
 document.addEventListener('theme-changed', (e) => {
@@ -88,8 +85,9 @@ if (aiTitleBtn) {
         // 使用当前对话标题作为 originalTitle 传给后端
         // force=true 忽略 titleState 守卫，强制请求 AI 重新生成标题
         // 传递当前 chat SN，确保后端返回时前端能精确定位到正确的对话
-        const originalTitle = state.dialogTitle || '';
-        fetchChatTitle(originalTitle, true, state.currentChatSN);
+        const activeChat = window.Alpine.store('chats').active;
+        const originalTitle = (activeChat && activeChat.title) || '';
+        fetchChatTitle(originalTitle, true, activeChat ? activeChat.sn : '');
         // 设置防抖定时器，5 秒内不再响应点击
         aiTitleDebounceTimer = setTimeout(() => {
             aiTitleDebounceTimer = null;
@@ -103,88 +101,35 @@ if (aiTitleBtn) {
 // ============================================================
 
 async function startNewSession() {
-    // 如果正在流式输出，直接返回（按钮已 disabled，再加一层防御）
-    if (sessionManager.isStreaming) {
-        return;
+    // ---- 纯前端重置状态，不再调用后端 ----
+
+    var chatsStore = window.Alpine.store('chats');
+
+    // 1. 重置为空白对话状态：activeIndex = -1，创建 blankItem
+    //    SN 暂时为空，用户发出第一条消息时由 sendMessage() 中的 newChat() 分配
+    //    Alpine 响应式模板自动隐藏消息组、显示欢迎消息
+    chatsStore.resetToBlank();
+    resetTickState();
+
+    // 2. 清空刻度导航
+    const tickNav = document.getElementById('tickNav');
+    if (tickNav) {
+        tickNav.innerHTML = '';
     }
 
-    try {
-        const response = await fetch('/api/session/new', {
-            method: 'POST',
-        });
+    // 3. 清除所有便利贴（新会话不需要旧的标题推荐）
+    clearAllStickyNotes();
 
-        if (!response.ok) {
-            console.error('创建新会话失败:', response.status);
-            return;
-        }
+    // 4. 清除左侧栏对话列表的选中状态
+    clearActiveChat();
 
-        // ---- 无刷新重置前端状态 ----
+    // 5. 设置欢迎消息文本（Alpine 响应式模板自动显示）
+    showWelcomeMessage();
 
-        // 1. 清空消息状态及相关计数器
-        state.messages = [];
-        state.currentChatSN = ''; // 新对话重置 SN
-        state.userMsgCount = 0;
-        state.activeTickIndex = -1;
-        state.tickScrollOffset = 0;
-        state.accumulatedMarkdown = '';
-        if (state.renderTimer) {
-            clearTimeout(state.renderTimer);
-            state.renderTimer = null;
-        }
-
-        // 2. 移除所有消息 DOM 节点（.message-group）
-        const chatContainer = document.getElementById('chatContainer');
-        if (chatContainer) {
-            chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
-        }
-
-        // 3. 移除已有的欢迎消息（如果有）
-        const existingWelcome = document.querySelector('.welcome-message');
-        if (existingWelcome) {
-            // 将 input-area 移回原来的位置（main-body 之后）
-            const inputArea = existingWelcome.querySelector('.input-area');
-            if (inputArea) {
-                const mainBody = document.getElementById('mainBody');
-                if (mainBody && mainBody.nextElementSibling?.classList?.contains('input-area')) {
-                    // input-area 已经在正确位置，不需要移动
-                } else if (mainBody) {
-                    // 将 input-area 插入到 mainBody 之后
-                    mainBody.parentNode.insertBefore(inputArea, mainBody.nextSibling);
-                }
-            }
-            existingWelcome.remove();
-        }
-
-        // 4. 清空刻度导航
-        const tickNav = document.getElementById('tickNav');
-        if (tickNav) {
-            tickNav.innerHTML = '';
-        }
-
-        // 5. 移除 welcome-state 标记
-        const scrollContainer = document.getElementById('scrollContainer');
-        if (scrollContainer) {
-            scrollContainer.classList.remove('welcome-state');
-        }
-
-        // 6. 清除所有便利贴（新会话不需要旧的标题推荐）
-        clearAllStickyNotes();
-
-        // 7. 清除左侧栏对话列表的选中状态
-        clearActiveChat();
-
-        // 8. 重新显示欢迎消息（会设置标题为"欢迎开始新对话"）
-        showWelcomeMessage();
-
-        // 9. 确保输入面板展开并同步内部折叠状态
-        //    showWelcomeMessage 中已移除 collapsed 类，但 IIFE 闭包中的 isCollapsed
-        //    变量可能仍为 true，通过触发 focus 事件让 restoreInputArea 同步状态
-        const msgInput = document.getElementById('messageInput');
-        if (msgInput) {
-            msgInput.focus();
-        }
-    } catch (e) {
-        console.error('创建新会话出错:', e);
+    // 6. 确保输入面板展开并同步内部折叠状态
+    const msgInput = document.getElementById('messageInput');
+    if (msgInput) {
+        msgInput.focus();
     }
 }
 
@@ -616,10 +561,9 @@ const sendBtn = document.getElementById('sendBtn');
 const sendModeToggle = document.getElementById('sendModeToggle');
 const sendModeLabel = document.getElementById('sendModeLabel');
 
-// ---- 从 UserSettings 恢复发送模式 ----
+// ---- 从 settings store 恢复发送模式 ----
 // sendMode: 0=Enter发送, 1=Enter换行
-state.sendModeAlternate = UserSettings.sendMode === 1;
-sendModeToggle.checked = state.sendModeAlternate;
+sendModeToggle.checked = window.__settingsStore.sendMode === 1;
 
 messageInput.addEventListener('input', () => {
     messageInput.style.height = 'auto';
@@ -642,12 +586,13 @@ const newlineHint = document.getElementById('newlineHint');
 
 // 更新发送模式标签
 function updateSendModeLabel() {
-    sendModeLabel.textContent = state.sendModeAlternate
+    var isAlternate = window.__settingsStore.sendMode === 1;
+    sendModeLabel.textContent = isAlternate
         ? SEND_MODE_LABELS.alternate
         : SEND_MODE_LABELS.normal;
     // 同步更新换行提示
     if (newlineHint) {
-        newlineHint.textContent = state.sendModeAlternate
+        newlineHint.textContent = isAlternate
             ? NEWLINE_HINT_LABELS.alternate
             : NEWLINE_HINT_LABELS.normal;
     }
@@ -655,10 +600,9 @@ function updateSendModeLabel() {
 
 // 滑块切换发送模式
 sendModeToggle.addEventListener('change', () => {
-    state.sendModeAlternate = sendModeToggle.checked;
+    window.__settingsStore.sendMode = sendModeToggle.checked ? 1 : 0;
+    window.__settingsStore.save();
     updateSendModeLabel();
-    UserSettings.sendMode = state.sendModeAlternate ? 1 : 0;
-    UserSettings.save();
 });
 
 // 点击标签文本也可切换发送模式
@@ -673,7 +617,7 @@ updateSendModeLabel();
 // 键盘发送/换行逻辑
 messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-        if (state.sendModeAlternate) {
+        if (window.__settingsStore.sendMode === 1) {
             // 模式二: Enter换行, Shift+Enter发送
             if (e.shiftKey) {
                 e.preventDefault();
@@ -694,8 +638,8 @@ messageInput.addEventListener('keydown', (e) => {
 sendBtn.addEventListener('click', () => {
     if (sessionManager.isStreaming) {
         // 正在流式输出：停止生成
-        if (state.abortController) {
-            state.abortController.abort();
+        if (sessionManager.abortController) {
+            sessionManager.abortController.abort();
         }
     } else {
         sendMessage();
@@ -706,8 +650,8 @@ sendBtn.addEventListener('click', () => {
 const stopStreamingBtn = document.getElementById('stopStreamingBtn');
 if (stopStreamingBtn) {
     stopStreamingBtn.addEventListener('click', () => {
-        if (state.abortController) {
-            state.abortController.abort();
+        if (sessionManager.abortController) {
+            sessionManager.abortController.abort();
         }
     });
 }
@@ -750,7 +694,8 @@ initTickNav();
             return;
         }
 
-        const currentTitle = state.dialogTitle || '';
+        var activeChat = window.Alpine.store('chats').active;
+        const currentTitle = (activeChat && activeChat.title) || '';
         if (!currentTitle) {
             // 欢迎状态（空标题）不弹出对话框
             return;
@@ -805,8 +750,10 @@ initDeleteModal();
     });
 })();
 
-// 页面加载后先恢复会话
-window.addEventListener('DOMContentLoaded', restoreChat);
+// 页面加载后初始化：创建 HTTP session、获取对话列表、显示欢迎消息
+window.addEventListener('DOMContentLoaded', async () => {
+	await initPage();
+});
 
 // 页面加载后获取当前使用的 AI 信息（名称、模型、官网），更新底部免责声明
 window.addEventListener('DOMContentLoaded', async () => {
@@ -839,7 +786,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!chatContainer || !inputArea || !messageInput) return;
 
     /** 上一次记录的 activeTickIndex，用于检测刻度变化 */
-    let lastActiveTickIndex = state.activeTickIndex;
+    let lastActiveTickIndex = activeTickIndex;
 
     // ---- scrollend：滚动完全停止后，折叠输入面板 + 恢复自动滚动 ----
     chatContainer.addEventListener('scrollend', () => {
@@ -848,9 +795,15 @@ window.addEventListener('DOMContentLoaded', async () => {
         // 滚动停止后才折叠输入面板，避免 scroll anchoring 干扰滚动过程中的检测
         collapseInputArea();
 
-        if (state.userScrolledUp && isScrolledToBottom()) {
-            state.userScrolledUp = false;
-        }
+        // 从 Alpine store 获取/设置当前活跃 chat 的滚动状态
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats && chats.active) {
+                if (chats.active.userScrolledUp && isScrolledToBottom()) {
+                    chats.active.userScrolledUp = false;
+                }
+            }
+        } catch(e) {}
     });
 
     // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----
@@ -861,18 +814,23 @@ window.addEventListener('DOMContentLoaded', async () => {
     chatContainer.addEventListener('scroll', () => {
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
-            const currentTickIndex = state.activeTickIndex;
+            const currentTickIndex = activeTickIndex;
             const sc = chatContainer;
             const debugInfo = `scrollTop=${sc.scrollTop} scrollHeight=${sc.scrollHeight} clientHeight=${sc.clientHeight}`;
 
             if (sessionManager.isStreaming) {
                 // streaming 分支：只检测用户滚动状态，不操作输入面板（避免 scroll anchoring）
                 // auto-scroll 由 throttleRender 每 180ms 调用 autoScrollToBottom 负责
-                if (!isScrolledToBottom()) {
-                    state.userScrolledUp = true;
-                } else if (state.userScrolledUp) {
-                    state.userScrolledUp = false;
-                }
+                try {
+                    var chats2 = window.Alpine.store('chats');
+                    if (chats2 && chats2.active) {
+                        if (!isScrolledToBottom()) {
+                            chats2.active.userScrolledUp = true;
+                        } else if (chats2.active.userScrolledUp) {
+                            chats2.active.userScrolledUp = false;
+                        }
+                    }
+                } catch(e) {}
 
                 scrollThrottleTimer = null;
                 return;

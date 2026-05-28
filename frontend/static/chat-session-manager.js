@@ -4,14 +4,13 @@
 //
 // 管理所有对话的 ChatSession 实例。
 // 切换对话时，旧对话的 SSE 连接继续在后台接收数据，
-// 数据累积到 streamingMsg 中，不丢失。
+// 数据累积到 Alpine store 的 ChatData.streamingMsg 中，不丢失。
 //
 // 全局单例：export const sessionManager
 // ============================================================
 
 import { ChatSession } from './chat-session.js';
 import { SSEResponser } from './chat-sse-responser.js';
-import { state } from './chat-state.js';
 
 'use strict';
 
@@ -49,33 +48,29 @@ class ChatSessionManager {
      * 切换活跃对话
      *
      * 切换时：
-     *   - 旧 session 标记为非活跃（_isActive = false）
-     *     → 其 SSEResponser 不再更新 DOM，但继续接收数据到 streamingMsg
-     *   - 新 session 标记为活跃（_isActive = true）
+     *   - 旧 session 的 SSEResponser 不再更新 DOM（通过 isActive 判断），
+     *     但继续在后台接收数据到 Alpine store
+     *   - 新 session 的 SSEResponser 开始更新 DOM
      *   - 如果新 session 有已完成的 streamingMsg，调用 flushToDOM() 渲染
      *
      * @param {string} newSN - 目标对话 SN
      * @returns {ChatSession} 目标对话的 ChatSession
      */
     switchTo(newSN) {
-        const prevSN = this.activeSessionSN;
-
-        // 标记旧 session 为非活跃
-        if (prevSN && this.sessions.has(prevSN)) {
-            const prevSession = this.sessions.get(prevSN);
-            prevSession._isActive = false;
-            // 旧 session 的 assistantBubble 引用保留，但不再更新 DOM
-        }
-
-        // 标记新 session 为活跃
+        // 更新活跃 SN
         this.activeSessionSN = newSN;
         const newSession = this.getOrCreate(newSN);
-        newSession._isActive = true;
 
-        // 如果新 session 有已完成的 streamingMsg，刷新到 DOM
-        if (newSession.streamingMsg.isDone) {
-            newSession.responser.flushToDOM();
-        }
+        // 从 Alpine store 检查 streamingMsg 是否已完成
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats) {
+                var chatData = chats.getOrCreate(newSN);
+                if (chatData && chatData.streamingMsg && chatData.streamingMsg.isDone) {
+                    newSession.responser.flushToDOM();
+                }
+            }
+        } catch(e) {}
 
         return newSession;
     }
@@ -111,7 +106,19 @@ class ChatSessionManager {
         const inactiveSessions = [];
 
         for (const [sn, session] of this.sessions) {
-            if (sn !== this.activeSessionSN && session.streamingMsg.isDone) {
+            if (sn === this.activeSessionSN) continue;
+            // 从 Alpine store 检查 streamingMsg 是否已完成
+            var isDone = false;
+            try {
+                var chats = window.Alpine.store('chats');
+                if (chats) {
+                    var chatData = chats.getOrCreate(sn);
+                    if (chatData && chatData.streamingMsg) {
+                        isDone = chatData.streamingMsg.isDone;
+                    }
+                }
+            } catch(e) {}
+            if (isDone) {
                 inactiveSessions.push({ sn, session });
             }
         }
@@ -132,17 +139,21 @@ class ChatSessionManager {
 
     /**
      * 获取当前活跃 session 的 isStreaming 状态
-     * 其他模块通过 sessionManager.isStreaming 访问
+     * 从 Alpine.store('chats') 读取，ChatSession 不再持有此字段。
      * @returns {boolean}
      */
     get isStreaming() {
-        const active = this.getActive();
-        return active ? active.isStreaming : false;
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats && chats.active) {
+                return !!chats.active.isStreaming;
+            }
+        } catch(e) {}
+        return false;
     }
 
     /**
      * 获取当前活跃 session 的 abortController
-     * 用于兼容 state.abortController 的委托访问
      * @returns {AbortController|null}
      */
     get abortController() {

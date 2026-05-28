@@ -40,8 +40,8 @@ type Chat struct {
 }
 
 type Message struct {
-	ID        int64 `db:"id"`         // Auto-increment ID
-	SessionID int64 `db:"session_id"` // Belonging session ID
+	ID     int64 `db:"id"`      // Auto-increment ID
+	ChatID int64 `db:"chat_id"` // Belonging chat ID
 
 	GroupIndex int  `db:"group_index"` // Message group index
 	Role       int8 `db:"role"`        // 0: user 1: assistant
@@ -59,9 +59,9 @@ type Message struct {
 // This is the store-layer equivalent of toolimp.WebSource, defined separately
 // to avoid circular dependencies between store and agent packages.
 type WebSource struct {
-	ID          int64   `db:"id"`         // Auto-increment primary key
-	SessionID   int64   `db:"session_id"` // References chat_sessions.id
-	MsgID       int64   `db:"msg_id"`     // Message group index (= agent.Message.ID)
+	ID          int64   `db:"id"`      // Auto-increment primary key
+	ChatID      int64   `db:"chat_id"` // References chat_sessions.id
+	MsgID       int64   `db:"msg_id"`  // Message group index (= agent.Message.ID)
 	Title       string  `db:"title"`
 	Content     string  `db:"content"`
 	URL         string  `db:"url"`
@@ -122,7 +122,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS chat_messages (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			session_id INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id),
 			group_index INTEGER NOT NULL,
 			role       INTEGER NOT NULL,
 			reasoning    TEXT,
@@ -134,7 +134,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS web_sources (
 			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			session_id   INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_id      INTEGER NOT NULL REFERENCES chat_sessions(id),
 			msg_id       INTEGER NOT NULL,
 			title        TEXT    NOT NULL DEFAULT '',
 			content      TEXT    NOT NULL DEFAULT '',
@@ -146,8 +146,8 @@ func (s *ChatStore) initSchema() error {
 			create_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		CREATE INDEX IF NOT EXISTS idx_web_sources_session_msg
-			ON web_sources(session_id, msg_id);
+		CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg
+			ON web_sources(chat_id, msg_id);
 
 		CREATE TRIGGER IF NOT EXISTS trg_chat_sessions_update_at
 			BEFORE UPDATE ON chat_sessions
@@ -238,7 +238,7 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 
 	// Delete all messages under this session
 	_, err = tx.Exec(
-		"DELETE FROM chat_messages WHERE session_id = ?",
+		"DELETE FROM chat_messages WHERE chat_id = ?",
 		id,
 	)
 	if err != nil {

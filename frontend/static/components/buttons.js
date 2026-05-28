@@ -374,3 +374,84 @@ window.titleEditDialog = function() {
         },
     };
 };
+
+
+// ============================================================
+// 8. chatContainer — 聊天容器 Alpine 组件
+// ============================================================
+// 用途：管理 #chatContainer 的 Alpine 状态，提供 x-for 模板中
+//       使用的辅助方法（formatTime、deleteGroup 等）。
+//
+// 使用方式：
+//   <main class="chat-container" id="chatContainer"
+//         x-data="chatContainer()"
+//         x-init="init($el)">
+//       <template x-for="(group, idx) in $store.chats.active?.groups ?? []">
+//           ...
+//       </template>
+//   </main>
+// ============================================================
+
+window.chatContainer = function() {
+    return {
+        /**
+         * 初始化：保存容器 DOM 引用
+         * @param {HTMLElement} el
+         */
+        init: function(el) {
+            // 保存容器引用供外部 JS 使用
+            window._chatContainerEl = el;
+        },
+
+        /**
+         * 显示删除确认对话框
+         * 由 Alpine x-for 模板中的 @click 调用
+         * @param {number} idx - groups 数组中的索引
+         */
+        showDeleteModal: function(idx) {
+            var chats = window.Alpine.store('chats');
+            if (!chats || !chats.active) return;
+            var group = chats.active.groups[idx];
+            if (!group) return;
+
+            // 设置活动刻度索引（用于刻度导航高亮）
+            var { setActiveTick } = window.__moduleTickNav || {};
+            if (setActiveTick) setActiveTick(idx);
+
+            // 通过 Alpine 打开删除确认对话框
+            var deleteModal = document.getElementById('deleteModal');
+            if (!deleteModal) return;
+            Alpine.$data(deleteModal).open(idx);
+        },
+
+        /**
+         * 确认删除指定索引的消息组（由 confirmDelete 调用）
+         * @param {number} idx - groups 数组中的索引
+         */
+        confirmDeleteGroup: function(idx) {
+            var chats = window.Alpine.store('chats');
+            if (chats) {
+                chats.deleteGroup(idx);
+            }
+        },
+    };
+};
+
+/**
+ * 格式化 ISO 时间字符串为 HH:mm:ss
+ * 在 Alpine x-text 表达式中使用：formatTime(group.user.createdAt)
+ * @param {string} isoStr - ISO 格式时间字符串
+ * @returns {string}
+ */
+window.formatTime = function(isoStr) {
+    if (!isoStr) return '';
+    try {
+        var d = new Date(isoStr);
+        var hh = String(d.getHours()).padStart(2, '0');
+        var mm = String(d.getMinutes()).padStart(2, '0');
+        var ss = String(d.getSeconds()).padStart(2, '0');
+        return hh + ':' + mm + ':' + ss;
+    } catch(e) {
+        return '';
+    }
+};

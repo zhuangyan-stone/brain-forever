@@ -57,8 +57,8 @@ func persistMessageToDB(session *session, msg *Message) {
 		log.Printf("cannot persist message: no DB session for user %s", session.userNo)
 		return
 	}
-	dbSessionID := session.currentChat.dbChat.ID
-	if dbSessionID == 0 {
+	chatID := session.currentChat.dbChat.ID
+	if chatID == 0 {
 		log.Printf("cannot persist message: no DB session ID for user %s", session.userNo)
 		return
 	}
@@ -84,7 +84,7 @@ func persistMessageToDB(session *session, msg *Message) {
 	}
 
 	if err := session.chatStore.InsertMessage(
-		dbSessionID,
+		chatID,
 		groupIndex,
 		role,
 		msg.Content,
@@ -99,7 +99,7 @@ func persistMessageToDB(session *session, msg *Message) {
 		storeSources := make([]store.WebSource, 0, len(msg.Sources))
 		for _, src := range msg.Sources {
 			storeSources = append(storeSources, store.WebSource{
-				SessionID:   dbSessionID,
+				ChatID:      chatID,
 				MsgID:       msg.ID,
 				Title:       src.Title,
 				Content:     src.Content,
@@ -110,14 +110,14 @@ func persistMessageToDB(session *session, msg *Message) {
 				Score:       src.Score,
 			})
 		}
-		if err := session.chatStore.InsertWebSources(dbSessionID, msg.ID, storeSources); err != nil {
+		if err := session.chatStore.InsertWebSources(chatID, msg.ID, storeSources); err != nil {
 			log.Printf("failed to persist web sources for user %s: %v", session.userNo, err)
 		}
 	}
 
 	// Touch the chat session's update_at so it floats to the top
 	// when the list is ordered by update_at DESC.
-	if err := session.chatStore.TouchChat(dbSessionID); err != nil {
+	if err := session.chatStore.TouchChat(chatID); err != nil {
 		log.Printf("failed to touch chat update_at for user %s: %v", session.userNo, err)
 	}
 
@@ -132,7 +132,7 @@ func persistMessageToDB(session *session, msg *Message) {
 	// corrupting session.chats (producing duplicate entries with same ID/SN).
 	session.chatsMu.Lock()
 	for i, c := range session.chats {
-		if c.ID == dbSessionID {
+		if c.ID == chatID {
 			// Safe removal: copy all elements except index i into a new slice
 			removed := session.chats[i]
 			rest := make([]store.Chat, 0, len(session.chats)-1)

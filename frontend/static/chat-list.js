@@ -3,8 +3,8 @@
 // 在左侧栏显示用户的对话列表，按时间分组展示
 // ============================================================
 
-import { state } from './chat-state.js';
 import { sessionManager } from './chat-session-manager.js';
+import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showSources, showTokenUsage, applyStreamingState } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
@@ -14,6 +14,53 @@ import { ICON_EDIT, ICON_DELETE } from './svg_icons.js';
 import msgbox from './components/msgbox.js';
 
 'use strict';
+
+// ============================================================
+// convertMessagesToGroups — 将后端返回的扁平 messages 数组转换为
+// Alpine store 所需的 groups 分组结构
+// ============================================================
+// 每组包含一条 user 消息和可选的 assistant 回复（同一 group_index）。
+// 返回 { groups, seq }，其中 groups 是分组数组，seq 是自增序号（用于 _groupSeq）。
+//
+// @param {Array} messages - 后端返回的消息数组 [{ id, role, content, ... }]
+// @returns {{ groups: Array, seq: number }}
+// ============================================================
+export function convertMessagesToGroups(messages) {
+    var groups = [];
+    var seq = 0;
+    for (const msg of messages) {
+        if (msg.role === 'user') {
+            seq++;
+            var render = window._alpineRenderMarkdown || function(s) { return s || ''; };
+            groups.push({
+                id: seq,
+                msgId: msg.id || 0,
+                user: { content: msg.content, createdAt: msg.created_at || null, contentHTML: render(msg.content) },
+                assistant: {
+                    content: '',
+                    createdAt: null,
+                    reasoning: null,
+                    sources: null,
+                    usage: null,
+                    contentHTML: '',
+                    reasoningHTML: undefined,
+                },
+            });
+        } else if (msg.role === 'assistant' && groups.length > 0) {
+            var render = window._alpineRenderMarkdown || function(s) { return s || ''; };
+            var lastGroup = groups[groups.length - 1];
+            lastGroup.assistant.content = msg.content || '';
+            lastGroup.assistant.createdAt = msg.created_at || null;
+            lastGroup.assistant.reasoning = msg.reasoning || null;
+            lastGroup.assistant.sources = msg.sources || null;
+            lastGroup.assistant.usage = msg.usage || null;
+            lastGroup.assistant.contentHTML = render(msg.content || '');
+            lastGroup.assistant.reasoningHTML = msg.reasoning ? render(msg.reasoning) : undefined;
+            lastGroup.msgId = msg.id || lastGroup.msgId;
+        }
+    }
+    return { groups, seq };
+}
 
 // ============================================================
 // 时间分组工具函数
@@ -163,9 +210,13 @@ let contextTargetSN = null;     // 右键菜单目标对话 SN
  */
 export function clearActiveChat() {
     activeChatSN = null;
-    document.querySelectorAll('.chat-item').forEach(el => {
-        el.classList.remove('active');
-    });
+    // 同步到 Alpine store
+    try {
+        var chatsStore = window.Alpine.store('chats');
+        if (chatsStore) {
+            chatsStore.activeChatSN = null;
+        }
+    } catch(e) {}
 }
 
 /**
@@ -176,10 +227,15 @@ export function clearActiveChat() {
 export function resetChatList() {
     currentChats = [];
     activeChatSN = null;
-    const sidebarContent = document.getElementById('sidebarContent');
-    if (sidebarContent) {
-        sidebarContent.innerHTML = '';
-    }
+    // 同步到 Alpine store
+    try {
+        var chatsStore = window.Alpine.store('chats');
+        if (chatsStore) {
+            chatsStore.chatsLists = [];
+            chatsStore.categoryGroups = [];
+            chatsStore.activeChatSN = null;
+        }
+    } catch(e) {}
     // 移除可能存在的上下文菜单
     closeContextMenu();
 }
@@ -230,125 +286,16 @@ export function renderChatList(chats, activeSN) {
     currentChats = chats || [];
     activeChatSN = activeSN || null;
 
-    const sidebarContent = document.getElementById('sidebarContent');
-    if (!sidebarContent) return;
-
     // 关闭可能打开的右键菜单
     closeContextMenu();
 
-    // 清空并重新渲染
-    sidebarContent.innerHTML = '';
-    const listEl = document.createElement('div');
-    listEl.className = 'chat-list';
-    sidebarContent.appendChild(listEl);
-
-    if (!chats || chats.length === 0) {
-        const emptyEl = document.createElement('div');
-        emptyEl.className = 'chat-list-empty';
-        emptyEl.textContent = '暂无对话记录';
-        listEl.appendChild(emptyEl);
-        return;
-    }
-
-    const groups = groupChats(chats);
-
-    // 1. 置顶分组
-    if (groups.pinned.length > 0) {
-        appendGroup(listEl, '📌 置顶', groups.pinned);
-    }
-
-    // 2. 今天
-    if (groups.today.length > 0) {
-        appendGroup(listEl, '今天', groups.today);
-    }
-
-    // 3. 昨天
-    if (groups.yesterday.length > 0) {
-        appendGroup(listEl, '昨天', groups.yesterday);
-    }
-
-    // 4. 7天内
-    if (groups.within7Days.length > 0) {
-        appendGroup(listEl, '7天内', groups.within7Days);
-    }
-
-    // 5. 30天内
-    if (groups.within30Days.length > 0) {
-        appendGroup(listEl, '30天内', groups.within30Days);
-    }
-
-    // 6. 更早 — 先按日期分组，再按具体日期展示
-    const earlierDates = Object.keys(groups.earlier).sort((a, b) => {
-        // 按日期降序（最新的在前）
-        const da = new Date(a);
-        const db = new Date(b);
-        return db - da;
-    });
-
-    if (earlierDates.length > 0) {
-        const earlierGroup = document.createElement('div');
-        earlierGroup.className = 'chat-group';
-
-        const header = document.createElement('div');
-        header.className = 'chat-group-header';
-        header.textContent = '更早';
-        earlierGroup.appendChild(header);
-
-        const body = document.createElement('div');
-        body.className = 'chat-group-body';
-
-        for (const dateKey of earlierDates) {
-            // 日期子分组
-            const dateGroup = document.createElement('div');
-            dateGroup.className = 'chat-date-group';
-
-            const dateHeader = document.createElement('div');
-            dateHeader.className = 'chat-date-header';
-            dateHeader.textContent = dateKey;
-            dateGroup.appendChild(dateHeader);
-
-            for (const chat of groups.earlier[dateKey]) {
-                const item = createChatItem(chat);
-                dateGroup.appendChild(item);
-            }
-
-            body.appendChild(dateGroup);
+    // 同步到 Alpine store — Alpine 模板会响应式更新 DOM
+    try {
+        var chatsStore = window.Alpine.store('chats');
+        if (chatsStore) {
+            chatsStore.restructChatLists(chats, activeSN);
         }
-
-        earlierGroup.appendChild(body);
-        listEl.appendChild(earlierGroup);
-    }
-
-    // 7. 分类分组
-    const catKeys = Object.keys(groups.categorized);
-    if (catKeys.length > 0) {
-        const categoryGroup = document.createElement('div');
-        categoryGroup.className = 'chat-group';
-        const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'chat-group-header';
-        categoryHeader.textContent = '分类';
-        categoryGroup.appendChild(categoryHeader);
-        const categoryBody = document.createElement('div');
-        categoryBody.className = 'chat-group-body';
-        for (const catKey of catKeys) {
-            appendGroup(categoryBody, `分类 ${catKey}`, groups.categorized[catKey]);
-        }
-        categoryGroup.appendChild(categoryBody);
-        listEl.appendChild(categoryGroup);
-    } else {
-        // 无已分类对话，显示空的分组（留空占位）
-        const categoryGroup = document.createElement('div');
-        categoryGroup.className = 'chat-group';
-        const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'chat-group-header';
-        categoryHeader.textContent = '分类';
-        categoryGroup.appendChild(categoryHeader);
-        const categoryBody = document.createElement('div');
-        categoryBody.className = 'chat-group-body';
-        categoryBody.style.display = 'none';
-        categoryGroup.appendChild(categoryBody);
-        listEl.appendChild(categoryGroup);
-    }
+    } catch(e) {}
 }
 
 /**
@@ -431,12 +378,14 @@ function createChatItem(chat) {
  *   - 旧对话的 DOM 引用被释放，但 streamingMsg 保留
  */
 async function selectChat(sn) {
-    // 更新高亮
-    document.querySelectorAll('.chat-item').forEach(el => {
-        el.classList.toggle('active', el.dataset.sn === sn);
-    });
     activeChatSN = sn;
-    state.currentChatSN = sn; // 同步到全局状态
+    // 同步到 Alpine store（用于侧边栏高亮）
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            chats.activeChatSN = sn;
+        }
+    } catch(e) {}
 
     // 关闭右键菜单
     closeContextMenu();
@@ -458,16 +407,16 @@ async function selectChat(sn) {
     } catch(e) {}
 
     // 1. 清空当前消息状态
-    state.messages = [];
-    state.userMsgCount = 0;
-    state.activeTickIndex = -1;
-    state.tickScrollOffset = 0;
+    resetTickState();
 
-    // 2. 移除所有消息 DOM 节点
-    const chatContainer = document.getElementById('chatContainer');
-    if (chatContainer) {
-        chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
-    }
+    // 2. 清空 Alpine store 中的 groups（Alpine x-for 会自动移除 DOM）
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats && chats.active) {
+            chats.active.groups = [];
+            chats.active._groupSeq = 0;
+        }
+    } catch(e) {}
 
     // 3. 移除 welcome-message（如果有），把 input-area 移回原位
     const existingWelcome = document.querySelector('.welcome-message');
@@ -508,34 +457,58 @@ async function selectChat(sn) {
         updateHeaderTitle(result.title);
     }
     if (typeof result.title_state === 'number') {
-        state.titleState = result.title_state;
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats && chats.active) {
+                chats.active.titleState = result.title_state;
+            }
+        } catch(e) {}
     }
 
-    // 8. 渲染消息
-    for (const msg of result.messages) {
-        const msgDiv = addMessage(msg.role, msg.content, msg.created_at || null);
-        const entry = { role: msg.role, content: msg.content, id: msg.id, usage: msg.usage || null };
-        state.messages.push(entry);
-        // 将 data-msg-id 设置在 message-group 上
-        if (msgDiv && msg.id) {
-            const group = msgDiv.closest('.message-group');
-            if (group) {
-                group.dataset.msgId = msg.id;
+    // 8. 渲染消息 — 通过 Alpine store 的 groups 数据驱动
+    // 转换 messages → groups 并设置到 Alpine store（按 SN 查找，而非假定 active）
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            chats.setChatMessageGroups(sn, result.messages);
+        }
+    } catch(e) {}
+
+    // 8.1 渲染 reasoning、sources、token-info（这些仍由 JS 管理，Alpine 未覆盖）
+    // 需要等待 Alpine 渲染完成后操作 DOM
+    requestAnimationFrame(function() {
+        const chatContainer = document.getElementById('chatContainer');
+        if (!chatContainer) return;
+        var msgIndex = 0;
+        var groupEls = chatContainer.querySelectorAll('.message-group');
+        for (var gi = 0; gi < groupEls.length && msgIndex < result.messages.length; gi++) {
+            var groupEl = groupEls[gi];
+            var userMsg = groupEl.querySelector('.message.user');
+            var assistantMsg = groupEl.querySelector('.message.assistant');
+            // 找到对应的 result.messages 条目
+            var userEntry = null;
+            var assistantEntry = null;
+            if (msgIndex < result.messages.length && result.messages[msgIndex].role === 'user') {
+                userEntry = result.messages[msgIndex];
+                msgIndex++;
+            }
+            if (msgIndex < result.messages.length && result.messages[msgIndex].role === 'assistant') {
+                assistantEntry = result.messages[msgIndex];
+                msgIndex++;
+            }
+            if (assistantEntry) {
+                if (assistantEntry.usage && assistantMsg) {
+                    showTokenUsage(assistantMsg, assistantEntry.usage);
+                }
+                if (assistantEntry.sources && assistantEntry.sources.length > 0) {
+                    showSources(assistantEntry.sources, 'web');
+                }
+                if (assistantEntry.reasoning && assistantMsg) {
+                    restoreReasoningArea(assistantMsg, assistantEntry.reasoning, assistantEntry.reasoningState);
+                }
             }
         }
-        // assistant 消息 token-info
-        if (msg.role === 'assistant' && msg.usage && msgDiv) {
-            showTokenUsage(msgDiv, msg.usage);
-        }
-        // assistant 消息 sources
-        if (msg.role === 'assistant' && msg.sources && msg.sources.length > 0) {
-            showSources(msg.sources, 'web');
-        }
-        // assistant 消息 reasoning
-        if (msg.role === 'assistant' && msg.reasoning && msgDiv) {
-            restoreReasoningArea(msgDiv, msg.reasoning, msg.deep_think);
-        }
-    }
+    });
 
     // 9. 检查当前 session 是否有流式输出的累积数据需要渲染
     // 场景 A：切换回一个正在后台流式输出的对话（!isDone）
@@ -545,49 +518,130 @@ async function selectChat(sn) {
     const lastMsg = result.messages[result.messages.length - 1];
     const lastIsAssistant = lastMsg && lastMsg.role === 'assistant';
 
-    if (session && session.streamingMsg && !session.streamingMsg.isDone && !lastIsAssistant) {
-        // 场景 A：流未完成且最后一条不是 assistant，重新创建气泡恢复 DOM 引用
-        const assistantBubble = addMessage('assistant', '', null, true);
-        const contentDiv = assistantBubble.querySelector('.bubble');
-        session.assistantBubble = assistantBubble;
-        session.contentDiv = contentDiv;
-
-        // 将已有累积内容渲染到 DOM
-        // 注意：不渲染 sources/webSources，因为历史消息渲染阶段（步骤 8）
-        // 已经通过 addMessage 渲染了所有历史消息的 sources。
-        // streamingMsg.webSources 是 SSE 流式处理中累积的增量数据，
-        // 如果历史消息中已有对应的 assistant 回复，其 sources 已在步骤 8 渲染。
-        // 如果 streamingMsg.webSources 包含的是新数据（流未完成），
-        // 后续 SSE 事件会通过 onSources() 触发 showSources() 渲染。
-        const msg = session.streamingMsg;
-        if (msg.reasoning) {
-            restoreReasoningArea(assistantBubble, msg.reasoning);
+    // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
+    var streamingMsg = null;
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            var chatData = chats.getOrCreate(sn);
+            if (chatData) streamingMsg = chatData.streamingMsg;
         }
-        if (msg.content) {
-            contentDiv.innerHTML = msg.content;
-            contentDiv.classList.add('streaming');
-        }
+    } catch(e) {}
 
-        // 标记流式状态
-        applyStreamingState(true);
-    } else if (session && session.streamingMsg && session.streamingMsg.isDone && !session.assistantBubble) {
-        // 场景 B：流已完成但 DOM 引用已释放，通过 flushToDOM 渲染
-        // 注意：switchTo() 中已调用 flushToDOM()，但当时 assistantBubble 为 null 所以被跳过
-        // 这里需要先创建 assistantBubble，再调用 flushToDOM
-        const assistantBubble = addMessage('assistant', '', null, true);
-        const contentDiv = assistantBubble.querySelector('.bubble');
-        session.assistantBubble = assistantBubble;
-        session.contentDiv = contentDiv;
+    if (session && streamingMsg && !streamingMsg.isDone && !lastIsAssistant) {
+        // 场景 A：流未完成且最后一条不是 assistant
+        // 通过 Alpine store 添加一个空的 assistant group 占位
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats && chats.active) {
+                var id = ++chats.active._groupSeq;
+                chats.active.groups.push({
+                    id: id,
+                    msgId: 0,
+                    user: null,
+                    assistant: {
+                        content: streamingMsg.content || '',
+                        createdAt: null,
+                        reasoning: streamingMsg.reasoning || null,
+                        sources: null,
+                        usage: null,
+                        contentHTML: streamingMsg.content ? renderMarkdown(streamingMsg.content) : '',
+                        reasoningHTML: streamingMsg.reasoning ? renderMarkdown(streamingMsg.reasoning) : undefined,
+                    },
+                });
+            }
+        } catch(e) {}
 
-        // 现在 flushToDOM 可以正常工作了
-        // 注意：flushToDOM() 内部会渲染 sources，但此时历史消息中的 sources
-        // 已在步骤 8 渲染完毕。如果 streamingMsg.webSources 与历史消息中的 sources
-        // 重叠，由于 showSources() 已改为幂等（先移除同类型 section 再重建），
-        // 不会导致重复显示，而是正确替换。
-        session.responser.flushToDOM();
+        // 获取 Alpine 渲染后的 DOM 引用
+        requestAnimationFrame(function() {
+            var chatContainer = document.getElementById('chatContainer');
+            if (!chatContainer) return;
+            var lastGroupEl = chatContainer.querySelector('.message-group:last-child');
+            if (!lastGroupEl) return;
+            var streamingBubble = lastGroupEl.querySelector('.bubble.streaming');
+            var assistantMsgEl = lastGroupEl.querySelector('.message.assistant');
+            if (assistantMsgEl) {
+                session.assistantBubble = assistantMsgEl;
+                session.contentDiv = streamingBubble || assistantMsgEl.querySelector('.bubble');
+            }
 
-        // 流已结束，确保非 Alpine 管理的 DOM 元素（停止按钮、删除按钮）重置
-        applyStreamingState(false);
+            // 将已有累积内容渲染到 DOM
+            // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
+            var sm = null;
+            try {
+                var chats = window.Alpine.store('chats');
+                if (chats) {
+                    var chatData = chats.getOrCreate(sn);
+                    if (chatData) sm = chatData.streamingMsg;
+                }
+            } catch(e) {}
+            if (sm && sm.reasoning && session.assistantBubble) {
+                restoreReasoningArea(session.assistantBubble, sm.reasoning, sm.reasoningState);
+            }
+
+            // 标记流式状态
+            applyStreamingState(true);
+        });
+    } else if (session && streamingMsg && streamingMsg.isDone && !session.assistantBubble) {
+        // 场景 B：流已完成但 DOM 引用已释放
+        // 通过 Alpine store 添加一个已完成 assistant group
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats && chats.active) {
+                var id = ++chats.active._groupSeq;
+                var sm = streamingMsg;
+                var render = window._alpineRenderMarkdown || function(s) { return s || ''; };
+                chats.active.groups.push({
+                    id: id,
+                    msgId: sm.msgId || 0,
+                    user: null,
+                    assistant: {
+                        content: sm.content || '',
+                        createdAt: sm.createdAt || null,
+                        reasoning: sm.reasoning || undefined,
+                        sources: sm.sources && sm.sources.length > 0 ? sm.sources.slice() : undefined,
+                        usage: sm.usage || undefined,
+                        contentHTML: render(sm.content || ''),
+                        reasoningHTML: sm.reasoning ? render(sm.reasoning) : undefined,
+                    },
+                });
+            }
+        } catch(e) {}
+
+        // 获取 Alpine 渲染后的 DOM 引用
+        requestAnimationFrame(function() {
+            var chatContainer = document.getElementById('chatContainer');
+            if (!chatContainer) return;
+            var lastGroupEl = chatContainer.querySelector('.message-group:last-child');
+            if (!lastGroupEl) return;
+            var assistantMsgEl = lastGroupEl.querySelector('.message.assistant');
+            if (assistantMsgEl) {
+                session.assistantBubble = assistantMsgEl;
+                session.contentDiv = assistantMsgEl.querySelector('.bubble');
+            }
+
+            // 渲染 reasoning/usage
+            if (session.assistantBubble) {
+                // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
+                var sm = null;
+                try {
+                    var chats = window.Alpine.store('chats');
+                    if (chats) {
+                        var chatData = chats.getOrCreate(sn);
+                        if (chatData) sm = chatData.streamingMsg;
+                    }
+                } catch(e) {}
+                if (sm && sm.reasoning) {
+                    restoreReasoningArea(session.assistantBubble, sm.reasoning, sm.reasoningState);
+                }
+                if (sm && sm.usage) {
+                    showTokenUsage(session.assistantBubble, sm.usage);
+                }
+            }
+
+            // 流已结束，确保非 Alpine 管理的 DOM 元素重置
+            applyStreamingState(false);
+        });
     } else {
         // 新增：切换到无流式状态的普通 chat，确保 UI 处于非流式状态
         applyStreamingState(false);
@@ -700,9 +754,16 @@ function closeContextMenu() {
  * 因为 header 始终对应 active chat。
  */
 async function handleRename(chat) {
-    // 检查目标对话自身的 streaming 状态（而非 active chat）
-    const targetSession = sessionManager.sessions.get(chat.sn);
-    if (targetSession && targetSession.isStreaming) {
+    // 检查目标对话自身的 streaming 状态（从 Alpine store 读取）
+    var targetIsStreaming = false;
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            var chatData = chats.getOrCreate(chat.sn);
+            if (chatData) targetIsStreaming = !!chatData.isStreaming;
+        }
+    } catch(e) {}
+    if (targetIsStreaming) {
         showToast('该对话正在生成回复，请稍后再修改标题', 'info');
         return;
     }
@@ -774,9 +835,6 @@ export function updateCurrentChatTitle(newTitle) {
     // 但我们无法精确匹配到新对话，因此直接跳过 DOM 更新，
     // 等待后续 refreshChatListIfNeeded 从后端拉取完整列表后再渲染。
     if (!sn) {
-        // activeChatSN 为 null 时不更新 DOM（因为无法确定要更新的目标），
-        // 但可以更新 currentChats 中对应的条目——不过也无法确定哪个条目是新对话，
-        // 所以此处跳过，由后续的 refreshChatListIfNeeded 负责。
         return;
     }
 
@@ -786,9 +844,7 @@ export function updateCurrentChatTitle(newTitle) {
         chat.title = newTitle;
     }
 
-    // 直接更新 DOM
-    // 注意: querySelectorAll + forEach 以确保如果存在多个相同 data-sn 的项（Bug 3），
-    // 所有项都更新而非只更新第一个
+    // 直接更新 Alpine 模板渲染的 DOM
     const activeItems = document.querySelectorAll(`.chat-item[data-sn="${sn}"] .chat-item-title`);
     if (activeItems.length > 0) {
         activeItems.forEach(el => {
@@ -821,7 +877,7 @@ export function updateChatTitleBySN(sn, newTitle) {
     // 更新内存中的标题
     chat.title = newTitle;
 
-    // 直接更新 DOM
+    // 直接更新 Alpine 模板渲染的 DOM
     const targetItems = document.querySelectorAll(`.chat-item[data-sn="${sn}"] .chat-item-title`);
     if (targetItems.length > 0) {
         targetItems.forEach(el => {
@@ -908,13 +964,18 @@ async function handleDelete(chat) {
             currentChats.splice(idx, 1);
         }
 
+        // 从 Alpine store 的 items[] 中同步移除 ChatData
+        try {
+            var chats = window.Alpine.store('chats');
+            if (chats) {
+                chats.removeChat(chat.sn);
+            }
+        } catch(e) {}
+
         // 如果删除的是当前活动对话，清空主界面（消息、标题、刻度导航等）
         if (activeChatSN === chat.sn) {
             // 清空消息状态
-            state.messages = [];
-            state.userMsgCount = 0;
-            state.activeTickIndex = -1;
-            state.tickScrollOffset = 0;
+            resetTickState();
 
             // 移除所有消息 DOM
             const chatContainer = document.getElementById('chatContainer');
@@ -942,3 +1003,13 @@ async function handleDelete(chat) {
         showToast('删除出错', 'error');
     }
 }
+
+// ============================================================
+// 暴露给 Alpine 模板使用的事件处理函数
+// ============================================================
+// 侧边栏聊天列表由 Alpine x-for 模板渲染（index.html），
+// 但 Alpine 模板不会自动附加 DOM 事件监听器，因此需要将
+// 点击事件处理函数挂载到 window 上，供 Alpine @click 调用。
+// ============================================================
+window.__selectChat = selectChat;
+window.__showContextMenu = showContextMenu;

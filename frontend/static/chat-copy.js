@@ -3,10 +3,7 @@
 // ============================================================
 
 import { copyPlainText, copyMarkdown, copyHtml, htmlToMarkdown } from './clipboard.js';
-import { state } from './chat-state.js';
 import { showToast } from './chat-ui.js';
-import { setActiveTick } from './chat-ticknav.js';
-import { showDeleteModal } from './dialogs/msg-delete-dialog.js';
 
 'use strict';
 
@@ -271,10 +268,21 @@ function getMessageContent(messageEl) {
     const role = isUser ? 'user' : 'assistant';
     let markdown = null;
     if (msgId) {
-        const msg = state.messages.find(m => String(m.id) === msgId && m.role === role);
-        if (msg && msg.content) {
-            markdown = msg.content;
-        }
+        try {
+            var chats = window.Alpine.store('chats');
+            var groups = (chats && chats.active) ? chats.active.groups : null;
+            if (groups) {
+                var matchedGroup = groups.find(function(g) { return String(g.msgId) === msgId; });
+                if (matchedGroup) {
+                    var content = (role === 'user' && matchedGroup.user) ? matchedGroup.user.content
+                        : (role === 'assistant' && matchedGroup.assistant) ? matchedGroup.assistant.content
+                        : null;
+                    if (content) {
+                        markdown = content;
+                    }
+                }
+            }
+        } catch(e) {}
     }
     if (!markdown) {
         if (isUser) {
@@ -384,7 +392,9 @@ export function initCopyHandlers() {
         });
     });
 
-    // 事件委托：消息操作按钮（复制消息 / 删除消息）
+    // 事件委托：消息操作按钮（复制消息）
+    // 注意：删除按钮的点击已由 Alpine @click="showDeleteModal(idx)" 处理，
+    //       不再需要事件委托中的删除按钮处理逻辑。
     chatContainer.addEventListener('click', (e) => {
         // 复制消息按钮
         const copyMsgBtn = e.target.closest('.copy-msg-btn');
@@ -397,28 +407,6 @@ export function initCopyHandlers() {
                 const name = getDefaultFormatLabel();
                 showToast(ok ? `✓ 已复制（${name}）` : `复制失败（${name}）`, ok ? 'success' : 'error', 2000);
             });
-            return;
-        }
-
-        // 删除消息按钮（组级删除按钮，直接挂在 .message-group 下）
-        const deleteMsgBtn = e.target.closest('.delete-msg-btn');
-        if (deleteMsgBtn) {
-            e.stopPropagation();
-
-            const group = deleteMsgBtn.closest('.message-group');
-            if (!group) return;
-
-            // 找到该组中的用户消息，获取 data-msg-index
-            const userMsg = group.querySelector('.message.user');
-            if (!userMsg) return;
-
-            const msgIndex = parseInt(userMsg.dataset.msgIndex, 10);
-            if (isNaN(msgIndex) || msgIndex < 0) return;
-
-            // 设置活动刻度索引并显示删除确认框
-            state.activeTickIndex = msgIndex;
-            setActiveTick(msgIndex);
-            showDeleteModal();
             return;
         }
     });

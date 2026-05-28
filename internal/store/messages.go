@@ -5,12 +5,12 @@ import (
 )
 
 // InsertMessage records a new message.
-func (s *ChatStore) InsertMessage(sessionID int64, groupIndex int, role int,
+func (s *ChatStore) InsertMessage(chatID int64, groupIndex int, role int,
 	content string, reasoning *string) error {
 	_, err := s.db.Exec(
-		`INSERT INTO chat_messages(session_id, group_index, role, reasoning, content)
+		`INSERT INTO chat_messages(chat_id, group_index, role, reasoning, content)
 		 VALUES(?, ?, ?, ?, ?)`,
-		sessionID, groupIndex, role, reasoning, content,
+		chatID, groupIndex, role, reasoning, content,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert message. %w", err)
@@ -18,16 +18,16 @@ func (s *ChatStore) InsertMessage(sessionID int64, groupIndex int, role int,
 	return nil
 }
 
-// ListMessages queries all messages of a given session, sorted by group_index and id.
-func (s *ChatStore) ListMessages(sessionID int64) ([]Message, error) {
+// ListMessages queries all messages of a given chat, sorted by group_index and id.
+func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	var msgs []Message
 	err := s.db.Select(&msgs,
-		`SELECT id, session_id, group_index, role, reasoning, content,
+		`SELECT id, chat_id, group_index, role, reasoning, content,
 		        extracted, create_at, update_at
 		 FROM chat_messages
-		 WHERE session_id = ?
+		 WHERE chat_id = ?
 		 ORDER BY group_index ASC, id ASC`,
-		sessionID,
+		chatID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list messages: %w", err)
@@ -35,11 +35,11 @@ func (s *ChatStore) ListMessages(sessionID int64) ([]Message, error) {
 	return msgs, nil
 }
 
-// DeleteMessageGroup physically deletes messages matching the given session ID and group index.
-func (s *ChatStore) DeleteMessageGroup(sessionID int64, groupIndex int) error {
+// DeleteMessageGroup physically deletes messages matching the given chat ID and group index.
+func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 	_, err := s.db.Exec(
-		"DELETE FROM chat_messages WHERE session_id = ? AND group_index = ?",
-		sessionID, groupIndex,
+		"DELETE FROM chat_messages WHERE chat_id = ? AND group_index = ?",
+		chatID, groupIndex,
 	)
 
 	if err != nil {
@@ -54,18 +54,18 @@ func (s *ChatStore) DeleteMessageGroup(sessionID int64, groupIndex int) error {
 // ============================================================
 
 // InsertWebSources batch-inserts web sources for a given message group.
-// Each source is associated with the session and message group index.
-func (s *ChatStore) InsertWebSources(sessionID int64, msgID int64, sources []WebSource) error {
+// Each source is associated with the chat and message group index.
+func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSource) error {
 	if len(sources) == 0 {
 		return nil
 	}
 
 	for _, src := range sources {
 		_, err := s.db.Exec(
-			`INSERT INTO web_sources(session_id, msg_id, title, content, url,
+			`INSERT INTO web_sources(chat_id, msg_id, title, content, url,
 			                         site_name, site_icon, publish_date, score)
 			 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			sessionID, msgID,
+			chatID, msgID,
 			src.Title, src.Content, src.URL,
 			src.SiteName, src.SiteIcon, src.PublishDate, src.Score,
 		)
@@ -76,17 +76,17 @@ func (s *ChatStore) InsertWebSources(sessionID int64, msgID int64, sources []Web
 	return nil
 }
 
-// ListWebSourcesBySession queries all web sources for a given session,
+// ListWebSourcesByChat queries all web sources for a given chat,
 // grouped by msg_id. Returns a map keyed by msg_id (group_index).
-func (s *ChatStore) ListWebSourcesBySession(sessionID int64) (map[int64][]WebSource, error) {
+func (s *ChatStore) ListWebSourcesByChat(chatID int64) (map[int64][]WebSource, error) {
 	var sources []WebSource
 	err := s.db.Select(&sources,
-		`SELECT id, session_id, msg_id, title, content, url,
+		`SELECT id, chat_id, msg_id, title, content, url,
 		        site_name, site_icon, publish_date, score, create_at
 		 FROM web_sources
-		 WHERE session_id = ?
+		 WHERE chat_id = ?
 		 ORDER BY msg_id ASC, id ASC`,
-		sessionID,
+		chatID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list web sources: %w", err)
@@ -100,10 +100,10 @@ func (s *ChatStore) ListWebSourcesBySession(sessionID int64) (map[int64][]WebSou
 }
 
 // DeleteWebSourcesByGroup deletes all web sources for a given message group.
-func (s *ChatStore) DeleteWebSourcesByGroup(sessionID int64, groupIndex int) error {
+func (s *ChatStore) DeleteWebSourcesByGroup(chatID int64, groupIndex int) error {
 	_, err := s.db.Exec(
-		"DELETE FROM web_sources WHERE session_id = ? AND msg_id = ?",
-		sessionID, groupIndex,
+		"DELETE FROM web_sources WHERE chat_id = ? AND msg_id = ?",
+		chatID, groupIndex,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to delete web sources by group. %w", err)
