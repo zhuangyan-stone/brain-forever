@@ -1,9 +1,90 @@
 <mxfile host="app.diagrams.net">
   <diagram name="第 1 页" id="_NndeuFkpZsMlzUtFRte">
-    <mxGraphModel>
+    <mxGraphModel dx="1201" dy="779" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-16" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#36393d;" value="" vertex="1">
+          <mxGeometry height="210" width="470" x="120" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;gradientColor=#97d077;fontSize=18;" value="市中小企业数字化转型信息展现平台" vertex="1">
+          <mxGeometry height="60" width="470" x="120" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;gradientColor=#7ea6e0;strokeColor=#6c8ebf;fontSize=18;" value="&lt;div&gt;服务方&lt;/div&gt;&lt;div&gt;与专家&lt;/div&gt;&lt;div&gt;平台&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="100" x="120" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;gradientColor=#7ea6e0;strokeColor=#6c8ebf;fontSize=18;" value="&lt;div&gt;业务部门&lt;/div&gt;&lt;div&gt;工作平台&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="132" x="226" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;gradientColor=#7ea6e0;strokeColor=#6c8ebf;fontSize=18;" value="&lt;div&gt;企业申报&lt;/div&gt;&lt;div&gt;工作平台&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="160" x="430" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="日志" vertex="1">
+          <mxGeometry height="80" width="65" x="153" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="审计" vertex="1">
+          <mxGeometry height="80" width="65" x="238" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="用户" vertex="1">
+          <mxGeometry height="80" width="65" x="418" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="报单" vertex="1">
+          <mxGeometry height="80" width="65" x="153" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="报表" vertex="1">
+          <mxGeometry height="80" width="65" x="238" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-12" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="安全" vertex="1">
+          <mxGeometry height="80" width="65" x="330.5" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-13" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="信息流" vertex="1">
+          <mxGeometry height="80" width="65" x="418" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-14" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="&lt;div&gt;系统&lt;/div&gt;&lt;div&gt;配置&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="65" x="498" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-15" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;" value="权限" vertex="1">
+          <mxGeometry height="80" width="65" x="330.5" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-17" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;gradientColor=#7ea6e0;strokeColor=#6c8ebf;fontSize=17;" value="&lt;div&gt;创新&lt;/div&gt;&lt;div&gt;应用&lt;/div&gt;&lt;div&gt;实践&lt;/div&gt;&lt;div&gt;平台&lt;/div&gt;" vertex="1">
+          <mxGeometry height="150" width="60" x="365" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-18" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffcd28;strokeColor=#d79b00;gradientColor=#ffa500;fontSize=18;" value="&lt;div&gt;试&lt;/div&gt;&lt;div&gt;点&lt;/div&gt;&lt;div&gt;成&lt;/div&gt;&lt;div&gt;效&lt;/div&gt;&lt;div&gt;监&lt;/div&gt;&lt;div&gt;管&lt;/div&gt;&lt;div&gt;平&lt;/div&gt;&lt;div&gt;台&lt;/div&gt;" vertex="1">
+          <mxGeometry height="440" width="70" x="40" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-19" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;fontSize=18;" value="&lt;div&gt;外&lt;/div&gt;&lt;div&gt;部&lt;/div&gt;&lt;div&gt;对&lt;/div&gt;&lt;div&gt;接&lt;/div&gt;" vertex="1">
+          <mxGeometry height="440" width="40" x="600" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-20" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#647687;fontColor=#ffffff;strokeColor=#314354;fontSize=18;" value="硬件、网络、基础服务、云计算平台" vertex="1">
+          <mxGeometry height="90" width="600" x="40" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-21" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=14;" value="&lt;div&gt;支撑&lt;/div&gt;&lt;div&gt;模块&lt;/div&gt;" vertex="1">
+          <mxGeometry height="30" width="60" x="530" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fontSize=18;" value="&lt;div&gt;企业&lt;/div&gt;&lt;div&gt;数转&lt;/div&gt;&lt;div&gt;成果&lt;/div&gt;&lt;div&gt;系统&lt;/div&gt;" vertex="1">
+          <mxGeometry height="130" width="94" x="696" y="546" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-23" parent="1" style="shape=doubleArrow;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="45" width="80" x="624" y="585" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fontSize=18;" value="&lt;div&gt;部级平台&lt;/div&gt;&lt;div&gt;（chinasme.cn/szhzx）&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="240" x="540" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-28" parent="1" style="shape=doubleArrow;whiteSpace=wrap;html=1;rotation=-90;arrowWidth=0.5;arrowSize=0.18;" value="" vertex="1">
+          <mxGeometry height="30" width="100" x="572" y="199" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-29" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fontSize=18;" value="&lt;div&gt;闽政通&lt;/div&gt;&lt;div&gt;单点登录&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="90" x="690" y="229" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-30" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fontSize=18;" value="&lt;div&gt;已认证&lt;/div&gt;&lt;div&gt;三方平台&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="90" x="700" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-32" parent="1" style="shape=doubleArrow;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="45" width="80" x="616" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="JblQQPDL_Sku9T1nkbZU-33" parent="1" style="shape=doubleArrow;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="45" width="80" x="624" y="372.5" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
