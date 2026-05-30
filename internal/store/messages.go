@@ -35,18 +35,34 @@ func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	return msgs, nil
 }
 
-// DeleteMessageGroup physically deletes messages matching the given chat ID and group index.
+// DeleteMessageGroup physically deletes messages and their associated web sources
+// for the given chat ID and group index (transaction-safe).
 func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
-	_, err := s.db.Exec(
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction. %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete web sources first (foreign key or not, clean up orphans)
+	_, err = tx.Exec(
+		"DELETE FROM web_sources WHERE chat_id = ? AND msg_id = ?",
+		chatID, groupIndex,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete web sources for message group. %w", err)
+	}
+
+	// Delete messages
+	_, err = tx.Exec(
 		"DELETE FROM chat_messages WHERE chat_id = ? AND group_index = ?",
 		chatID, groupIndex,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to delete message group. %w", err)
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 // ============================================================
@@ -97,16 +113,4 @@ func (s *ChatStore) ListWebSourcesByChat(chatID int64) (map[int64][]WebSource, e
 		result[src.MsgID] = append(result[src.MsgID], src)
 	}
 	return result, nil
-}
-
-// DeleteWebSourcesByGroup deletes all web sources for a given message group.
-func (s *ChatStore) DeleteWebSourcesByGroup(chatID int64, groupIndex int) error {
-	_, err := s.db.Exec(
-		"DELETE FROM web_sources WHERE chat_id = ? AND msg_id = ?",
-		chatID, groupIndex,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to delete web sources by group. %w", err)
-	}
-	return nil
 }

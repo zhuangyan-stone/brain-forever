@@ -285,12 +285,7 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 		return fmt.Errorf("no DB session")
 	}
 
-	// Delete web sources first, then messages
-	if err := s.chatStore.DeleteWebSourcesByGroup(chatID, int(msgID)); err != nil {
-		log.Printf("failed to delete web sources for group %d: %v", msgID, err)
-	}
-
-	// Delete messages from DB
+	// Delete messages and their web sources from DB
 	return s.chatStore.DeleteMessageGroup(chatID, int(msgID))
 }
 
