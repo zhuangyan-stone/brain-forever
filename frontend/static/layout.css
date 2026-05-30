@@ -450,7 +450,8 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     height: 24px;
     background: var(--border);
     flex-shrink: 0;
-    margin-right: -8px
+    margin-right: -8px;
+    margin-left: 4px
 }
 
 /* ============================================================
