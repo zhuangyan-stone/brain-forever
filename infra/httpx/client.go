@@ -6,19 +6,21 @@ import (
 	"time"
 )
 
-// NewHTTPClient creates an HTTP client with a fallback DNS resolver
+// NewHTTPClient creates an HTTP client with DNS resolution-level fallback.
+// If system DNS cannot resolve a hostname (NXDOMAIN, SERVFAIL, or connection error),
+// it automatically falls back to public domestic DNS servers (114.114.114.114, etc.)
+// for resolution.
 // timeout: request timeout duration
 func NewHTTPClient(timeout time.Duration) *http.Client {
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-		Resolver:  NewResolverWithFallback(),
 	}
 
 	return &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			DialContext:           dialer.DialContext,
+			DialContext:           NewDNSFallbackDialContext(dialer, nil),
 			ForceAttemptHTTP2:     true,
 			MaxIdleConns:          10,
 			IdleConnTimeout:       90 * time.Second,
@@ -41,13 +43,12 @@ func NewStreamHTTPClient(timeout time.Duration) *http.Client {
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-		Resolver:  NewResolverWithFallback(),
 	}
 
 	return &http.Client{
 		Timeout: timeout,
 		Transport: &http.Transport{
-			DialContext:           dialer.DialContext,
+			DialContext:           NewDNSFallbackDialContext(dialer, nil),
 			ForceAttemptHTTP2:     true,
 			MaxIdleConns:          10,
 			IdleConnTimeout:       90 * time.Second,
