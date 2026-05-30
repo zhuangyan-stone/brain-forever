@@ -107,7 +107,7 @@ func makeAssistantBrokenMessage(lang string, id int64) Message {
 // Enqueue a new message for request, assign an ID.
 // Writes directly to DB — no in-memory message storage.
 // Must be called with session.mu held.
-func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
+func appendNewRequestMessage(session *session, reqMsg *Message) {
 	if reqMsg.ID != 0 {
 		panic(fmt.Sprintf("new request message's ID is not 0, but %d", reqMsg.ID))
 	}
@@ -124,17 +124,6 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 		if err == nil && len(dbMessages) > 0 {
 			lastMsg := dbMessages[len(dbMessages)-1]
 			lastID = int64(lastMsg.GroupIndex)
-
-			// If the last message is a user message, the AI was interrupted.
-			// Insert a broken assistant message using the same group_index as the
-			// orphaned user message, consistent with callLLMWithPipeline's behavior.
-			if lastMsg.Role == 0 { // 0 = user
-				assistantMsg := makeAssistantBrokenMessage(lang, lastID)
-				assistantMsg.Interrupted = 2 // backend-error (we don't know which)
-				persistMessageToDB(session, &assistantMsg)
-				// Don't advance lastID — the new user message still uses lastID+1,
-				// leaving the broken message paired with its user message at lastID.
-			}
 		}
 	}
 
@@ -196,7 +185,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. Add the message to the messages and assign it a unique ID
-	appendNewRequestMessage(session, &req.Message, lang)
+	appendNewRequestMessage(session, &req.Message)
 
 	if req.Message.ID <= 0 {
 		session.mu.Unlock()
@@ -342,6 +331,12 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Determine language for i18n (used by ensureAssistantForOrphanUser)
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+	if lang == "" {
+		lang = h.defaultLang
+	}
+
 	// Load messages from DB (no in-memory storage)
 	session.mu.Lock()
 	dbSessionID := session.currentChat.dbChat.ID
@@ -357,6 +352,10 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	if msgs == nil {
 		msgs = []Message{}
 	}
+
+	// 补偿 orphan user message：如果最后一条是用户消息（没有对应的助手回复），
+	// 补一条 broken assistant message，确保前端显示正确的中断提示。
+	msgs = ensureAssistantForOrphanUser(msgs, lang)
 
 	session.mu.Lock()
 	title := session.currentChat.title

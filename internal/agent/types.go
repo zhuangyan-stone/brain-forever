@@ -253,36 +253,6 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	return s
 }
 
-// GetMessages loads the session's chat messages from DB and returns them.
-// Returns nil if the session does not exist.
-func (sm *SessionManager) GetMessages(sessionID string) ([]Message, *session) {
-	sm.mu.RLock()
-	s, ok := sm.sessions[sessionID]
-	sm.mu.RUnlock()
-	if !ok {
-		return nil, nil
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.lastActivity = time.Now()
-
-	// Load messages from DB
-	if s.currentChat.dbChat == nil {
-		return []Message{}, s
-	}
-	chatID := s.currentChat.dbChat.ID
-	if chatID == 0 {
-		return []Message{}, s
-	}
-	dbMessages, err := s.chatStore.ListMessages(chatID)
-	if err != nil {
-		return []Message{}, s
-	}
-	msgs := convertDBMessagesToAgentMessages(dbMessages, s.chatStore, chatID)
-	return msgs, s
-}
-
 // Remove removes the session for the given sessionID (optional)
 func (sm *SessionManager) Remove(sessionID string) {
 	sm.mu.Lock()
@@ -378,26 +348,19 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 }
 
 // ============================================================
-// Phase B 辅助函数 — DB ↔ Agent 消息转换
+// DB ↔ Agent 消息转换 / Message conversion helpers
 // ============================================================
 
-// convertDBMessagesToAgentMessages 将 store.Message 切片转换为 agent.Message 切片。
+// convertDBMessagesToAgentMessages converts store.Message slice to agent.Message slice,
+// loading associated WebSources from DB matched by group_index.
 //
-// 注意：store.Message 结构体没有 Sources 字段，chat_messages 表也没有
-// 存储 web_sources 的列。persistMessageToDB 只持久化了 content 和 reasoning，
-// Sources（WebSources）从未写入 DB。
-// 因此从 DB 恢复的消息中 Sources 始终为空，页面刷新后前端无法恢复
-// WebSources 面板。
+// WebSources are stored in the independent web_sources table (not a chat_messages column).
+// persistMessageToDB persists Sources synchronously when inserting a message.
+// During conversion, ListWebSourcesByChat is called to load all web_sources for the chat,
+// then matched to each message by msg_id (= group_index).
 //
-// v3 设计文档（plans/currentChat-chats-refactor-v3-design.md）已规划了
-// web_sources 表和 store.WebSource 结构体，但尚未实现。
-// WebSources 持久化是独立的功能增强，不在 Phase B 范围内，
-// 将在 Phase B 完成后单独处理。
-// convertDBMessagesToAgentMessages 将 store.Message 切片转换为 agent.Message 切片，
-// 并从 DB 加载关联的 WebSources 按 group_index 匹配填充。
-//
-// chatStore 和 chatID 用于查询 web_sources 表；如果 chatStore 为 nil 或 chatID 为 0，
-// 则 Sources 保持为空（兼容匿名用户等无 DB 场景）。
+// chatStore and chatID are used to query the web_sources table; if chatStore is nil or
+// chatID is 0, Sources remain empty (compatible with anonymous users and other no-DB scenarios).
 func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatID int64) []Message {
 	// Load web sources for this chat (if available)
 	var sourcesByMsgID map[int64][]store.WebSource
@@ -449,8 +412,9 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 	return msgs
 }
 
-// loadMessagesAsLLMMessages 从 DB 加载消息并转换为 llm.Message 切片。
-// 调用者必须持有 session.mu。
+// loadMessagesAsLLMMessages loads messages from DB and converts to llm.Message slice.
+// 从 DB 加载消息并转换为 llm.Message 切片。
+// Caller must hold session.mu.
 func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 	if s.currentChat.dbChat == nil {
 		return nil, fmt.Errorf("no DB session")
@@ -472,4 +436,27 @@ func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 		result = append(result, llm.Message{Role: role, Content: m.Content})
 	}
 	return result, nil
+}
+
+// ensureAssistantForOrphanUser checks if the last message is an orphan user message
+// (user message without a corresponding assistant reply), and if so, appends a
+// broken assistant message.
+// 检查消息列表的最后一条是否为 orphan user message（只有用户消息没有对应的助手回复），
+// 如果是则补一条 broken assistant message。
+//
+// Scenario: AI is interrupted during reply (backend crash, interrupt, etc.),
+// leaving only the user message in DB.
+// 场景：AI 在回复过程中被中断（后端崩溃、中断等），导致 DB 中只有用户消息。
+// This compensation ensures broken messages display correctly after page refresh.
+func ensureAssistantForOrphanUser(msgs []Message, lang string) []Message {
+	if len(msgs) == 0 {
+		return msgs
+	}
+	lastMsg := msgs[len(msgs)-1]
+	if lastMsg.Role == llm.RoleUser {
+		brokenMsg := makeAssistantBrokenMessage(lang, lastMsg.ID)
+		brokenMsg.Interrupted = 2 // backend-error
+		msgs = append(msgs, brokenMsg)
+	}
+	return msgs
 }

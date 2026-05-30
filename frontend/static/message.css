@@ -238,7 +238,7 @@
 
 .message.interrupted .bubble {
     background: var(--bg-secondary);
-    border: 1px dashed var(--border);
+    border: 1px dashed var(--warning-border);
     color: var(--text-muted);
     font-size: 0.85rem;
     text-align: center;
@@ -250,9 +250,9 @@
     ============================================================ */
 
 .message.failed .bubble {
-    background: var(--bg-warning, #fff3cd);
-    border: 1px solid var(--border-warning, #ffc107);
-    color: var(--text-warning, #856404);
+    background: var(--bg-secondary);
+    border: 1px solid var(--error-border);
+    color: var(--text-muted);
     font-size: 0.85rem;
     text-align: center;
     padding: 8px 16px;
