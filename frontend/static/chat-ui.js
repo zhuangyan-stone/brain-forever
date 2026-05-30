@@ -7,7 +7,7 @@ import { updateCurrentChatTitle } from './chat-list.js';
 import { sessionManager } from './chat-session-manager.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
-import { ICON_GLOBE } from './svg_icons.js';
+import { ICON_GLOBE } from './svg_icons_re.js';
 
 'use strict';
 

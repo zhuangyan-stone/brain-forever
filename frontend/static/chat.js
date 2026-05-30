@@ -15,15 +15,20 @@ import { clearAllStickyNotes } from './components/sticky-note.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, addDirtyChat } from './chat-list.js';
-import { ICON_TOGGLE, ICON_DELETE, ICON_EDIT } from './svg_icons.js';
+import {
+    ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE,
+    ICON_MOON, ICON_SUN, ICON_ARROW_UP_DOWN, ICON_TOGGLE,
+    ICON_AI_TITLE, ICON_EDIT, SVG_ATTRS,
+    ICON_DOTS, ICON_CLOSE, ICON_PIN, ICON_STOP,
+    ICON_ATTACH, ICON_NEW_CHAT, ICON_RESTORE, ICON_COPY_MSG
+} from './svg_icons_re.js';
 import { sessionManager } from './chat-session-manager.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 
 'use strict';
 
-// 暴露图标常量给 Alpine 模板（x-html 引用）
-window.ICON_DELETE = ICON_DELETE;
-window.ICON_EDIT = ICON_EDIT;
+// 注意：图标常量已由 svg_icons.js（在 Alpine.js 之前加载的普通 <script>）
+// 注册到 window 上，此处不再重复执行 Object.assign(window, ...)。
 
 // ============================================================
 // 从 cookie 加载用户设置

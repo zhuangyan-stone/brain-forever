@@ -94,7 +94,11 @@ export function updateTickNav() {
         tick.addEventListener('click', () => {
             const scrollContainer = getScrollContainer();
             if (!scrollContainer) return;
-            const targetMsg = scrollContainer.querySelector(`.message.user[data-msg-index="${i}"]`);
+            // 通过 querySelectorAll 按索引获取用户消息元素，
+            // DOM 中不存在 data-msg-index 属性（由 Alpine x-for 渲染），
+            // 改用按索引访问的方式。
+            const userMessages = scrollContainer.querySelectorAll('.message.user');
+            const targetMsg = userMessages[i];
             if (targetMsg) {
                 // 立即更新面板活动状态（高亮、dist、刻度值），让用户获得即时视觉反馈
                 setActiveTick(i);

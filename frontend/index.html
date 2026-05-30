@@ -78,6 +78,13 @@
          将导致 ReferenceError。 -->
     <script src="/static/components/buttons.js"></script>
 
+    <!-- SVG 图标常量 — 必须在 Alpine.js 之前加载（普通<script>），
+         将 svg_icons.js 中的所有图标字符串常量注册到 window 上，
+         供 Alpine 模板中的 x-html 表达式使用。
+         若用 ES Module，执行时机晚于 Alpine 的 DOM 扫描，
+         会导致 "ICON_CLOSE is not defined" 等 ReferenceError。 -->
+    <script src="/static/svg_icons.js"></script>
+
     <!-- Alpine.js — 渐进式响应式框架 -->
     <!--
          Store 由 alpine-store.js 在 alpine:init 事件中注册，
@@ -108,10 +115,7 @@
                 <button class="icon-btn icon-btn--normal sidebar-close-btn" id="sidebarCloseBtn"
                         x-data="iconBtn({ size: 'normal' })"
                         aria-label="关闭侧栏">
-                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="3" y1="3" x2="13" y2="13"/>
-                        <line x1="13" y1="3" x2="3" y2="13"/>
-                    </svg>
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_CLOSE"></svg>
                 </button>
             </div>
 
@@ -163,11 +167,7 @@
                                             <button class="chat-item-more-btn"
                                                     data-tooltip="更多操作"
                                                     @click.stop="window.__showContextMenu($event, chat)">
-                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                                                    <circle cx="8" cy="3" r="1.5"/>
-                                                    <circle cx="8" cy="8" r="1.5"/>
-                                                    <circle cx="8" cy="13" r="1.5"/>
-                                                </svg>
+                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
                                             </button>
                                         </div>
                                     </template>
@@ -205,11 +205,7 @@
                                                         <button class="chat-item-more-btn"
                                                                 data-tooltip="更多操作"
                                                                 @click.stop="window.__showContextMenu($event, chat)">
-                                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                                                                <circle cx="8" cy="3" r="1.5"/>
-                                                                <circle cx="8" cy="8" r="1.5"/>
-                                                                <circle cx="8" cy="13" r="1.5"/>
-                                                            </svg>
+                                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
                                                         </button>
                                                     </div>
                                                 </template>
@@ -251,11 +247,7 @@
                                         <button class="chat-item-more-btn"
                                                 data-tooltip="更多操作"
                                                 @click.stop="window.__showContextMenu($event, chat)">
-                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                                                <circle cx="8" cy="3" r="1.5"/>
-                                                <circle cx="8" cy="8" r="1.5"/>
-                                                <circle cx="8" cy="13" r="1.5"/>
-                                            </svg>
+                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
                                         </button>
                                     </div>
                                 </template>
@@ -284,11 +276,7 @@
                         x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
                         :disabled="disabled"
                         data-tooltip="让 AI 重新生成标题">
-                    <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m45.581,25.9a21.781,21.781 0 1 1 -21.781,-21.781" stroke-width="3.8"></path>
-                        <path d="m22.0,2.40l-9,-12.8 m9.50,12.50l2.0,-13" stroke-linecap="round" stroke-width="2.4" transform="rotate(-94.4893, 24.85, 0.18)"></path>
-                        <text fill="currentColor" font-family="Sans-serif" font-weight="bold" font-size="28.4" stroke-linecap="round" text-anchor="middle" x="25" y="34.8">AI</text>
-                    </svg>
+                    <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_AI_TITLE"></svg>
                 </button>
                 <div class="main-header-right">
                     <button id="themeToggle" class="icon-btn icon-btn--normal"
@@ -296,22 +284,10 @@
                             @click="$store.settings.toggleTheme()"
                             :data-tooltip="$store.settings.theme === 1 ? '切换到亮色主题' : '切换到暗色主题'">
                         <template x-if="$store.settings.theme === 1">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                            </svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_MOON"></svg>
                         </template>
                         <template x-if="$store.settings.theme !== 1">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="5"/>
-                                <line x1="12" y1="1" x2="12" y2="3"/>
-                                <line x1="12" y1="21" x2="12" y2="23"/>
-                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                                <line x1="1" y1="12" x2="3" y2="12"/>
-                                <line x1="21" y1="12" x2="23" y2="12"/>
-                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.32"/>
-                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                            </svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_SUN"></svg>
                         </template>
                     </button>
                     <button id="loginBtn" class="text-btn"
@@ -355,13 +331,7 @@
                                         :disabled="$store.chats.active?.isStreaming ?? false"
                                         data-tooltip="删除本组对话"
                                         @click="showDeleteModal(idx)">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M3 6h18"/>
-                                        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                        <path d="M10 11v6"/>
-                                        <path d="M14 11v6"/>
-                                    </svg>
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_DELETE"></svg>
 
                                 </button>
 
@@ -373,10 +343,7 @@
                                         <div class="message-actions">
                                             <button class="msg-action-btn copy-msg-btn"
                                                     data-tooltip="复制当前消息内容">
-                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                                                </svg>
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_COPY_MSG"></svg>
                                                 <span class="copy-btn-label">复制为 Markdown</span>
                                             </button>
                                         </div>
@@ -422,10 +389,7 @@
                                         <div class="message-actions" x-show="group.assistant.createdAt">
                                             <button class="msg-action-btn copy-msg-btn"
                                                     data-tooltip="复制当前消息内容">
-                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                                                </svg>
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_COPY_MSG"></svg>
                                                 <span class="copy-btn-label">复制为 Markdown</span>
                                             </button>
                                         </div>
@@ -482,9 +446,7 @@
                             x-cloak
                             x-show="($store.chats.isCollapsed ?? false) && ($store.chats.active?.isStreaming ?? false)"
                             data-tooltip="停止生成">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                            <rect x="6" y="6" width="12" height="12" rx="2"/>
-                        </svg>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" x-html="ICON_STOP"></svg>
                     </button>
                 </div>
                 <div class="input-footer">
@@ -504,34 +466,24 @@
                                 :data-active="active ? 'true' : 'false'"
                                 @click="onToggle"
                                 :data-tooltip="active ? 'AI 将自动搜索互联网，单击关闭' : '已关闭联网搜索，单击开启'">
-                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M2 12h20"/>
-                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                            </svg>
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_GLOBE"></svg>
                             <span>智能搜索</span>
                         </button>
                     </div>
                     <div class="input-footer-right">
                         <input type="file" id="fileInput" style="display:none" multiple>
                         <button id="attachBtn" class="attach-btn" x-data="attachBtn()" data-tooltip="上传附件">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                            </svg>
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_ATTACH"></svg>
                         </button>
                         <button id="sendBtn" class="send-btn"
                                 x-data="sendBtn({ active: () => ($store.chats.active?.isStreaming ?? false) && !($store.chats.isCollapsed ?? false) })"
                                 :class="{ 'stop-btn': active }"
                                 :data-tooltip="active ? '停止生成' : '发送'">
                             <template x-if="!active">
-                                <svg viewBox="0 0 24 24" width="20" height="20">
-                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
-                                </svg>
+                                <svg viewBox="0 0 24 24" width="20" height="20" x-html="ICON_SEND"></svg>
                             </template>
                             <template x-if="active">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                                    <rect x="6" y="6" width="12" height="12" rx="2"/>
-                                </svg>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" x-html="ICON_STOP"></svg>
                             </template>
                         </button>
                     </div>

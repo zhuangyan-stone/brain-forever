@@ -4,7 +4,7 @@
 
 import { escapeHtml } from './toolsets.js';
 import { sessionManager } from './chat-session-manager.js';
-import { ICON_COPY } from './svg_icons.js';
+import { ICON_COPY } from './svg_icons_re.js';
 
 'use strict';
 

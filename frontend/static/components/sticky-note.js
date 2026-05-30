@@ -12,11 +12,7 @@
 
 'use strict';
 
-/** 对称小叉 SVG */
-const ICON_CLOSE = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>';
-
-/** 方框图标 SVG — 表示恢复窗口最大化（单个方框） */
-const ICON_RESTORE = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/></svg>';
+import { ICON_CLOSE, ICON_RESTORE } from '../svg_icons_re.js';
 
 /** 定时时长（毫秒）— 15 秒后自动应用标题 */
 const TIMER_DURATION = 15000;
@@ -153,7 +149,7 @@ export function showStickyNote(message, title, options = {}) {
     // 恢复最大化按钮（方框图标）— 放在关闭按钮左边
     const restoreBtn = document.createElement('button');
     restoreBtn.className = 'sticky-note-restore';
-    restoreBtn.innerHTML = ICON_RESTORE;
+    restoreBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICON_RESTORE + '</svg>';
     restoreBtn.setAttribute('aria-label', '恢复窗口大小');
     restoreBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -164,7 +160,7 @@ export function showStickyNote(message, title, options = {}) {
     // 右上角关闭按钮（对称小叉 SVG）
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sticky-note-close';
-    closeBtn.innerHTML = ICON_CLOSE;
+    closeBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_CLOSE + '</svg>';
     closeBtn.setAttribute('aria-label', '关闭');
     closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();

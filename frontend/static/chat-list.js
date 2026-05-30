@@ -10,7 +10,7 @@ import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { restoreReasoningArea } from './chat-reasoning.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { ICON_EDIT, ICON_DELETE } from './svg_icons.js';
+import { ICON_EDIT, ICON_DELETE, ICON_DOTS, ICON_PIN } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 
 'use strict';
@@ -343,7 +343,7 @@ function createChatItem(chat) {
     // 更多按钮（hover 或选中时显示）
     const moreBtn = document.createElement('button');
     moreBtn.className = 'chat-item-more-btn';
-    moreBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/></svg>';
+    moreBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">' + ICON_DOTS + '</svg>';
     moreBtn.dataset.tooltip = '更多操作';
     item.appendChild(moreBtn);
 
@@ -701,9 +701,9 @@ function showContextMenu(e, chat) {
     const pinItem = document.createElement('div');
     pinItem.className = 'chat-context-menu-item';
     if (chat.pinned) {
-        pinItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg> 取消置顶';
+        pinItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_PIN + '</svg> 取消置顶';
     } else {
-        pinItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg> 置顶';
+        pinItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_PIN + '</svg> 置顶';
     }
     pinItem.addEventListener('click', () => {
         closeContextMenu();
