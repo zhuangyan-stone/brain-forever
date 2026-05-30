@@ -813,8 +813,8 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----
     //     优先级：用户滚动检测 + 非流式刻度变化折叠
-    //     注意：非流式分支必须节流（200ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
-    //     （150ms 节流）更新 activeTickIndex 之后再执行，否则检测不到刻度变化。
+    //     注意：非流式分支必须节流（150ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
+    //     （100ms 节流）更新 activeTickIndex 之后再执行，否则检测不到刻度变化。
     //     流式分支不做节流——scroll 事件即时用 _autoScrolling 判断，
     //     避免 200ms 延迟后 _autoScrolling 已被 setTimeout(0) 清除导致误判。
     let scrollThrottleTimer = null;
@@ -873,7 +873,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
 
             scrollThrottleTimer = null;
-        }, 200);
+        }, 150);
     });
 
     // ---- 恢复条件 1：输入框获得焦点 ----

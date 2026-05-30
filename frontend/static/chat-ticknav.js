@@ -335,12 +335,12 @@ export function initTickNav() {
     const scrollContainer = getScrollContainer();
     if (!scrollContainer) return;
     scrollContainer.addEventListener('scroll', () => {
-        // 节流：每 150ms 最多执行一次 updateActiveTickOnScroll
+        // 节流：每 100ms 最多执行一次 updateActiveTickOnScroll
         if (!scrollThrottleTimer) {
             scrollThrottleTimer = setTimeout(() => {
                 scrollThrottleTimer = null;
                 updateActiveTickOnScroll();
-            }, 150);
+            }, 100);
         }
         // debounce：每次滚动都重置计时器，滚动停止 HIGHLIGHT_DEBOUNCE_MS 后触发待高亮
         if (scrollDebounceTimer) {
