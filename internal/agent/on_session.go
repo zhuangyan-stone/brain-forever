@@ -12,8 +12,8 @@ import (
 // ============================================================
 
 // OnSession handles GET /api/session
-// 创建或获取 HTTP session，返回 session 层面的信息（user_no + welcome）。
-// 只通过 cookie 识别 http-session-sn，不带 query 参数。
+// Creates or retrieves an HTTP session, returning session-level info (user_no + welcome).
+// Identified only via cookie http-session-sn, without query parameters.
 func (h *ChatAgent) OnSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -23,7 +23,7 @@ func (h *ChatAgent) OnSession(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// 根据 defaultLang 获取本地化的欢迎语
+	// Get localized welcome message based on defaultLang
 	welcome := i18n.TL(h.defaultLang, "welcome_message")
 
 	w.Header().Set("Content-Type", "application/json")

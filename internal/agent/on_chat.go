@@ -353,8 +353,9 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 		msgs = []Message{}
 	}
 
-	// 补偿 orphan user message：如果最后一条是用户消息（没有对应的助手回复），
-	// 补一条 broken assistant message，确保前端显示正确的中断提示。
+	// Compensate orphan user message: if the last message is a user message
+	// (without a corresponding assistant reply), append a broken assistant message
+	// to ensure the frontend displays the correct interruption prompt.
 	msgs = ensureAssistantForOrphanUser(msgs, lang)
 
 	session.mu.Lock()

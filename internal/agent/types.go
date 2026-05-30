@@ -348,7 +348,7 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 }
 
 // ============================================================
-// DB ↔ Agent 消息转换 / Message conversion helpers
+// DB ↔ Agent message conversion helpers
 // ============================================================
 
 // convertDBMessagesToAgentMessages converts store.Message slice to agent.Message slice,
@@ -413,7 +413,6 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 }
 
 // loadMessagesAsLLMMessages loads messages from DB and converts to llm.Message slice.
-// 从 DB 加载消息并转换为 llm.Message 切片。
 // Caller must hold session.mu.
 func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 	if s.currentChat.dbChat == nil {
@@ -441,12 +440,9 @@ func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 // ensureAssistantForOrphanUser checks if the last message is an orphan user message
 // (user message without a corresponding assistant reply), and if so, appends a
 // broken assistant message.
-// 检查消息列表的最后一条是否为 orphan user message（只有用户消息没有对应的助手回复），
-// 如果是则补一条 broken assistant message。
 //
 // Scenario: AI is interrupted during reply (backend crash, interrupt, etc.),
 // leaving only the user message in DB.
-// 场景：AI 在回复过程中被中断（后端崩溃、中断等），导致 DB 中只有用户消息。
 // This compensation ensures broken messages display correctly after page refresh.
 func ensureAssistantForOrphanUser(msgs []Message, lang string) []Message {
 	if len(msgs) == 0 {
