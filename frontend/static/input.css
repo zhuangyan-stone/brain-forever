@@ -228,7 +228,7 @@
 .input-area.collapsed {
     padding-top: 4px;
     padding-bottom: 4px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     box-shadow: none;
     border-radius: var(--radius);
     transition: padding 0.25s ease, margin-bottom 0.25s ease, box-shadow 0.25s ease;

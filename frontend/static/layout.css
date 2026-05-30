@@ -858,6 +858,13 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     z-index: 99;
 }
 
+/* 宽屏模式下侧边栏展开时：偏移半个侧边栏宽度（180px），
+   使免责声明在主内容区中居左 = calc(50% + 180px)，配合
+   translateX(-50%) 实现主内容区水平居中。 */
+body:not(.small-screen-mode):has(.left-sidebar:not(.hidden)) .ai-disclaimer {
+    left: calc(50% + 180px);
+}
+
 .ai-disclaimer a {
     pointer-events: auto;
     color: var(--accent, #4a90d9);
