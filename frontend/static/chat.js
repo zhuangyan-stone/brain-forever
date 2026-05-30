@@ -4,7 +4,7 @@
 // ============================================================
 
 import { switchHighlightTheme } from './chat-markdown.js';
-import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, collapseInputArea, restoreInputArea, isInputCollapsed, isScrolledToBottom } from './chat-ui.js';
+import { initDom, dom, showWelcomeMessage, updateHeaderTitle, showToast, collapseInputArea, restoreInputArea, isInputCollapsed, isScrolledToBottom, _autoScrolling } from './chat-ui.js';
 import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
@@ -813,33 +813,44 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // ---- 滚动检测：当滚动刻度变化时折叠；滚动到底部时展开 ----
     //     优先级：用户滚动检测 + 非流式刻度变化折叠
-    //     注意：必须节流（200ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
+    //     注意：非流式分支必须节流（200ms），确保在 chat-ticknav.js 的 updateActiveTickOnScroll
     //     （150ms 节流）更新 activeTickIndex 之后再执行，否则检测不到刻度变化。
+    //     流式分支不做节流——scroll 事件即时用 _autoScrolling 判断，
+    //     避免 200ms 延迟后 _autoScrolling 已被 setTimeout(0) 清除导致误判。
     let scrollThrottleTimer = null;
     chatContainer.addEventListener('scroll', () => {
+        if (sessionManager.isStreaming) {
+            // ★ 流式分支：无节流，即时处理
+            //   auto-scroll 由 throttleRender 每 180ms 调用 autoScrollToBottom 负责
+            //   _autoScrolling 在同一事件循环中仍为 true，可准确拦截自己触发的 scroll 事件
+            const sc = chatContainer;
+            if (_autoScrolling) {
+                console.log('[scrollHandler] ↕ _autoScrolling=true，跳过');
+                return;
+            }
+            try {
+                var chats2 = window.Alpine.store('chats');
+                if (chats2 && chats2.active) {
+                    var atBottom = isScrolledToBottom();
+                    if (!atBottom) {
+                        if (!chats2.active.userScrolledUp) {
+                            console.log('[scrollHandler] ⛔ 用户手动滚动 → userScrolledUp=true', `scrollTop=${sc.scrollTop} scrollHeight=${sc.scrollHeight} clientHeight=${sc.clientHeight}`);
+                            chats2.active.userScrolledUp = true;
+                        }
+                    } else if (chats2.active.userScrolledUp) {
+                        console.log('[scrollHandler] ✅ 回到底部 → userScrolledUp=false');
+                        chats2.active.userScrolledUp = false;
+                    }
+                }
+            } catch(e) {}
+            return;
+        }
+
+        // 非流式分支：200ms 节流，避免高频 scroll 事件
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
             const currentTickIndex = activeTickIndex;
             const sc = chatContainer;
-            const debugInfo = `scrollTop=${sc.scrollTop} scrollHeight=${sc.scrollHeight} clientHeight=${sc.clientHeight}`;
-
-            if (sessionManager.isStreaming) {
-                // streaming 分支：只检测用户滚动状态，不操作输入面板（避免 scroll anchoring）
-                // auto-scroll 由 throttleRender 每 180ms 调用 autoScrollToBottom 负责
-                try {
-                    var chats2 = window.Alpine.store('chats');
-                    if (chats2 && chats2.active) {
-                        if (!isScrolledToBottom()) {
-                            chats2.active.userScrolledUp = true;
-                        } else if (chats2.active.userScrolledUp) {
-                            chats2.active.userScrolledUp = false;
-                        }
-                    }
-                } catch(e) {}
-
-                scrollThrottleTimer = null;
-                return;
-            }
 
             // 非流式状态：检测是否已滚动到底部
             if (isScrolledToBottom()) {

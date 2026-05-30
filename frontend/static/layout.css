@@ -244,6 +244,10 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    /* 禁用 scroll anchoring：AI 流式输出时内容在上方插入（reasoning 面板展开），
+       scroll anchoring 会调整 scrollTop 并触发 scroll 事件，被误判为用户手动滚动，
+       导致自动滚动永久失效。关闭后由 autoScrollToBottom 手动控制滚动位置。 */
+    overflow-anchor: none;
 }
 
 /* ============================================================

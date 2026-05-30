@@ -17,6 +17,22 @@ const UI_RENDER_INTERVAL = 180;
 /** 判断"滚动到底部"的误差容限（px），底部剩余内容小于此值即视为已到底 */
 export const SCROLL_BOTTOM_THRESHOLD = 4;
 
+/**
+ * _autoScrolling — 是否正在执行自动滚动
+ * autoScrollToBottom() 在滚动前设为 true，scroll handler 检测到此标志
+ * 时跳过处理（忽略自己触发的 scroll 事件），通过 setTimeout(0) 清除，
+ * 确保同一事件循环内的 scroll 事件都被忽略。
+ */
+export let _autoScrolling = false;
+
+/**
+ * lastScrollHeight — 上次 autoScrollToBottom 执行时的 scrollHeight
+ * 用于在 scroll handler 中检测 scroll anchoring（内容增长后浏览器自动调整 scrollTop）。
+ * 当 scrollHeight 比记录值大时，说明是内容增长引起的 scroll anchoring，而非用户手动滚动。
+ * 在 _autoScrolling 被 setTimeout(0) 清除后，scroll anchoring 才触发时起兜底作用。
+ */
+export let lastScrollHeight = 0;
+
 // DOM 元素引用（由 chat.js 初始化时设置）
 export const dom = {
     chatContainer: null,
@@ -45,6 +61,7 @@ export function initDom() {
  */
 export function autoScrollToBottom() {
     const sc = dom.scrollContainer;
+    if (!sc) { console.warn('[autoScroll] scrollContainer 为空'); return; }
     const scrollHeight = sc.scrollHeight;
     const scrollTop = sc.scrollTop;
     const clientHeight = sc.clientHeight;
@@ -54,11 +71,21 @@ export function autoScrollToBottom() {
     try {
         var chats = window.Alpine.store('chats');
         if (chats && chats.active && chats.active.userScrolledUp) {
+            console.log('[autoScroll] ⛔ userScrolledUp=true 跳过滚动', `scrollHeight=${scrollHeight} scrollTop=${scrollTop} clientHeight=${clientHeight}`);
             return;
         }
     } catch(e) {}
 
+    console.log('[autoScroll] ✅ 执行滚动', `scrollHeight=${scrollHeight} scrollTop=${scrollTop} clientHeight=${clientHeight} isAtBottom=${isAtBottom}`);
+    // 记录本次执行时的 scrollHeight，供 scroll handler 检测 scroll anchoring
+    lastScrollHeight = scrollHeight;
+    // 设置 _autoScrolling 标志，scroll handler 检测到后跳过处理
+    _autoScrolling = true;
     sc.scrollTop = scrollHeight;
+    // 下一帧清除标志（确保同一个 scroll 事件链内都被忽略）
+    setTimeout(function() {
+        _autoScrolling = false;
+    }, 0);
 }
 
 /**

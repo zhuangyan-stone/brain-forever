@@ -127,9 +127,12 @@ export class SSEResponser {
             if (!sm) return;
             var assistant = _getAssistant(self.session.sn);
             if (!assistant) return;
+            console.log('[throttle] 🅲 contentHTML 设置前', `content长度=${(sm.content||'').length} reasoning长度=${(sm.reasoning||'').length}`);
             assistant.contentHTML = renderMarkdown(sm.content || '');
-            // 使用 requestAnimationFrame 确保 Alpine 已异步更新 DOM 后再滚动
-            requestAnimationFrame(function() {
+            // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
+            // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
+            window.Alpine.nextTick(function() {
+                console.log('[throttle] 🅲 Alpine.nextTick→autoScrollToBottom (content)');
                 autoScrollToBottom();
             });
         }, SSE_RENDER_INTERVAL);
@@ -162,9 +165,12 @@ export class SSEResponser {
             if (!sm) return;
             var assistant = _getAssistant(self.session.sn);
             if (!assistant) return;
+            console.log('[throttle] 🅡 reasoningHTML 设置前', `reasoning长度=${(sm.reasoning||'').length} content长度=${(sm.content||'').length}`);
             assistant.reasoningHTML = renderMarkdown(sm.reasoning || '');
-            // 使用 requestAnimationFrame 确保 Alpine 已异步更新 DOM 后再滚动
-            requestAnimationFrame(function() {
+            // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
+            // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
+            window.Alpine.nextTick(function() {
+                console.log('[throttle] 🅡 Alpine.nextTick→autoScrollToBottom (reasoning)');
                 autoScrollToBottom();
             });
         }, SSE_RENDER_INTERVAL);
@@ -186,6 +192,7 @@ export class SSEResponser {
         } else {
             sm.reasoning += event.content || '';
         }
+        console.log('[SSE] 🧠 onReasoning', `content长度=${sm.reasoning.length} subject=${event.subject||''}`);
         // 同步到 group.assistant + 节流渲染 HTML
         this._syncReasoningToAssistant();
     }
@@ -196,6 +203,7 @@ export class SSEResponser {
     onReasoningEnd() {
         var sm = this._getStreamingMsg();
         if (!sm) return;
+        console.log('[SSE] 🧠 onReasoningEnd');
         sm.reasoningState = 'done';
         // 同步 reasoningState 到 group.assistant
         var assistant = _getAssistant(this.session.sn);
@@ -213,8 +221,9 @@ export class SSEResponser {
                 assistant.reasoningHTML = renderMarkdown(sm.reasoning);
             }
         }
-        // 使用 requestAnimationFrame 确保 Alpine 已异步更新 DOM 后再滚动
-        requestAnimationFrame(function() {
+        // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
+        window.Alpine.nextTick(function() {
+            console.log('[SSE] 🧠 Alpine.nextTick→autoScrollToBottom (reasoningEnd)');
             autoScrollToBottom();
         });
     }
@@ -427,7 +436,9 @@ export class SSEResponser {
             }
         }
 
-        requestAnimationFrame(function() {
+        console.log('[flushToDOM] ✅ 数据同步完成，准备 autoScrollToBottom');
+        window.Alpine.nextTick(function() {
+            console.log('[flushToDOM] Alpine.nextTick→autoScrollToBottom');
             autoScrollToBottom();
         });
     }
