@@ -128,7 +128,10 @@ export class SSEResponser {
             var assistant = _getAssistant(self.session.sn);
             if (!assistant) return;
             assistant.contentHTML = renderMarkdown(sm.content || '');
-            autoScrollToBottom();
+            // 使用 requestAnimationFrame 确保 Alpine 已异步更新 DOM 后再滚动
+            requestAnimationFrame(function() {
+                autoScrollToBottom();
+            });
         }, SSE_RENDER_INTERVAL);
     }
 
@@ -160,7 +163,10 @@ export class SSEResponser {
             var assistant = _getAssistant(self.session.sn);
             if (!assistant) return;
             assistant.reasoningHTML = renderMarkdown(sm.reasoning || '');
-            autoScrollToBottom();
+            // 使用 requestAnimationFrame 确保 Alpine 已异步更新 DOM 后再滚动
+            requestAnimationFrame(function() {
+                autoScrollToBottom();
+            });
         }, SSE_RENDER_INTERVAL);
     }
 
@@ -207,7 +213,10 @@ export class SSEResponser {
                 assistant.reasoningHTML = renderMarkdown(sm.reasoning);
             }
         }
-        autoScrollToBottom();
+        // 使用 requestAnimationFrame 确保 Alpine 已异步更新 DOM 后再滚动
+        requestAnimationFrame(function() {
+            autoScrollToBottom();
+        });
     }
 
     /**
@@ -418,7 +427,9 @@ export class SSEResponser {
             }
         }
 
-        autoScrollToBottom();
+        requestAnimationFrame(function() {
+            autoScrollToBottom();
+        });
     }
 }
 
