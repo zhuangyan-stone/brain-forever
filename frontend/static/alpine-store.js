@@ -42,7 +42,7 @@ document.addEventListener('alpine:init', function() {
     // 全局设置 store — settings
     // ============================================================
     // 直接操作 localStorage 实现持久化。
-    // ES Module 通过 window.__userSettings 访问 load/save 方法。
+    // ES Module 通过 Alpine.store('settings') 直接访问。
     // ============================================================
     Alpine.store('settings', {
         deepThink: typeof _bfSettings.deepThink === 'boolean' ? _bfSettings.deepThink : true,
@@ -670,8 +670,19 @@ document.addEventListener('alpine:init', function() {
         },
     });
 
-    // ---- 暴露给 ES Module 使用 ----
-    // alpine-store.js 是普通 <script>（非 ES Module），
-    // ES Module 通过 window.__settingsStore 访问 Alpine.store('settings')
-    window.__settingsStore = Alpine.store('settings');
+    // ============================================================
+    // Tick Nav store — 刻度导航状态
+    // ============================================================
+    // 由 tick-state.js（ES Module）的 setter 函数同步更新，
+    // 供 buttons.js 中的 chatContainer 组件读取。
+    // ============================================================
+    Alpine.store('tickNav', {
+        activeTickIndex: -1,
+        tickScrollOffset: 0,
+        targetTickIndex: -1,
+        pendingHighlightIndex: -1,
+        MAX_VISIBLE_TICKS: 9,
+    });
+
+    // ---- ES Module 直接通过 Alpine.store('settings') 访问 ----
 });

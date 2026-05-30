@@ -12,6 +12,7 @@ import { restoreReasoningArea } from './chat-reasoning.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_DOTS, ICON_PIN } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
+import { renderMarkdown } from './chat-markdown.js';
 
 'use strict';
 
@@ -31,11 +32,10 @@ export function convertMessagesToGroups(messages) {
     for (const msg of messages) {
         if (msg.role === 'user') {
             seq++;
-            var render = window._alpineRenderMarkdown || function(s) { return s || ''; };
             groups.push({
                 id: seq,
                 msgId: msg.id || 0,
-                user: { content: msg.content, createdAt: msg.created_at || null, contentHTML: render(msg.content) },
+                user: { content: msg.content, createdAt: msg.created_at || null, contentHTML: renderMarkdown(msg.content) },
                 assistant: {
                     content: '',
                     createdAt: null,
@@ -47,15 +47,14 @@ export function convertMessagesToGroups(messages) {
                 },
             });
         } else if (msg.role === 'assistant' && groups.length > 0) {
-            var render = window._alpineRenderMarkdown || function(s) { return s || ''; };
             var lastGroup = groups[groups.length - 1];
             lastGroup.assistant.content = msg.content || '';
             lastGroup.assistant.createdAt = msg.created_at || null;
             lastGroup.assistant.reasoning = msg.reasoning || null;
             lastGroup.assistant.sources = msg.sources || null;
             lastGroup.assistant.usage = msg.usage || null;
-            lastGroup.assistant.contentHTML = render(msg.content || '');
-            lastGroup.assistant.reasoningHTML = msg.reasoning ? render(msg.reasoning) : undefined;
+            lastGroup.assistant.contentHTML = renderMarkdown(msg.content || '');
+            lastGroup.assistant.reasoningHTML = msg.reasoning ? renderMarkdown(msg.reasoning) : undefined;
             lastGroup.msgId = msg.id || lastGroup.msgId;
         }
     }
@@ -590,7 +589,6 @@ async function selectChat(sn) {
             if (chats && chats.active) {
                 var id = ++chats.active._groupSeq;
                 var sm = streamingMsg;
-                var render = window._alpineRenderMarkdown || function(s) { return s || ''; };
                 chats.active.groups.push({
                     id: id,
                     msgId: sm.msgId || 0,
@@ -601,8 +599,8 @@ async function selectChat(sn) {
                         reasoning: sm.reasoning || undefined,
                         sources: sm.sources && sm.sources.length > 0 ? sm.sources.slice() : undefined,
                         usage: sm.usage || undefined,
-                        contentHTML: render(sm.content || ''),
-                        reasoningHTML: sm.reasoning ? render(sm.reasoning) : undefined,
+                        contentHTML: renderMarkdown(sm.content || ''),
+                        reasoningHTML: sm.reasoning ? renderMarkdown(sm.reasoning) : undefined,
                     },
                 });
             }
@@ -1005,11 +1003,18 @@ async function handleDelete(chat) {
 }
 
 // ============================================================
-// 暴露给 Alpine 模板使用的事件处理函数
+// 注册方法到 Alpine store
 // ============================================================
 // 侧边栏聊天列表由 Alpine x-for 模板渲染（index.html），
-// 但 Alpine 模板不会自动附加 DOM 事件监听器，因此需要将
-// 点击事件处理函数挂载到 window 上，供 Alpine @click 调用。
+// 模板中通过 $store.chats.selectChat(sn) 调用。
+// chat-list.js 是 ES Module，执行时 Alpine store 已就绪。
 // ============================================================
-window.__selectChat = selectChat;
-window.__showContextMenu = showContextMenu;
+try {
+    var chats = window.Alpine.store('chats');
+    if (chats) {
+        chats.selectChat = selectChat;
+        chats.showContextMenu = showContextMenu;
+    }
+} catch(e) {
+    console.warn('chat-list: 无法注册到 Alpine store', e);
+}

@@ -549,11 +549,9 @@ export function showWelcomeMessage() {
     // 同时移除 margin-top: auto（在 flex 容器中会推到最底部），改为普通 margin-top
     var welcomeMsgEl = document.querySelector('.welcome-message');
     var inputArea = document.querySelector('.input-area');
-    console.log('[showWelcomeMessage] welcomeMsgEl:', welcomeMsgEl, 'inputArea:', inputArea, 'inputArea.parentNode:', inputArea?.parentNode);
     if (welcomeMsgEl && inputArea && inputArea.parentNode !== welcomeMsgEl) {
         welcomeMsgEl.appendChild(inputArea);
         inputArea.style.marginTop = '12px';
-        console.log('[showWelcomeMessage] moved inputArea into welcomeMsgEl, new parent:', inputArea.parentNode);
     }
 
     // 显式添加 welcome-state，使 scroll-container 切换为 flex 垂直居中布局

@@ -33,7 +33,7 @@ import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOff
 // ============================================================
 // 从 cookie 加载用户设置
 // ============================================================
-window.__settingsStore.load();
+Alpine.store('settings').load();
 
 const THEME_VALUES = ['light', 'dark', 'system'];
 
@@ -64,7 +64,7 @@ function applyTheme(themeVal) {
 }
 
 // 初始化主题
-applyTheme(window.__settingsStore.theme);
+applyTheme(Alpine.store('settings').theme);
 
 // 监听 Alpine store 发起的主题变更事件
 document.addEventListener('theme-changed', (e) => {
@@ -568,7 +568,7 @@ const sendModeLabel = document.getElementById('sendModeLabel');
 
 // ---- 从 settings store 恢复发送模式 ----
 // sendMode: 0=Enter发送, 1=Enter换行
-sendModeToggle.checked = window.__settingsStore.sendMode === 1;
+sendModeToggle.checked = Alpine.store('settings').sendMode === 1;
 
 messageInput.addEventListener('input', () => {
     messageInput.style.height = 'auto';
@@ -591,7 +591,7 @@ const newlineHint = document.getElementById('newlineHint');
 
 // 更新发送模式标签
 function updateSendModeLabel() {
-    var isAlternate = window.__settingsStore.sendMode === 1;
+    var isAlternate = Alpine.store('settings').sendMode === 1;
     sendModeLabel.textContent = isAlternate
         ? SEND_MODE_LABELS.alternate
         : SEND_MODE_LABELS.normal;
@@ -605,8 +605,8 @@ function updateSendModeLabel() {
 
 // 滑块切换发送模式
 sendModeToggle.addEventListener('change', () => {
-    window.__settingsStore.sendMode = sendModeToggle.checked ? 1 : 0;
-    window.__settingsStore.save();
+    Alpine.store('settings').sendMode = sendModeToggle.checked ? 1 : 0;
+    Alpine.store('settings').save();
     updateSendModeLabel();
 });
 
@@ -622,7 +622,7 @@ updateSendModeLabel();
 // 键盘发送/换行逻辑
 messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-        if (window.__settingsStore.sendMode === 1) {
+        if (Alpine.store('settings').sendMode === 1) {
             // 模式二: Enter换行, Shift+Enter发送
             if (e.shiftKey) {
                 e.preventDefault();

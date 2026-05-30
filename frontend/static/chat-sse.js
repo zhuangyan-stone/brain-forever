@@ -253,7 +253,7 @@ function dispatchEventToResponser(event, session) {
  * @param {string} createdAt
  */
 async function fetchStream(session, content, createdAt) {
-    var settings = window.__settingsStore;
+    var settings = Alpine.store('settings');
 
     // 发送请求 — 只传用户最新的一句话，历史由后端维护
     const response = await fetch('/api/chat', {

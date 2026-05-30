@@ -7,42 +7,33 @@
 //   3. toggleBtn  — 开关型按钮，点击切换选中/未选中状态
 //   4. sendBtn    — 发送/停止按钮，支持两种视觉状态切换
 //   5. attachBtn  — 附件上传触发按钮
+//   6. deleteDialog — 删除确认对话框
+//   7. titleEditDialog — 修改标题对话框
+//   8. chatContainer — 聊天容器 Alpine 组件
+//   9. formatTime — 时间格式化函数
 //
-// ⚠️ 此文件以普通 <script> 加载（非 ES Module），因为 Alpine 需要在处理
-//    DOM 前找到这些全局函数。ES Module 的执行时机晚于 Alpine 的 x-data
-//    扫描，无法满足时序要求。
+// ⚠️ 此文件以普通 <script> 加载（非 ES Module），
+//    在 alpine:init 事件中通过 Alpine.data() 注册所有组件，
+//    使 HTML 中 x-data="iconBtn(config)" 在 Alpine 处理 DOM 时立即可用。
 // ============================================================
 
-// ============================================================
-// 1. iconBtn — IconButton
-// ============================================================
-// 用途：纯图标按钮，支持两种尺寸
-// 适用：themeToggle（normal 尺寸）、aiTitleBtn（small 尺寸）、
-//       sidebarCloseBtn（normal 尺寸）、menu-toggle-btn（small 尺寸）
-//
-// 使用方式：
-//   <!-- 双态图标（主题切换：图标由 Alpine store 控制） -->
-//   <button class="icon-btn icon-btn--normal"
-//           x-data="iconBtn({ size: 'normal' })"
-//           @click="$store.settings.toggleTheme()"
-//           :data-tooltip="$store.settings.theme === 1 ? '亮色' : '暗色'">
-//       <template x-if="$store.settings.theme === 1">
-//           <svg><!-- 月亮 --></svg>
-//       </template>
-//       <template x-if="$store.settings.theme !== 1">
-//           <svg><!-- 太阳 --></svg>
-//       </template>
-//   </button>
-//
-//   <!-- 带 disabled 控制 -->
-//   <button class="icon-btn icon-btn--small"
-//           x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
-//           :disabled="disabled">
-//       <svg>...</svg>
-//   </button>
+document.addEventListener('alpine:init', function() {
 
-window.iconBtn = function(config = {}) {
-    return {
+    // ============================================================
+    // 1. iconBtn — IconButton
+    // ============================================================
+    // 用途：纯图标按钮，支持两种尺寸
+    // 适用：themeToggle（normal 尺寸）、aiTitleBtn（small 尺寸）、
+    //       sidebarCloseBtn（normal 尺寸）、menu-toggle-btn（small 尺寸）
+    //
+    // 使用方式：
+    //   <button class="icon-btn icon-btn--normal"
+    //           x-data="iconBtn({ size: 'normal' })"
+    //           @click="$store.settings.toggleTheme()"
+    //           :data-tooltip="$store.settings.theme === 1 ? '亮色' : '暗色'">
+    //       <svg>...</svg>
+    //   </button>
+    Alpine.data('iconBtn', (config = {}) => ({
         /**
          * 尺寸变体：'normal' | 'small'
          * - normal: 34×34 容器，20×20 图标
@@ -59,31 +50,23 @@ window.iconBtn = function(config = {}) {
             }
             return config.disabled === true;
         },
-    };
-};
+    }));
 
 
-// ============================================================
-// 2. textBtn — TextButton
-// ============================================================
-// 用途：带文字、带边框的按钮，可选左侧图标
-// 适用：newChatBtn（图标+文字）、loginBtn（纯文字）
-//
-// 使用方式：
-//   <button class="text-btn"
-//           x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
-//           :disabled="disabled">
-//       <svg class="text-btn-icon"><use href="#icon-new-chat"/></svg>
-//       <span class="text-btn-label">新对话</span>
-//   </button>
-//
-//   <!-- 无 disabled 控制的按钮 -->
-//   <button class="text-btn" x-data="textBtn()">
-//       登录
-//   </button>
-
-window.textBtn = function(config = {}) {
-    return {
+    // ============================================================
+    // 2. textBtn — TextButton
+    // ============================================================
+    // 用途：带文字、带边框的按钮，可选左侧图标
+    // 适用：newChatBtn（图标+文字）、loginBtn（纯文字）
+    //
+    // 使用方式：
+    //   <button class="text-btn"
+    //           x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
+    //           :disabled="disabled">
+    //       <svg><use href="#icon-new-chat"/></svg>
+    //       <span>新对话</span>
+    //   </button>
+    Alpine.data('textBtn', (config = {}) => ({
         /**
          * disabled 状态由外部通过 config.disabled 注入，
          * 支持传入 getter 函数（保持 Alpine 响应式）或布尔值。
@@ -94,31 +77,27 @@ window.textBtn = function(config = {}) {
             }
             return config.disabled === true;
         },
-    };
-};
+    }));
 
 
-// ============================================================
-// 3. toggleBtn — ToggleButton
-// ============================================================
-// 用途：开关型按钮，点击切换选中/未选中状态
-// 适用：deepThinkBtn、webSearchBtn
-//
-// 使用方式：
-//   <button class="toggle-btn"
-//           x-data="toggleBtn({
-//               active: () => $store.settings.deepThink,
-//               onToggle: () => $store.settings.toggleDeepThink(),
-//           })"
-//           :data-active="active ? 'true' : 'false'"
-//           @click="onToggle"
-//           :data-tooltip="active ? '已开启' : '已关闭'">
-//       <svg>...</svg>
-//       <span>深度思考</span>
-//   </button>
-
-window.toggleBtn = function(config = {}) {
-    return {
+    // ============================================================
+    // 3. toggleBtn — ToggleButton
+    // ============================================================
+    // 用途：开关型按钮，点击切换选中/未选中状态
+    // 适用：deepThinkBtn、webSearchBtn
+    //
+    // 使用方式：
+    //   <button class="toggle-btn"
+    //           x-data="toggleBtn({
+    //               active: () => $store.settings.deepThink,
+    //               onToggle: () => $store.settings.toggleDeepThink(),
+    //           })"
+    //           :data-active="active ? 'true' : 'false'"
+    //           @click="onToggle">
+    //       <svg>...</svg>
+    //       <span>深度思考</span>
+    //   </button>
+    Alpine.data('toggleBtn', (config = {}) => ({
         /**
          * 是否激活，由外部注入响应式 getter
          */
@@ -133,35 +112,25 @@ window.toggleBtn = function(config = {}) {
          * 点击时的切换函数，由外部注入
          */
         onToggle: config.onToggle || function() {},
-    };
-};
+    }));
 
 
-// ============================================================
-// 4. sendBtn — SendButton
-// ============================================================
-// 用途：发送/停止按钮，支持两种视觉状态切换
-// - active=false：默认状态（发送态，如蓝色圆形纸飞机）
-// - active=true：备选状态（停止态，如红色方形停止图标）
-//
-// 使用方式：
-//   <button id="sendBtn" class="send-btn"
-//           x-data="sendBtn({ active: () => $store.chats.active?.isStreaming })"
-//           :class="{ 'stop-btn': active }"
-//           :data-tooltip="active ? '停止生成' : '发送'">
-//       <template x-if="!active">
-//           <svg><!-- 纸飞机 --></svg>
-//       </template>
-//       <template x-if="active">
-//           <svg><!-- 停止方块 --></svg>
-//       </template>
-//   </button>
-//
-// 注意：点击事件由 chat.js 中的原生 JS 处理，
-//       Alpine 仅负责视觉状态的响应式管理。
-
-window.sendBtn = function(config = {}) {
-    return {
+    // ============================================================
+    // 4. sendBtn — SendButton
+    // ============================================================
+    // 用途：发送/停止按钮，支持两种视觉状态切换
+    // - active=false：默认状态（发送态）
+    // - active=true：备选状态（停止态）
+    //
+    // 使用方式：
+    //   <button id="sendBtn" class="send-btn"
+    //           x-data="sendBtn({ active: () => $store.chats.active?.isStreaming })"
+    //           :class="{ 'stop-btn': active }"
+    //           :data-tooltip="active ? '停止生成' : '发送'">
+    //       <template x-if="!active"><svg><!-- 纸飞机 --></svg></template>
+    //       <template x-if="active"><svg><!-- 停止方块 --></svg></template>
+    //   </button>
+    Alpine.data('sendBtn', (config = {}) => ({
         /**
          * active 状态由外部注入，控制按钮的视觉模式：
          * - false → 默认状态（如发送）
@@ -175,50 +144,41 @@ window.sendBtn = function(config = {}) {
             }
             return config.active === true;
         },
-    };
-};
+    }));
 
 
-// ============================================================
-// 5. attachBtn — AttachButton
-// ============================================================
-// 用途：附件上传触发按钮，点击打开文件选择框
-// 适用：attachBtn
-//
-// 使用方式：
-//   <button id="attachBtn" class="attach-btn" x-data="attachBtn()">
-//       <svg>...</svg>
-//   </button>
-
-window.attachBtn = function() {
-    return {
+    // ============================================================
+    // 5. attachBtn — AttachButton
+    // ============================================================
+    // 用途：附件上传触发按钮，点击打开文件选择框
+    //
+    // 使用方式：
+    //   <button id="attachBtn" class="attach-btn" x-data="attachBtn()">
+    //       <svg>...</svg>
+    //   </button>
+    Alpine.data('attachBtn', () => ({
         /**
          * 当前无特殊状态逻辑，仅为 Alpine 组件占位，
          * 以便将来扩展（如拖拽上传状态、文件数量徽标等）。
          */
-    };
-};
+    }));
 
 
-// ============================================================
-// 6. deleteDialog — 删除确认对话框
-// ============================================================
-// 用途：消息删除确认对话框的状态管理
-// 适用：msg-delete-dialog（index.html 中静态 HTML）
-//
-// 使用方式：
-//   <div class="dialog-overlay" id="deleteModal"
-//        x-data="deleteDialog()"
-//        :class="{ show: show }">
-//   </div>
-//
-//   在 JS 中通过 Alpine.$data(deleteModal) 操作：
-//     Alpine.$data(deleteModal).open(deleteIndex)
-//     Alpine.$data(deleteModal).close()
-// ============================================================
-
-window.deleteDialog = function() {
-    return {
+    // ============================================================
+    // 6. deleteDialog — 删除确认对话框
+    // ============================================================
+    // 用途：消息删除确认对话框的状态管理
+    //
+    // 使用方式：
+    //   <div class="dialog-overlay" id="deleteModal"
+    //        x-data="deleteDialog()"
+    //        :class="{ show: show }">
+    //   </div>
+    //
+    //   在 JS 中通过 Alpine.$data(deleteModal) 操作：
+    //     Alpine.$data(deleteModal).open(deleteIndex)
+    //     Alpine.$data(deleteModal).close()
+    Alpine.data('deleteDialog', () => ({
         show: false,
         deleteIndex: -1,
 
@@ -240,46 +200,26 @@ window.deleteDialog = function() {
             this.show = false;
             this.deleteIndex = -1;
         },
-    };
-};
+    }));
 
 
-// ============================================================
-// 7. titleEditDialog — 修改标题对话框
-// ============================================================
-// 用途：修改对话标题对话框，提供输入编辑+确认/取消操作
-// 适用：title-edit-dialog（index.html 中静态 HTML）
-//
-// 使用方式：
-//   <div class="dialog-overlay" id="titleEditDialog"
-//        x-data="titleEditDialog()"
-//        :class="{ show: show }">
-//       <div class="dialog-box">
-//           <div class="dialog-header">
-//               <h3>修改对话标题</h3>
-//               ...
-//           </div>
-//           <div class="dialog-body">
-//               <div class="title-edit-original" x-text="displayTitle"></div>
-//               <label class="title-edit-label">新标题</label>
-//               <input type="text" class="title-edit-input"
-//                      x-model="editingTitle"
-//                      maxlength="50">
-//           </div>
-//           <div class="dialog-footer">
-//               <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>
-//               <button class="dialog-btn dialog-btn-confirm" @click="confirm"
-//                       :disabled="!editingTitle.trim() || submitting"
-//                       x-text="submitting ? '提交中…' : '确认'">确认</button>
-//           </div>
-//       </div>
-//   </div>
-//
-//   在 JS 中通过 Alpine.$data(titleEditDialog).open(options) 调用
-// ============================================================
-
-window.titleEditDialog = function() {
-    return {
+    // ============================================================
+    // 7. titleEditDialog — 修改标题对话框
+    // ============================================================
+    // 用途：修改对话标题对话框，提供输入编辑+确认/取消操作
+    //
+    // 使用方式：
+    //   <div class="dialog-overlay" id="titleEditDialog"
+    //        x-data="titleEditDialog()"
+    //        :class="{ show: show }">
+    //       ...
+    //       <input type="text" x-model="editingTitle" maxlength="50">
+    //       <button @click="confirm" :disabled="!editingTitle.trim() || submitting"
+    //               x-text="submitting ? '提交中…' : '确认'">确认</button>
+    //   </div>
+    //
+    //   在 JS 中通过 Alpine.$data(titleEditDialog).open(options) 调用
+    Alpine.data('titleEditDialog', () => ({
         show: false,
         editingTitle: '',
         originalTitle: '',
@@ -338,7 +278,6 @@ window.titleEditDialog = function() {
             var newTitle = this.editingTitle.trim();
             if (!newTitle || this.submitting) return;
 
-            // 未设置 onConfirm 时直接关闭
             if (typeof this._onConfirm !== 'function') {
                 this.show = false;
                 return;
@@ -347,7 +286,6 @@ window.titleEditDialog = function() {
             this.submitting = true;
             var result = this._onConfirm(newTitle);
 
-            // onConfirm 可能返回 Promise 或 boolean
             if (result && typeof result.then === 'function') {
                 result.then(function(success) {
                     if (success) {
@@ -362,7 +300,6 @@ window.titleEditDialog = function() {
                     self.submitting = false;
                 });
             } else {
-                // 同步返回值
                 if (result) {
                     self.show = false;
                     self._onConfirm = null;
@@ -372,28 +309,24 @@ window.titleEditDialog = function() {
                 }
             }
         },
-    };
-};
+    }));
 
 
-// ============================================================
-// 8. chatContainer — 聊天容器 Alpine 组件
-// ============================================================
-// 用途：管理 #chatContainer 的 Alpine 状态，提供 x-for 模板中
-//       使用的辅助方法（formatTime、deleteGroup 等）。
-//
-// 使用方式：
-//   <main class="chat-container" id="chatContainer"
-//         x-data="chatContainer()"
-//         x-init="init($el)">
-//       <template x-for="(group, idx) in $store.chats.active?.groups ?? []">
-//           ...
-//       </template>
-//   </main>
-// ============================================================
-
-window.chatContainer = function() {
-    return {
+    // ============================================================
+    // 8. chatContainer — 聊天容器 Alpine 组件
+    // ============================================================
+    // 用途：管理 #chatContainer 的 Alpine 状态，提供 x-for 模板中
+    //       使用的辅助方法（formatTime、deleteGroup 等）。
+    //
+    // 使用方式：
+    //   <main class="chat-container" id="chatContainer"
+    //         x-data="chatContainer()"
+    //         x-init="init($el)">
+    //       <template x-for="(group, idx) in $store.chats.active?.groups ?? []">
+    //           ...
+    //       </template>
+    //   </main>
+    Alpine.data('chatContainer', () => ({
         /**
          * 初始化：保存容器 DOM 引用
          * @param {HTMLElement} el
@@ -415,8 +348,10 @@ window.chatContainer = function() {
             if (!group) return;
 
             // 设置活动刻度索引（用于刻度导航高亮）
-            var { setActiveTick } = window.__moduleTickNav || {};
-            if (setActiveTick) setActiveTick(idx);
+            try {
+                var tickNav = Alpine.store('tickNav');
+                if (tickNav) tickNav.activeTickIndex = idx;
+            } catch(e) {}
 
             // 通过 Alpine 打开删除确认对话框
             var deleteModal = document.getElementById('deleteModal');
@@ -434,24 +369,29 @@ window.chatContainer = function() {
                 chats.deleteGroup(idx);
             }
         },
-    };
-};
+    }));
 
-/**
- * 格式化 ISO 时间字符串为 HH:mm:ss
- * 在 Alpine x-text 表达式中使用：formatTime(group.user.createdAt)
- * @param {string} isoStr - ISO 格式时间字符串
- * @returns {string}
- */
-window.formatTime = function(isoStr) {
-    if (!isoStr) return '';
-    try {
-        var d = new Date(isoStr);
-        var hh = String(d.getHours()).padStart(2, '0');
-        var mm = String(d.getMinutes()).padStart(2, '0');
-        var ss = String(d.getSeconds()).padStart(2, '0');
-        return hh + ':' + mm + ':' + ss;
-    } catch(e) {
-        return '';
-    }
-};
+
+    // ============================================================
+    // 9. formatTime — 时间格式化函数
+    // ============================================================
+    // 在 Alpine x-text 表达式中使用：formatTime(group.user.createdAt)
+    //
+    // 由于 Alpine.data 中可直接引用全局函数，此函数作为 Alpine magic
+    // 注册，或保持为普通函数均可。当前保持为 Alpine.data 内联。
+    // 同时保留 window.formatTime 供 Alpine 模板直接引用。
+    // ============================================================
+    window.formatTime = function(isoStr) {
+        if (!isoStr) return '';
+        try {
+            var d = new Date(isoStr);
+            var hh = String(d.getHours()).padStart(2, '0');
+            var mm = String(d.getMinutes()).padStart(2, '0');
+            var ss = String(d.getSeconds()).padStart(2, '0');
+            return hh + ':' + mm + ':' + ss;
+        } catch(e) {
+            return '';
+        }
+    };
+
+});

@@ -72,10 +72,10 @@
          时机早于 ES Module 的加载。 -->
     <script src="/static/alpine-store.js"></script>
 
-    <!-- Alpine 组件函数 — 必须在 Alpine.js 之前加载（普通<script>），
-         因为 Alpine 在处理 DOM 时就需要这些函数在全局作用域中。
-         若用 ES Module（type="module"），执行时机晚于 Alpine 的 x-data 扫描，
-         将导致 ReferenceError。 -->
+    <!-- Alpine 组件注册 — 通过 Alpine.data() 注册 x-data 组件，
+         监听 alpine:init 事件，在 Alpine 初始化时完成注册。
+         必须作为普通 <script> 在 Alpine.js 之前加载，
+         若用 ES Module 则执行时机晚于 Alpine 的 DOM 扫描。 -->
     <script src="/static/components/buttons.js"></script>
 
     <!-- SVG 图标常量 — 必须在 Alpine.js 之前加载（普通<script>），
@@ -162,11 +162,11 @@
                                         <div class="chat-item"
                                              :class="{ active: chat.sn === $store.chats.activeChatSN }"
                                              :data-sn="chat.sn"
-                                             @click="window.__selectChat(chat.sn)">
+                                             @click="$store.chats.selectChat(chat.sn)">
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                             <button class="chat-item-more-btn"
                                                     data-tooltip="更多操作"
-                                                    @click.stop="window.__showContextMenu($event, chat)">
+                                                    @click.stop="$store.chats.showContextMenu($event, chat)">
                                                 <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
                                             </button>
                                         </div>
@@ -200,11 +200,11 @@
                                                     <div class="chat-item"
                                                          :class="{ active: chat.sn === $store.chats.activeChatSN }"
                                                          :data-sn="chat.sn"
-                                                         @click="window.__selectChat(chat.sn)">
+                                                         @click="$store.chats.selectChat(chat.sn)">
                                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                                         <button class="chat-item-more-btn"
                                                                 data-tooltip="更多操作"
-                                                                @click.stop="window.__showContextMenu($event, chat)">
+                                                                @click.stop="$store.chats.showContextMenu($event, chat)">
                                                             <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
                                                         </button>
                                                     </div>
@@ -242,11 +242,11 @@
                                     <div class="chat-item"
                                          :class="{ active: chat.sn === $store.chats.activeChatSN }"
                                          :data-sn="chat.sn"
-                                         @click="window.__selectChat(chat.sn)">
+                                         @click="$store.chats.selectChat(chat.sn)">
                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                         <button class="chat-item-more-btn"
                                                 data-tooltip="更多操作"
-                                                @click.stop="window.__showContextMenu($event, chat)">
+                                                @click.stop="$store.chats.showContextMenu($event, chat)">
                                             <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
                                         </button>
                                     </div>

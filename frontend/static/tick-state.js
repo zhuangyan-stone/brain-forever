@@ -1,11 +1,8 @@
 // ============================================================
 // tick-state.js — 刻度导航模块级状态变量
 // ============================================================
-// 从原 chat-state.js 的 state 对象中迁移出来的模块级变量。
-// 这些变量不适合放在 Alpine store 中，因为它们属于 UI 状态
-// 或临时标志，不需要响应式绑定。
-//
-// 各模块通过 import { ... } from './tick-state.js' 引用。
+// 同时同步到 Alpine.store('tickNav')，供 buttons.js 等
+// 非 ES Module 代码读取当前刻度状态。
 // ============================================================
 
 'use strict';
@@ -34,11 +31,29 @@ export let targetTickIndex = -1;
 export let pendingHighlightIndex = -1;
 
 /**
+ * 将当前状态同步到 Alpine store
+ */
+function syncToAlpine() {
+    try {
+        var store = window.Alpine.store('tickNav');
+        if (store) {
+            store.activeTickIndex = activeTickIndex;
+            store.tickScrollOffset = tickScrollOffset;
+            store.targetTickIndex = targetTickIndex;
+            store.pendingHighlightIndex = pendingHighlightIndex;
+        }
+    } catch(e) {
+        // Alpine 尚未初始化，忽略
+    }
+}
+
+/**
  * 设置 activeTickIndex
  * @param {number} val
  */
 export function setActiveTickIndex(val) {
     activeTickIndex = val;
+    syncToAlpine();
 }
 
 /**
@@ -47,6 +62,7 @@ export function setActiveTickIndex(val) {
  */
 export function setTickScrollOffset(val) {
     tickScrollOffset = val;
+    syncToAlpine();
 }
 
 /**
@@ -55,6 +71,7 @@ export function setTickScrollOffset(val) {
  */
 export function setTargetTickIndex(val) {
     targetTickIndex = val;
+    syncToAlpine();
 }
 
 /**
@@ -63,6 +80,7 @@ export function setTargetTickIndex(val) {
  */
 export function setPendingHighlightIndex(val) {
     pendingHighlightIndex = val;
+    syncToAlpine();
 }
 
 /**
@@ -73,5 +91,5 @@ export function resetTickState() {
     tickScrollOffset = 0;
     targetTickIndex = -1;
     pendingHighlightIndex = -1;
+    syncToAlpine();
 }
-

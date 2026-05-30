@@ -46,6 +46,14 @@ export function toggleReasoningCollapse(headerEl) {
 export function restoreReasoningArea(assistantBubble, reasoningText, reasoningState) {
     if (!assistantBubble || !reasoningText) return;
 
+    // 🛡 防重复守卫：如果 assistant 气泡中已有 .reasoning-area（已由 Alpine 模板渲染），
+    //    则不重复创建，避免 reasoning 区域显示两次。
+    //    场景：Alpine 方案B 下，group.assistant.reasoningHTML 被设置后 Alpine 会自动渲染；
+    //    此处 JS 调用是历史遗留，需跳过以免重复。
+    if (assistantBubble.querySelector('.reasoning-area')) {
+        return;
+    }
+
     reasoningState = reasoningState || 'done';
     const titleText = REASONING_TITLES[reasoningState] || REASONING_TITLES.done;
 
