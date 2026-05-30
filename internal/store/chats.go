@@ -238,6 +238,15 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 		return fmt.Errorf("session not found (id=%d, sn=%s)", id, sn)
 	}
 
+	// Delete all web sources under this session
+	_, err = tx.Exec(
+		"DELETE FROM web_sources WHERE chat_id = ?",
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete web sources of session. %w", err)
+	}
+
 	// Delete all messages under this session
 	_, err = tx.Exec(
 		"DELETE FROM chat_messages WHERE chat_id = ?",

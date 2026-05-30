@@ -937,7 +937,7 @@ async function handleDelete(chat) {
     }
 
     try {
-        const response = await fetch('/api/session?sn=' + encodeURIComponent(chat.sn), {
+        const response = await fetch('/api/chat?sn=' + encodeURIComponent(chat.sn), {
             method: 'DELETE',
         });
         if (!response.ok) {
