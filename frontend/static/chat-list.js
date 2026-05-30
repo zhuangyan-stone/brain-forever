@@ -8,7 +8,6 @@ import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOff
 import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showSources, showTokenUsage, applyStreamingState } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
-import { restoreReasoningArea } from './chat-reasoning.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_DOTS, ICON_PIN } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
@@ -502,9 +501,6 @@ async function selectChat(sn) {
                 if (assistantEntry.sources && assistantEntry.sources.length > 0) {
                     showSources(assistantEntry.sources, 'web');
                 }
-                if (assistantEntry.reasoning && assistantMsg) {
-                    restoreReasoningArea(assistantMsg, assistantEntry.reasoning, assistantEntry.reasoningState);
-                }
             }
         }
     });
@@ -542,6 +538,7 @@ async function selectChat(sn) {
                         content: streamingMsg.content || '',
                         createdAt: null,
                         reasoning: streamingMsg.reasoning || null,
+                        reasoningState: streamingMsg.reasoning ? (streamingMsg.reasoningState || 'thinking') : undefined,
                         sources: null,
                         usage: null,
                         contentHTML: streamingMsg.content ? renderMarkdown(streamingMsg.content) : '',
@@ -574,9 +571,6 @@ async function selectChat(sn) {
                     if (chatData) sm = chatData.streamingMsg;
                 }
             } catch(e) {}
-            if (sm && sm.reasoning && session.assistantBubble) {
-                restoreReasoningArea(session.assistantBubble, sm.reasoning, sm.reasoningState);
-            }
 
             // 标记流式状态
             applyStreamingState(true);
@@ -597,6 +591,7 @@ async function selectChat(sn) {
                         content: sm.content || '',
                         createdAt: sm.createdAt || null,
                         reasoning: sm.reasoning || undefined,
+                        reasoningState: sm.reasoning ? 'done' : undefined,
                         sources: sm.sources && sm.sources.length > 0 ? sm.sources.slice() : undefined,
                         usage: sm.usage || undefined,
                         contentHTML: renderMarkdown(sm.content || ''),
@@ -629,9 +624,6 @@ async function selectChat(sn) {
                         if (chatData) sm = chatData.streamingMsg;
                     }
                 } catch(e) {}
-                if (sm && sm.reasoning) {
-                    restoreReasoningArea(session.assistantBubble, sm.reasoning, sm.reasoningState);
-                }
                 if (sm && sm.usage) {
                     showTokenUsage(session.assistantBubble, sm.usage);
                 }

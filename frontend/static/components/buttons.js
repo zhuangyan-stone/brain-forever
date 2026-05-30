@@ -10,7 +10,7 @@
 //   6. deleteDialog — 删除确认对话框
 //   7. titleEditDialog — 修改标题对话框
 //   8. chatContainer — 聊天容器 Alpine 组件
-//   9. formatTime — 时间格式化函数
+//   9. formatMessageTime — 消息时间格式化函数
 //
 // ⚠️ 此文件以普通 <script> 加载（非 ES Module），
 //    在 alpine:init 事件中通过 Alpine.data() 注册所有组件，
@@ -316,7 +316,7 @@ document.addEventListener('alpine:init', function() {
     // 8. chatContainer — 聊天容器 Alpine 组件
     // ============================================================
     // 用途：管理 #chatContainer 的 Alpine 状态，提供 x-for 模板中
-    //       使用的辅助方法（formatTime、deleteGroup 等）。
+    //       使用的辅助方法（formatMessageTime、deleteGroup 等）。
     //
     // 使用方式：
     //   <main class="chat-container" id="chatContainer"
@@ -373,15 +373,15 @@ document.addEventListener('alpine:init', function() {
 
 
     // ============================================================
-    // 9. formatTime — 时间格式化函数
+    // 9. formatMessageTime — 消息时间格式化函数
     // ============================================================
-    // 在 Alpine x-text 表达式中使用：formatTime(group.user.createdAt)
+    // 在 Alpine x-text 表达式中使用：formatMessageTime(group.user.createdAt)
     //
     // 由于 Alpine.data 中可直接引用全局函数，此函数作为 Alpine magic
     // 注册，或保持为普通函数均可。当前保持为 Alpine.data 内联。
-    // 同时保留 window.formatTime 供 Alpine 模板直接引用。
+    // 同时保留 window.formatMessageTime 供 Alpine 模板直接引用。
     // ============================================================
-    window.formatTime = function(isoStr) {
+    window.formatMessageTime = function(isoStr) {
         if (!isoStr) return '';
         try {
             var d = new Date(isoStr);
@@ -392,6 +392,23 @@ document.addEventListener('alpine:init', function() {
         } catch(e) {
             return '';
         }
+    };
+
+    // ============================================================
+    // 10. assistantLabel — AI 角色标签文本生成函数
+    // ============================================================
+    // 在 Alpine x-text 表达式中使用：assistantLabel(group.assistant)
+    //
+    // 将嵌套三元表达式的复杂逻辑封装为函数，与 formatMessageTime 保持一致的风格。
+    // ============================================================
+    window.assistantLabel = function(assistant) {
+        var prefix = '🤖 AI';
+        if (assistant.reasoningHTML) {
+            return assistant.reasoningState === 'done'
+                ? prefix + ' 思考完成 (' + formatMessageTime(assistant.createdAt) + ')'
+                : prefix + ' 正在思考……';
+        }
+        return prefix + (assistant.createdAt ? ' (' + formatMessageTime(assistant.createdAt) + ')' : '');
     };
 
 });

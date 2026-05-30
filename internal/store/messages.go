@@ -6,11 +6,11 @@ import (
 
 // InsertMessage records a new message.
 func (s *ChatStore) InsertMessage(chatID int64, groupIndex int, role int,
-	content string, reasoning *string) error {
+	content string, reasoning *string, interrupted int) error {
 	_, err := s.db.Exec(
-		`INSERT INTO chat_messages(chat_id, group_index, role, reasoning, content)
-		 VALUES(?, ?, ?, ?, ?)`,
-		chatID, groupIndex, role, reasoning, content,
+		`INSERT INTO chat_messages(chat_id, group_index, role, reasoning, content, interrupted)
+		 VALUES(?, ?, ?, ?, ?, ?)`,
+		chatID, groupIndex, role, reasoning, content, interrupted,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert message. %w", err)
@@ -23,7 +23,7 @@ func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	var msgs []Message
 	err := s.db.Select(&msgs,
 		`SELECT id, chat_id, group_index, role, reasoning, content,
-		        extracted, create_at, update_at
+		        extracted, interrupted, create_at, update_at
 		 FROM chat_messages
 		 WHERE chat_id = ?
 		 ORDER BY group_index ASC, id ASC`,

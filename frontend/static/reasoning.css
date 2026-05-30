@@ -17,62 +17,20 @@
     opacity: 0.85;
 }
 
-/* 标题区域 — 独立区域，宽度与内容绑定 */
-.reasoning-header {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px 0 12px;
-    font-weight: 500;
-    cursor: pointer;
-    user-select: none;
-    max-width: 100%;
-}
-
-/* AI 角色徽章 — 合并到 reasoning-header 中，替代独立的 role-label */
-.reasoning-role-badge {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    padding: 0 2px;
-    flex-shrink: 0;
-}
-
-.reasoning-header:hover .reasoning-toggle {
-    opacity: 1;
-}
-
-.reasoning-icon {
-    font-size: 0.75rem;
-    flex-shrink: 0;
-}
-
-.reasoning-title {
-    color: var(--accent);
-    white-space: nowrap;
-}
-
-.reasoning-area.done .reasoning-title {
-    color: var(--text-secondary);
-}
-
-/* 折叠/展开切换按钮 — 放在最前面，与 sources-panel 的箭头风格一致 */
-.reasoning-toggle {
-    font-size: 0.6rem;
-    color: var(--text-muted);
-    flex-shrink: 0;
-    cursor: pointer;
-    line-height: 1;
+/* 折叠箭头：使用 ▶ 通过 CSS rotate 统一大小，展开时旋转 90° 指向下方 */
+.collapse-arrow {
+    display: inline-block;
+    font-size: 0.65rem;
     transition: transform 0.2s ease;
+    margin-right: 3px;
 }
-
-/* 默认（折叠状态）：▶ 不旋转 — 与 sources-panel 的 collapsed 一致 */
-.reasoning-toggle {
-    transform: rotate(0deg);
-}
-
-/* 展开状态：▶ 旋转 90° 变为 ▼ — 与 sources-panel 的 expanded 一致 */
-.reasoning-area:not(.collapsed) .reasoning-toggle {
+.collapse-arrow.expanded {
     transform: rotate(90deg);
+}
+
+/* 折叠手柄：有 reasoning 时角色标签变为可点击，用来切换 reasoning 区域的折叠 */
+.role-label-ai.clickable {
+    cursor: pointer;
 }
 
 /* 折叠状态：隐藏内容区域 */
@@ -240,11 +198,6 @@
     padding: 3px 8px;
 }
 
-/* 思考中动画 — 标题脉冲 */
-.reasoning-area.active .reasoning-title {
-    animation: reasoningPulse 1.8s ease-in-out infinite;
-}
-
 /* ============================================================
     联网搜索提示 — 在 AI 回复气泡上方显示搜索状态
     搜索也被视为 AI 思考过程的一部分
@@ -282,7 +235,3 @@
     margin-right: 4px;
 }
 
-@keyframes reasoningPulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
-}

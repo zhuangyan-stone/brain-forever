@@ -89,6 +89,7 @@ func persistMessageToDB(session *session, msg *Message) {
 		role,
 		msg.Content,
 		reasoning,
+		msg.Interrupted,
 	); err != nil {
 		log.Printf("failed to persist message to DB for user %s: %v", session.userNo, err)
 		return

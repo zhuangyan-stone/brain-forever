@@ -323,6 +323,7 @@ type StreamResult struct {
 //
 // Returns the aggregated StreamResult and any error encountered during streaming.
 func streamChatCompletion(
+	ctx context.Context,
 	stream *ChatCompletionChunkDecoder,
 	pipeline Pipeline,
 	onUsage func(Usage),
@@ -334,6 +335,20 @@ func streamChatCompletion(
 	finishReason := ""
 
 	for stream.Next() {
+		// Check for context cancellation (e.g. frontend aborted the connection).
+		// When cancelled, return partial content accumulated so far so the caller
+		// can persist it with the interrupted flag set.
+		select {
+		case <-ctx.Done():
+			return StreamResult{
+				Reply:        replyBuilder.String(),
+				Reasoning:    reasoningBuilder.String(),
+				ToolCalls:    toolCalls,
+				FinishReason: "interrupted",
+			}, ctx.Err()
+		default:
+		}
+
 		chunk := stream.CurrentChatCompletionChunk()
 
 		// Extract token usage from the final chunk
@@ -464,7 +479,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		}
 
 		// Read all chunks from the stream — collect reply, reasoning, and tool calls
-		streamResult, err := streamChatCompletion(stream, pipeline, c.SetUsageInfo)
+		streamResult, err := streamChatCompletion(ctx, stream, pipeline, c.SetUsageInfo)
 		if err != nil {
 			return "", "", fmt.Errorf("Read chunks from stream fail. %w", err)
 		}

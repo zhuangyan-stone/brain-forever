@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
     <!-- 防主题闪烁：在 CSS 渲染前从 localStorage 读取主题并设置 data-theme -->
     <script>
-        (function() {
+        (function () {
             try {
                 var raw = localStorage.getItem('brainforever_settings');
                 if (raw) {
@@ -21,7 +22,7 @@
                     }
                     document.documentElement.setAttribute('data-theme', themeStr);
                 }
-            } catch(e) {}
+            } catch (e) { }
         })();
     </script>
     <link rel="stylesheet" href="/static/theme.css">
@@ -93,15 +94,17 @@
     -->
     <script defer src="/static/lib/alpine.min.js"></script>
 </head>
+
 <body>
     <!-- 隐藏的 SVG 定义区，供各按钮通过 <use> 引用 -->
     <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;">
         <defs>
-            <svg id="icon-new-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="icon-new-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <!-- 聊天气泡，左下角尖角，内含 + 号 -->
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                <line x1="12" y1="8" x2="12" y2="16"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="8" y1="12" x2="16" y2="12" />
             </svg>
         </defs>
     </svg>
@@ -113,32 +116,28 @@
                 <div class="left-brand-area" id="leftBrandContainer"></div>
                 <div class="sidebar-new-chat-area" id="sidebarNewChatArea"></div>
                 <button class="icon-btn icon-btn--normal sidebar-close-btn" id="sidebarCloseBtn"
-                        x-data="iconBtn({ size: 'normal' })"
-                        aria-label="关闭侧栏">
-                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_CLOSE"></svg>
+                    x-data="iconBtn({ size: 'normal' })" aria-label="关闭侧栏">
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round" x-html="ICON_CLOSE"></svg>
                 </button>
             </div>
 
             <!-- 侧边栏 Tab 切换 -->
             <div class="sidebar-tabs" x-data>
-                <button class="sidebar-tab"
-                        :class="{ active: $store.chats.sidebarTab === 'timeline' }"
-                        @click="$store.chats.switchSidebarTab('timeline')">
+                <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'timeline' }"
+                    @click="$store.chats.switchSidebarTab('timeline')">
                     <span class="sidebar-tab-icon">&#x1F4C5;</span>
                     <span>时间</span>
                 </button>
-                <button class="sidebar-tab"
-                        :class="{ active: $store.chats.sidebarTab === 'category' }"
-                        @click="$store.chats.switchSidebarTab('category')">
+                <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'category' }"
+                    @click="$store.chats.switchSidebarTab('category')">
                     <span class="sidebar-tab-icon">🏷️</span>
                     <span>类别</span>
                 </button>
             </div>
 
             <!-- 时间线 Tab 内容 -->
-            <div class="sidebar-content" id="sidebarContent"
-                 x-data
-                 x-show="$store.chats.sidebarTab === 'timeline'">
+            <div class="sidebar-content" id="sidebarContent" x-data x-show="$store.chats.sidebarTab === 'timeline'">
                 <!-- 空状态 -->
                 <template x-if="$store.chats.chatsLists && $store.chats.chatsLists.length === 0">
                     <div class="chat-list-empty">暂无对话记录</div>
@@ -150,24 +149,22 @@
                         <!-- 普通分组（置顶、今天、昨天、7天内、30天内） -->
                         <template x-if="group.type === 'normal'">
                             <div>
-                                <div class="chat-group-header"
-                                     @click="$store.chats.toggleCollapse(group.label)">
+                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)">
                                     <span class="collapse-arrow"
-                                          :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
+                                        :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
                                 </div>
                                 <div class="chat-group-body"
-                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
+                                    :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
                                     <template x-for="chat in group.items" :key="chat.sn">
                                         <div class="chat-item"
-                                             :class="{ active: chat.sn === $store.chats.activeChatSN }"
-                                             :data-sn="chat.sn"
-                                             @click="$store.chats.selectChat(chat.sn)">
+                                            :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                            :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn)">
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
-                                            <button class="chat-item-more-btn"
-                                                    data-tooltip="更多操作"
-                                                    @click.stop="$store.chats.showContextMenu($event, chat)">
-                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
+                                            <button class="chat-item-more-btn" data-tooltip="更多操作"
+                                                @click.stop="$store.chats.showContextMenu($event, chat)">
+                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                                    x-html="ICON_DOTS"></svg>
                                             </button>
                                         </div>
                                     </template>
@@ -178,34 +175,32 @@
                         <!-- 更早分组（含日期子分组） -->
                         <template x-if="group.type === 'earlier'">
                             <div>
-                                <div class="chat-group-header"
-                                     @click="$store.chats.toggleCollapse(group.label)">
+                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)">
                                     <span class="collapse-arrow"
-                                          :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
+                                        :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
                                 </div>
                                 <div class="chat-group-body"
-                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
+                                    :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
                                     <template x-for="sub in group.subGroups" :key="sub.dateLabel">
                                         <div class="chat-date-group">
                                             <div class="chat-date-header"
-                                                 @click="$store.chats.toggleCollapse(group.label + '|' + sub.dateLabel)">
+                                                @click="$store.chats.toggleCollapse(group.label + '|' + sub.dateLabel)">
                                                 <span class="collapse-arrow date-arrow"
-                                                      x-text="$store.chats.isCollapsed(group.label + '|' + sub.dateLabel) ? '+' : '−'"></span>
+                                                    x-text="$store.chats.isCollapsed(group.label + '|' + sub.dateLabel) ? '+' : '−'"></span>
                                                 <span x-text="sub.dateLabel"></span>
                                             </div>
                                             <div class="chat-date-body"
-                                                 :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
+                                                :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
                                                 <template x-for="chat in sub.items" :key="chat.sn">
                                                     <div class="chat-item"
-                                                         :class="{ active: chat.sn === $store.chats.activeChatSN }"
-                                                         :data-sn="chat.sn"
-                                                         @click="$store.chats.selectChat(chat.sn)">
+                                                        :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                                        :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn)">
                                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
-                                                        <button class="chat-item-more-btn"
-                                                                data-tooltip="更多操作"
-                                                                @click.stop="$store.chats.showContextMenu($event, chat)">
-                                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
+                                                        <button class="chat-item-more-btn" data-tooltip="更多操作"
+                                                            @click.stop="$store.chats.showContextMenu($event, chat)">
+                                                            <svg viewBox="0 0 16 16" width="14" height="14"
+                                                                fill="currentColor" x-html="ICON_DOTS"></svg>
                                                         </button>
                                                     </div>
                                                 </template>
@@ -220,9 +215,7 @@
             </div>
 
             <!-- 分类 Tab 内容 — 只显示一级分类 -->
-            <div class="sidebar-content"
-                 x-data
-                 x-show="$store.chats.sidebarTab === 'category'">
+            <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'category'">
                 <template x-if="$store.chats.categoryGroups && $store.chats.categoryGroups.length === 0">
                     <div class="chat-list-empty">暂无分类</div>
                 </template>
@@ -231,23 +224,21 @@
                     <template x-for="catGroup in ($store.chats.categoryGroups || [])" :key="catGroup.label">
                         <div class="chat-group">
                             <div class="chat-group-header"
-                                 @click="$store.chats.toggleCollapse('cat|' + catGroup.label)">
+                                @click="$store.chats.toggleCollapse('cat|' + catGroup.label)">
                                 <span class="collapse-arrow"
-                                      :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">&#x276F;</span>
+                                    :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">&#x276F;</span>
                                 <span x-text="catGroup.label"></span>
                             </div>
                             <div class="chat-group-body"
-                                 :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">
+                                :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">
                                 <template x-for="chat in catGroup.items" :key="chat.sn">
-                                    <div class="chat-item"
-                                         :class="{ active: chat.sn === $store.chats.activeChatSN }"
-                                         :data-sn="chat.sn"
-                                         @click="$store.chats.selectChat(chat.sn)">
+                                    <div class="chat-item" :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                        :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn)">
                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
-                                        <button class="chat-item-more-btn"
-                                                data-tooltip="更多操作"
-                                                @click.stop="$store.chats.showContextMenu($event, chat)">
-                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" x-html="ICON_DOTS"></svg>
+                                        <button class="chat-item-more-btn" data-tooltip="更多操作"
+                                            @click.stop="$store.chats.showContextMenu($event, chat)">
+                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                                x-html="ICON_DOTS"></svg>
                                         </button>
                                     </div>
                                 </template>
@@ -262,65 +253,59 @@
         <main class="main-content">
             <div class="main-header">
                 <div class="main-brand-area" id="mainBrandContainer"></div>
-                <button id="newChatBtn" class="text-btn"
-                        x-data="textBtn({ disabled: () => false })"
-                        :disabled="disabled"
-                        data-tooltip="开启新对话">
-                    <svg class="text-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <use href="#icon-new-chat"/>
+                <button id="newChatBtn" class="text-btn" x-data="textBtn({ disabled: () => false })"
+                    :disabled="disabled" data-tooltip="开启新对话">
+                    <svg class="text-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <use href="#icon-new-chat" />
                     </svg>
                     <span class="text-btn-label">新对话</span>
                 </button>
                 <span class="main-title" id="headerTitle"></span>
                 <button id="aiTitleBtn" class="icon-btn icon-btn--small ai-title-btn"
-                        x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
-                        :disabled="disabled"
-                        data-tooltip="让 AI 重新生成标题">
-                    <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_AI_TITLE"></svg>
+                    x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
+                    :disabled="disabled" data-tooltip="让 AI 重新生成标题">
+                    <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" x-html="ICON_AI_TITLE"></svg>
                 </button>
                 <div class="main-header-right">
-                    <button id="themeToggle" class="icon-btn icon-btn--normal"
-                            x-data="iconBtn({ size: 'normal' })"
-                            @click="$store.settings.toggleTheme()"
-                            :data-tooltip="$store.settings.theme === 1 ? '切换到亮色主题' : '切换到暗色主题'">
+                    <button id="themeToggle" class="icon-btn icon-btn--normal" x-data="iconBtn({ size: 'normal' })"
+                        @click="$store.settings.toggleTheme()"
+                        :data-tooltip="$store.settings.theme === 1 ? '切换到亮色主题' : '切换到暗色主题'">
                         <template x-if="$store.settings.theme === 1">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_MOON"></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" x-html="ICON_MOON"></svg>
                         </template>
                         <template x-if="$store.settings.theme !== 1">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_SUN"></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" x-html="ICON_SUN"></svg>
                         </template>
                     </button>
                     <button id="loginBtn" class="text-btn"
-                            x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })"
-                            :disabled="disabled"
-                            data-tooltip="登录"
-                            x-text="$store.chats.currentUserNo ? '用户: ' + $store.chats.currentUserNo : '登录'">登录</button>
+                        x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })" :disabled="disabled"
+                        data-tooltip="登录"
+                        x-text="$store.chats.currentUserNo ? '用户: ' + $store.chats.currentUserNo : '登录'">登录</button>
                 </div>
             </div>
 
             <div class="main-body" id="mainBody">
                 <!-- scroll-container 初始为欢迎状态（welcome-state），
-                     当用户切换到已有对话时由 Alpine 的 :class 移除该 class。
-                     注意：welcome-state 必须作为静态 class 存在，因为 Alpine 的 :class
-                     绑定在初始化时可能因时序问题无法正确添加。 -->
+                    当用户切换到已有对话时由 Alpine 的 :class 移除该 class。
+                    注意：welcome-state 必须作为静态 class 存在，因为 Alpine 的 :class
+                    绑定在初始化时可能因时序问题无法正确添加。 -->
                 <div class="scroll-container welcome-state" id="scrollContainer"
-                     :class="{ 'welcome-state': $store.chats.activeIndex === -1 }">
+                    :class="{ 'welcome-state': $store.chats.activeIndex === -1 }">
                     <!-- 未来热点内容容器，由 JS 动态填充，位于欢迎面板上方 -->
-                    <div class="hotContent"
-                         x-show="$store.chats.activeIndex === -1">
+                    <div class="hotContent" x-show="$store.chats.activeIndex === -1">
                     </div>
                     <!-- 聊天区域 — Alpine x-for 数据驱动渲染 -->
-                    <main class="chat-container" id="chatContainer"
-                          x-data="chatContainer()"
-                          x-init="init($el)">
+                    <main class="chat-container" id="chatContainer" x-data="chatContainer()" x-init="init($el)">
                         <!-- 欢迎消息（Alpine 响应式驱动，activeIndex === -1 时显示）
-                             注意：不能在此元素上使用 x-text，因为 JS 会动态将 .input-area 移入此元素，
-                             x-text 的 textContent 赋值会覆盖所有子节点导致输入面板丢失。
-                             改用独立的 <p> 元素显示文本。 -->
-                        <div class="welcome-message"
-                             x-show="$store.chats.activeIndex === -1">
-                            <p class="welcome-text"
-                               x-text="$store.chats.welcomeMessage || '你好！我是「第2大脑」AI助手'">
+                            注意：不能在此元素上使用 x-text，因为 JS 会动态将 .input-area 移入此元素，
+                            x-text 的 textContent 赋值会覆盖所有子节点导致输入面板丢失。
+                            改用独立的 <p> 元素显示文本。 -->
+                        <div class="welcome-message" x-show="$store.chats.activeIndex === -1">
+                            <p class="welcome-text" x-text="$store.chats.welcomeMessage || '你好！我是「第2大脑」AI助手'">
                             </p>
                         </div>
                         <!-- 消息组列表 -->
@@ -328,22 +313,26 @@
                             <div class="message-group" :data-msg-id="group.msgId">
                                 <!-- 删除按钮（Alpine 响应式 disabled） -->
                                 <button class="msg-action-btn delete-msg-btn group-delete-btn"
-                                        :disabled="$store.chats.active?.isStreaming ?? false"
-                                        data-tooltip="删除本组对话"
-                                        @click="showDeleteModal(idx)">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_DELETE"></svg>
+                                    :disabled="$store.chats.active?.isStreaming ?? false" data-tooltip="删除本组对话"
+                                    @click="showDeleteModal(idx)">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                                        x-html="ICON_DELETE"></svg>
 
                                 </button>
 
                                 <!-- 用户消息 -->
                                 <div class="message user" x-show="group.user">
                                     <div class="message-inner">
-                                        <div class="role-label" x-text="'我' + (group.user.createdAt ? ' (' + formatTime(group.user.createdAt) + ')' : '')"></div>
+                                        <div class="role-label"
+                                            x-text="'我' + (group.user.createdAt ? ' (' + formatMessageTime(group.user.createdAt) + ')' : '')">
+                                        </div>
                                         <div class="bubble" x-html="group.user.contentHTML"></div>
                                         <div class="message-actions">
-                                            <button class="msg-action-btn copy-msg-btn"
-                                                    data-tooltip="复制当前消息内容">
-                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_COPY_MSG"></svg>
+                                            <button class="msg-action-btn copy-msg-btn" data-tooltip="复制当前消息内容">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round" x-html="ICON_COPY_MSG"></svg>
                                                 <span class="copy-btn-label">复制为 Markdown</span>
                                             </button>
                                         </div>
@@ -351,45 +340,51 @@
                                 </div>
 
                                 <!-- 助手消息（统一模板）
-                                     ★ 方案B：同一 group.assistant 贯穿流式中→已完成。
-                                     流式期间：contentHTML/reasoningHTML 持续增长，createdAt=null
-                                     完成之后：createdAt 被设置 → 角色标签显示时间、操作按钮出现
-                                     模板完全由数据驱动，无需感知 isStreaming。 -->
-                                <div class="message assistant" x-show="group.assistant">
+                                    ★ 方案B：同一 group.assistant 贯穿流式中→已完成。
+                                    流式期间：contentHTML/reasoningHTML 持续增长，createdAt=null
+                                    完成之后：createdAt 被设置 → 角色标签显示时间、操作按钮出现
+                                    模板完全由数据驱动，无需感知 isStreaming。 -->
+                                <div class="message assistant"
+                                    :class="{
+                                        interrupted: group.assistant.interrupted === 1,
+                                        failed: group.assistant.interrupted === 2
+                                    }"
+                                    x-show="group.assistant" x-data="{ collapsed: true }">
                                     <div class="message-inner">
-                                        <!-- 外层角色标签：当 reasoningHTML 存在时由 reasoning-header 替代显示，
-                                             避免与内层 reasoning-role-badge 形成两层 "AI" 标题 -->
+                                        <!-- ★ 统一角色标签：始终显示，根据 reasoningState 自适应文本。
+                                            有 reasoning 时外层标签直接充当折叠切换手柄，▶ 箭头通过 CSS rotate 统一大小。
+                                            无 reasoning → "🤖 AI (时间)"
+                                            reasoning 进行中 → "🤖 AI 正在思考……"
+                                            reasoning 完成 → "🤖 AI 思考完成 (时间)"
+                                            （中断也归入"思考完成"，因后端已追加 broken message 标记） -->
                                         <div class="role-label role-label-ai"
-                                             x-show="!group.assistant.reasoningHTML"
-                                             x-text="'🤖 AI' + (group.assistant.createdAt ? ' (' + formatTime(group.assistant.createdAt) + ')' : '')"></div>
+                                            :class="{ clickable: group.assistant.reasoningHTML }"
+                                            @click="group.assistant.reasoningHTML && (collapsed = !collapsed)">
+                                            <span class="collapse-arrow" x-show="group.assistant.reasoningHTML"
+                                                :class="{ expanded: !collapsed }">▶</span>
+                                            <span x-text="assistantLabel(group.assistant)"></span>
+                                        </div>
                                         <!-- reasoning 区域（Alpine 数据驱动，默认折叠）
-                                             注意：active/done class 用于控制 CSS 动画和样式，
-                                             reasoningState 在流式期间为 undefined/'thinking'，
-                                             完成后由 SSEResponser.onReasoningEnd 设为 'done'。 -->
+                                            注意：active/done class 用于控制 CSS 动画和样式，
+                                            reasoningState 在流式期间为 undefined/'thinking'，
+                                            完成后由 SSEResponser.onReasoningEnd 设为 'done'。
+                                            ★ 折叠状态由外层 .message.assistant 的 x-data 管理，
+                                            通过 @click 在角色标签上切换。 -->
                                         <div class="reasoning-area"
-                                             :class="{ collapsed: collapsed, active: group.assistant.reasoningHTML && group.assistant.reasoningState !== 'done', done: group.assistant.reasoningState === 'done' }"
-                                             x-data="{ collapsed: true }"
-                                             x-show="group.assistant.reasoningHTML">
-                                            <div class="reasoning-header" @click="collapsed = !collapsed">
-                                                <span class="reasoning-toggle"
-                                                      :data-tooltip="collapsed ? '展开思考内容' : '折叠思考内容'">▶</span>
-                                                <span class="reasoning-icon">🤖</span>
-                                                <span class="reasoning-role-badge">AI</span>
-                                                <span class="reasoning-title"
-                                                      x-text="group.assistant.reasoningState === 'done' ? '思考完成' : '正在思考……'"></span>
-                                            </div>
+                                            :class="{ collapsed: collapsed, active: group.assistant.reasoningHTML && group.assistant.reasoningState !== 'done', done: group.assistant.reasoningState === 'done' }"
+                                            x-show="group.assistant.reasoningHTML">
                                             <div class="reasoning-content" x-html="group.assistant.reasoningHTML"></div>
                                         </div>
                                         <!-- 气泡：contentHTML 贯穿流式中→已完成 -->
-                                        <div class="bubble"
-                                             :class="{ streaming: !group.assistant.createdAt }"
-                                             x-html="group.assistant.contentHTML"
-                                             x-show="group.assistant.contentHTML"></div>
+                                        <div class="bubble" :class="{ streaming: !group.assistant.createdAt }"
+                                            x-html="group.assistant.contentHTML" x-show="group.assistant.contentHTML">
+                                        </div>
                                         <!-- 操作按钮（仅已完成，以 createdAt 为标志） -->
                                         <div class="message-actions" x-show="group.assistant.createdAt">
-                                            <button class="msg-action-btn copy-msg-btn"
-                                                    data-tooltip="复制当前消息内容">
-                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_COPY_MSG"></svg>
+                                            <button class="msg-action-btn copy-msg-btn" data-tooltip="复制当前消息内容">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round" x-html="ICON_COPY_MSG"></svg>
                                                 <span class="copy-btn-label">复制为 Markdown</span>
                                             </button>
                                         </div>
@@ -415,8 +410,7 @@
                   优化：使用阻塞式内联脚本在 Alpine 处理 DOM 之前就将 input-area
                   移入 welcome-message，消除刷新时输入面板从底部跳到中间的视觉跳动。
             -->
-            <footer class="input-area" x-data
-                 :class="{ streaming: $store.chats.active?.isStreaming }">
+            <footer class="input-area" x-data :class="{ streaming: $store.chats.active?.isStreaming }">
                 <div class="send-mode-corner">
                     <label class="send-mode-switch">
                         <input type="checkbox" id="sendModeToggle">
@@ -430,60 +424,55 @@
                          $store.chats.active?.isStreaming 响应式管理（per-chat）。
                          Alpine 未加载时，由 setInputEnabled() 的降级路径控制。
                     -->
-                    <textarea
-                        id="messageInput"
-                        class="message-input"
-                        placeholder="想说点什么？"
-                        rows="1"
-                        autofocus
-                        :disabled="$store.chats.active?.isStreaming ?? false"
-                    ></textarea>
+                    <textarea id="messageInput" class="message-input" placeholder="想说点什么？" rows="1" autofocus
+                        :disabled="$store.chats.active?.isStreaming ?? false"></textarea>
                     <span class="newline-hint" id="newlineHint"></span>
                     <!-- 中断按钮：仅折叠状态 + 流式输出时显示，展开状态时隐藏（由 sendBtn 承担停止功能）
                          添加 x-cloak 防止 Alpine 初始化前红色按钮闪现 -->
-                    <button id="stopStreamingBtn" class="stop-streaming-btn"
-                            x-data
-                            x-cloak
-                            x-show="($store.chats.isCollapsed ?? false) && ($store.chats.active?.isStreaming ?? false)"
-                            data-tooltip="停止生成">
+                    <button id="stopStreamingBtn" class="stop-streaming-btn" x-data x-cloak
+                        x-show="($store.chats.inputCollapsed ?? false) && ($store.chats.active?.isStreaming ?? false)"
+                        data-tooltip="停止生成">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" x-html="ICON_STOP"></svg>
                     </button>
                 </div>
                 <div class="input-footer">
                     <div class="input-footer-left">
                         <button id="deepThinkBtn" class="toggle-btn"
-                                x-data="toggleBtn({ active: () => $store.settings.deepThink, onToggle: () => $store.settings.toggleDeepThink() })"
-                                :data-active="active ? 'true' : 'false'"
-                                @click="onToggle"
-                                :data-tooltip="active ? '已开启思考过程，单击关闭' : '已关闭思考过程，单击开启'">
-                            <svg class="toggle-icon" viewBox="0 0 86 89" fill="none" stroke="currentColor" stroke-width="1.8">
-                                <use href="/static/img/deep-think.svg#brain-path"/>
+                            x-data="toggleBtn({ active: () => $store.settings.deepThink, onToggle: () => $store.settings.toggleDeepThink() })"
+                            :data-active="active ? 'true' : 'false'" @click="onToggle"
+                            :data-tooltip="active ? '已开启思考过程，单击关闭' : '已关闭思考过程，单击开启'">
+                            <svg class="toggle-icon" viewBox="0 0 86 89" fill="none" stroke="currentColor"
+                                stroke-width="1.8">
+                                <use href="/static/img/deep-think.svg#brain-path" />
                             </svg>
                             <span>深度思考</span>
                         </button>
                         <button id="webSearchBtn" class="toggle-btn"
-                                x-data="toggleBtn({ active: () => $store.settings.webSearch, onToggle: () => $store.settings.toggleWebSearch() })"
-                                :data-active="active ? 'true' : 'false'"
-                                @click="onToggle"
-                                :data-tooltip="active ? 'AI 将自动搜索互联网，单击关闭' : '已关闭联网搜索，单击开启'">
-                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_GLOBE"></svg>
+                            x-data="toggleBtn({ active: () => $store.settings.webSearch, onToggle: () => $store.settings.toggleWebSearch() })"
+                            :data-active="active ? 'true' : 'false'" @click="onToggle"
+                            :data-tooltip="active ? 'AI 将自动搜索互联网，单击关闭' : '已关闭联网搜索，单击开启'">
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                                x-html="ICON_GLOBE"></svg>
                             <span>智能搜索</span>
                         </button>
                     </div>
                     <div class="input-footer-right">
                         <input type="file" id="fileInput" style="display:none" multiple>
                         <button id="attachBtn" class="attach-btn" x-data="attachBtn()" data-tooltip="上传附件">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-html="ICON_ATTACH"></svg>
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                x-html="ICON_ATTACH"></svg>
                         </button>
                         <button id="sendBtn" class="send-btn"
-                                x-data="sendBtn({ active: () => ($store.chats.active?.isStreaming ?? false) && !($store.chats.isCollapsed ?? false) })"
-                                :class="{ 'stop-btn': active }"
-                                :data-tooltip="active ? '停止生成' : '发送'">
+                            x-data="sendBtn({ active: () => ($store.chats.active?.isStreaming ?? false) && !($store.chats.inputCollapsed ?? false) })"
+                            :class="{ 'stop-btn': active }" :data-tooltip="active ? '停止生成' : '发送'">
                             <template x-if="!active">
                                 <svg viewBox="0 0 24 24" width="20" height="20" x-html="ICON_SEND"></svg>
                             </template>
                             <template x-if="active">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" x-html="ICON_STOP"></svg>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"
+                                    x-html="ICON_STOP"></svg>
                             </template>
                         </button>
                     </div>
@@ -494,7 +483,7 @@
                  消除刷新时输入面板从底部跳到中间的视觉跳动。
                  此脚本会在 Alpine（defer）执行之前运行，因为 inline script 是同步执行的。 -->
             <script>
-                (function() {
+                (function () {
                     var inputArea = document.querySelector('.input-area');
                     var welcomeMsg = document.querySelector('.welcome-message');
                     if (inputArea && welcomeMsg && inputArea.parentNode !== welcomeMsg) {
@@ -513,61 +502,51 @@
          事件监听机制的时序问题——showToast() 直接操作 Alpine.store，响应式系统
          自动触发 x-for/x-show 更新。
     -->
-    <div class="toast-container" id="toastContainer"
-         x-data="{}">
+    <div class="toast-container" id="toastContainer" x-data="{}">
         <template x-for="toast in $store.ui.toasts" :key="toast.id">
-            <div class="toast"
-                 :class="'toast-' + toast.type"
-                 x-text="toast.message"
-                 x-show="toast.visible"
-                 x-transition:enter="toast-enter-active"
-                 x-transition:enter-start="toast-enter-from"
-                 x-transition:enter-end=""
-                 x-transition:leave="toast-leave-active"
-                 x-transition:leave-start=""
-                 x-transition:leave-end="toast-leave-to">
+            <div class="toast" :class="'toast-' + toast.type" x-text="toast.message" x-show="toast.visible"
+                x-transition:enter="toast-enter-active" x-transition:enter-start="toast-enter-from"
+                x-transition:enter-end="" x-transition:leave="toast-leave-active" x-transition:leave-start=""
+                x-transition:leave-end="toast-leave-to">
             </div>
         </template>
     </div>
 
     <!-- 删除确认对话框 -->
-    <div class="dialog-overlay" id="deleteModal"
-         x-data="deleteDialog()"
-         :class="{ show: show }"
-         @click.self="close">
+    <div class="dialog-overlay" id="deleteModal" x-data="deleteDialog()" :class="{ show: show }" @click.self="close">
         <div class="dialog-box">
             <div class="dialog-header">
                 <h3 id="modalTitle">删除对话消息组</h3>
-                <button class="dialog-close-btn" id="modalCloseBtn"
-                        @click="close">&times;</button>
+                <button class="dialog-close-btn" id="modalCloseBtn" @click="close">&times;</button>
             </div>
             <div class="dialog-body" id="modalBody"></div>
-            <div class="del-preview-note" id="modalDeleteNote" style="display:none">提醒：<br>① 消息（用户和助手）将成组删除<br>② 下一轮对话会有大段词元缓存失效</div>
+            <div class="del-preview-note" id="modalDeleteNote" style="display:none">提醒：<br>① 消息（用户和助手）将成组删除<br>②
+                下一轮对话会有大段词元缓存失效</div>
             <div class="dialog-footer">
-                <button class="dialog-btn dialog-btn-cancel" id="modalCancelBtn"
-                        @click="close">取消</button>
+                <button class="dialog-btn dialog-btn-cancel" id="modalCancelBtn" @click="close">取消</button>
                 <button class="dialog-btn dialog-btn-delete" id="modalConfirmBtn"
-                        @click="window.confirmDelete">确认删除</button>
+                    @click="window.confirmDelete">确认删除</button>
             </div>
         </div>
     </div>
 
     <!-- 修改对话框标题对话框 -->
-    <div class="dialog-overlay" id="titleEditDialog"
-         x-data="titleEditDialog()"
-         :class="{ show: show }"
-         @click.self="cancel">
+    <div class="dialog-overlay" id="titleEditDialog" x-data="titleEditDialog()" :class="{ show: show }"
+        @click.self="cancel">
         <div class="dialog-box">
             <div class="dialog-header">
                 <h3>修改对话标题</h3>
                 <button class="dialog-close-btn" @click="cancel" aria-label="关闭">&times;</button>
             </div>
-            <div class="dialog-body"><div class="title-edit-original" x-text="displayTitle"></div><label class="title-edit-label">新标题</label><input type="text" class="title-edit-input" x-model="editingTitle" maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel"></div>
+            <div class="dialog-body">
+                <div class="title-edit-original" x-text="displayTitle"></div><label
+                    class="title-edit-label">新标题</label><input type="text" class="title-edit-input"
+                    x-model="editingTitle" maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
+            </div>
             <div class="dialog-footer">
                 <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>
                 <button class="dialog-btn dialog-btn-confirm" @click="confirm"
-                        :disabled="!editingTitle.trim() || submitting"
-                        x-text="submitting ? '提交中…' : '确认'">确认</button>
+                    :disabled="!editingTitle.trim() || submitting" x-text="submitting ? '提交中…' : '确认'">确认</button>
             </div>
         </div>
     </div>
@@ -577,4 +556,5 @@
 
     <script type="module" src="/static/chat.js"></script>
 </body>
+
 </html>

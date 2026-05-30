@@ -49,7 +49,8 @@ type Message struct {
 	Reasoning *string `db:"reasoning"`
 	Content   string  `db:"content"` // Content
 
-	Extracted bool `db:"extracted"` // Whether extracted, default 0
+	Extracted   bool `db:"extracted"`   // Whether extracted, default 0
+	Interrupted int  `db:"interrupted"` // 0=done, 1=user-interrupted, 2=backend-error
 
 	CreateAt string `db:"create_at"`
 	UpdateAt string `db:"update_at"`
@@ -128,6 +129,7 @@ func (s *ChatStore) initSchema() error {
 			reasoning    TEXT,
 			content    TEXT    NOT NULL,
 			extracted  INTEGER NOT NULL DEFAULT 0,
+			interrupted INTEGER NOT NULL DEFAULT 0,
 			create_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);

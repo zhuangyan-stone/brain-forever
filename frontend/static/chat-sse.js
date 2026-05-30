@@ -288,24 +288,30 @@ function handleAbortError(session) {
     const assistantBubble = session.assistantBubble;
     if (!assistantBubble) return;
 
-    // 设置 Alpine store 中的 reasoningState = 'interrupted'
+    // 设置 Alpine store 中的 reasoningState = 'done'
+    // ★ 中断与完成在角色标签上统一显示"思考完成"，
+    //    后端会为中断消息追加 broken message 标记。
     try {
         var chats = window.Alpine.store('chats');
         if (chats) {
             var chatData = chats.getOrCreate(session.sn);
             if (chatData && chatData.streamingMsg) {
-                chatData.streamingMsg.reasoningState = 'interrupted';
+                chatData.streamingMsg.reasoningState = 'done';
+            }
+            // 同步到 group.assistant，使 Alpine 模板中的 role-label-ai 立即更新
+            var groups = chatData.groups;
+            if (groups && groups.length > 0) {
+                var assistant = groups[groups.length - 1].assistant;
+                if (assistant) {
+                    assistant.reasoningState = 'done';
+                }
             }
         }
     } catch(e) {}
 
-    // 请求已取消：将 reasoning 标题改为"AI 思路已被掐断"
+    // 将 reasoning 区域从 active 切换为 done 状态
     const area = assistantBubble.querySelector('.reasoning-area.active');
     if (area) {
-        const titleEl = area.querySelector('.reasoning-title');
-        if (titleEl) {
-            titleEl.textContent = 'AI 思路已被掐断';
-        }
         area.classList.remove('active');
         area.classList.add('done');
         // 清理 reasoning 节流渲染定时器

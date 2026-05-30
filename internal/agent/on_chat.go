@@ -126,11 +126,14 @@ func appendNewRequestMessage(session *session, reqMsg *Message, lang string) {
 			lastID = int64(lastMsg.GroupIndex)
 
 			// If the last message is a user message, the AI was interrupted.
-			// Insert a broken assistant message.
+			// Insert a broken assistant message using the same group_index as the
+			// orphaned user message, consistent with callLLMWithPipeline's behavior.
 			if lastMsg.Role == 0 { // 0 = user
-				assistantMsg := makeAssistantBrokenMessage(lang, lastID+1)
+				assistantMsg := makeAssistantBrokenMessage(lang, lastID)
+				assistantMsg.Interrupted = 2 // backend-error (we don't know which)
 				persistMessageToDB(session, &assistantMsg)
-				lastID = assistantMsg.ID
+				// Don't advance lastID — the new user message still uses lastID+1,
+				// leaving the broken message paired with its user message at lastID.
 			}
 		}
 	}

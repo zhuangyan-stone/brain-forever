@@ -10,5 +10,8 @@ other = "哎呀！服务端出错啦！\n{{.Error}}"
 [assistant_broken_message]
 other = "哎呀！我的回复过程被强行中断了……"
 
+[assistant_failed_message]
+other = "抱歉，我在回复时遇到了异常，回答未完成。"
+
 [welcome_message]
 other = "你好！请多和我聊，我会成为你的第2大脑"

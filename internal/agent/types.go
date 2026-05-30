@@ -35,6 +35,12 @@ type Message struct {
 	Sources []toolimp.WebSource `json:"sources,omitempty"`
 
 	CreatedAt string `json:"created_at"` // UTC time string, e.g. "2026-05-02T16:30:00Z"
+
+	// Interrupted indicates the message interruption state:
+	//   0 = done (normal completion)
+	//   1 = user-interrupted (user clicked stop mid-stream)
+	//   2 = backend-error (LLM/API error, message incomplete)
+	Interrupted int `json:"interrupted"`
 }
 
 // ChatRequest is the chat request sent from the frontend
@@ -410,10 +416,11 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 			role = llm.RoleAssistant
 		}
 		agentMsg := Message{
-			ID:        int64(m.GroupIndex),
-			Role:      role,
-			Content:   m.Content,
-			CreatedAt: m.CreateAt,
+			ID:          int64(m.GroupIndex),
+			Role:        role,
+			Content:     m.Content,
+			CreatedAt:   m.CreateAt,
+			Interrupted: m.Interrupted,
 		}
 		if m.Reasoning != nil {
 			agentMsg.Reasoning = *m.Reasoning

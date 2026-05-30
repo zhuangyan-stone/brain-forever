@@ -537,6 +537,7 @@ document.addEventListener('alpine:init', function() {
                     content: '',
                     createdAt: null,
                     reasoning: null,
+                    reasoningState: undefined,
                     sources: null,
                     usage: null,
                     contentHTML: '',
@@ -547,6 +548,8 @@ document.addEventListener('alpine:init', function() {
                 group.assistant.content = assistantData.content || '';
                 group.assistant.createdAt = assistantData.createdAt || null;
                 group.assistant.reasoning = assistantData.reasoning || null;
+                // 历史消息中的 reasoning：中断由后端标记，前端统一 'done'
+                group.assistant.reasoningState = assistantData.reasoning ? 'done' : undefined;
                 group.assistant.sources = assistantData.sources || null;
                 group.assistant.usage = assistantData.usage || null;
                 group.assistant.contentHTML = render(assistantData.content || '');
@@ -601,6 +604,8 @@ document.addEventListener('alpine:init', function() {
             lastGroup.assistant.createdAt = sm.createdAt || null;
             lastGroup.assistant.sources = sm.sources && sm.sources.length > 0 ? sm.sources.slice() : undefined;
             lastGroup.assistant.usage = sm.usage || undefined;
+            // 从 streamingMsg 拷贝 reasoningState（正常完成→'done'，中断→'interrupted'）
+            lastGroup.assistant.reasoningState = sm.reasoningState || undefined;
             // 确保 reasoningHTML 已渲染（可能流式期间没有 reasoning）
             if (sm.reasoning && !lastGroup.assistant.reasoningHTML) {
                 lastGroup.assistant.reasoningHTML = render(sm.reasoning);
@@ -638,10 +643,12 @@ document.addEventListener('alpine:init', function() {
                             content: '',
                             createdAt: null,
                             reasoning: null,
+                            reasoningState: undefined,
                             sources: null,
                             usage: null,
                             contentHTML: '',
                             reasoningHTML: undefined,
+                            interrupted: 0, // 0=done, 1=user-interrupted, 2=backend-error
                         },
                     });
                 } else if (msg.role === 'assistant' && groups.length > 0) {
@@ -649,10 +656,14 @@ document.addEventListener('alpine:init', function() {
                     lastGroup.assistant.content = msg.content || '';
                     lastGroup.assistant.createdAt = msg.created_at || null;
                     lastGroup.assistant.reasoning = msg.reasoning || null;
+                    // 历史消息中的 reasoning：中断消息由后端追加 broken message 标记，
+                    // 前端统一显示为"思考完成"（interrupted 与 done 同态）
+                    lastGroup.assistant.reasoningState = msg.reasoning ? 'done' : undefined;
                     lastGroup.assistant.sources = msg.sources || null;
                     lastGroup.assistant.usage = msg.usage || null;
                     lastGroup.assistant.contentHTML = render(msg.content || '');
                     lastGroup.assistant.reasoningHTML = msg.reasoning ? render(msg.reasoning) : undefined;
+                    lastGroup.assistant.interrupted = msg.interrupted || 0;
                     lastGroup.msgId = msg.id || lastGroup.msgId;
                 }
             }

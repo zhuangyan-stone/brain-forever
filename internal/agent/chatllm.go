@@ -188,11 +188,29 @@ func (h *ChatAgent) callLLMWithPipeline(
 	reply, reasoning, err := h.charLLMClient.ChatWithPipeline(ctx,
 		messages, &pipeline, withDeepThink)
 
+	// Detect whether the frontend aborted the connection mid-stream.
+	// When the HTTP request context is cancelled (e.g. user clicked stop),
+	// ctx.Err() returns non-nil even if ChatWithPipeline returned partial content.
+	isInterrupted := ctx.Err() != nil
+
 	var usage *Usage
 	var assistantMsg *Message
 
-	if err != nil {
+	if err != nil && !isInterrupted {
 		pipeline.OnError(err) // Display "Oops! Server error!\n %v"
+
+		// Even on error, persist a failed assistant message so the conversation
+		// history remains consistent (the user message is already in DB).
+		// Mark it as interrupted=2 (backend-error) so the frontend can display
+		// the correct state.
+		failedMsg := i18n.TL(lang, "assistant_failed_message")
+		assistantMsg = &Message{
+			ID:          userMsgID,
+			Role:        llm.RoleAssistant,
+			Content:     failedMsg,
+			CreatedAt:   time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+			Interrupted: 2,
+		}
 	} else {
 		// Get or manually (simulate) calculate the tokens consumed in this interaction
 		isEstimated := true
@@ -228,7 +246,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 
 		// Append the LLM's full reply to the user's internal history
 		//     The AI reply reuses the user message's ID (source ID)
-		if len(reply) > 0 {
+		if len(reply) > 0 || isInterrupted {
 			assistantMsg = &Message{
 				ID:        userMsgID, // same as user message's id
 				Role:      llm.RoleAssistant,
@@ -236,6 +254,14 @@ func (h *ChatAgent) callLLMWithPipeline(
 				Reasoning: reasoning,
 				CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
 				Usage:     usage,
+			}
+
+			// If the stream was interrupted by the user (clicked stop),
+			// mark as interrupted=1 and append the broken message marker.
+			if isInterrupted {
+				assistantMsg.Interrupted = 1
+				brokenMsg := i18n.TL(lang, "assistant_broken_message")
+				assistantMsg.Content += "\n\n---\n" + brokenMsg
 			}
 
 			// Attach web search sources so they can be restored after page refresh

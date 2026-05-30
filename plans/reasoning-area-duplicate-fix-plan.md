@@ -24,6 +24,47 @@ Reasoning 区域由 **两套独立机制同时渲染**：
 
 ---
 
+## 1.3 `reasoningState` 不会持久化 —— 会不会有问题？
+
+> **用户提问**：`reasoningState` 在后端没有被持久化，历史消息没有这个状态，标题会不会仍然显示"正在思考中"？
+
+**答案：不会。因为已持久化的消息一定是完整的。**
+
+### 数据流分析
+
+**正常完成流程**：
+```
+SSE reasoning → SSE reasoning_end (reasoningState='done') → SSE done (onDone)
+  → finalizeStreamingToGroup() → 保存到 DB (content + reasoning + created_at)
+```
+
+**中断流程**：
+```
+SSE reasoning → 用户点击停止 (abort) → handleAbortError()
+  → streamingMsg.reasoningState = 'interrupted'
+  → cleanupAfterStream()
+  → ❌ onDone() 不会被调用 → ❌ 不保存到 DB → ❌ finalizeStreamingToGroup() 不执行
+```
+
+### 关键结论
+
+| 场景 | 是否保存到 DB | `reasoningState` 应是什么 |
+|------|---------------|---------------------------|
+| 正常完成 | ✅ 保存（有 `reasoning` + `created_at`） | `'done'` ✅ |
+| 被中断 | ❌ **不保存**（无 `done` 事件） | `'interrupted'`（仅存于 `streamingMsg`） |
+| 切换到后台流（进行中） | ❌ 未完成，不保存 | 从 `streamingMsg` 继承 |
+| 切换到后台流（已完成） | ✅ 已保存 | `'done'` ✅ |
+
+所以：
+
+1. **历史消息（从 API 加载）** → 只要有 `reasoning` 字段 → 一定是完整保存的 → `reasoningState = 'done'` ✅
+2. **中断消息** → 不会被持久化 → 无需关心历史消息中的 `interrupted` 状态
+3. **`finalizeStreamingToGroup()`** → 从 `streamingMsg` 拷贝 `reasoningState` 到 `group.assistant` → 正常完成时是 `'done'`
+
+**修改策略**：在 `setChatMessageGroups()` 和 `addGroup()` 中，当 `msg.reasoning` 存在时设 `reasoningState = 'done'` 是完全安全的。
+
+---
+
 ## 2. 角色标题设计方案
 
 根据用户需求，助手回复有两种模式：
@@ -108,16 +149,24 @@ Reasoning 区域由 **两套独立机制同时渲染**：
 **当前代码**：
 ```html
 <span class="reasoning-title"
-      x-text="group.assistant.reasoningState === 'done' ? '思考完成' : '正在思考……'"></span>
+      x-text="group.assistant.reasoningState === 'done' ? '思考完成' : '正在 thinking...'"></span>
 ```
 
-**修改为**：
+**修改为**（三种状态 + AI 前缀 + done 时带时间）：
 ```html
 <span class="reasoning-title"
-      x-text="group.assistant.reasoningState === 'done' ? 'AI 思考完成 (' + formatTime(group.assistant.createdAt) + ')' : 'AI 正在思考……'"></span>
+      x-text="group.assistant.reasoningState === 'done' ? 'AI 思考完成 (' + formatTime(group.assistant.createdAt) + ')' : group.assistant.reasoningState === 'interrupted' ? 'AI 思路已被掐断' : 'AI 正在 thinking...'"></span>
 ```
 
 > `formatTime` 是全局函数（定义在 [`buttons.js:384`](../frontend/static/components/buttons.js:384)），已在 Alpine x-text 中多处使用。
+>
+> 嵌套三元表达式完整语义：
+> 1. `reasoningState === 'done'` → `"AI 思考完成 (23:49:45)"`
+> 2. `reasoningState === 'interrupted'` → `"AI 思路已被掐断"`
+> 3. 其他（`'thinking'` 或 `undefined`）→ `"AI 正在 thinking..."`
+
+同时需要修改 `.reasoning-title` 的 CSS，因为标题现在可能包含时间文本，需要确保 `white-space: nowrap` 不截断：
+- 当前 CSS（[`reasoning.css:51`](../frontend/static/reasoning.css:51)）已有 `.reasoning-title { white-space: nowrap; }`，没问题
 
 ### 3.2 `alpine-store.js` — 补全 reasoningState
 
@@ -274,14 +323,16 @@ stateDiagram-v2
     state "无深度思考" as no_reasoning
     state "深度思考中" as reasoning_thinking
     state "思考完成" as reasoning_done
+    state "被中断" as reasoning_interrupted
     
     [*] --> no_reasoning : reasoningHTML = undefined
     no_reasoning --> reasoning_thinking : reasoningHTML 被设置
     reasoning_thinking --> reasoning_done : reasoningState = 'done'\ncreatedAt 已设置
+    reasoning_thinking --> reasoning_interrupted : reasoningState = 'interrupted'
     
     note right of no_reasoning
         显示 .role-label-ai
-        "🤖 AI (23:49:45)"
+        "AI (23:49:45)"
     end note
     
     note right of reasoning_thinking
@@ -292,5 +343,10 @@ stateDiagram-v2
     note right of reasoning_done
         显示 .reasoning-area.done
         "AI 思考完成 (23:49:45)"
+    end note
+    
+    note right of reasoning_interrupted
+        显示 .reasoning-area.done
+        "AI 思路已被掐断"
     end note
 ```
