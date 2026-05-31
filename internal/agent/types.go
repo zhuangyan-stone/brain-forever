@@ -49,6 +49,7 @@ type ChatRequest struct {
 	Stream           bool    `json:"stream"` // Always true
 	DeepThink        bool    `json:"deep_think"`
 	WebSearchEnabled bool    `json:"web_search_enabled"`
+	FrontSN          string  `json:"front_sn"` // Frontend-generated temporary SN for new chats
 }
 
 // ============================================================
@@ -57,7 +58,7 @@ type ChatRequest struct {
 
 // SSEEvent is the SSE event sent to the frontend
 type SSEEvent struct {
-	Type       string                `json:"type"`              // reasoning | reasoning_end | text | sources | title | done | error
+	Type       string                `json:"type"`              // reasoning | reasoning_end | text | sources | title | chat_created | done | error
 	Subject    string                `json:"subject,omitempty"` // reasoning -> "", "pend"
 	Tool       string                `json:"tool,omitempty"`
 	Content    string                `json:"content,omitempty"`     // Used for text type, title type
@@ -67,6 +68,8 @@ type SSEEvent struct {
 	Message    string                `json:"message,omitempty"`     // Used for error type
 	MsgID      int64                 `json:"msg_id,omitempty"`      // Used for done type — ID of the user message
 	CreatedAt  string                `json:"created_at,omitempty"`  // Used for done type — assistant message creation time
+	SN         string                `json:"sn,omitempty"`          // Used for chat_created type — chat SN
+	FrontSN    string                `json:"front_sn,omitempty"`    // Used for chat_created type — frontend-generated temporary SN
 }
 
 // Usage represents token usage
@@ -287,6 +290,21 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 
 	// Delete messages and their web sources from DB
 	return s.chatStore.DeleteMessageGroup(chatID, int(msgID))
+}
+
+// isBlankChat checks whether currentChat is a "blank chat" (自由指针) —
+// a new chat that has NOT yet been added to session.chats[] and has no SN.
+//
+// A blank chat is created by OnNewChat (PUT /api/chat/new) when the user
+// clicks "新对话". It has no SN, no DB record, and is NOT in session.chats[].
+// The SN is only generated later when ensureDBSession is called (on first message).
+//
+// Detection: a blank chat has dbChat == nil or dbChat.SN == "".
+// A historical chat (switched from session.chats[]) always has a non-empty SN.
+//
+// Must be called with session.mu held.
+func (s *session) isBlankChat() bool {
+	return s.currentChat == nil || s.currentChat.dbChat == nil || s.currentChat.dbChat.SN == ""
 }
 
 // addChatToList adds a store.Chat to the in-memory chat list (session.chats)

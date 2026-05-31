@@ -20,8 +20,8 @@ func generateSessionSN() string {
 }
 
 // ensureDBSession ensures that the current chat has a corresponding record
-// in the chat_sessions table. If dbSessionID is 0, it creates a new session
-// record and sets dbSessionID.
+// in the chat_sessions table. If dbChat.ID is 0, it creates a new session
+// record and sets dbChat.
 // Must be called with session.mu held.
 func ensureDBSession(session *session) {
 	if session.currentChat.dbChat != nil && session.currentChat.dbChat.ID != 0 {

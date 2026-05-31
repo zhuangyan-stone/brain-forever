@@ -560,21 +560,42 @@ export function updateHeaderTitle(title) {
  * 若 store 中为空则使用默认文本兜底。
  */
 export function showWelcomeMessage() {
-    try {
-        var chats = window.Alpine.store('chats');
-        if (chats) {
-            if (!chats.welcomeMessage) {
-                chats.welcomeMessage = '你好！请多和我聊，我来构建你的第2大脑';
-            }
-        }
-    } catch(e) {}
-    
     // 清空 header 标题（欢迎页不需要显示对话标题）
     updateHeaderTitle('');
 
-    // 将输入面板移动到 welcome-message 内部，实现垂直居中
-    // 同时移除 margin-top: auto（在 flex 容器中会推到最底部），改为普通 margin-top
-    var welcomeMsgEl = document.querySelector('.welcome-message');
+    // ★ 确保 .welcome-message 元素存在于 DOM 中
+    //    Alpine 的 x-show 在条件从 true→false→true 切换时，可能从 DOM 中移除了元素，
+    //    导致 querySelector 找不到。需要手动确保元素存在。
+    var chatContainer = document.getElementById('chatContainer');
+    var welcomeMsgEl = chatContainer ? chatContainer.querySelector('.welcome-message') : null;
+    if (!welcomeMsgEl && chatContainer) {
+        // 手动创建 welcome-message 元素
+        welcomeMsgEl = document.createElement('div');
+        welcomeMsgEl.className = 'welcome-message';
+        welcomeMsgEl.style.display = 'flex';
+        welcomeMsgEl.style.flexDirection = 'column';
+        welcomeMsgEl.style.alignItems = 'center';
+        welcomeMsgEl.style.justifyContent = 'center';
+        welcomeMsgEl.style.textAlign = 'center';
+        welcomeMsgEl.style.width = '100%';
+        welcomeMsgEl.style.gap = '24px';
+        
+        var welcomeText = document.createElement('p');
+        welcomeText.className = 'welcome-text';
+        var chats = window.Alpine.store('chats');
+        welcomeText.textContent = (chats && chats.welcomeMessage) || '你好！我是「第2大脑」AI助手';
+        welcomeMsgEl.appendChild(welcomeText);
+        
+        // 插入到 chatContainer 的最前面（在 x-for 模板之前）
+        var xforTemplate = chatContainer.querySelector('template[x-for]');
+        if (xforTemplate) {
+            chatContainer.insertBefore(welcomeMsgEl, xforTemplate);
+        } else {
+            chatContainer.appendChild(welcomeMsgEl);
+        }
+    }
+
+    // ★ 将 input-area 移入 welcome-message
     var inputArea = document.querySelector('.input-area');
     if (welcomeMsgEl && inputArea && inputArea.parentNode !== welcomeMsgEl) {
         welcomeMsgEl.appendChild(inputArea);

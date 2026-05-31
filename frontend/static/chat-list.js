@@ -240,15 +240,31 @@ export function resetChatList() {
 
 /**
  * 在侧边栏中插入一条新对话条目。
- * 如果已有 SN（通过 newChat 预先获取），直接使用真实 SN；
- * 否则 sn 为 null，后续由 getCurrentChatIfNeeded 替换。
+ * 侧边栏只体现已有真实 SN 的条目（即已确认存在于后端 chats[] 中的对话）。
+ * 如果 sn 为空（blankChat 尚未被后端确认），则不加入侧边栏，
+ * 后续由 getCurrentChatIfNeeded → updateChatEntry 拿到真实 SN 后再添加。
  * @param {string} title - 新对话的标题（截取自首条用户消息）
- * @param {string} [sn] - 可选的 SN，预先从后端获取
+ * @param {string} [sn] - 对话 SN，必须为有效值才加入侧边栏
  */
 export function addDirtyChat(title, sn) {
+    // 没有有效 SN 的 blankChat 不加入侧边栏
+    if (!sn) {
+        return;
+    }
+
+    // 如果该 SN 已存在于 currentChats 中（例如从 chat_created 和 updateChatEntry 两次添加），
+    // 仅更新标题，避免重复插入。
+    const existing = currentChats.find(c => c.sn === sn);
+    if (existing) {
+        if (title) existing.title = title;
+        activeChatSN = sn;
+        renderChatList(currentChats, activeChatSN);
+        return;
+    }
+
     const dirtyChat = {
         id: 0,           // 尚未在 DB 中创建，id 为 0
-        sn: sn || null,  // 优先使用预先获取的 SN
+        sn: sn,
         title: title,    // 标题由前端基于首条消息生成
         title_state: 0,  // 原始标题
         pinned: false,
@@ -261,15 +277,9 @@ export function addDirtyChat(title, sn) {
     // 插入到列表头部（最新消息位置）
     currentChats.unshift(dirtyChat);
 
-    // 如果已有 SN（通过 newChat 预先获取），设置 activeChatSN，
+    // 已有真实 SN，设置 activeChatSN，
     // 这样后续 updateCurrentChatTitle 才能正确找到 DOM 元素并更新标题。
-    // 之前设为 null 导致 AI 推荐标题后侧边栏仍显示旧标题，
-    // 必须用户手动点击条目后才更新。
-    if (sn) {
-        activeChatSN = sn;
-    } else {
-        activeChatSN = null;
-    }
+    activeChatSN = sn;
 
     // 复用 renderChatList 的完整渲染逻辑
     renderChatList(currentChats, activeChatSN);
@@ -757,6 +767,15 @@ async function handleRename(chat) {
         showToast('该对话正在生成回复，请稍后再修改标题', 'info');
         return;
     }
+
+    // 脏对话（临时 SN，尚未被后端确认）不允许修改标题
+    try {
+        var chats2 = window.Alpine.store('chats');
+        if (chats2 && chats2.isDirtyChat && chats2.isDirtyChat(chatData)) {
+            showToast('该对话尚未完成创建，请稍后再修改标题', 'info');
+            return;
+        }
+    } catch(e) {}
 
     showTitleEditDialog({
         currentTitle: chat.title || '',

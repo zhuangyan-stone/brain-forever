@@ -215,6 +215,10 @@ document.addEventListener('alpine:init', function() {
                 groups: [],
                 _groupSeq: 0,
             };
+            // 重置输入面板折叠状态
+            this.inputCollapsed = false;
+            // 重置侧边栏选中状态
+            this.activeChatSN = null;
         },
 
         /**
@@ -395,11 +399,22 @@ document.addEventListener('alpine:init', function() {
 
         /**
          * 按 SN 获取或创建 ChatData
+         *
+         * 当 sn 为空时（新对话尚未获得后端 SN），返回 this.active。
+         * 此时 activeIndex === -1，this.active 返回 blankItem，
+         * 使 startStreaming() 和 SSEResponser 能在 blankItem 上创建/读取 streamingMsg。
+         * 待后端通过 SSE chat_created 事件推送真实 SN 后，
+         * onChatCreated 处理器会更新 blankItem.sn 并 promoteBlankItem() 将其移入 items[]。
+         *
          * @param {string} sn
-         * @returns {object} ChatData
+         * @returns {object|null} ChatData
          */
         getOrCreate: function(sn) {
-            if (!sn) return null;
+            if (!sn) {
+                // 新对话时 sn 为空，返回 blankItem（即 this.active）
+                // 此时 activeIndex === -1，active getter 返回 blankItem
+                return this.active;
+            }
             var item = this.items.find(function(c) { return c.sn === sn; });
             if (!item) {
                 item = {
@@ -431,16 +446,47 @@ document.addEventListener('alpine:init', function() {
         },
 
         /**
-         * 将 blankItem 提升到 items[] 中（用户发出第一条消息时调用）
-         * 提升后 blankItem 置 null，activeIndex 指向新加入的元素
+         * 将 blankItem 提升到 items[] 中。
+         *
+         * 新流程（用户发出第一条消息时调用）：
+         *   1. 如果 blankItem.sn 为空，生成临时 SN（new_ + 当前时间戳）
+         *   2. 将 blankItem 移入 items[]
+         *   3. blankItem 置 null，activeIndex 指向新加入的元素
+         *
+         * 这样在收到后端真实 SN 之前，items[] 中已有该 chat 的条目，
+         * 用户切换到其他 chat 后仍可通过临时 SN 切回来。
+         *
+         * @returns {object|null} 提升后的 chat item
          */
         promoteBlankItem: function() {
             if (!this.blankItem) return null;
             var item = this.blankItem;
+            // 生成临时 SN：new_ + 当前时间（精确到秒）
+            if (!item.sn) {
+                item.sn = 'new_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            }
             this.items.push(item);
             this.activeIndex = this.items.length - 1;
             this.blankItem = null;
             return item;
+        },
+
+        /**
+         * isDirtyChat — 判断指定 chat 是否是一个"脏"对话（临时 SN，尚未被后端确认）。
+         * 脏对话的 SN 以 "new_" 前缀开头，表示它只是前端生成的临时标识，
+         * 尚未从后端获得真实的 SN。
+         *
+         * 用于拦截标题修改等操作：脏对话不允许修改标题（包括手动和 AI 推荐）。
+         *
+         * @param {object|null} chat - ChatData 对象，不传则检查当前活跃 chat
+         * @returns {boolean}
+         */
+        isDirtyChat: function(chat) {
+            if (!chat) {
+                chat = this.active;
+            }
+            if (!chat || !chat.sn) return true;
+            return chat.sn.startsWith('new_');
         },
 
         /**

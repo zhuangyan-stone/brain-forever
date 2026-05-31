@@ -6,21 +6,25 @@ import (
 )
 
 // ============================================================
-// NewChat handler — POST /api/chat/new
+// NewChat handler — PUT /api/chat/new
 // ============================================================
 
-// OnNewChat handles POST /api/chat/new — initializes the current chat
-// and returns its SN. For new conversations where the current chat has
-// not yet been assigned an SN (dbSessionID == 0), this endpoint:
+// OnNewChat handles PUT /api/chat/new — resets currentChat to a "blank chat"
+// (自由指针) state.
 //
-//  1. For logged-in users: creates a DB session record (via ensureDBSession),
-//     which generates an SN and adds the chat to the in-memory list.
-//  2. For anonymous users: no DB persistence, returns an empty SN.
+// A blank chat has no SN, no DB record, and is NOT in session.chats[].
+// It represents a fresh new conversation that hasn't sent any messages yet.
+// The SN is only generated later when ensureDBSession is called (on first message).
 //
-// The frontend calls this before sending the first message in a new chat,
-// so that subsequent operations have a valid SN to reference.
+// Logic:
+//  1. If currentChat is nil or points into session.chats[] (a historical chat),
+//     reset it to &chat{} (blank, no SN).
+//  2. If currentChat is already a blank chat (dbChat == nil or SN == ""),
+//     this is a no-op — it's already blank.
+//
+// Returns JSON: { sn: "", title: "", title_state: 0 }
 func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPut {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -28,27 +32,31 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Lock session.mu to safely call ensureDBSession and read fields.
-	// SN is read directly from dbChat.SN (store.Chat has the SN field),
-	// eliminating the need for a separate chatsMu lock + O(n) traversal of session.chats.
 	session.mu.Lock()
-	ensureDBSession(session)
 
-	var sn string
-	if session.currentChat.dbChat != nil {
-		sn = session.currentChat.dbChat.SN
+	// Check if currentChat is already a blank chat
+	if session.currentChat.dbChat == nil || session.currentChat.dbChat.SN == "" {
+		// Already blank — no-op
+		session.mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"sn":          "",
+			"title":       "",
+			"title_state": 0,
+		})
+		return
 	}
-	title := session.currentChat.title
-	titleState := int(session.currentChat.titleState)
+
+	// currentChat points into session.chats[] (a historical chat) — reset to blank
+	session.currentChat = &chat{}
+
 	session.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"sn":          sn,
-		"title":       title,
-		"title_state": titleState,
+		"sn":          "",
+		"title":       "",
+		"title_state": 0,
 	})
 }
-
-// ensureDBSession is defined in db.go — it creates a DB session record
-// for logged-in users if one doesn't exist yet.

@@ -9,6 +9,7 @@
 // ============================================================
 
 import { showWelcomeMessage } from './chat-ui.js';
+import { renderChatList } from './chat-list.js';
 
 'use strict';
 
@@ -53,8 +54,11 @@ export async function initPage() {
     }
 
     // Step 3: 加工对话列表并存入 Alpine store（侧边栏通过响应式模板自动渲染）
+    // 使用 renderChatList 而非直接调用 chatsStore.restructChatLists，
+    // 确保 chat-list.js 中的 currentChats 变量被正确初始化。
+    // 否则后续 updateChatEntry 会因 currentChats 为空数组而丢失所有历史对话。
     if (chatListData && chatListData.chats) {
-        chatsStore.restructChatLists(chatListData.chats);
+        renderChatList(chatListData.chats);
     }
 
     // 恢复登录按钮状态（Alpine 响应式渲染）

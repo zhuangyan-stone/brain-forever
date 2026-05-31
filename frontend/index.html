@@ -264,7 +264,9 @@
                 <span class="main-title" id="headerTitle"></span>
                 <button id="aiTitleBtn" class="icon-btn icon-btn--small ai-title-btn"
                     x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
-                    :disabled="disabled" data-tooltip="让 AI 重新生成标题">
+                    :disabled="disabled"
+                    x-show="$store.chats.active?.sn"
+                    data-tooltip="让 AI 重新生成标题">
                     <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
                         stroke-linejoin="round" x-html="ICON_AI_TITLE"></svg>
                 </button>

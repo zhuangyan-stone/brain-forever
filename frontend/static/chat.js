@@ -12,7 +12,7 @@ import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { initPage } from './chat-init.js';
 import { clearAllStickyNotes } from './components/sticky-note.js';
-import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin } from './chat-api.js';
+import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, createBlankChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, addDirtyChat } from './chat-list.js';
 import {
@@ -101,17 +101,15 @@ if (aiTitleBtn) {
 }
 
 // ============================================================
-// startNewSession — 开启新对话（无刷新 SPA 方式）
+// startNewChat — 开启新对话（无刷新 SPA 方式）
 // 清空当前会话的所有历史消息，进入欢迎状态
+// 同时调用后端 PUT /api/chat/new 将后端 currentChat 重置为 blank chat
 // ============================================================
 
-async function startNewSession() {
-    // ---- 纯前端重置状态，不再调用后端 ----
-
+async function startNewChat() {
     var chatsStore = window.Alpine.store('chats');
 
     // 1. 重置为空白对话状态：activeIndex = -1，创建 blankItem
-    //    SN 暂时为空，用户发出第一条消息时由 sendMessage() 中的 newChat() 分配
     //    Alpine 响应式模板自动隐藏消息组、显示欢迎消息
     chatsStore.resetToBlank();
     resetTickState();
@@ -128,10 +126,15 @@ async function startNewSession() {
     // 4. 清除左侧栏对话列表的选中状态
     clearActiveChat();
 
-    // 5. 设置欢迎消息文本（Alpine 响应式模板自动显示）
+    // 5. 调用后端 PUT /api/chat/new 将后端 currentChat 重置为 blank chat
+    //    blank chat 无 SN、无 DB 记录、不在 session.chats[] 中
+    //    SN 将在第一条消息发送时由 ensureDBSession 生成
+    await createBlankChat();
+
+    // 6. 设置欢迎消息文本（Alpine 响应式模板自动显示）
     showWelcomeMessage();
 
-    // 6. 确保输入面板展开并同步内部折叠状态
+    // 7. 确保输入面板展开并同步内部折叠状态
     const msgInput = document.getElementById('messageInput');
     if (msgInput) {
         msgInput.focus();
@@ -144,7 +147,7 @@ async function startNewSession() {
 
 const newChatBtn = document.getElementById('newChatBtn');
 
-newChatBtn.addEventListener('click', startNewSession);
+newChatBtn.addEventListener('click', startNewChat);
 
 // ============================================================
 // 左栏切换 + 品牌迁移逻辑（参照 demo.html 实现）
@@ -699,10 +702,22 @@ initTickNav();
             return;
         }
 
-        var activeChat = window.Alpine.store('chats').active;
+        var chats = window.Alpine.store('chats');
+        var activeChat = chats.active;
         const currentTitle = (activeChat && activeChat.title) || '';
         if (!currentTitle) {
             // 欢迎状态（空标题）不弹出对话框
+            return;
+        }
+
+        // blankChat 没有有效 SN，不允许修改标题
+        if (!activeChat || !activeChat.sn) {
+            return;
+        }
+
+        // 脏对话（临时 SN，尚未被后端确认）不允许修改标题
+        if (chats.isDirtyChat(activeChat)) {
+            showToast('该对话尚未完成创建，请稍后再修改标题', 'info');
             return;
         }
 

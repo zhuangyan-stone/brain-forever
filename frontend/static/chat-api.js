@@ -75,6 +75,11 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
         return;
     }
 
+    // 脏对话（临时 SN，尚未被后端确认）不允许 AI 推荐标题
+    if (chats && chats.isDirtyChat && chats.isDirtyChat()) {
+        return;
+    }
+
     try {
         // 构建 URL：携带 sn 参数（如果提供）
         let url = '/api/session/title?title=' + encodeURIComponent(originalTitle);
@@ -174,14 +179,14 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 }
 
 /**
- * newChat 调用后端 POST /api/chat/new 接口，为当前新对话初始化一个 SN。
- * 仅当当前对话尚未初始化（sn 为空）时调用。后端会创建 DB 记录（登录用户）
- * 或直接返回（匿名用户），并返回当前对话的 SN。
+ * createBlankChat 调用后端 PUT /api/chat/new 接口，将后端 currentChat 重置为 blank chat。
+ * blank chat 无 SN、无 DB 记录、不在 session.chats[] 中。
+ * SN 将在第一条消息发送时由后端的 ensureDBSession 生成。
  * @returns {Promise<{sn: string, title: string, title_state: number}|null>}
  */
-export async function newChat() {
+export async function createBlankChat() {
     try {
-        const response = await fetch('/api/chat/new', { method: 'POST' });
+        const response = await fetch('/api/chat/new', { method: 'PUT' });
         if (!response.ok) {
             console.warn('初始化对话失败:', response.status);
             return null;

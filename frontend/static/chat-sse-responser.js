@@ -17,6 +17,8 @@
 
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { showSources, showTokenUsage, autoScrollToBottom, showError, restoreInputArea, showToast } from './chat-ui.js';
+import { addDirtyChat } from './chat-list.js';
+import { sessionManager } from './chat-session-manager.js';
 
 'use strict';
 
@@ -177,6 +179,80 @@ export class SSEResponser {
     }
 
     // ---- 事件处理方法 ----
+
+    /**
+     * 处理 chat_created 事件：后端为新对话生成 SN 后推送给前端。
+     * 前端将 blankItem.sn 更新为真实 SN，然后 promoteBlankItem() 将其移入 items[]，
+     * 同时更新 session.sn 使后续 SSE 事件能通过 getOrCreate(sn) 找到正确的 ChatData。
+     * @param {object} event
+     */
+    onChatCreated(event) {
+        if (!event.sn) return;
+        var frontSN = event.front_sn;
+        try {
+            var chats = window.Alpine.store('chats');
+            if (!chats) return;
+
+            if (frontSN) {
+                // 1. 在 items[] 中通过 frontSN 找到 chat，更新为真实 SN
+                var idx = chats.items.findIndex(function(c) { return c.sn === frontSN; });
+                if (idx >= 0) {
+                    chats.items[idx].sn = event.sn;
+                }
+
+                // 2. 更新 sessionManager：将 key 从 frontSN 迁移到真实 SN
+                var session = sessionManager.sessions.get(frontSN);
+                if (session) {
+                    session.sn = event.sn;
+                    sessionManager.sessions.delete(frontSN);
+                    sessionManager.sessions.set(event.sn, session);
+                    if (sessionManager.activeSessionSN === frontSN) {
+                        sessionManager.activeSessionSN = event.sn;
+                    }
+                }
+
+                // 3. 更新侧边栏 currentChats 中的 SN
+                try {
+                    var chatListModule = window.__chatListModule;
+                    if (!chatListModule) {
+                        // 动态导入 chat-list.js 获取 currentChats 引用
+                        import('./chat-list.js').then(function(mod) {
+                            var currentChats = mod.currentChats;
+                            if (currentChats) {
+                                var chatIdx = currentChats.findIndex(function(c) { return c.sn === frontSN; });
+                                if (chatIdx >= 0) {
+                                    currentChats[chatIdx].sn = event.sn;
+                                    mod.renderChatList(currentChats, event.sn);
+                                }
+                            }
+                        });
+                    } else {
+                        var currentChats = chatListModule.currentChats;
+                        if (currentChats) {
+                            var chatIdx = currentChats.findIndex(function(c) { return c.sn === frontSN; });
+                            if (chatIdx >= 0) {
+                                currentChats[chatIdx].sn = event.sn;
+                                chatListModule.renderChatList(currentChats, event.sn);
+                            }
+                        }
+                    }
+                } catch(e) {
+                    // 侧边栏更新失败不阻塞主流程
+                }
+
+                // 4. 更新 this.session.sn 为真实 SN
+                this.session.sn = event.sn;
+            } else {
+                // 没有 frontSN 时走旧逻辑：直接更新 session SN
+                this.session.sn = event.sn;
+            }
+
+            // 更新 Alpine store 的 activeChatSN
+            chats.activeChatSN = event.sn;
+        } catch(e) {
+            console.warn('[SSE] onChatCreated 处理失败:', e);
+        }
+    }
 
     /**
      * 处理 reasoning 事件

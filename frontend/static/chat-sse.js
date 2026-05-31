@@ -13,7 +13,7 @@ import { sessionManager } from './chat-session-manager.js';
 import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, restoreInputArea } from './chat-ui.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { TITLE_STATE, fetchChatTitle, truncateTitle, newChat } from './chat-api.js';
+import { TITLE_STATE, fetchChatTitle, truncateTitle } from './chat-api.js';
 import { addDirtyChat } from './chat-list.js';
 
 'use strict';
@@ -72,11 +72,15 @@ function addUserMessage(content, createdAt) {
         const title = truncateTitle(content);
         if (title) {
             updateHeaderTitle(title);
-            if (activeChat) activeChat.titleState = TITLE_STATE.ORIGINAL;
+            if (activeChat) {
+                activeChat.titleState = TITLE_STATE.ORIGINAL;
+                activeChat.title = title;  // 同步设置 title，使 Alpine store 中的 active.title 立即可用
+            }
 
-            // 首次消息：立即在侧边栏插入一条新对话条目
-            // newChat() 已预先获取了 SN，直接传给 addDirtyChat
-            // 这样侧边栏条目从创建起就拥有真实 SN，点击即可正常切换
+            // 首次消息：尝试在侧边栏插入一条新对话条目
+            // blankChat 尚无 SN，addDirtyChat 会跳过插入，
+            // 侧边栏条目将在收到 SSE chat_created 事件后由
+            // SSEResponser.onChatCreated() → addDirtyChat() 添加。
             // 匿名用户和登录用户都会添加侧边栏条目
             addDirtyChat(title, activeChat ? activeChat.sn : null);
         }
@@ -113,7 +117,19 @@ function prepareChat() {
         chats.active.userScrolledUp = false;
     }
 
-    // 获取当前对话的 SN（blankItem 方案保证 chats.active 始终有效）
+    // ★ 如果是新对话（blankItem 存在且 activeIndex === -1），立即提升到 items[]
+    //    这样在收到后端真实 SN 之前，items[] 中已有该 chat 的条目，
+    //    用户切换到其他 chat 后仍可通过临时 SN 切回来。
+    if (chats.blankItem && chats.activeIndex === -1) {
+        chats.promoteBlankItem();
+        // promoteBlankItem 后：
+        //   1. blankItem.sn 被设为临时 SN（如 'new_2026-05-31T10-25-30'）
+        //   2. blankItem 被移入 items[]，activeIndex 指向它
+        //   3. blankItem 置为 null
+        //   4. chats.active 现在指向 items[] 中的这个新条目
+    }
+
+    // 获取当前对话的 SN（promoteBlankItem 后已有临时 SN）
     var activeChat = chats ? chats.active : null;
     const sn = activeChat ? activeChat.sn : '';
     const session = sessionManager.getOrCreate(sn);
@@ -233,6 +249,10 @@ function dispatchEventToResponser(event, session) {
             responser.onSources(event);
             break;
 
+        case 'chat_created':
+            responser.onChatCreated(event);
+            break;
+
         case 'done':
             responser.onDone(event);
             break;
@@ -256,6 +276,8 @@ async function fetchStream(session, content, createdAt) {
     var settings = Alpine.store('settings');
 
     // 发送请求 — 只传用户最新的一句话，历史由后端维护
+    // front_sn 传递前端生成的临时 SN，后端在 chat_created 事件中返回它，
+    // 前端据此将临时 SN 替换为真实 SN。
     const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -263,7 +285,8 @@ async function fetchStream(session, content, createdAt) {
             message: { id: 0, role: 'user', content, created_at: createdAt },
             stream: true,
             deep_think: settings ? settings.deepThink : false,
-            web_search_enabled: settings ? settings.webSearch : false
+            web_search_enabled: settings ? settings.webSearch : false,
+            front_sn: session.sn,  // 传递前端临时 SN
         }),
         signal: session.abortController.signal
     });
@@ -467,8 +490,8 @@ async function getCurrentChatIfNeeded(wasAborted) {
 // ============================================================
 
 /**
- * isNewChat 判断当前对话是否为新对话（尚未初始化 SN）。
- * 新对话特征：SN 为空且没有消息历史。
+ * isNewChat 判断当前对话是否为新对话（blankItem 状态）。
+ * blankItem 存在且 activeIndex === -1 表示处于空白对话状态。
  * @returns {boolean}
  */
 function isNewChat() {
@@ -481,27 +504,13 @@ function isNewChat() {
 }
 
 /**
- * sendMessage 发送用户消息并启动 SSE 流式接收
- * 如果是新对话（SN 为空），先调用 POST /api/chat/new 初始化并获取 SN，
- * 然后再发送用户消息。
+ * sendMessage 发送用户消息并启动 SSE 流式接收。
+ *
+ * 新对话时 blankItem 保持原位（activeIndex === -1），
+ * 后端 ensureDBSession 生成 SN 后通过 SSE chat_created 事件推送，
+ * 前端 onChatCreated 处理器负责更新 blankItem.sn 并 promoteBlankItem()。
  */
 export async function sendMessage() {
-    // 新对话：先向后台初始化对话并获取 SN
-    if (isNewChat()) {
-        const data = await newChat();
-        if (data && data.sn) {
-            var chats = window.Alpine.store('chats');
-            if (chats) {
-                // ★★★ blankItem 方案：将 blankItem 提升到 items[] 中 ★★★
-                var item = chats.promoteBlankItem();
-                if (item) {
-                    item.sn = data.sn;
-                }
-            }
-        }
-        // 即使匿名用户返回空 SN，也不阻塞后续流程
-    }
-
     const chatData = prepareChat();
     if (!chatData) return;
 

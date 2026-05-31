@@ -8,7 +8,7 @@
 /* FreeSerif 字体 — 用于对话标题前的装饰引号 */
 @font-face {
     font-family: 'FreeSerif';
-    src: local('FreeSerif'), url('/static/fonts/FreeSerif.ttf') format('truetype');
+    src: local('FreeSerif');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
