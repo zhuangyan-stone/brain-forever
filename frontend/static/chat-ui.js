@@ -179,7 +179,7 @@ export let _autoScrolling = false;
  * 当 scrollHeight 比记录值大时，说明是内容增长引起的 scroll anchoring，而非用户手动滚动。
  * 在 _autoScrolling 被 setTimeout(0) 清除后，scroll anchoring 才触发时起兜底作用。
  */
-export let lastScrollHeight = 0;
+let lastScrollHeight = 0;
 
 // DOM 元素引用（由 chat.js 初始化时设置）
 export const dom = {

@@ -9,163 +9,12 @@ import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showToken
 import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { ICON_EDIT, ICON_DELETE, ICON_DOTS, ICON_PIN } from './svg_icons_re.js';
+import { ICON_EDIT, ICON_DELETE, ICON_PIN } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 import { renderMarkdown } from './chat-markdown.js';
 
 'use strict';
 
-// ============================================================
-// convertMessagesToGroups — 将后端返回的扁平 messages 数组转换为
-// Alpine store 所需的 groups 分组结构
-// ============================================================
-// 每组包含一条 user 消息和可选的 assistant 回复（同一 group_index）。
-// 返回 { groups, seq }，其中 groups 是分组数组，seq 是自增序号（用于 _groupSeq）。
-//
-// @param {Array} messages - 后端返回的消息数组 [{ id, role, content, ... }]
-// @returns {{ groups: Array, seq: number }}
-// ============================================================
-export function convertMessagesToGroups(messages) {
-    var groups = [];
-    var seq = 0;
-    for (const msg of messages) {
-        if (msg.role === 'user') {
-            seq++;
-            groups.push({
-                id: seq,
-                msgId: msg.id || 0,
-                user: { content: msg.content, createdAt: msg.created_at || null, contentHTML: renderMarkdown(msg.content) },
-                assistant: {
-                    content: '',
-                    createdAt: null,
-                    reasoning: null,
-                    sources: null,
-                    usage: null,
-                    contentHTML: '',
-                    reasoningHTML: undefined,
-                },
-            });
-        } else if (msg.role === 'assistant' && groups.length > 0) {
-            var lastGroup = groups[groups.length - 1];
-            lastGroup.assistant.content = msg.content || '';
-            lastGroup.assistant.createdAt = msg.created_at || null;
-            lastGroup.assistant.reasoning = msg.reasoning || null;
-            lastGroup.assistant.sources = msg.sources || null;
-            lastGroup.assistant.usage = msg.usage || null;
-            lastGroup.assistant.contentHTML = renderMarkdown(msg.content || '');
-            lastGroup.assistant.reasoningHTML = msg.reasoning ? renderMarkdown(msg.reasoning) : undefined;
-            lastGroup.msgId = msg.id || lastGroup.msgId;
-        }
-    }
-    return { groups, seq };
-}
-
-// ============================================================
-// 时间分组工具函数
-// ============================================================
-
-/**
- * 获取日期字符串（YYYY/MM/DD 格式）
- * @param {string} isoStr - ISO 格式时间字符串
- * @returns {string}
- */
-function getDateStr(isoStr) {
-    if (!isoStr) return '';
-    const d = new Date(isoStr);
-    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-/**
- * 判断两个日期是否是同一天
- */
-function isSameDay(d1, d2) {
-    return d1.getFullYear() === d2.getFullYear() &&
-        d1.getMonth() === d2.getMonth() &&
-        d1.getDate() === d2.getDate();
-}
-
-/**
- * 根据日期获取时间分组标签
- * @param {Date} date
- * @returns {string} 分组标签
- */
-function getTimeGroupLabel(date) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date(today);
-    monthAgo.setDate(monthAgo.getDate() - 30);
-
-    if (date >= today) return '今天';
-    if (date >= yesterday) return '昨天';
-    if (date >= weekAgo) return '7天内';
-    if (date >= monthAgo) return '30天内';
-    return '更早';
-}
-
-/**
- * 将对话列表按时间分组
- * @param {Array} chats - 对话数组
- * @returns {Object} 分组结果
- */
-function groupChats(chats) {
-    const pinned = [];      // 置顶对话
-    const today = [];
-    const yesterday = [];
-    const within7Days = [];
-    const within30Days = [];
-    const earlier = {};     // 更早：按日期分组 { '2026/3/25': [...] }
-    const categorized = {}; // 已分类：按 category 分组 { categoryId: [...] }
-
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-    const weekAgoStart = new Date(todayStart);
-    weekAgoStart.setDate(weekAgoStart.getDate() - 7);
-    const monthAgoStart = new Date(todayStart);
-    monthAgoStart.setDate(monthAgoStart.getDate() - 30);
-
-    for (const chat of chats) {
-        // 如果对话已分类（category > 0），归入分类分组
-        if (chat.category && chat.category > 0) {
-            const catKey = String(chat.category);
-            if (!categorized[catKey]) {
-                categorized[catKey] = [];
-            }
-            categorized[catKey].push(chat);
-            continue;
-        }
-
-        if (chat.pinned) {
-            pinned.push(chat);
-            continue;
-        }
-
-        const updateDate = new Date(chat.update_at);
-        if (updateDate >= todayStart) {
-            today.push(chat);
-        } else if (updateDate >= yesterdayStart) {
-            yesterday.push(chat);
-        } else if (updateDate >= weekAgoStart) {
-            within7Days.push(chat);
-        } else if (updateDate >= monthAgoStart) {
-            within30Days.push(chat);
-        } else {
-            // 更早：按具体日期分组
-            const dateKey = getDateStr(chat.update_at);
-            if (!earlier[dateKey]) {
-                earlier[dateKey] = [];
-            }
-            earlier[dateKey].push(chat);
-        }
-    }
-
-    return { pinned, today, yesterday, within7Days, within30Days, earlier, categorized };
-}
 
 /**
  * 截取标题，最多25字
@@ -216,27 +65,6 @@ export function clearActiveChat() {
             chatsStore.activeChatSN = null;
         }
     } catch(e) {}
-}
-
-/**
- * 重置对话列表（新对话时使用）
- * 清空内存中的聊天列表和选中状态，避免旧数据残留。
- * 后续由 refreshChatListIfNeeded 从后端重新加载。
- */
-export function resetChatList() {
-    currentChats = [];
-    activeChatSN = null;
-    // 同步到 Alpine store
-    try {
-        var chatsStore = window.Alpine.store('chats');
-        if (chatsStore) {
-            chatsStore.chatsLists = [];
-            chatsStore.categoryGroups = [];
-            chatsStore.activeChatSN = null;
-        }
-    } catch(e) {}
-    // 移除可能存在的上下文菜单
-    closeContextMenu();
 }
 
 /**
@@ -305,80 +133,6 @@ export function renderChatList(chats, activeSN) {
             chatsStore.restructChatLists(chats, activeSN);
         }
     } catch(e) {}
-}
-
-/**
- * 添加一个分组到列表
- */
-function appendGroup(parentEl, label, chats) {
-    const group = document.createElement('div');
-    group.className = 'chat-group';
-
-    const header = document.createElement('div');
-    header.className = 'chat-group-header';
-    header.textContent = label;
-    group.appendChild(header);
-
-    const body = document.createElement('div');
-    body.className = 'chat-group-body';
-
-    for (const chat of chats) {
-        const item = createChatItem(chat);
-        body.appendChild(item);
-    }
-
-    group.appendChild(body);
-    parentEl.appendChild(group);
-}
-
-/**
- * 创建单个对话项
- */
-function createChatItem(chat) {
-    const item = document.createElement('div');
-    item.className = 'chat-item';
-    item.dataset.sn = chat.sn;
-
-    if (chat.sn === activeChatSN) {
-        item.classList.add('active');
-    }
-
-    // 标题
-    const titleEl = document.createElement('div');
-    titleEl.className = 'chat-item-title';
-    titleEl.textContent = truncateTitle(chat.title);
-    item.appendChild(titleEl);
-
-    // 更多按钮（hover 或选中时显示）
-    const moreBtn = document.createElement('button');
-    moreBtn.className = 'chat-item-more-btn';
-    moreBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">' + ICON_DOTS + '</svg>';
-    item.appendChild(moreBtn);
-
-    // 点击对话项 — 切换到该对话
-    item.addEventListener('click', (e) => {
-        // 如果点击的是 moreBtn，不触发切换
-        if (e.target.closest('.chat-item-more-btn')) return;
-        selectChat(chat.sn);
-    });
-
-    // hover / 点击更多按钮 — 显示上下文菜单
-    // 大屏模式下 hover 直接弹出菜单
-    moreBtn.addEventListener('mouseenter', (e) => {
-        showContextMenu(e, chat);
-    });
-    moreBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        showContextMenu(e, chat);
-    });
-
-    // 右键菜单
-    item.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        showContextMenu(e, chat);
-    });
-
-    return item;
 }
 
 /**
@@ -1106,6 +860,13 @@ try {
     if (chats) {
         chats.selectChat = selectChat;
         chats.showContextMenu = showContextMenu;
+        // 当鼠标进入某个对话项时，如果当前有打开的上下文菜单且属于其他对话，立即关闭。
+        // 由 Alpine 模板 @mouseenter="$store.chats.maybeCloseContextMenu(chat)" 调用。
+        chats.maybeCloseContextMenu = function(chat) {
+            if (contextMenuEl && contextTargetSN !== chat.sn) {
+                closeContextMenu();
+            }
+        };
     }
 } catch(e) {
     console.warn('chat-list: 无法注册到 Alpine store', e);

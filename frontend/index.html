@@ -37,11 +37,11 @@
     <link rel="stylesheet" href="/static/dialogs/title-edit-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
     <link rel="stylesheet" href="/static/responsive.css">
-    <link rel="stylesheet" href="/static/components/toast/toast.css">
+    <link rel="stylesheet" href="/static/components/toast.css">
     <link rel="stylesheet" href="/static/components/buttons.css">
     <link rel="stylesheet" href="/static/components/tick.css">
     <link rel="stylesheet" href="/static/components/tooltip.css">
-    <link rel="stylesheet" href="/static/components/sticky-note.css">
+    <link rel="stylesheet" href="/static/components/sticky-ai-title.css">
     <link rel="stylesheet" href="/static/chat-list.css">
     <!-- highlight.js — 代码语法高亮（暗色主题） -->
     <!-- CDN 备用: https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css -->
@@ -79,7 +79,7 @@
         若用 ES Module 则执行时机晚于 Alpine 的 DOM 扫描。 -->
     <script src="/static/components/buttons.js"></script>
     <script src="/static/components/chat-container.js"></script>
-    <script src="/static/components/dialogs.js"></script>
+    <script src="/static/components/dialogs/dialogs.js"></script>
     <script src="/static/components/sources-panel.js"></script>
     <script src="/static/components/format.js"></script>
 
@@ -100,19 +100,6 @@
 </head>
 
 <body>
-    <!-- 隐藏的 SVG 定义区，供各按钮通过 <use> 引用 -->
-    <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;">
-        <defs>
-            <svg id="icon-new-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <!-- 聊天气泡，左下角尖角，内含 + 号 -->
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                <line x1="12" y1="8" x2="12" y2="16" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-        </defs>
-    </svg>
-
     <div class="app-container" id="appContainer">
         <!-- 左栏 -->
         <aside class="left-sidebar hidden" id="leftSidebar">
@@ -163,7 +150,9 @@
                                     <template x-for="chat in group.items" :key="chat.sn">
                                         <div class="chat-item"
                                             :class="{ active: chat.sn === $store.chats.activeChatSN }"
-                                            :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn)">
+                                            :data-sn="chat.sn"
+                                            @click="$store.chats.selectChat(chat.sn)"
+                                            @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                             <button class="chat-item-more-btn"
                                                 @mouseenter="$store.chats.showContextMenu($event, chat)"
@@ -200,7 +189,9 @@
                                                 <template x-for="chat in sub.items" :key="chat.sn">
                                                     <div class="chat-item"
                                                         :class="{ active: chat.sn === $store.chats.activeChatSN }"
-                                                        :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn)">
+                                                        :data-sn="chat.sn"
+                                                        @click="$store.chats.selectChat(chat.sn)"
+                                                        @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                                         <button class="chat-item-more-btn"
                                                             @mouseenter="$store.chats.showContextMenu($event, chat)"
@@ -239,7 +230,9 @@
                                 :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">
                                 <template x-for="chat in catGroup.items" :key="chat.sn">
                                     <div class="chat-item" :class="{ active: chat.sn === $store.chats.activeChatSN }"
-                                        :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn)">
+                                        :data-sn="chat.sn"
+                                        @click="$store.chats.selectChat(chat.sn)"
+                                        @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                         <button class="chat-item-more-btn"
                                             @mouseenter="$store.chats.showContextMenu($event, chat)"
@@ -263,9 +256,7 @@
                 <button id="newChatBtn" class="text-btn" x-data="textBtn({ disabled: () => false })"
                     :disabled="disabled" data-tooltip="开启新对话">
                     <svg class="text-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <use href="#icon-new-chat" />
-                    </svg>
+                        stroke-linecap="round" stroke-linejoin="round" x-html="ICON_NEW_CHAT"></svg>
                     <span class="text-btn-label">新对话</span>
                 </button>
                 <span class="main-title" id="headerTitle"></span>

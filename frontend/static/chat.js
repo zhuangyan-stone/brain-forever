@@ -11,17 +11,11 @@ import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { initPage } from './chat-init.js';
-import { clearAllStickyNotes } from './components/sticky-note.js';
+import { clearAllStickyNotes } from './components/sticky-mgr.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, createBlankChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
-import { clearActiveChat, addDirtyChat } from './chat-list.js';
-import {
-    ICON_COPY, ICON_SEND, ICON_SPINNER, ICON_DELETE, ICON_GLOBE,
-    ICON_MOON, ICON_SUN, ICON_ARROW_UP_DOWN, ICON_TOGGLE,
-    ICON_AI_TITLE, ICON_EDIT, SVG_ATTRS,
-    ICON_DOTS, ICON_CLOSE, ICON_PIN, ICON_STOP,
-    ICON_ATTACH, ICON_NEW_CHAT, ICON_RESTORE, ICON_COPY_MSG
-} from './svg_icons_re.js';
+import { clearActiveChat } from './chat-list.js';
+import { ICON_TOGGLE } from './svg_icons_re.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 

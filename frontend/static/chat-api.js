@@ -4,7 +4,7 @@
 
 import { updateHeaderTitle } from './chat-ui.js';
 import { resetTickState } from './tick-state.js';
-import { showStickyNote } from './components/sticky-note.js';
+import { showAiTitleSuggestion } from './components/sticky-ai-title.js';
 
 /**
  * 标题修改状态常量
@@ -131,7 +131,7 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
                     // 下一轮仍可继续尝试推荐
                 },
             };
-            showStickyNote('AI 推荐标题', data.title, stickyOptions);
+            showAiTitleSuggestion('AI 推荐标题', data.title, stickyOptions);
         }
         // 如果 changed === false（标题未变或出错），状态保持当前值，下一轮继续尝试
     } catch (e) {
@@ -281,7 +281,7 @@ export async function switchToUser(data) {
 	}
 
 	// 清除所有便利贴
-	const { clearAllStickyNotes } = await import('./components/sticky-note.js');
+	const { clearAllStickyNotes } = await import('./components/sticky-mgr.js');
 	clearAllStickyNotes();
 
 	// 更新标题

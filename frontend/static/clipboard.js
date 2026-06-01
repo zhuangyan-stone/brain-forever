@@ -223,26 +223,3 @@ export function htmlToMarkdown(html) {
     }
 }
 
-/**
- * showCopyFeedback 显示复制成功/失败的视觉反馈
- * @param {HTMLElement} btn - 被点击的按钮元素
- * @param {string} successText - 成功后显示的文本
- * @param {number} [resetDelay=2000]
- */
-function showCopyFeedback(btn, successText, resetDelay) {
-    const originalText = btn.textContent;
-    const originalColor = btn.style.color;
-    const originalBorderColor = btn.style.borderColor;
-
-    if (successText) {
-        btn.textContent = successText;
-        btn.style.color = '#57C3C3';
-        btn.style.borderColor = '#57C3C3';
-    }
-
-    setTimeout(() => {
-        btn.textContent = originalText;
-        btn.style.color = originalColor;
-        btn.style.borderColor = originalBorderColor;
-    }, resetDelay || 2000);
-}

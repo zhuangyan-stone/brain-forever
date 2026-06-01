@@ -1,11 +1,11 @@
 // ============================================================
-// sticky-note.js — 便利贴式标题推荐组件
+// sticky-ai-title.js — AI 推荐标题便利贴组件
 // 在页面右侧显示 AI 推荐的对话标题，提供"接受/拒绝"操作
 // ============================================================
 // 使用方式：
-//   import { showStickyNote } from './components/sticky-note.js';
-//   showStickyNote('AI 为本次对话推荐了一个新标题', '新标题文本', {
-//       onAccept: (title) => { /* 接受回调 */ },
+//   import { showAiTitleSuggestion } from './sticky-ai-title.js';
+//   showAiTitleSuggestion('AI 为本次对话推荐了一个新标题', '新标题文本', {
+//       onApply: (title) => { /* 接受回调 */ },
 //       onDismiss: (title) => { /* 拒绝回调 */ },
 //   });
 // ============================================================
@@ -13,115 +13,10 @@
 'use strict';
 
 import { ICON_CLOSE, ICON_RESTORE } from '../svg_icons_re.js';
+import { getContainer, restoreNote } from './sticky-mgr.js';
 
 /** 定时时长（毫秒）— 15 秒后自动应用标题 */
 const TIMER_DURATION = 15000;
-
-/**
- * 便利贴容器（单例，延迟创建）
- * @type {HTMLElement|null}
- */
-let container = null;
-
-/**
- * 用于监听 .main-content 尺寸变化的 ResizeObserver（单例）
- * @type {ResizeObserver|null}
- */
-let resizeObserver = null;
-
-/**
- * 获取或创建便利贴容器 DOM 元素。
- * 容器使用 position:fixed 右对齐到对话框（scrollContainer）右边沿。
- * @returns {HTMLElement}
- */
-function getContainer() {
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'sticky-note-container';
-        document.body.appendChild(container);
-        // 初始化位置监听
-        initPositionWatcher();
-        updatePosition();
-    }
-    return container;
-}
-
-/**
- * 初始化位置监听：监听窗口 resize 和 .main-content 尺寸变化（侧边栏切换时）。
- */
-function initPositionWatcher() {
-    if (resizeObserver) return; // 已初始化
-
-    // 窗口 resize 时更新
-    window.addEventListener('resize', updatePosition);
-
-    // 用 ResizeObserver 监听 .main-content 尺寸变化（侧边栏显隐会改变其宽度）
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-        resizeObserver = new ResizeObserver(() => {
-            updatePosition();
-        });
-        resizeObserver.observe(mainContent);
-    }
-}
-
-/**
- * 更新便利贴容器的位置，使其右边缘位于 main-body 右边沿左侧 64px 处，
- * 为右侧的刻度导航（tick-nav）留出刻度线和刻度值的显示空间。
- */
-function updatePosition() {
-    if (!container) return;
-    const mainBody = document.querySelector('.main-body');
-    if (!mainBody) {
-        // 兜底：固定在右侧
-        container.style.right = '16px';
-        container.style.transform = '';
-        return;
-    }
-
-    const mbRect = mainBody.getBoundingClientRect();
-    const vw = window.innerWidth;
-
-    // right 值 = 视口右边缘到 (main-body 右边沿 - 64px) 的距离
-    // 这样便利贴的右边缘就位于 main-body 右边沿左侧 64px 处
-    const rightVal = vw - (mbRect.right - 64);
-
-    container.style.right = rightVal + 'px';
-    // 移除旧的居中 transform
-    container.style.transform = '';
-}
-
-/**
- * 折叠便利贴：只显示标题，隐藏消息、推荐标题、按钮行和恢复按钮。
- * @param {HTMLElement} note - 便利贴 DOM 元素
- */
-function collapseNote(note) {
-    if (note.classList.contains('collapsed') || note.classList.contains('leaving')) return;
-
-    // 先执行折叠动画
-    note.classList.add('collapsing');
-    // 动画结束后切换为 collapsed 状态
-    note.addEventListener('animationend', () => {
-        note.classList.remove('collapsing');
-        note.classList.add('collapsed');
-    }, { once: true });
-}
-
-/**
- * 恢复便利贴：从折叠状态展开，显示完整内容。
- * @param {HTMLElement} note - 便利贴 DOM 元素
- */
-function restoreNote(note) {
-    if (!note.classList.contains('collapsed')) return;
-
-    note.classList.remove('collapsed');
-    // 移除折叠标题
-    const collapsedTitle = note.querySelector('.sticky-note-collapsed-title');
-    if (collapsedTitle) {
-        collapsedTitle.remove();
-    }
-    // 恢复按钮由 CSS 控制显隐（.collapsed 移除后自动隐藏）
-}
 
 /**
  * 显示一张标题推荐便利贴。
@@ -129,17 +24,14 @@ function restoreNote(note) {
  * @param {string} message   - 提示消息，如 "AI 推荐标题"
  * @param {string} title     - AI 推荐的新标题
  * @param {object} [options] - 可选配置
- * @param {function} [options.onApply] - 应用标题的回调（定时到点或用户点击"试试"时调用），参数为 title
+ * @param {function} [options.onApply] - 应用标题的回调（定时到点或用户点击"采纳"时调用），参数为 title
  * @param {function} [options.onDismiss] - 用户取消时的回调，参数为 title
  * @returns {HTMLElement} 创建的便利贴 DOM 元素
  */
-export function showStickyNote(message, title, options = {}) {
+export function showAiTitleSuggestion(message, title, options = {}) {
     const { onApply, onDismiss } = options;
 
     const ctn = getContainer();
-
-    // 每次显示时重新计算位置（侧边栏可能已切换）
-    updatePosition();
 
     // ---- 创建便利贴 DOM ----
     const note = document.createElement('div');
@@ -164,16 +56,13 @@ export function showStickyNote(message, title, options = {}) {
     closeBtn.setAttribute('aria-label', '关闭');
     closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        // 取消定时器
         clearInterval(progressInterval);
         clearTimeout(autoAcceptTimer);
-        // 触发 dismiss 行为
         note.classList.add('leaving');
         note.addEventListener('animationend', () => {
             note.remove();
             if (ctn.children.length === 0) {
                 ctn.remove();
-                container = null;
             }
         }, { once: true });
         if (typeof onDismiss === 'function') {
@@ -218,17 +107,13 @@ export function showStickyNote(message, title, options = {}) {
     dismissBtn.textContent = '✗ 不要';
     dismissBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        // 取消定时器
         clearInterval(progressInterval);
         clearTimeout(autoAcceptTimer);
-        // 离场动画后移除
         note.classList.add('leaving');
         note.addEventListener('animationend', () => {
             note.remove();
-            // 容器为空时也移除容器
             if (ctn.children.length === 0) {
                 ctn.remove();
-                container = null;
             }
         }, { once: true });
         if (typeof onDismiss === 'function') {
@@ -243,16 +128,13 @@ export function showStickyNote(message, title, options = {}) {
     acceptBtn.innerHTML = '✓ 采纳 <span class="sticky-note-countdown"></span>';
     acceptBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        // 取消定时器
         clearInterval(progressInterval);
         clearTimeout(autoAcceptTimer);
-        // 离场动画后移除
         note.classList.add('leaving');
         note.addEventListener('animationend', () => {
             note.remove();
             if (ctn.children.length === 0) {
                 ctn.remove();
-                container = null;
             }
         }, { once: true });
         if (typeof onApply === 'function') {
@@ -265,17 +147,13 @@ export function showStickyNote(message, title, options = {}) {
 
     // ---- 定时进度条 + 倒计时秒数 + 自动应用标题 ----
     const startTime = Date.now();
-
-    // 获取倒计时显示元素
     const countdownSpan = acceptBtn.querySelector('.sticky-note-countdown');
 
-    // 每 100ms 更新一次进度条和倒计时秒数
     const progressInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const pct = Math.min(elapsed / TIMER_DURATION, 1);
         progressFill.style.width = (pct * 100) + '%';
 
-        // 更新倒计时秒数（向上取整，固定 2 位，不足补 0）
         const remaining = Math.max(0, Math.ceil((TIMER_DURATION - elapsed) / 1000));
         if (countdownSpan) {
             const formatted = String(remaining).padStart(2, '0');
@@ -283,20 +161,15 @@ export function showStickyNote(message, title, options = {}) {
         }
     }, 100);
 
-    // 定时到点后自动应用标题
     const autoAcceptTimer = setTimeout(() => {
         clearInterval(progressInterval);
-        // 进度条填满
         progressFill.style.width = '100%';
-        // 清除倒计时文字
         if (countdownSpan) countdownSpan.textContent = '';
-        // 离场动画后移除
         note.classList.add('leaving');
         note.addEventListener('animationend', () => {
             note.remove();
             if (ctn.children.length === 0) {
                 ctn.remove();
-                container = null;
             }
         }, { once: true });
         if (typeof onApply === 'function') {
@@ -304,24 +177,7 @@ export function showStickyNote(message, title, options = {}) {
         }
     }, TIMER_DURATION);
 
-    // 添加到容器
     ctn.appendChild(note);
 
     return note;
-}
-
-/**
- * 清除所有便利贴（用于切换会话时清理）
- */
-export function clearAllStickyNotes() {
-    if (container) {
-        container.remove();
-        container = null;
-    }
-    // 清理监听器
-    if (resizeObserver) {
-        resizeObserver.disconnect();
-        resizeObserver = null;
-    }
-    window.removeEventListener('resize', updatePosition);
 }

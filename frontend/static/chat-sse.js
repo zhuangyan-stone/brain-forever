@@ -488,20 +488,6 @@ async function getCurrentChatIfNeeded(wasAborted) {
 // ============================================================
 
 /**
- * isNewChat 判断当前对话是否为新对话（blankItem 状态）。
- * blankItem 存在且 activeIndex === -1 表示处于空白对话状态。
- * @returns {boolean}
- */
-function isNewChat() {
-    var chats = window.Alpine.store('chats');
-    if (!chats) return true;
-    // blankItem 存在且 activeIndex === -1 表示处于空白对话状态
-    if (chats.blankItem && chats.activeIndex === -1) return true;
-    var activeChat = chats.active;
-    return !activeChat || (!activeChat.sn && (!activeChat.groups || activeChat.groups.length === 0));
-}
-
-/**
  * sendMessage 发送用户消息并启动 SSE 流式接收。
  *
  * 新对话时 blankItem 保持原位（activeIndex === -1），
