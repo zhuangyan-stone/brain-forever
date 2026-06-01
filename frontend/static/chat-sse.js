@@ -88,8 +88,9 @@ function addUserMessage(content, createdAt) {
 }
 
 /**
- * 发送前准备：验证输入、清理 UI、初始化状态
- * @returns {{ content: string, createdAt: string, stream: ChatStream } | null}
+ * 准备发送：验证输入、清理 UI、添加用户消息（立即执行，让用户消息尽快渲染）
+ * 返回准备好的数据对象，供后续 initStreaming 和网络请求使用。
+ * @returns {{ content: string, createdAt: string, stream: ChatStream, chats: object, sn: string } | null}
  */
 function prepareChat() {
     const messageInput = document.getElementById('messageInput');
@@ -122,11 +123,6 @@ function prepareChat() {
     //    用户切换到其他 chat 后仍可通过临时 SN 切回来。
     if (chats.blankItem && chats.activeIndex === -1) {
         chats.promoteBlankItem();
-        // promoteBlankItem 后：
-        //   1. blankItem.sn 被设为临时 SN（如 'new_2026-05-31T10-25-30'）
-        //   2. blankItem 被移入 items[]，activeIndex 指向它
-        //   3. blankItem 置为 null
-        //   4. chats.active 现在指向 items[] 中的这个新条目
     }
 
     // 获取当前对话的 SN（promoteBlankItem 后已有临时 SN）
@@ -134,11 +130,22 @@ function prepareChat() {
     const sn = activeChat ? activeChat.sn : '';
     const stream = chatStreamMgr.getOrCreate(sn);
 
+    // ★ 立即添加用户消息，让 Alpine 在当前 tick 收集 groups[] 变更
+    addUserMessage(content, createdAt);
+
+    return { content, createdAt, stream, chats, sn };
+}
+
+/**
+ * 初始化流式状态：标记 isStreaming、创建 assistant 占位、准备网络请求。
+ * 应在 Alpine.nextTick 中执行，确保用户消息气泡已渲染到 DOM。
+ * @param {{ content: string, createdAt: string, stream: ChatStream, chats: object, sn: string }} data - prepareChat 返回的数据
+ */
+function initStreaming(data) {
+    const { content, createdAt, stream, chats, sn } = data;
+
     // 标记为流式状态（startStreaming 会设置 isStreaming=true 并创建 streamingMsg）
     chats.startStreaming(sn);
-
-    // 添加用户消息
-    addUserMessage(content, createdAt);
 
     // 更新刻度导航
     updateTickNav();
@@ -168,8 +175,6 @@ function prepareChat() {
 
     // 创建 AbortController
     stream.abortController = new AbortController();
-
-    return { content, createdAt, stream };
 }
 
 // ============================================================
@@ -490,21 +495,34 @@ async function getCurrentChatIfNeeded(wasAborted) {
 /**
  * sendMessage 发送用户消息并启动 SSE 流式接收。
  *
+ * 分两阶段执行：
+ *   阶段一（同步）：验证输入、清理 UI、添加用户消息 → 让 Alpine 尽快渲染用户气泡
+ *   阶段二（nextTick）：初始化流式状态、创建 assistant 占位、发起网络请求
+ *
  * 新对话时 blankItem 保持原位（activeIndex === -1），
  * 后端 ensureDBSession 生成 SN 后通过 SSE chat_created 事件推送，
  * 前端 onChatCreated 处理器负责更新 blankItem.sn 并 promoteBlankItem()。
  */
 export async function sendMessage() {
-    const chatData = prepareChat();
-    if (!chatData) return;
+    const data = prepareChat();
+    if (!data) return;
 
-    const { content, createdAt, stream } = chatData;
+    const { content, createdAt, stream } = data;
 
-    try {
-        await fetchStream(stream, content, createdAt);
-    } catch (err) {
-        handleStreamError(err, stream);
-    } finally {
-        cleanupAfterStream(stream, stream.wasAborted);
-    }
+    // 使用 Alpine.nextTick 让 Alpine 先完成用户消息的 DOM 渲染，
+    // 再执行流式初始化和网络请求，减少用户感知的"消息气泡延迟"
+    window.Alpine.nextTick(function() {
+        initStreaming(data);
+
+        // 发起网络请求（流式读取）
+        (async function() {
+            try {
+                await fetchStream(stream, content, createdAt);
+            } catch (err) {
+                handleStreamError(err, stream);
+            } finally {
+                cleanupAfterStream(stream, stream.wasAborted);
+            }
+        })();
+    });
 }
