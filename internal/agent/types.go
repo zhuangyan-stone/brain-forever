@@ -173,14 +173,26 @@ func (s *session) SetTitle(newTitle string, newState TitleState) {
 // Since anonymous users now have their own DB (data/anonymous.db),
 // there is no need to migrate anonymous messages — they stay in anonymous.db.
 // This simply opens the user's DB file and loads their chat list.
+//
+// NOTE: The database filename pattern differs between anonymous and logged-in users:
+//   - Anonymous: data/anonymous.db  (matches the initial anonymousStore in InitAgent)
+//   - Logged-in: data/{userNo}.chats.db
+//
+// This is intentional — the anonymous store uses a different filename because
+// it is created once at startup and shared across all anonymous sessions,
+// while user stores are created per-user on login.
 func (s *session) switchToUser(sn string) {
 	// Phase 1: IO operations (no lock needed — DB creation + query)
-	// If sn is empty, use "anonymous" as the filename part (for anonymous user DB)
-	dbFilePart := sn
-	if dbFilePart == "" {
-		dbFilePart = "anonymous"
+	var dbFile string
+	if sn == "" {
+		// Anonymous user: use the same DB filename as the initial anonymousStore
+		// (data/anonymous.db), NOT "data/anonymous.chats.db". The initial
+		// anonymous store is created with "data/anonymous.db" in InitAgent,
+		// and all anonymous chat data is persisted there.
+		dbFile = "data/anonymous.db"
+	} else {
+		dbFile = "data/" + sn + ".chats.db"
 	}
-	dbFile := "data/" + dbFilePart + ".chats.db"
 	chatStore, err := store.CreateLocalChatScheme(dbFile)
 	if err != nil {
 		log.Printf("failed to create local chat scheme for user %s: %v", sn, err)

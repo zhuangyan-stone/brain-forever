@@ -867,6 +867,20 @@ try {
                 closeContextMenu();
             }
         };
+
+        /**
+         * setSidebarChats — 替换侧边栏对话列表（切换用户时使用）。
+         * 更新模块级 currentChats 变量，并通过 restructChatLists 刷新 Alpine 响应式渲染。
+         * 供 chat-api.js 等外部模块在切换用户后调用，避免循环依赖。
+         * @param {Array} chatList - 新的对话数组
+         * @param {string} [activeSN] - 当前选中的对话 SN
+         */
+        chats.setSidebarChats = function(chatList, activeSN) {
+            closeContextMenu();
+            currentChats = chatList || [];
+            activeChatSN = activeSN || null;
+            chats.restructChatLists(chatList, activeSN);
+        };
     }
 } catch(e) {
     console.warn('chat-list: 无法注册到 Alpine store', e);

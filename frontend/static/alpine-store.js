@@ -733,11 +733,17 @@ document.addEventListener('alpine:init', function() {
 
         /**
          * 重置所有数据（切换用户时）
+         * 清除 items、chatsTimeline、chatCategories 等所有缓存数据，
+         * 确保 Alpine 响应式模板立即清空侧边栏。
+         * 后续由 renderChatList() 通过 restructChatLists() 重新填充。
          */
         reset: function() {
             this.items = [];
             this.activeIndex = -1;
             this.blankItem = null;
+            this.chatsTimeline = [];
+            this.chatCategories = [];
+            this.activeChatSN = null;
         },
     });
 

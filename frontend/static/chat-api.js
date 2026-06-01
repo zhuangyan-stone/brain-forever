@@ -300,10 +300,17 @@ export async function switchToUser(data) {
 	} catch(e) {}
 
 	// 刷新侧边栏对话列表 — 使用后端返回的 chats 数据替换旧的匿名对话列表
+	// 通过 Alpine store 上的 setSidebarChats 方法（由 chat-list.js 注册），
+	// 避免动态导入 chat-list.js 产生循环依赖。
 	if (data.chats) {
-		const { renderChatList, clearActiveChat } = await import('./chat-list.js');
-		clearActiveChat();
-		renderChatList(data.chats, null);
+		try {
+			var chatsStore = window.Alpine.store('chats');
+			if (chatsStore && chatsStore.setSidebarChats) {
+				chatsStore.setSidebarChats(data.chats, null);
+			}
+		} catch(e) {
+			console.warn('switchToUser: 刷新侧边栏失败', e);
+		}
 	}
 
 	// 聚焦输入框
@@ -315,7 +322,8 @@ export async function switchToUser(data) {
 
 /**
  * onChatLogout 调用后端 POST /api/chat/logout 接口，退出登录回到匿名状态。
- * 成功后清除 localStorage 中的 user_no，刷新页面以恢复匿名状态。
+ * 成功后清除 localStorage 中的 user_no，然后重新获取匿名用户的对话列表
+ * 并刷新侧边栏，不刷新页面。
  * @returns {Promise<boolean>} 是否成功
  */
 export async function onChatLogout() {
@@ -332,8 +340,48 @@ export async function onChatLogout() {
 			// 清除持久化的 user_no 和 avatar
 			localStorage.removeItem('brainforever_user_no');
 			localStorage.removeItem('brainforever_user_avatar');
-			// 刷新页面以恢复匿名状态
-			window.location.reload();
+
+			// 重置前端状态（清空消息、侧边栏等）
+			resetTickState();
+			try {
+				var chatsStore = window.Alpine.store('chats');
+				if (chatsStore) {
+					chatsStore.reset();
+					chatsStore.currentUserNo = '';
+					chatsStore.currentUserAvatar = '';
+				}
+			} catch(e) {}
+
+			// 移除消息 DOM
+			const chatContainer = document.getElementById('chatContainer');
+			if (chatContainer) {
+				chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
+			}
+
+			// 获取匿名用户的对话列表
+			const listResp = await fetch('/api/chat/list');
+			if (listResp.ok) {
+				const listData = await listResp.json();
+				if (listData.chats) {
+					try {
+						var chatsStore2 = window.Alpine.store('chats');
+						if (chatsStore2 && chatsStore2.setSidebarChats) {
+							chatsStore2.setSidebarChats(listData.chats, null);
+						}
+					} catch(e) {
+						console.warn('onChatLogout: 刷新侧边栏失败', e);
+					}
+				}
+			}
+
+			// 更新标题、输入框聚焦
+			const { updateHeaderTitle, showWelcomeMessage } = await import('./chat-ui.js');
+			updateHeaderTitle('');
+			showWelcomeMessage();
+
+			const msgInput = document.getElementById('messageInput');
+			if (msgInput) msgInput.focus();
+
 			return true;
 		}
 		return false;
@@ -356,6 +404,7 @@ export async function switchChat(sn) {
 			console.warn('切换会话失败:', response.status);
 			return null;
 		}
+		
 		const data = await response.json();
 		if (data.status === 'ok') {
 			return {
@@ -369,4 +418,28 @@ export async function switchChat(sn) {
 		console.warn('切换会话出错:', e);
 		return null;
 	}
+}
+
+// ============================================================
+// 注册方法到 Alpine store + window — 供 HTML 模板中 @click 表达式调用
+// chat-api.js 是 ES Module，export 的函数不会进入全局作用域。
+// 但 Alpine 模板 @click="onChatLogout" 需要在 Alpine 的表达式作用域
+// （Alpine store 或 window）中找到该函数。
+// 因此同时注册到 Alpine store（供 $store.chats.onChatLogout 调用）
+// 和 window（供裸名 onChatLogout 调用）。
+// ============================================================
+try {
+    if (typeof onChatLogout === 'function') {
+        window.onChatLogout = onChatLogout;
+    }
+    if (typeof onChatLogin === 'function') {
+        window.onChatLogin = onChatLogin;
+    }
+    var chatsApi = window.Alpine.store('chats');
+    if (chatsApi) {
+        chatsApi.onChatLogin = onChatLogin;
+        chatsApi.onChatLogout = onChatLogout;
+    }
+} catch(e) {
+    console.warn('chat-api: 注册到 window/Alpine store 失败', e);
 }

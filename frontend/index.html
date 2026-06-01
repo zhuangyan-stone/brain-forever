@@ -311,7 +311,7 @@
                         <div class="user-dropdown-menu" x-show="open" x-cloak
                             @click="open = false">
                             <div class="dropdown-item dropdown-item--disabled"
-                                x-text="'用户: ' + $store.chats.currentUserNo"></div>
+                                x-text="$store.chats.currentUserNo"></div>
                             <div class="dropdown-divider"></div>
                             <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
                                 @click="onChatLogout">
