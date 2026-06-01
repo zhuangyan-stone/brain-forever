@@ -332,9 +332,9 @@
                                 <div class="message user" x-show="group.user">
                                     <div class="message-inner">
                                         <div class="role-label"
-                                            x-text="'我' + (group.user.createdAt ? ' (' + formatMessageTime(group.user.createdAt) + ')' : '')">
+                                            x-text="'我' + (group.user?.createdAt ? ' (' + formatMessageTime(group.user.createdAt) + ')' : '')">
                                         </div>
-                                        <div class="bubble" x-html="group.user.contentHTML"></div>
+                                        <div class="bubble" x-html="group.user?.contentHTML ?? ''"></div>
                                         <div class="message-actions">
                                             <button class="msg-action-btn copy-msg-btn" data-tooltip="复制当前消息内容">
                                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
