@@ -166,6 +166,8 @@ export class SSEResponser {
             if (!assistant) return;
             console.log('[throttle] 🅲 contentHTML 设置前', `content长度=${(sm.content||'').length} reasoning长度=${(sm.reasoning||'').length}`);
             assistant.contentHTML = renderMarkdown(sm.content || '');
+            // ★ 仅活跃对话才自动滚动，避免后台流的渲染干扰当前对话的滚动位置
+            if (!self.isActive) return;
             // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
             // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
             window.Alpine.nextTick(function() {
@@ -204,6 +206,8 @@ export class SSEResponser {
             if (!assistant) return;
             console.log('[throttle] 🅡 reasoningHTML 设置前', `reasoning长度=${(sm.reasoning||'').length} content长度=${(sm.content||'').length}`);
             assistant.reasoningHTML = renderMarkdown(sm.reasoning || '');
+            // ★ 仅活跃对话才自动滚动，避免后台流的渲染干扰当前对话的滚动位置
+            if (!self.isActive) return;
             // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
             // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
             window.Alpine.nextTick(function() {
@@ -328,6 +332,8 @@ export class SSEResponser {
                 assistant.reasoningHTML = renderMarkdown(sm.reasoning);
             }
         }
+        // ★ 仅活跃对话才自动滚动，避免后台流的渲染干扰当前对话的滚动位置
+        if (!this.isActive) return;
         // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
         window.Alpine.nextTick(function() {
             console.log('[SSE] 🧠 Alpine.nextTick→autoScrollToBottom (reasoningEnd)');
@@ -398,6 +404,16 @@ export class SSEResponser {
       
         if (this.isActive) {
         	this._applyDoneToDOM(event);
+        } else {
+            // 后台流完成：弹出 toast 提示用户
+            try {
+                var chats = window.Alpine.store('chats');
+                if (chats) {
+                    var chatData = chats.getOrCreate(this.stream.sn);
+                    var title = chatData && chatData.title ? chatData.title : '对话';
+                    showToast('「' + title + '」回答完毕', 'info', 4000);
+                }
+            } catch(e) {}
         }
       
         // 清理节流定时器（this._renderTimer / this._reasoningRenderTimer 已在下方清除）
