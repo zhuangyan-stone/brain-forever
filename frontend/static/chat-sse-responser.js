@@ -411,7 +411,7 @@ export class SSEResponser {
                 if (chats) {
                     var chatData = chats.getOrCreate(this.stream.sn);
                     var title = chatData && chatData.title ? chatData.title : '对话';
-                    showToast('「' + title + '」回答完毕', 'info', 4000);
+                    showToast('「' + title + '」AI 回复完毕', 'info', 4000);
                 }
             } catch(e) {}
         }
@@ -498,7 +498,7 @@ export class SSEResponser {
             var chats = window.Alpine.store('chats');
             if (chats && chats.active && chats.active.userScrolledUp) {
                 setTimeout(function() {
-                    showToast('AI 回复完毕', 'info');
+                    showToast('AI 回复完毕', 'info', 4000);
                 }, 500);
             }
         } catch(e) {}
