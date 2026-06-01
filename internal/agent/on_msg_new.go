@@ -41,7 +41,7 @@ func appendNewRequestMessage(session *session, reqMsg *Message) {
 	reqMsg.ID = lastID + 1
 
 	// Ensure a DB session record exists
-	ensureDBSession(session)
+	ensureSessionDBForChat(session)
 
 	// Persist the user message to DB
 	// session.mu is held, so session.currentChat is stable
