@@ -236,9 +236,9 @@ export async function onChatLogin(userNo) {
 
 /**
 	* switchToUser 切换前端状态到指定用户。
-	* 清空当前对话历史，重置标题，然后通过 GET /api/chat/list 加载新用户的对话列表。
+	* 清空当前对话历史，重置标题，然后用后端返回的 chats 数据刷新侧边栏。
 	* 登录后自动恢复当前会话（包含合并的匿名聊天历史）。
-	* @param {object} data - 后端返回的登录响应数据 { user_no, avatar? }
+	* @param {object} data - 后端返回的登录响应数据 { user_no, avatar?, chats? }
 	*/
 export async function switchToUser(data) {
 	// 清空消息状态
@@ -299,9 +299,12 @@ export async function switchToUser(data) {
 		}
 	} catch(e) {}
 
-	// TODO: 渐进式重构 — 后续再实现登录后的对话列表刷新
-	// 原逻辑通过 import('./chat-restore.js') 的 fetchChatList 和 restoreChat 实现，
-	// chat-restore.js 已删除，后续需改为调用 initPage() 或独立刷新逻辑。
+	// 刷新侧边栏对话列表 — 使用后端返回的 chats 数据替换旧的匿名对话列表
+	if (data.chats) {
+		const { renderChatList, clearActiveChat } = await import('./chat-list.js');
+		clearActiveChat();
+		renderChatList(data.chats, null);
+	}
 
 	// 聚焦输入框
 	const msgInput = document.getElementById('messageInput');
