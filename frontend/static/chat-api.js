@@ -318,15 +318,17 @@ export async function switchToUser(data) {
 	// 刷新侧边栏对话列表 — 使用后端返回的 chats 数据替换旧的匿名对话列表
 	// 通过 Alpine store 上的 setSidebarChats 方法（由 chat-list.js 注册），
 	// 避免动态导入 chat-list.js 产生循环依赖。
-	if (data.chats) {
-		try {
-			var chatsStore = window.Alpine.store('chats');
-			if (chatsStore && chatsStore.setSidebarChats) {
-				chatsStore.setSidebarChats(data.chats, null);
-			}
-		} catch(e) {
-			console.warn('switchToUser: 刷新侧边栏失败', e);
+	// ★ 必须处理 data.chats 为 null/undefined 的情况：
+	//   - 后端 Go nil slice 序列化为 JSON null
+	//   - 如果只用 if (data.chats)，null 为 falsy，侧边栏不会被清除
+	//   统一转为 [] 确保侧边栏被正确清空。
+	try {
+		var chatsStore = window.Alpine.store('chats');
+		if (chatsStore && chatsStore.setSidebarChats) {
+			chatsStore.setSidebarChats(data.chats || [], null);
 		}
+	} catch(e) {
+		console.warn('switchToUser: 刷新侧边栏失败', e);
 	}
 
 	// ★ 恢复欢迎状态：switchToUser 执行过程中，chats.resetToBlank() 将 activeIndex 设为 -1，

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"BrainForever/internal/store"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -46,6 +47,14 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	session.chatsMu.Lock()
 	chats := session.chats
 	session.chatsMu.Unlock()
+
+	// ★ 确保 chats 不为 nil：Go 的 nil slice 序列化为 JSON 的 null，
+	//   前端 if (data.chats) 在 null 时为 false，导致 setSidebarChats 不执行，
+	//   侧边栏保留着匿名用户的列表（未清除）。
+	//   与 OnGetChats 中的做法保持一致。
+	if chats == nil {
+		chats = []store.Chat{}
+	}
 
 	// Randomly pick an avatar from the avatar directory
 	avatarIndex := rand.Intn(8) + 1 // 1~8
