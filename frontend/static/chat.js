@@ -121,7 +121,21 @@ async function startNewChat() {
 
     // 1. 重置为空白对话状态：activeIndex = -1，创建 blankItem
     //    Alpine 响应式模板自动隐藏消息组、显示欢迎消息
-    chatsStore.resetToBlank();
+    // ★ 注意：不使用 resetToBlank()，因为那会清空 items[]（已有对话的消息数据）
+    //   和 chatsTimeline（侧边栏的对话列表），导致侧边栏消失。
+    //   这里只重置活跃状态和 blankItem，保留已有对话的数据。
+    chatsStore.activeIndex = -1;
+    chatsStore.blankItem = {
+        sn: '',
+        title: '',
+        titleState: 0,
+        isStreaming: false,
+        userScrolledUp: false,
+        streamingMsg: null,
+        groups: [],
+        _groupSeq: 0,
+    };
+    chatsStore.inputCollapsed = false;
     resetTickState();
 
     // 2. 清空刻度导航

@@ -56,7 +56,7 @@ function initPositionWatcher() {
  * @returns {HTMLElement}
  */
 export function getContainer() {
-    if (!container) {
+    if (!container || !container.isConnected) {
         container = document.createElement('div');
         container.className = 'sticky-note-container';
         document.body.appendChild(container);
