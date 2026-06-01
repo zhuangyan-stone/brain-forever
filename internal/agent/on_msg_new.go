@@ -44,7 +44,9 @@ func appendNewRequestMessage(session *session, reqMsg *Message) {
 	ensureDBSession(session)
 
 	// Persist the user message to DB
-	persistMessageToDB(session, reqMsg)
+	// session.mu is held, so session.currentChat is stable
+	chatID := session.currentChat.dbChat.ID
+	persistMessageToDB(session, reqMsg, chatID)
 }
 
 // resolveNewMessageRequest parses and validates the incoming chat request.
@@ -101,6 +103,14 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	if req.Message.ID <= 0 {
 		session.mu.Unlock()
 		panic("new message's ID is zero still after append to messages")
+	}
+
+	// 5. 在释放 mu 前捕获当前 Chat 的 DB ID，用于流式完成后 persist assistant 消息
+	//    session.mu 在流式期间不持有，OnSwitchChat 可能在此期间改变 currentChat，
+	//    导致 persistMessageToDB 将 assistant 写入错误的 Chat。
+	var msgChatID int64
+	if session.currentChat.dbChat != nil {
+		msgChatID = session.currentChat.dbChat.ID
 	}
 
 	// 5. Load messages from DB for the LLM call
@@ -161,9 +171,11 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		lang)
 
 	// 10. Persist the assistant message to DB
+	// ★ 使用流式开始时捕获的 chatID，而非 session.currentChat，
+	//    避免 flow 完成前用户切换 Chat 导致 persist 到错误的对话。
 	if assistantMsg != nil {
 		session.mu.Lock()
-		persistMessageToDB(session, assistantMsg)
+		persistMessageToDB(session, assistantMsg, msgChatID)
 		session.mu.Unlock()
 	}
 }

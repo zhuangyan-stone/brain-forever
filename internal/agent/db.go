@@ -52,14 +52,13 @@ func ensureDBSession(session *session) {
 // (via TouchChat) and moves the chat to the front of the in-memory list
 // so active chats float to the top of the sidebar.
 // Must be called with session.mu held.
-func persistMessageToDB(session *session, msg *Message) {
-	if session.currentChat.dbChat == nil {
-		log.Printf("cannot persist message: no DB session for user %s", session.userNo)
-		return
-	}
-	chatID := session.currentChat.dbChat.ID
+//
+// chatID parameter is passed explicitly to avoid race conditions:
+// session.currentChat may have been changed by OnSwitchChat while
+// streaming was in progress (session.mu is NOT held during streaming).
+func persistMessageToDB(session *session, msg *Message, chatID int64) {
 	if chatID == 0 {
-		log.Printf("cannot persist message: no DB session ID for user %s", session.userNo)
+		log.Printf("cannot persist message: invalid chatID for user %s", session.userNo)
 		return
 	}
 
