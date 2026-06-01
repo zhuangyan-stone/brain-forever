@@ -209,7 +209,7 @@ export function initDom() {
  */
 export function autoScrollToBottom() {
     const sc = dom.scrollContainer;
-    if (!sc) { console.warn('[autoScroll] scrollContainer 为空'); return; }
+    if (!sc) { return; }
     const scrollHeight = sc.scrollHeight;
     const scrollTop = sc.scrollTop;
     const clientHeight = sc.clientHeight;

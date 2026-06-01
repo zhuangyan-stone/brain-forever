@@ -164,12 +164,9 @@ export class SSEResponser {
             if (!sm) return;
             var assistant = _getAssistant(self.stream.sn);
             if (!assistant) return;
-            console.log('[throttle] 🅲 contentHTML 设置前', `content长度=${(sm.content||'').length} reasoning长度=${(sm.reasoning||'').length}`);
             assistant.contentHTML = renderMarkdown(sm.content || '');
             // ★ 仅活跃对话才自动滚动，避免后台流的渲染干扰当前对话的滚动位置
             if (!self.isActive) return;
-            // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
-            // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
             window.Alpine.nextTick(function() {
                 autoScrollToBottom();
             });
@@ -203,12 +200,9 @@ export class SSEResponser {
             if (!sm) return;
             var assistant = _getAssistant(self.stream.sn);
             if (!assistant) return;
-            console.log('[throttle] 🅡 reasoningHTML 设置前', `reasoning长度=${(sm.reasoning||'').length} content长度=${(sm.content||'').length}`);
             assistant.reasoningHTML = renderMarkdown(sm.reasoning || '');
             // ★ 仅活跃对话才自动滚动，避免后台流的渲染干扰当前对话的滚动位置
             if (!self.isActive) return;
-            // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
-            // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
             window.Alpine.nextTick(function() {
                 autoScrollToBottom();
             });
