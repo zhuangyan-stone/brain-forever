@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 )
 
@@ -46,10 +47,15 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	chats := session.chats
 	session.chatsMu.Unlock()
 
+	// Randomly pick an avatar from the avatar directory
+	avatarIndex := rand.Intn(8) + 1 // 1~8
+	avatar := fmt.Sprintf("/static/img/avatar/avatar%d.png", avatarIndex)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "ok",
 		"user_no": req.UserNo,
+		"avatar":  avatar,
 		"chats":   chats,
 	})
 }

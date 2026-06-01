@@ -187,6 +187,7 @@ document.addEventListener('alpine:init', function() {
         collapsedGroups: {},     // 折叠状态: { 'groupLabel': true/false }
         chatCategories: [],      // 分类 tab 的分组数据
         currentUserNo: '',       // 当前登录用户号，由 initPage / onChatLogin 设置，供登录按钮 Alpine 模板渲染
+        currentUserAvatar: '',   // 当前登录用户头像 URL，由 onChatLogin 设置
 
         // ---- 计算属性 ----
         get active() {

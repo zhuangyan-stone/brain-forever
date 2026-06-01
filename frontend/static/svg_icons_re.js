@@ -26,3 +26,4 @@ export const ICON_NEW_CHAT  = window.ICON_NEW_CHAT;
 export const ICON_RESTORE   = window.ICON_RESTORE;
 export const ICON_COPY_MSG  = window.ICON_COPY_MSG;
 export const ICON_LOADING   = window.ICON_LOADING;
+export const ICON_DEEP_THINK = window.ICON_DEEP_THINK;

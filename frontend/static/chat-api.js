@@ -219,8 +219,11 @@ export async function onChatLogin(userNo) {
 		}
 		const data = await response.json();
 		if (data.status === 'ok') {
-			// 持久化 user_no 到 localStorage，用于页面刷新后恢复登录状态
+			// 持久化 user_no 和 avatar 到 localStorage，用于页面刷新后恢复登录状态
 			localStorage.setItem('brainforever_user_no', userNo);
+			if (data.avatar) {
+				localStorage.setItem('brainforever_user_avatar', data.avatar);
+			}
 			await switchToUser(data);
 			return true;
 		}
@@ -235,7 +238,7 @@ export async function onChatLogin(userNo) {
 	* switchToUser 切换前端状态到指定用户。
 	* 清空当前对话历史，重置标题，然后通过 GET /api/chat/list 加载新用户的对话列表。
 	* 登录后自动恢复当前会话（包含合并的匿名聊天历史）。
-	* @param {object} data - 后端返回的登录响应数据 { user_no }
+	* @param {object} data - 后端返回的登录响应数据 { user_no, avatar? }
 	*/
 export async function switchToUser(data) {
 	// 清空消息状态
@@ -287,11 +290,12 @@ export async function switchToUser(data) {
 	// 更新标题
 	updateHeaderTitle('');
 
-	// 更新登录按钮文本（Alpine 响应式渲染）
+	// 更新用户状态（Alpine 响应式渲染）
 	try {
 		var chats = window.Alpine.store('chats');
 		if (chats) {
-			chats.currentUserNo = data.user_no;
+			chats.currentUserNo = data.user_no || '';
+			chats.currentUserAvatar = data.avatar || '';
 		}
 	} catch(e) {}
 
@@ -303,6 +307,36 @@ export async function switchToUser(data) {
 	const msgInput = document.getElementById('messageInput');
 	if (msgInput) {
 		msgInput.focus();
+	}
+}
+
+/**
+ * onChatLogout 调用后端 POST /api/chat/logout 接口，退出登录回到匿名状态。
+ * 成功后清除 localStorage 中的 user_no，刷新页面以恢复匿名状态。
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function onChatLogout() {
+	try {
+		const response = await fetch('/api/chat/logout', {
+			method: 'POST',
+		});
+		if (!response.ok) {
+			console.warn('退出登录失败:', response.status);
+			return false;
+		}
+		const data = await response.json();
+		if (data.status === 'ok') {
+			// 清除持久化的 user_no 和 avatar
+			localStorage.removeItem('brainforever_user_no');
+			localStorage.removeItem('brainforever_user_avatar');
+			// 刷新页面以恢复匿名状态
+			window.location.reload();
+			return true;
+		}
+		return false;
+	} catch (e) {
+		console.warn('退出登录出错:', e);
+		return false;
 	}
 }
 

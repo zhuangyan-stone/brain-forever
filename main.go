@@ -158,6 +158,7 @@ func main() {
 	mux.Handle("/api/chat/current", http.HandlerFunc(chatHandler.OnGetCurrentChat))
 	mux.Handle("/api/chat/messages", http.HandlerFunc(chatHandler.OnDeleteMessage))
 	mux.Handle("/api/chat/login", http.HandlerFunc(chatHandler.OnLogin))
+	mux.Handle("/api/chat/logout", http.HandlerFunc(chatHandler.OnLogout))
 
 	// Health check endpoint
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {

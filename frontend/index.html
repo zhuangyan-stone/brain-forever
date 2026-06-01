@@ -294,10 +294,34 @@
                                 stroke-linecap="round" stroke-linejoin="round" x-html="ICON_SUN"></svg>
                         </template>
                     </button>
+                    <!-- 未登录时显示登录按钮 -->
                     <button id="loginBtn" class="text-btn"
                         x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })" :disabled="disabled"
                         data-tooltip="登录"
-                        x-text="$store.chats.currentUserNo ? '用户: ' + $store.chats.currentUserNo : '登录'">登录</button>
+                        x-show="!$store.chats.currentUserNo">登录</button>
+                    <!-- 已登录时显示用户头像 + 下拉菜单 -->
+                    <div class="user-avatar-dropdown" x-data="{ open: false }"
+                        x-show="$store.chats.currentUserNo"
+                        @click.outside="open = false">
+                        <button class="user-avatar-btn" @click="open = !open"
+                            :data-tooltip="$store.chats.currentUserNo">
+                            <img class="user-avatar-img" :src="$store.chats.currentUserAvatar || '/static/img/avatar/avatar1.png'"
+                                alt="头像" width="32" height="32">
+                        </button>
+                        <div class="user-dropdown-menu" x-show="open" x-cloak
+                            @click="open = false">
+                            <div class="dropdown-item dropdown-item--disabled"
+                                x-text="'用户: ' + $store.chats.currentUserNo"></div>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
+                                @click="onChatLogout">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                    x-html="ICON_LOGOUT"></svg>
+                                退出登录
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -474,10 +498,9 @@
                             x-data="toggleBtn({ active: () => $store.settings.deepThink, onToggle: () => $store.settings.toggleDeepThink() })"
                             :data-active="active ? 'true' : 'false'" @click="onToggle"
                             :data-tooltip="active ? '已开启思考过程，单击关闭' : '已关闭思考过程，单击开启'">
-                            <svg class="toggle-icon" viewBox="0 0 86 89" fill="none" stroke="currentColor"
-                                stroke-width="1.8">
-                                <use href="/static/img/deep-think.svg#brain-path" />
-                            </svg>
+                            <svg class="toggle-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                                x-html="ICON_DEEP_THINK"></svg>
                             <span>深度思考</span>
                         </button>
                         <button id="webSearchBtn" class="toggle-btn"

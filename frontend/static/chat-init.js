@@ -66,6 +66,14 @@ export async function initPage() {
     // 注意：必须无条件赋值，因为 currentUserNo 可能从有值变为空（匿名状态）
     chatsStore.currentUserNo = currentUserNo;
 
+    // 从 localStorage 恢复头像 URL（登录时持久化）
+    if (currentUserNo) {
+        var savedAvatar = localStorage.getItem('brainforever_user_avatar');
+        if (savedAvatar) {
+            chatsStore.currentUserAvatar = savedAvatar;
+        }
+    }
+
     // Step 4: 显示欢迎消息（页面总是从空白状态开始）
     // 将后端返回的欢迎词设置到 Alpine store，由响应式模板自动渲染
     chatsStore.welcomeMessage = welcomeMessage;

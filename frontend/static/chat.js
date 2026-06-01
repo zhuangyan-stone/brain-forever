@@ -12,7 +12,7 @@ import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { initPage } from './chat-init.js';
 import { clearAllStickyNotes } from './components/sticky-mgr.js';
-import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, createBlankChat } from './chat-api.js';
+import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat } from './chat-list.js';
 import { ICON_TOGGLE } from './svg_icons_re.js';
@@ -800,6 +800,23 @@ initDeleteModal();
         } else {
             console.error('登录失败');
         }
+    });
+})();
+
+// ============================================================
+// 退出登录按钮 — 点击后调用后端登出接口，回到匿名状态
+// ============================================================
+(function initLogoutBtn() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (!logoutBtn) return;
+
+    logoutBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        // 流式输出时，退出按钮直接短路返回
+        if (Alpine.store('chats').active?.isStreaming) {
+            return;
+        }
+        await onChatLogout();
     });
 })();
 
