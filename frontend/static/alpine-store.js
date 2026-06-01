@@ -181,11 +181,11 @@ document.addEventListener('alpine:init', function() {
         blankItem: null,         // 空白对话（新对话状态），activeIndex===-1 时 active 返回此对象
         inputCollapsed: false,   // 输入面板是否折叠，由 chat-ui.js 的 collapseInputArea/restoreInputArea 更新
         welcomeMessage: '',      // 欢迎消息文本，非空时显示欢迎页（由 Alpine x-show 驱动）
-        chatsLists: [],          // 按时间/分类加工后的分组数据，供侧边栏 Alpine 模板渲染
+        chatsTimeline: [],       // 时间线 tab 的分组数据（按时间/置顶加工）
         activeChatSN: null,      // 当前选中的对话 SN，供侧边栏高亮
         sidebarTab: 'timeline',  // 侧边栏当前 tab: 'timeline' | 'category'
         collapsedGroups: {},     // 折叠状态: { 'groupLabel': true/false }
-        categoryGroups: [],      // 分类 tab 的分组数据
+        chatCategories: [],      // 分类 tab 的分组数据
         currentUserNo: '',       // 当前登录用户号，由 initPage / onChatLogin 设置，供登录按钮 Alpine 模板渲染
 
         // ---- 计算属性 ----
@@ -223,7 +223,7 @@ document.addEventListener('alpine:init', function() {
 
         /**
          * restructChatLists — 对原始 chat 列表按时间、分类、置顶等规则加工，
-         * 生成结构化的分组数据存入 this.chatsLists，供侧边栏 Alpine 模板渲染。
+         * 生成结构化的分组数据存入 this.chatsTimeline / this.chatCategories，供侧边栏 Alpine 模板渲染。
          *
          * 分组规则（与 chat-list.js 的 groupChats 一致）：
          *   - 已分类（category > 0）→ categorized 分组
@@ -269,8 +269,8 @@ document.addEventListener('alpine:init', function() {
         restructChatLists: function(chats, activeSN) {
             this.activeChatSN = activeSN || null;
             if (!chats || chats.length === 0) {
-                this.chatsLists = [];
-                this.categoryGroups = [];
+                this.chatsTimeline = [];
+                this.chatCategories = [];
                 return;
             }
 
@@ -293,14 +293,14 @@ document.addEventListener('alpine:init', function() {
 
             for (var i = 0; i < chats.length; i++) {
                 var chat = chats[i];
-                // 已分类
+                // 已分类 — 同时加入分类分组和时间线分组
                 if (chat.category && chat.category > 0) {
                     var catKey = String(chat.category);
                     if (!categorized[catKey]) {
                         categorized[catKey] = [];
                     }
                     categorized[catKey].push(chat);
-                    continue;
+                    // 不 continue，继续进入时间线分组逻辑
                 }
                 // 置顶
                 if (chat.pinned) {
@@ -369,7 +369,7 @@ document.addEventListener('alpine:init', function() {
                 groups.push({ label: '更早', type: 'earlier', subGroups: earlierItems });
                 }
     
-                this.chatsLists = groups;
+                this.chatsTimeline = groups;
 
             // ---- 构建分类分组（category tab）- 只保留一级分类 ----
             var catKeys = Object.keys(categorized);
@@ -383,7 +383,7 @@ document.addEventListener('alpine:init', function() {
                     });
                 }
             }
-            this.categoryGroups = catGroups;
+            this.chatCategories = catGroups;
         },
 
         /**

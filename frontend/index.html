@@ -130,12 +130,12 @@
             <!-- 时间线 Tab 内容 -->
             <div class="sidebar-content" id="sidebarContent" x-data x-show="$store.chats.sidebarTab === 'timeline'">
                 <!-- 空状态 -->
-                <template x-if="$store.chats.chatsLists && $store.chats.chatsLists.length === 0">
+                <template x-if="$store.chats.chatsTimeline && $store.chats.chatsTimeline.length === 0">
                     <div class="chat-list-empty">暂无对话记录</div>
                 </template>
 
                 <!-- 分组列表 -->
-                <template x-for="group in ($store.chats.chatsLists || [])" :key="group.label">
+                <template x-for="group in ($store.chats.chatsTimeline || [])" :key="group.label">
                     <div class="chat-group">
                         <!-- 普通分组（置顶、今天、昨天、7天内、30天内） -->
                         <template x-if="group.type === 'normal'">
@@ -223,12 +223,12 @@
 
             <!-- 分类 Tab 内容 — 只显示一级分类 -->
             <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'category'">
-                <template x-if="$store.chats.categoryGroups && $store.chats.categoryGroups.length === 0">
+                <template x-if="$store.chats.chatCategories && $store.chats.chatCategories.length === 0">
                     <div class="chat-list-empty">暂无分类</div>
                 </template>
 
                 <div class="chat-list">
-                    <template x-for="catGroup in ($store.chats.categoryGroups || [])" :key="catGroup.label">
+                    <template x-for="catGroup in ($store.chats.chatCategories || [])" :key="catGroup.label">
                         <div class="chat-group">
                             <div class="chat-group-header"
                                 @click="$store.chats.toggleCollapse('cat|' + catGroup.label)">
