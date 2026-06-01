@@ -275,7 +275,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     z-index: 1000;
-    padding: 4px 0;
+    padding: 0 0 4px 0;
     overflow: hidden;
 }
 
@@ -303,10 +303,11 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     color: var(--text-secondary, #888);
     cursor: default;
     font-weight: 500;
+    background-color: var(--bg-secondary, #f0f0f0);
 }
 
 .dropdown-item--disabled:hover {
-    background-color: transparent;
+    background-color: var(--bg-secondary, #f0f0f0);
 }
 
 .dropdown-item--danger {

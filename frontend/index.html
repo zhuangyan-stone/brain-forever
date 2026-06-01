@@ -300,26 +300,35 @@
                         data-tooltip="登录"
                         x-show="!$store.chats.currentUserNo">登录</button>
                     <!-- 已登录时显示用户头像 + 下拉菜单 -->
-                    <div class="user-avatar-dropdown" x-data="{ open: false }"
-                        x-show="$store.chats.currentUserNo"
+                    <!-- ★ 修复：将 x-show 和 x-data 分离到不同层级。
+                         x-data 放在外层 div，x-show 放在内层包装 div。
+                         避免 Alpine 在同一元素上同时处理 x-show 和 x-data 时，
+                         因 x-show 从 false→true 的转换导致 x-data 被意外重新求值，
+                         使 open 错误地变为 true 而自动显示下拉菜单。 -->
+                    <div x-data="{ open: false }"
                         @click.outside="open = false">
-                        <button class="user-avatar-btn" @click="open = !open"
-                            :data-tooltip="$store.chats.currentUserNo">
-                            <img class="user-avatar-img" :src="$store.chats.currentUserAvatar || '/static/img/avatar/avatar1.png'"
-                                alt="头像" width="32" height="32">
-                        </button>
-                        <div class="user-dropdown-menu" x-show="open" x-cloak
-                            @click="open = false">
-                            <div class="dropdown-item dropdown-item--disabled"
-                                x-text="$store.chats.currentUserNo"></div>
-                            <div class="dropdown-divider"></div>
-                            <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
-                                @click="onChatLogout">
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                    x-html="ICON_LOGOUT"></svg>
-                                退出登录
+                        <div class="user-avatar-dropdown"
+                            x-show="$store.chats.currentUserNo">
+                            <button class="user-avatar-btn" @click="open = !open"
+                                :data-tooltip="$store.chats.currentUserNo">
+                                <img class="user-avatar-img" :src="$store.chats.currentUserAvatar || '/static/img/avatar/avatar1.png'"
+                                    alt="头像" width="32" height="32">
                             </button>
+                            <!-- x-if：open=false 时 DOM 完全不存在，彻底杜绝显示问题 -->
+                            <template x-if="open">
+                                <div class="user-dropdown-menu"
+                                    @click="open = false">
+                                    <div class="dropdown-item dropdown-item--disabled"
+                                        x-text="$store.chats.currentUserNo"></div>
+                                    <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
+                                        @click="onChatLogout">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                            x-html="ICON_LOGOUT"></svg>
+                                        退出登录
+                                    </button>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>

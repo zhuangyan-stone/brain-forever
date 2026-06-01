@@ -200,11 +200,20 @@ document.addEventListener('alpine:init', function() {
         // ---- 方法 ----
 
         /**
-         * resetToBlank — 重置为空白对话状态
-         * 设置 activeIndex = -1，创建 blankItem。
+         * resetToBlank — 重置为空白对话状态（清除所有数据并创建 blankItem）
+         *
+         * 与 reset() 的区别：
+         *   - reset() 设置 blankItem = null（不保留空白对话）
+         *   - resetToBlank() 创建新的 blankItem（保留空白对话）
+         *
+         * 切换用户/退出登录后必须使用 resetToBlank() 而非 reset()，确保 blankItem 存在，
+         * 否则 prepareChat() 中的 promoteBlankItem() 不会执行，
+         * 导致 chats.active 为 null，消息添加和流式操作全部静默失败。
+         *
          * 页面初始化或点击"新对话"时调用。
          */
         resetToBlank: function() {
+            this.items = [];
             this.activeIndex = -1;
             this.blankItem = {
                 sn: '',
@@ -216,6 +225,8 @@ document.addEventListener('alpine:init', function() {
                 groups: [],
                 _groupSeq: 0,
             };
+            this.chatsTimeline = [];
+            this.chatCategories = [];
             // 重置输入面板折叠状态
             this.inputCollapsed = false;
             // 重置侧边栏选中状态

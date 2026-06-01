@@ -246,7 +246,12 @@ export async function switchToUser(data) {
 	try {
 		var chats = window.Alpine.store('chats');
 		if (chats) {
-			chats.reset();
+			// ★ 必须使用 resetToBlank() 而非 reset()：
+			//   reset() 会将 blankItem 设为 null，
+			//   导致 prepareChat() 中的 promoteBlankItem() 不执行，
+			//   进而 chats.active 为 null，消息添加和流式操作全部静默失败。
+			//   详见 alpine-store.js resetToBlank 注释。
+			chats.resetToBlank();
 		}
 	} catch(e) {}
 
@@ -290,14 +295,25 @@ export async function switchToUser(data) {
 	// 更新标题
 	updateHeaderTitle('');
 
-	// 更新用户状态（Alpine 响应式渲染）
-	try {
-		var chats = window.Alpine.store('chats');
-		if (chats) {
-			chats.currentUserNo = data.user_no || '';
-			chats.currentUserAvatar = data.avatar || '';
-		}
-	} catch(e) {}
+	// ★ 修复：延迟设置 currentUserNo/currentUserAvatar，避免浏览器将 mousedown→mouseup
+	//   的 click 事件重定向到新出现的头像按钮上。
+	//   场景还原：
+	//     1. 鼠标按下（mousedown）在登录按钮上
+	//     2. 登录异步完成，switchToUser 执行到这里
+	//     3. 若在此处同步设置 currentUserNo，Alpine 立即移除登录按钮、显示头像
+	//     4. 此时鼠标仍在同一位置，但登录按钮已消失，头像按钮取而代之
+	//     5. 鼠标抬起（mouseup）时，浏览器将合成 click 重定向到头像按钮
+	//     6. @click="open = !open" 触发，open 变为 true，下拉菜单自动展开
+	//   使用 setTimeout(0) 推迟到当前宏任务完成、所有 mouse 事件处理完毕后再更新 DOM。
+	setTimeout(function() {
+		try {
+			var chats = window.Alpine.store('chats');
+			if (chats) {
+				chats.currentUserNo = data.user_no || '';
+				chats.currentUserAvatar = data.avatar || '';
+			}
+		} catch(e) {}
+	}, 0);
 
 	// 刷新侧边栏对话列表 — 使用后端返回的 chats 数据替换旧的匿名对话列表
 	// 通过 Alpine store 上的 setSidebarChats 方法（由 chat-list.js 注册），
@@ -312,6 +328,14 @@ export async function switchToUser(data) {
 			console.warn('switchToUser: 刷新侧边栏失败', e);
 		}
 	}
+
+	// ★ 恢复欢迎状态：switchToUser 执行过程中，chats.resetToBlank() 将 activeIndex 设为 -1，
+	//   但 welcome-message DOM 元素已被移除，Alpine 的 x-show 无法重新创建已销毁的元素。
+	//   同时 input-area 也被移回了原位（mainBody 下方），导致输入面板掉到底部。
+	//   需要调用 showWelcomeMessage() 重新创建 welcome-message 并将 input-area 移入其中，
+	//   使欢迎页面恢复垂直居中的正确状态。
+	const { showWelcomeMessage } = await import('./chat-ui.js');
+	showWelcomeMessage();
 
 	// 聚焦输入框
 	const msgInput = document.getElementById('messageInput');
@@ -346,7 +370,9 @@ export async function onChatLogout() {
 			try {
 				var chatsStore = window.Alpine.store('chats');
 				if (chatsStore) {
-					chatsStore.reset();
+					// ★ 必须使用 resetToBlank() 而非 reset()，
+					//    原因同上 switchToUser() 注释。
+					chatsStore.resetToBlank();
 					chatsStore.currentUserNo = '';
 					chatsStore.currentUserAvatar = '';
 				}
