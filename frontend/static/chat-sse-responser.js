@@ -397,7 +397,27 @@ export class SSEResponser {
             window.Alpine.store('chats').finalizeStreamingToGroup();
         } catch(e) {}
 
-        // 清理 streamingMsg
+        // ---- 最终渲染（必须在 finalizeStreaming 之前，因为之后 streamingMsg 被清空） ----
+        // ★ 节流定时器可能 pending 了最后一个 text/reasoning chunk，
+        //   如果只清除定时器而不渲染，最后一段内容会丢失（用户看到的回复不完整）。
+        if (this._renderTimer) {
+            clearTimeout(this._renderTimer);
+            this._renderTimer = null;
+        }
+        // 最终渲染 content：从 streamingMsg 读取完整 content，写入 group.assistant.contentHTML
+        if (sm.content) {
+            var assistant = _getAssistant(this.stream.sn);
+            if (assistant) {
+                assistant.contentHTML = renderMarkdown(sm.content);
+            }
+        }
+        if (this._reasoningRenderTimer) {
+            clearTimeout(this._reasoningRenderTimer);
+            this._reasoningRenderTimer = null;
+        }
+        // ★ reasoning 的最终渲染已在 onReasoningEnd() 中完成，此处不再重复
+
+        // 清理 streamingMsg（必须在最终渲染之后，否则 sm.content/sm.reasoning 已不可用）
         try {
         	window.Alpine.store('chats').finalizeStreaming(this.stream.sn);
         } catch(e) {}
@@ -414,16 +434,6 @@ export class SSEResponser {
                     showToast('「' + title + '」AI 回复完毕', 'info', 4000);
                 }
             } catch(e) {}
-        }
-      
-        // 清理节流定时器（this._renderTimer / this._reasoningRenderTimer 已在下方清除）
-        if (this._renderTimer) {
-            clearTimeout(this._renderTimer);
-            this._renderTimer = null;
-        }
-        if (this._reasoningRenderTimer) {
-            clearTimeout(this._reasoningRenderTimer);
-            this._reasoningRenderTimer = null;
         }
     }
 
@@ -522,21 +532,15 @@ export class SSEResponser {
         if (!assistant) return;
 
         // 确保 contentHTML 已渲染（后台流可能 throttle 未触发）
-        if (sm.content && !assistant.contentHTML) {
+        // ★ 条件从 !assistant.contentHTML 改为始终重新渲染：
+        //   后台流期间节流渲染可能只渲染了部分内容（contentHTML 非空但不完整），
+        //   只同步原始文本（assistant.content）而不重新渲染 HTML 会导致用户看到残缺的回复。
+        if (sm.content) {
             assistant.content = sm.content;
             assistant.contentHTML = renderMarkdown(sm.content);
-        } else if (sm.content) {
-            // 确保原始文本 sync（Alpine 响应式可能检测到 content 变化但 throttle 未触发）
-            assistant.content = sm.content;
         }
 
-        // 确保 reasoningHTML 已渲染
-        if (sm.reasoning && !assistant.reasoningHTML) {
-            assistant.reasoning = sm.reasoning;
-            assistant.reasoningHTML = renderMarkdown(sm.reasoning);
-        } else if (sm.reasoning) {
-            assistant.reasoning = sm.reasoning;
-        }
+        // ★ reasoningHTML 已在 onReasoningEnd() 中完成最终渲染，此处不再重复
 
         // 如果已完成但 assistantBubble 存在，显示 sources/usage
         // ★ Alpine 响应式：同步全量 sources 到 group.assistant，不再调用 showSources()
