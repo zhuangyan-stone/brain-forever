@@ -26,7 +26,23 @@ document.addEventListener('alpine:init', function() {
             var hh = String(d.getHours()).padStart(2, '0');
             var mm = String(d.getMinutes()).padStart(2, '0');
             var ss = String(d.getSeconds()).padStart(2, '0');
-            return hh + ':' + mm + ':' + ss;
+            var timeStr = hh + ':' + mm + ':' + ss;
+
+            // 判断是否当天：比较年月日
+            var now = new Date();
+            var isToday = d.getFullYear() === now.getFullYear()
+                       && d.getMonth() === now.getMonth()
+                       && d.getDate() === now.getDate();
+
+            if (isToday) {
+                return timeStr;
+            } else {
+                // 非当天，显示日期 + 时间：xxxx/xx/xx xx:xx:xx
+                var yyyy = String(d.getFullYear());
+                var mo   = String(d.getMonth() + 1).padStart(2, '0');
+                var dd   = String(d.getDate()).padStart(2, '0');
+                return yyyy + '/' + mo + '/' + dd + ' ' + timeStr;
+            }
         } catch(e) {
             return '';
         }

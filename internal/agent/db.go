@@ -19,11 +19,11 @@ func generateSessionSN() string {
 	return toolset.GenerateSN("chat")
 }
 
-// ensureDBSession ensures that the current chat has a corresponding record
+// ensureSessionDBForChat ensures that the current chat has a corresponding record
 // in the chat_sessions table. If dbChat.ID is 0, it creates a new session
 // record and sets dbChat.
 // Must be called with session.mu held.
-func ensureDBSession(session *session) {
+func ensureSessionDBForChat(session *session) {
 	if session.currentChat.dbChat != nil && session.currentChat.dbChat.ID != 0 {
 		return // Already has a DB session
 	}
