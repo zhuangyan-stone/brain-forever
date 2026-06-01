@@ -547,13 +547,6 @@ document.addEventListener('alpine:init', function() {
         // ============================================================
 
         /**
-         * 添加一个消息组（用户消息 + 可选的助手消息占位）
-         * @param {string} userContent
-         * @param {string|null} userCreatedAt
-         * @param {object|null} [assistantData] - 可选的助手消息数据（历史恢复时使用）
-         * @returns {number} group.id
-         */
-        /**
          * 添加一个消息组（用户消息 + 助手消息）。
          *
          * ★ 方案B：assistant 始终提前初始化（内容为空），
@@ -723,6 +716,18 @@ document.addEventListener('alpine:init', function() {
             }
             chat.groups = groups;
             chat._groupSeq = seq;
+        },
+
+        /**
+         * 判断指定 SN 的对话是否正在流式输出
+         * 供侧边栏 Alpine 模板调用，用于显示旋转加载图标
+         * @param {string} sn
+         * @returns {boolean}
+         */
+        isStreamingBySN: function(sn) {
+            if (!sn) return false;
+            var item = this.items.find(function(c) { return c.sn === sn; });
+            return item ? !!item.isStreaming : false;
         },
 
         /**

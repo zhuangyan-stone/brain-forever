@@ -139,4 +139,12 @@ window.ICON_COPY_MSG =
     '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>' +
     '<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>';
 
+// ============================================================
+// 加载/旋转图标（流式输出时侧边栏 chat 条目标题前显示），viewBox="0 0 24 24"
+// 使用环形弧线表示加载中
+// ============================================================
+window.ICON_LOADING =
+    '<path d="M12 2a10 10 0 0 1 10 10" stroke-width="2.5" stroke-linecap="round" fill="none"/>' +
+    '<path d="M12 2a10 10 0 0 0-10 10" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.3"/>';
+
 })();

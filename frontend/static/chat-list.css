@@ -205,6 +205,24 @@
     font-weight: 500;
 }
 
+/* ---------- 流式旋转图标 ---------- */
+.chat-item-loading {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--accent);
+    animation: chat-loading-rotate 0.8s linear infinite;
+}
+
+@keyframes chat-loading-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* ---------- 更多按钮（...） ---------- */
 .chat-item-more-btn {
     flex-shrink: 0;

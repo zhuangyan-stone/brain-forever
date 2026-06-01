@@ -148,20 +148,25 @@
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
                                     <template x-for="chat in group.items" :key="chat.sn">
-                                        <div class="chat-item"
-                                            :class="{ active: chat.sn === $store.chats.activeChatSN }"
-                                            :data-sn="chat.sn"
-                                            @click="$store.chats.selectChat(chat.sn)"
-                                            @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
-                                            <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
-                                            <button class="chat-item-more-btn"
-                                                @mouseenter="$store.chats.showContextMenu($event, chat)"
-                                                @click.stop="$store.chats.showContextMenu($event, chat)">
-                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
-                                                    x-html="ICON_DOTS"></svg>
-                                            </button>
-                                        </div>
-                                    </template>
+                                    <div class="chat-item"
+                                        :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                        :data-sn="chat.sn"
+                                        @click="$store.chats.selectChat(chat.sn)"
+                                        @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                        <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
+                                            viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                            x-html="ICON_LOADING">
+                                        </svg>
+                                        <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                        <button class="chat-item-more-btn"
+                                            @mouseenter="$store.chats.showContextMenu($event, chat)"
+                                            @click.stop="$store.chats.showContextMenu($event, chat)">
+                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                                x-html="ICON_DOTS"></svg>
+                                        </button>
+                                    </div>
+                                </template>
                                 </div>
                             </div>
                         </template>
@@ -192,6 +197,11 @@
                                                         :data-sn="chat.sn"
                                                         @click="$store.chats.selectChat(chat.sn)"
                                                         @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                                        <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
+                                                            viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                            x-html="ICON_LOADING">
+                                                        </svg>
                                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                                         <button class="chat-item-more-btn"
                                                             @mouseenter="$store.chats.showContextMenu($event, chat)"
@@ -233,6 +243,11 @@
                                         :data-sn="chat.sn"
                                         @click="$store.chats.selectChat(chat.sn)"
                                         @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                        <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
+                                            viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                            x-html="ICON_LOADING">
+                                        </svg>
                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                         <button class="chat-item-more-btn"
                                             @mouseenter="$store.chats.showContextMenu($event, chat)"
