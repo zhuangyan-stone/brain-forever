@@ -301,7 +301,52 @@ sticky-ai-title.css — 便利贴式标题推荐组件
     color: var(--accent-hover);
 }
 
-/* 小屏模式 */
+/* 小屏模式 — 便利贴保持右侧定位（小屏下 tick-nav 已在 ≤1040px 时隐藏），
+   仅缩小尺寸适配窄屏 */
 body.small-screen-mode .sticky-note-container {
-    display: none;
+    /* 不再隐藏，由 JS updatePosition 正常定位到右侧 */
+    display: flex;
+}
+
+/* 小屏下便利贴本身缩小内边距 */
+body.small-screen-mode .sticky-note {
+    padding: 12px 14px 10px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+}
+
+/* 小屏下消息文本缩小 */
+body.small-screen-mode .sticky-note-message {
+    font-size: 0.8rem;
+    padding-right: 40px;
+}
+
+/* 小屏下推荐标题缩小 */
+body.small-screen-mode .sticky-note-title {
+    font-size: 0.82rem;
+    padding: 4px 6px;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+/* 小屏下按钮缩小 */
+body.small-screen-mode .sticky-note-btn {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+}
+
+/* 小屏下进度条缩小间距 */
+body.small-screen-mode .sticky-note-progress {
+    margin: 6px 0 8px;
+    height: 3px;
+}
+
+/* 小屏下折叠状态的便利贴 */
+body.small-screen-mode .sticky-note.collapsed {
+    padding: 8px 14px;
+}
+
+body.small-screen-mode .sticky-note-collapsed-title {
+    font-size: 0.78rem;
+    padding-right: 24px;
 }

@@ -103,6 +103,22 @@ if (aiTitleBtn) {
 async function startNewChat() {
     var chatsStore = window.Alpine.store('chats');
 
+    // ★ 防重复：如果当前已经是空白对话（脏对话），不再反复调用后端 API。
+    //   用户连续点击"新对话"按钮时，第一次已重置为 blankItem，
+    //   后续点击直接跳过，避免不必要的后端请求。
+    if (chatsStore && chatsStore.isDirtyChat && chatsStore.isDirtyChat()) {
+        // 但确保输入框聚焦（用户可能期望点击后直接输入）
+        const msgInput = document.getElementById('messageInput');
+        if (msgInput) {
+            msgInput.focus();
+        }
+        // 小屏抽屉模式下，点击"新对话"后自动关闭左侧边栏（抽屉）
+        if (isSmallMode && isDrawerOpen) {
+            closeDrawer();
+        }
+        return;
+    }
+
     // 1. 重置为空白对话状态：activeIndex = -1，创建 blankItem
     //    Alpine 响应式模板自动隐藏消息组、显示欢迎消息
     chatsStore.resetToBlank();
@@ -129,9 +145,14 @@ async function startNewChat() {
     showWelcomeMessage();
 
     // 7. 确保输入面板展开并同步内部折叠状态
-    const msgInput = document.getElementById('messageInput');
-    if (msgInput) {
-        msgInput.focus();
+    const msgInput2 = document.getElementById('messageInput');
+    if (msgInput2) {
+        msgInput2.focus();
+    }
+
+    // 8. 小屏抽屉模式下，点击"新对话"后自动关闭左侧边栏（抽屉）
+    if (isSmallMode && isDrawerOpen) {
+        closeDrawer();
     }
 }
 
