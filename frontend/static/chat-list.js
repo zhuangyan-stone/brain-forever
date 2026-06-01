@@ -700,20 +700,40 @@ function showContextMenu(e, chat) {
     const menuWidth = 160;
     const menuHeight = 36 * 3 + 4; // 3 items * 36px + padding
 
-    let left = rect.right + 4;
-    let top = rect.top;
+    const isSmallScreen = document.body.classList.contains('small-screen-mode');
+    let left, top;
 
-    // 防止菜单超出右边界
-    if (left + menuWidth > window.innerWidth) {
-        left = rect.left - menuWidth - 4;
-    }
-    // 防止菜单超出下边界
-    if (top + menuHeight > window.innerHeight) {
-        top = window.innerHeight - menuHeight - 8;
+    if (isSmallScreen) {
+        // 小屏抽屉模式下：菜单以 dropdown 形式出现在按钮下方，
+        // 水平对齐按钮左侧，垂直在按钮底部，更符合移动端 UX 习惯。
+        left = rect.left;
+        top = rect.bottom + 4;
+
+        // 防止菜单超出右边界
+        if (left + menuWidth > window.innerWidth) {
+            left = window.innerWidth - menuWidth - 8;
+        }
+        // 防止菜单超出下边界（超出则翻转到按钮上方）
+        if (top + menuHeight > window.innerHeight) {
+            top = rect.top - menuHeight - 4;
+        }
+    } else {
+        // 宽屏模式下：菜单出现在按钮右侧（经典上下文菜单位置）
+        left = rect.right + 4;
+        top = rect.top;
+
+        // 防止菜单超出右边界
+        if (left + menuWidth > window.innerWidth) {
+            left = rect.left - menuWidth - 4;
+        }
+        // 防止菜单超出下边界
+        if (top + menuHeight > window.innerHeight) {
+            top = window.innerHeight - menuHeight - 8;
+        }
     }
 
-    menu.style.left = left + 'px';
-    menu.style.top = top + 'px';
+    menu.style.left = Math.max(4, left) + 'px';
+    menu.style.top = Math.max(4, top) + 'px';
 
     // 重命名
     const renameItem = document.createElement('div');
