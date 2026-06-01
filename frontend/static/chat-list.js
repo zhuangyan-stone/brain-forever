@@ -517,11 +517,11 @@ async function selectChat(sn) {
 
     // 9. 检查当前 session 是否有流式输出的累积数据需要渲染
     // 场景 A：切换回一个正在后台流式输出的对话（!isDone）
-    //   仅当历史消息最后一条不是 assistant 时才创建气泡（否则 AI 已回复完成）
+    //   不依赖 lastIsAssistant 判断，因为后端可能因 assistant 未写入 DB
+    //   而追加了 broken message（interrupted=2），导致 lastIsAssistant=true。
+    //   此时应优先使用 streamingMsg 的数据恢复流式状态。
     // 场景 B：切换回一个流式已完成的对话（isDone），但 DOM 引用已被释放
     const session = sessionManager.sessions.get(sn);
-    const lastMsg = result.messages[result.messages.length - 1];
-    const lastIsAssistant = lastMsg && lastMsg.role === 'assistant';
 
     // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
     var streamingMsg = null;
@@ -533,8 +533,24 @@ async function selectChat(sn) {
         }
     } catch(e) {}
 
-    if (session && streamingMsg && !streamingMsg.isDone && !lastIsAssistant) {
-        // 场景 A：流未完成且最后一条不是 assistant
+    if (session && streamingMsg && !streamingMsg.isDone) {
+        // 场景 A：流未完成
+        // 如果后端返回的 messages 最后一条是后端追加的 broken message（interrupted=2），
+        // 将其从 result.messages 中移除，避免 broken message 污染界面。
+        // 注意：用户主动中断时（interrupted=1），broken message 是追加在 assistant
+        // 消息 content 末尾的，不会作为独立消息出现，因此不受此影响。
+        var lastMsg = result.messages[result.messages.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant' && lastMsg.interrupted === 2) {
+            result.messages.pop();
+            // 重新设置 groups（不含 broken message）
+            try {
+                var chats = window.Alpine.store('chats');
+                if (chats) {
+                    chats.setChatMessageGroups(sn, result.messages);
+                }
+            } catch(e) {}
+        }
+
         // 通过 Alpine store 添加一个空的 assistant group 占位
         try {
             var chats = window.Alpine.store('chats');
