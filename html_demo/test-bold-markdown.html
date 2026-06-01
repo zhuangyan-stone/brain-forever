@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试 Markdown 粗体渲染 — 验证空格问题</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css" crossorigin="anonymous">
+</head>
+<body>
+    <h2>🔍 核心测试：`**` 后面是否有空格</h2>
+    <div id="test-core"></div>
+    <hr>
+
+    <h2>测试 1: 无 KaTeX 插件</h2>
+    <div id="test1"></div>
+    <hr>
+    <h2>测试 2: 有 KaTeX 插件</h2>
+    <div id="test2"></div>
+    <hr>
+    <h2>测试 3: 模拟流式分段渲染</h2>
+    <div id="test3"></div>
+    <hr>
+    <h2>测试 4: 模拟节流遗漏场景</h2>
+    <div id="test4"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/remarkable@2.0.1/dist/remarkable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script>
+        function remarkableKatex(md) {
+            md.inline.ruler.after('escape', 'katex_block', function katexBlock(state, silent) {
+                var start = state.pos;
+                var max = state.posMax;
+                if (state.src.charCodeAt(start) !== 0x24) return false;
+                if (start + 2 >= max) return false;
+                if (state.src.charCodeAt(start + 1) !== 0x24) return false;
+                var end = start + 2;
+                while (end < max - 1) {
+                    if (state.src.charCodeAt(end) === 0x24 && state.src.charCodeAt(end + 1) === 0x24) {
+                        if (end > start + 2 && state.src.charCodeAt(end - 1) === 0x5C) { end += 2; continue; }
+                        break;
+                    }
+                    end++;
+                }
+                if (end >= max - 1) return false;
+                if (!silent) {
+                    state.push({ type: 'katex_block', content: state.src.slice(start + 2, end), block: true, level: state.level });
+                }
+                state.pos = end + 2;
+                return true;
+            });
+            md.inline.ruler.after('katex_block', 'katex_inline', function katexInline(state, silent) {
+                var start = state.pos;
+                var max = state.posMax;
+                if (state.src.charCodeAt(start) !== 0x24) return false;
+                if (start + 1 >= max) return false;
+                if (state.src.charCodeAt(start + 1) === 0x24) return false;
+                if (start > 0 && state.src.charCodeAt(start - 1) === 0x5C) return false;
+                var end = start + 1;
+                while (end < max) {
+                    if (state.src.charCodeAt(end) === 0x24) {
+                        if (end > start + 1 && state.src.charCodeAt(end - 1) === 0x5C) { end++; continue; }
+                        break;
+                    }
+                    end++;
+                }
+                if (end >= max) return false;
+                if (!silent) {
+                    state.push({ type: 'katex_inline', content: state.src.slice(start + 1, end), block: false, level: state.level });
+                }
+                state.pos = end + 1;
+                return true;
+            });
+            md.renderer.rules['katex_block'] = function (tokens, idx, options, env, self) {
+                try { return katex.renderToString(tokens[idx].content, { displayMode: true, throwOnError: false }); }
+                catch (e) { return '<div class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</div>'; }
+            };
+            md.renderer.rules['katex_inline'] = function (tokens, idx, options, env, self) {
+                try { return katex.renderToString(tokens[idx].content, { displayMode: false, throwOnError: false }); }
+                catch (e) { return '<span class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</span>'; }
+            };
+        }
+
+        function renderResult(label, html, isGood) {
+            var hasIssue = html.indexOf('**') !== -1;
+            var color = hasIssue ? '#e74c3c' : '#2ecc71';
+            var icon = hasIssue ? '❌ 包含字面 **' : '✅ 正常';
+            return '<div style="margin:8px 0;padding:8px;border-left:4px solid ' + color + ';background:#f9f9f9">' +
+                '<strong>' + label + '</strong> <span style="color:' + color + '">' + icon + '</span><br>' +
+                'HTML 输出: ' + html + '</div>';
+        }
+
+        // ============================================================
+        // 核心测试：** 后面有空格 vs 无空格
+        // ============================================================
+        var mdCore = new remarkable.Remarkable({ html: true, breaks: true });
+        mdCore.use(remarkableKatex);
+        document.getElementById('test-core').innerHTML =
+            '<div style="background:#fff3cd;padding:12px;border-radius:4px;margin-bottom:12px">' +
+            '<strong>💡 CommonMark 规范：</strong> 粗体标记 <code>**</code> 必须紧贴内容，' +
+            '如果 <code>**</code> 后面有空格，则不被视为粗体标记。</div>' +
+            renderResult('有空格: `** "馒头"**`', mdCore.render('** "馒头"**')) +
+            renderResult('无空格: `**"馒头"**`', mdCore.render('**"馒头"**')) +
+            renderResult('有空格（整段）: `** "馒头"...**`', mdCore.render('** "馒头"一词最早见于西晋文献，距今约1700多年。**')) +
+            renderResult('无空格（整段）: `**"馒头"...**`', mdCore.render('**"馒头"一词最早见于西晋文献，距今约1700多年。**'));
+
+        // ============================================================
+        // 测试 1: 无 KaTeX 插件
+        // ============================================================
+        var md1 = new remarkable.Remarkable({ html: true, breaks: true });
+        document.getElementById('test1').innerHTML =
+            renderResult('有空格粗体:', md1.render('** "馒头"一词最早见于西晋文献**')) +
+            renderResult('无空格粗体:', md1.render('**"馒头"一词最早见于西晋文献**')) +
+            renderResult('普通粗体:', md1.render('**馒头**一词最早见于西晋文献'));
+
+        // ============================================================
+        // 测试 2: 有 KaTeX 插件
+        // ============================================================
+        var md2 = new remarkable.Remarkable({ html: true, breaks: true });
+        md2.use(remarkableKatex);
+        document.getElementById('test2').innerHTML =
+            renderResult('有空格粗体:', md2.render('** "馒头"一词最早见于西晋文献**')) +
+            renderResult('无空格粗体:', md2.render('**"馒头"一词最早见于西晋文献**')) +
+            renderResult('普通粗体:', md2.render('**馒头**一词最早见于西晋文献')) +
+            renderResult('含公式:', md2.render('公式 $a^2+b^2=c^2$ 和 **粗体** 共存'));
+
+        // ============================================================
+        // 测试 3: 模拟流式分段渲染
+        // ============================================================
+        var md3 = new remarkable.Remarkable({ html: true, breaks: true });
+        md3.use(remarkableKatex);
+        var content = '';
+        var chunks = [
+            '**"馒头"一词最早见于西晋文献，距今约1700多年。',
+            '而发酵蒸面食（蒸饼）在三国到西晋时期已经相当成熟，',
+            '但"馒头"这个叫法是从西晋才开始在文献中出现的。**'
+        ];
+        content += chunks[0];
+        var r3_1 = md3.render(content);
+        content += chunks[1];
+        var r3_2 = md3.render(content);
+        content += chunks[2];
+        var r3_3 = md3.render(content);
+        document.getElementById('test3').innerHTML =
+            renderResult('分段1（**未闭合）:', r3_1) +
+            renderResult('分段2（**仍未闭合）:', r3_2) +
+            renderResult('分段3（完整，**已闭合）:', r3_3);
+
+        // ============================================================
+        // 测试 4: 模拟节流遗漏场景
+        // ============================================================
+        var md4 = new remarkable.Remarkable({ html: true, breaks: true });
+        md4.use(remarkableKatex);
+        var sc = '';
+        var schunks = [
+            '**"馒头"一词最早见于西晋文献，距今约1700多年。',
+            '而发酵蒸面食（蒸饼）在三国到西晋时期已经相当成熟，',
+            '但"馒头"这个叫法是从西晋才开始在文献中出现的。**'
+        ];
+        sc += schunks[0];
+        var r4_1 = md4.render(sc);
+        sc += schunks[1];
+        var r4_2 = md4.render(sc);
+        sc += schunks[2];
+        // 不渲染第三次！模拟 onDone 清除定时器
+        document.getElementById('test4').innerHTML =
+            renderResult('第1次渲染（不完整）:', r4_1) +
+            renderResult('第2次渲染（仍不完整）:', r4_2) +
+            '<div style="margin:8px 0;padding:8px;border-left:4px solid #f39c12;background:#fef9e7">' +
+            '<strong>第3次未渲染（模拟 onDone 清除定时器）</strong><br>' +
+            '此时 contentHTML 停留在第2次渲染结果<br>' +
+            '原始内容: <code>' + sc + '</code></div>';
+
+        console.log('=== 测试完成 ===');
+    </script>
+</body>
+</html>
