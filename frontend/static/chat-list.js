@@ -201,6 +201,7 @@ export let currentChats = [];       // 当前对话列表
 let activeChatSN = null;     // 当前选中的对话 SN
 let contextMenuEl = null;       // 当前打开的右键菜单
 let contextTargetSN = null;     // 右键菜单目标对话 SN
+let hoverMenuTimer = null;     // hover 弹出菜单的关闭定时器
 
 /**
  * 清除当前激活的选中状态（新对话等场景使用）
@@ -352,7 +353,6 @@ function createChatItem(chat) {
     const moreBtn = document.createElement('button');
     moreBtn.className = 'chat-item-more-btn';
     moreBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">' + ICON_DOTS + '</svg>';
-    moreBtn.dataset.tooltip = '更多操作';
     item.appendChild(moreBtn);
 
     // 点击对话项 — 切换到该对话
@@ -362,7 +362,11 @@ function createChatItem(chat) {
         selectChat(chat.sn);
     });
 
-    // 点击更多按钮 — 显示上下文菜单
+    // hover / 点击更多按钮 — 显示上下文菜单
+    // 大屏模式下 hover 直接弹出菜单
+    moreBtn.addEventListener('mouseenter', (e) => {
+        showContextMenu(e, chat);
+    });
     moreBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         showContextMenu(e, chat);
@@ -684,6 +688,10 @@ async function selectChat(sn) {
  * 显示上下文菜单
  */
 function showContextMenu(e, chat) {
+    // 如果菜单已打开且指向同一个 chat，不重复创建
+    if (contextMenuEl && contextTargetSN === chat.sn) {
+        return;
+    }
     closeContextMenu();
 
     contextTargetSN = chat.sn;
@@ -772,6 +780,26 @@ function showContextMenu(e, chat) {
     document.body.appendChild(menu);
     contextMenuEl = menu;
 
+    // 大屏 hover 模式：菜单在鼠标离开时自动关闭（带延迟，防止移动到菜单时闪烁）
+    if (!isSmallScreen) {
+        // 鼠标进入菜单 → 取消关闭定时器
+        menu.addEventListener('mouseenter', function onMenuEnter() {
+            if (hoverMenuTimer) {
+                clearTimeout(hoverMenuTimer);
+                hoverMenuTimer = null;
+            }
+        });
+        // 鼠标离开菜单 → 延迟关闭
+        menu.addEventListener('mouseleave', function onMenuLeave() {
+            if (hoverMenuTimer) {
+                clearTimeout(hoverMenuTimer);
+            }
+            hoverMenuTimer = setTimeout(function() {
+                closeContextMenu();
+            }, 200);
+        });
+    }
+
     // 点击其他地方关闭菜单
     setTimeout(() => {
         document.addEventListener('click', closeContextMenu, { once: true });
@@ -782,6 +810,10 @@ function showContextMenu(e, chat) {
  * 关闭上下文菜单
  */
 function closeContextMenu() {
+    if (hoverMenuTimer) {
+        clearTimeout(hoverMenuTimer);
+        hoverMenuTimer = null;
+    }
     if (contextMenuEl) {
         contextMenuEl.remove();
         contextMenuEl = null;

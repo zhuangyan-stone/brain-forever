@@ -274,8 +274,8 @@ export class SSEResponser {
 
                 // 4. stream.sn 已在第 1 步中更新，无需重复赋值
             } else {
-                // 没有 frontSN 时走旧逻辑：直接更新 session SN
-                this.session.sn = event.sn;
+            	// 没有 frontSN 时走旧逻辑：直接更新 stream SN
+            	this.stream.sn = event.sn;
             }
 
             // 更新 Alpine store 的 activeChatSN
@@ -313,7 +313,7 @@ export class SSEResponser {
         console.log('[SSE] 🧠 onReasoningEnd');
         sm.reasoningState = 'done';
         // 同步 reasoningState 到 group.assistant
-        var assistant = _getAssistant(this.session.sn);
+        var assistant = _getAssistant(this.stream.sn);
         if (assistant) {
             assistant.reasoningState = 'done';
         }
@@ -323,7 +323,7 @@ export class SSEResponser {
             this._reasoningRenderTimer = null;
         }
         if (sm.reasoning) {
-            var assistant = _getAssistant(this.session.sn);
+            var assistant = _getAssistant(this.stream.sn);
             if (assistant) {
                 assistant.reasoningHTML = renderMarkdown(sm.reasoning);
             }
@@ -405,15 +405,14 @@ export class SSEResponser {
 
         // 清理 streamingMsg
         try {
-            window.Alpine.store('chats').finalizeStreaming(this.session.sn);
+        	window.Alpine.store('chats').finalizeStreaming(this.stream.sn);
         } catch(e) {}
-
+      
         if (this.isActive) {
-            this._applyDoneToDOM(event);
+        	this._applyDoneToDOM(event);
         }
-
-        // 清理节流定时器
-        this.session.clearRenderTimer();
+      
+        // 清理节流定时器（this._renderTimer / this._reasoningRenderTimer 已在下方清除）
         if (this._renderTimer) {
             clearTimeout(this._renderTimer);
             this._renderTimer = null;
@@ -447,7 +446,7 @@ export class SSEResponser {
      * @param {object} event
      */
     _applyDoneToDOM(event) {
-        const bubble = this.session.assistantBubble;
+    	const bubble = this.stream.assistantBubble;
 
         // 1. 启用复制按钮
         if (bubble) {
@@ -515,7 +514,7 @@ export class SSEResponser {
         var sm = this._getStreamingMsg();
         if (!sm) return;
 
-        var assistant = _getAssistant(this.session.sn);
+        var assistant = _getAssistant(this.stream.sn);
         if (!assistant) return;
 
         // 确保 contentHTML 已渲染（后台流可能 throttle 未触发）
@@ -537,13 +536,13 @@ export class SSEResponser {
 
         // 如果已完成但 assistantBubble 存在，显示 sources/usage
         // ★ Alpine 响应式：同步全量 sources 到 group.assistant，不再调用 showSources()
-        if (this.session.assistantBubble) {
-            if (sm.sources && sm.sources.length > 0) {
-                _syncWebSourcesToGroup(this.session.sn);
-            }
-            if (sm.isDone && sm.usage) {
-                showTokenUsage(this.session.assistantBubble, sm.usage);
-            }
+        if (this.stream.assistantBubble) {
+        	if (sm.sources && sm.sources.length > 0) {
+        		_syncWebSourcesToGroup(this.stream.sn);
+        	}
+        	if (sm.isDone && sm.usage) {
+        		showTokenUsage(this.stream.assistantBubble, sm.usage);
+        	}
         }
 
         console.log('[flushToDOM] ✅ 数据同步完成，准备 autoScrollToBottom');
