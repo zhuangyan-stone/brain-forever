@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -163,11 +164,20 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 // for LLM-based title generation. When messages are short (<=50 messages),
 // all messages are used. For longer message lists, a sampling strategy is
 // applied to include the first, last, and representative intermediate messages.
+//
+// For AI messages in the middle portion, a randomized sampling (≈1/3 probability)
+// is used instead of a fixed ID%3==0 pattern. This ensures that when a user
+// requests title suggestions multiple times, different message subsets are fed
+// to the LLM, producing more diverse title candidates.
 func extractMessagesForTitle(msgs []Message) []Message {
 	c := len(msgs)
 	if c <= 50 {
 		return msgs
 	}
+
+	// Use a local random source seeded with current time (nanosecond precision)
+	// so each invocation gets a different sampling pattern.
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	i := c/3 + 1
 	samples := msgs[0:i]
@@ -175,7 +185,7 @@ func extractMessagesForTitle(msgs []Message) []Message {
 	for j := i + 1; j < c-1; j++ {
 		if msgs[j].Role == llm.RoleUser {
 			samples = append(samples, msgs[j])
-		} else if msgs[j].ID%3 == 0 {
+		} else if rng.Intn(3) == 0 {
 			msg := msgs[j]
 			msg.Reasoning = ""
 
