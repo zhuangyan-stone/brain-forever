@@ -140,7 +140,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	//    Also pass front_sn back so the frontend can map the temporary SN to the real SN.
 	session.mu.Lock()
 	if session.currentChat.dbChat != nil && session.currentChat.dbChat.SN != "" {
-		sseWriter.WriteEvent(SSEEvent{
+		sseWriter.WriteEvent(ChatCreatedEvent{
 			Type:    "chat_created",
 			SN:      session.currentChat.dbChat.SN,
 			FrontSN: req.FrontSN,

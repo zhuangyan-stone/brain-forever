@@ -245,8 +245,8 @@ function dispatchEventToResponser(event, stream) {
             responser.onText(event);
             break;
 
-        case 'sources':
-            responser.onSources(event);
+        case 'web_source':
+            responser.onWebSource(event);
             break;
 
         case 'chat_created':

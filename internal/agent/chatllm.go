@@ -50,20 +50,20 @@ func MakePipeline(ctx context.Context, agent *ChatAgent, sseWriter *sse.Writer, 
 }
 
 func (atc *pipelineImp) OnReasoning(reasoning string) {
-	atc.sseWriter.WriteEvent(SSEEvent{
+	atc.sseWriter.WriteEvent(ReasoningEvent{
 		Type:    "reasoning",
 		Content: reasoning,
 	})
 }
 
 func (atc *pipelineImp) OnReasoningEnd() {
-	atc.sseWriter.WriteEvent(SSEEvent{
+	atc.sseWriter.WriteEvent(ReasoningEndEvent{
 		Type: "reasoning_end",
 	})
 }
 
 func (atc *pipelineImp) OnToolReasoning(subject, toolName, text string) {
-	atc.sseWriter.WriteEvent(SSEEvent{
+	atc.sseWriter.WriteEvent(ReasoningEvent{
 		Type:    "reasoning",
 		Subject: subject,
 		Tool:    toolName,
@@ -72,7 +72,7 @@ func (atc *pipelineImp) OnToolReasoning(subject, toolName, text string) {
 }
 
 func (atc *pipelineImp) OnText(text string) {
-	if err := atc.sseWriter.WriteEvent(SSEEvent{
+	if err := atc.sseWriter.WriteEvent(TextEvent{
 		Type:    "text",
 		Content: text,
 	}); err != nil {
@@ -81,7 +81,7 @@ func (atc *pipelineImp) OnText(text string) {
 }
 
 func (ate *pipelineImp) OnError(err error) {
-	e := ate.sseWriter.WriteEvent(SSEEvent{
+	e := ate.sseWriter.WriteEvent(ErrorEvent{
 		Type:    "error",
 		Message: i18n.TL(ate.lang, "server_error", map[string]interface{}{"Error": err.Error()}),
 	})
@@ -92,8 +92,8 @@ func (ate *pipelineImp) OnError(err error) {
 }
 
 func (atc *pipelineImp) OnWebSource(sources []toolimp.WebSource) {
-	if err := atc.sseWriter.WriteEvent(SSEEvent{
-		Type:       "sources",
+	if err := atc.sseWriter.WriteEvent(WebSourceEvent{
+		Type:       "web_source",
 		WebSources: sources,
 	}); err != nil {
 		log.Printf("failed to write web sources event: %v", err)
@@ -276,7 +276,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 	}
 
 	createdAt := time.Now().UTC().Format("2006-01-02T15:04:05Z")
-	sseWriter.WriteEvent(SSEEvent{
+	sseWriter.WriteEvent(DoneEvent{
 		Type:      "done",
 		Usage:     usage,
 		MsgID:     userMsgID,

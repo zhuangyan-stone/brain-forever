@@ -3,7 +3,7 @@
 // ============================================================
 //
 // 对标后端 infra/llm/sse_responser.go 的 SSEResponser 接口。
-// 每个 ChatSession 拥有一个 SSEResponser 实例，负责将 SSE 事件
+// 每个对话（Chat）拥有一个 SSEResponser 实例，负责将 SSE 事件
 // 转化为对 Alpine store 中 ChatData.streamingMsg 的累积。
 //
 // ★ 方案B：流式数据直接写入 group.assistant 的同一字段，
@@ -11,7 +11,7 @@
 //   完成时 finalizeStreamingToGroup 只补 metadata（createdAt 等）。
 //   模板无需感知 isStreaming，统一渲染 group.assistant。
 //
-//   当 session 是"活跃的"（chats.active.sn === session.sn）时，
+//   当对话是"活跃的"（chats.active.sn === chat.sn）时，
 //   DOM 更新立即生效（Alpine 响应式自动渲染）；否则仅累积数据。
 // ============================================================
 
@@ -54,7 +54,7 @@ function _getAssistant(sn) {
 /**
  * 将 streamingMsg.sources 同步到 group.assistant.sources（Alpine 响应式数据）
  * 同时更新 SwipePager。
- * 仅在活跃 session 且 sources 有数据时调用。
+ * 仅在活跃对话且 sources 有数据时调用。
  * @param {string} sn
  */
 function _syncWebSourcesToGroup(sn) {
@@ -87,14 +87,14 @@ function _syncWebSourcesToGroup(sn) {
 }
 
 /**
- * SSEResponser — 每个 ChatSession 的 SSE 事件处理器
+ * SSEResponser — 每个对话（Chat）的 SSE 事件处理器
  *
  * 职责：
  *   1. 将 SSE 事件数据累积到 Alpine store 的 ChatData.streamingMsg
  *   2. 同步到 group.assistant 的同名字段（内容/推理持续增长）
  *   3. 节流渲染 Markdown → HTML
  *
- * 数据源：Alpine.store('chats').getOrCreate(session.sn).streamingMsg
+ * 数据源：Alpine.store('chats').getOrCreate(chat.sn).streamingMsg
  * 渲染目标：group.assistant.contentHTML / group.assistant.reasoningHTML
  */
 export class SSEResponser {
@@ -109,7 +109,7 @@ export class SSEResponser {
         this._reasoningRenderTimer = null;
     }
 
-    /** 判断当前 stream 是否是活跃会话 */
+    /** 判断当前 stream 是否是活跃对话 */
     get isActive() {
         try {
             var chats = window.Alpine.store('chats');
@@ -122,7 +122,7 @@ export class SSEResponser {
     // ---- Alpine store 辅助 ----
 
     /**
-     * 获取 Alpine store 中当前 session 对应的 streamingMsg。
+     * 获取 Alpine store 中当前对话对应的 streamingMsg。
      * @returns {object|null}
      */
     _getStreamingMsg() {
@@ -218,7 +218,7 @@ export class SSEResponser {
     /**
      * 处理 chat_created 事件：后端为新对话生成 SN 后推送给前端。
      * 前端将 blankItem.sn 更新为真实 SN，然后 promoteBlankItem() 将其移入 items[]，
-     * 同时更新 session.sn 使后续 SSE 事件能通过 getOrCreate(sn) 找到正确的 ChatData。
+     * 同时更新 chat.sn 使后续 SSE 事件能通过 getOrCreate(sn) 找到正确的 ChatData。
      * @param {object} event
      */
     onChatCreated(event) {
@@ -348,28 +348,16 @@ export class SSEResponser {
     }
 
     /**
-     * 处理 sources 事件
+     * 处理 web_source 事件
      *
      * 幂等保证：基于 URL 对 sources 做 Set 去重，避免 SSE 推送重复数据。
-     * 同时 showSources() 内部也已改为幂等（先移除同类型 section 再重建），
-     * 双重防护确保 sources 不会重复显示。
      *
      * @param {object} event
      */
-    onSources(event) {
+    onWebSource(event) {
         var sm = this._getStreamingMsg();
         if (!sm) return;
 
-        if (event.sources) {
-            const newSources = dedupeSources(event.sources, sm.sources || []);
-            if (newSources.length > 0) {
-                if (!sm.sources) sm.sources = [];
-                sm.sources.push(...newSources);
-                if (this.isActive) {
-                    showSources(newSources, 'rag');
-                }
-            }
-        }
         if (event.web_sources) {
             const newWebSources = dedupeSources(event.web_sources, sm.sources || []);
             if (newWebSources.length > 0) {
@@ -377,7 +365,7 @@ export class SSEResponser {
                 sm.sources.push(...newWebSources);
                 if (this.isActive) {
                     // ★ Alpine 响应式：同步全量 sources 到 group.assistant，
-                    //    由 Alpine 模板 + SwipePager 渲染，不再调用 showSources()。
+                    //    由 Alpine 模板 + SwipePager 渲染。
                     _syncWebSourcesToGroup(this.stream.sn);
                 }
             }
@@ -501,7 +489,7 @@ export class SSEResponser {
     }
 
     /**
-     * 当 session 从非活跃变为活跃时，确保 group.assistant 中的数据
+     * 当对话从非活跃变为活跃时，确保 group.assistant 中的数据
      * 已经同步到 Alpine 模板可渲染的状态。
      *
      * ★ 方案B：数据始终在 group.assistant 中，Alpine 自动渲染。

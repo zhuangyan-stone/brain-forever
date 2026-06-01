@@ -53,23 +53,56 @@ type ChatRequest struct {
 }
 
 // ============================================================
-// SSE event type (business-specific, used by ChatHandler)
+// SSE event types (business-specific, used by ChatHandler)
+//
+// Each event type has its own struct to avoid the "fat" struct pattern,
+// ensuring only the fields relevant to each event are serialized.
 // ============================================================
 
-// SSEEvent is the SSE event sent to the frontend
-type SSEEvent struct {
-	Type       string                `json:"type"`              // reasoning | reasoning_end | text | sources | title | chat_created | done | error
-	Subject    string                `json:"subject,omitempty"` // reasoning -> "", "pend"
-	Tool       string                `json:"tool,omitempty"`
-	Content    string                `json:"content,omitempty"`     // Used for text type, title type
-	Sources    []toolimp.TraitSource `json:"sources,omitempty"`     // Used for sources type (RAG sources)
-	WebSources []toolimp.WebSource   `json:"web_sources,omitempty"` // Used for sources type (web search sources)
-	Usage      *Usage                `json:"usage,omitempty"`       // Used for done type
-	Message    string                `json:"message,omitempty"`     // Used for error type
-	MsgID      int64                 `json:"msg_id,omitempty"`      // Used for done type — ID of the user message
-	CreatedAt  string                `json:"created_at,omitempty"`  // Used for done type — assistant message creation time
-	SN         string                `json:"sn,omitempty"`          // Used for chat_created type — chat SN
-	FrontSN    string                `json:"front_sn,omitempty"`    // Used for chat_created type — frontend-generated temporary SN
+// ReasoningEvent is sent when the LLM produces reasoning content.
+type ReasoningEvent struct {
+	Type    string `json:"type"`              // "reasoning"
+	Subject string `json:"subject,omitempty"` // "" or "tool-pending"
+	Tool    string `json:"tool,omitempty"`    // tool name (for tool-pending)
+	Content string `json:"content,omitempty"`
+}
+
+// ReasoningEndEvent signals the end of the reasoning phase.
+type ReasoningEndEvent struct {
+	Type string `json:"type"` // "reasoning_end"
+}
+
+// TextEvent carries incremental text content from the LLM.
+type TextEvent struct {
+	Type    string `json:"type"` // "text"
+	Content string `json:"content,omitempty"`
+}
+
+// WebSourceEvent carries web search sources.
+type WebSourceEvent struct {
+	Type       string              `json:"type"` // "web_source"
+	WebSources []toolimp.WebSource `json:"web_sources,omitempty"`
+}
+
+// DoneEvent signals that the LLM response is complete.
+type DoneEvent struct {
+	Type      string `json:"type"` // "done"
+	Usage     *Usage `json:"usage,omitempty"`
+	MsgID     int64  `json:"msg_id,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
+// ErrorEvent is sent when an error occurs during streaming.
+type ErrorEvent struct {
+	Type    string `json:"type"` // "error"
+	Message string `json:"message,omitempty"`
+}
+
+// ChatCreatedEvent is sent when a new chat session is created in the DB.
+type ChatCreatedEvent struct {
+	Type    string `json:"type"` // "chat_created"
+	SN      string `json:"sn,omitempty"`
+	FrontSN string `json:"front_sn,omitempty"`
 }
 
 // Usage represents token usage
