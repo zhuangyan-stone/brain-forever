@@ -890,7 +890,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             //   _autoScrolling 在同一事件循环中仍为 true，可准确拦截自己触发的 scroll 事件
             const sc = chatContainer;
             if (_autoScrolling) {
-                console.log('[scrollHandler] ↕ _autoScrolling=true，跳过');
                 return;
             }
             try {
@@ -899,11 +898,9 @@ window.addEventListener('DOMContentLoaded', async () => {
                     var atBottom = isScrolledToBottom();
                     if (!atBottom) {
                         if (!chats2.active.userScrolledUp) {
-                            console.log('[scrollHandler] ⛔ 用户手动滚动 → userScrolledUp=true', `scrollTop=${sc.scrollTop} scrollHeight=${sc.scrollHeight} clientHeight=${sc.clientHeight}`);
                             chats2.active.userScrolledUp = true;
                         }
                     } else if (chats2.active.userScrolledUp) {
-                        console.log('[scrollHandler] ✅ 回到底部 → userScrolledUp=false');
                         chats2.active.userScrolledUp = false;
                     }
                 }

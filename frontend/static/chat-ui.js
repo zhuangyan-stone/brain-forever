@@ -219,12 +219,10 @@ export function autoScrollToBottom() {
     try {
         var chats = window.Alpine.store('chats');
         if (chats && chats.active && chats.active.userScrolledUp) {
-            console.log('[autoScroll] ⛔ userScrolledUp=true 跳过滚动', `scrollHeight=${scrollHeight} scrollTop=${scrollTop} clientHeight=${clientHeight}`);
             return;
         }
     } catch(e) {}
 
-    console.log('[autoScroll] ✅ 执行滚动', `scrollHeight=${scrollHeight} scrollTop=${scrollTop} clientHeight=${clientHeight} isAtBottom=${isAtBottom}`);
     // 记录本次执行时的 scrollHeight，供 scroll handler 检测 scroll anchoring
     lastScrollHeight = scrollHeight;
     // 设置 _autoScrolling 标志，scroll handler 检测到后跳过处理

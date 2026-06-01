@@ -171,7 +171,6 @@ export class SSEResponser {
             // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
             // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
             window.Alpine.nextTick(function() {
-                console.log('[throttle] 🅲 Alpine.nextTick→autoScrollToBottom (content)');
                 autoScrollToBottom();
             });
         }, SSE_RENDER_INTERVAL);
@@ -211,7 +210,6 @@ export class SSEResponser {
             // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
             // （参考 html_demo/alpine-demo/alpine-throttled-demo2-markdown.html 的 $nextTick 模式）
             window.Alpine.nextTick(function() {
-                console.log('[throttle] 🅡 Alpine.nextTick→autoScrollToBottom (reasoning)');
                 autoScrollToBottom();
             });
         }, SSE_RENDER_INTERVAL);
@@ -336,7 +334,6 @@ export class SSEResponser {
         if (!this.isActive) return;
         // 使用 Alpine.nextTick 确保 Alpine 已异步更新 DOM 后再滚动
         window.Alpine.nextTick(function() {
-            console.log('[SSE] 🧠 Alpine.nextTick→autoScrollToBottom (reasoningEnd)');
             autoScrollToBottom();
         });
     }
@@ -553,9 +550,7 @@ export class SSEResponser {
         	}
         }
 
-        console.log('[flushToDOM] ✅ 数据同步完成，准备 autoScrollToBottom');
         window.Alpine.nextTick(function() {
-            console.log('[flushToDOM] Alpine.nextTick→autoScrollToBottom');
             autoScrollToBottom();
         });
     }
