@@ -4,6 +4,11 @@
     依赖：dialog.css（公共对话框样式）、theme.css（主题变量）
     ============================================================ */
 
+/* 标题编辑对话框不需要 white-space: pre-wrap（dialog.css 公共样式），改为 normal 防止 HTML 缩进被渲染为可见空白 */
+#titleEditDialog .dialog-body {
+    white-space: normal;
+}
+
 /* 原标题 — 较大字体显示，无边框无背景，允许自动换行 */
 .title-edit-original {
     font-size: 1.15rem;

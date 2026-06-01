@@ -2,14 +2,14 @@
 // chat-sse.js — SSE 流处理 + 事件分发
 // ============================================================
 //
-// 重构后：sendMessage() 通过 sessionManager 获取 ChatSession，
-// SSE 读取流程由 ChatSession 管理，事件分发委托给 SSEResponser。
+// sendMessage() 通过 chatStreamMgr 获取 ChatStream，
+// SSE 读取流程由 ChatStream 管理，事件分发委托给 SSEResponser。
 //
 // 切换对话时，旧对话的 SSE 连接继续在后台接收数据，
-// 数据累积到 ChatSession.streamingMsg 中，不丢失。
+// 数据累积到 Alpine.store('chats') 的 streamMsg 中，不丢失。
 // ============================================================
 
-import { sessionManager } from './chat-session-manager.js';
+import { chatStreamMgr } from './chat-stream-mgr.js';
 import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, restoreInputArea } from './chat-ui.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -89,7 +89,7 @@ function addUserMessage(content, createdAt) {
 
 /**
  * 发送前准备：验证输入、清理 UI、初始化状态
- * @returns {{ content: string, createdAt: string, session: ChatSession } | null}
+ * @returns {{ content: string, createdAt: string, stream: ChatStream } | null}
  */
 function prepareChat() {
     const messageInput = document.getElementById('messageInput');
@@ -132,7 +132,7 @@ function prepareChat() {
     // 获取当前对话的 SN（promoteBlankItem 后已有临时 SN）
     var activeChat = chats ? chats.active : null;
     const sn = activeChat ? activeChat.sn : '';
-    const session = sessionManager.getOrCreate(sn);
+    const stream = chatStreamMgr.getOrCreate(sn);
 
     // 标记为流式状态（startStreaming 会设置 isStreaming=true 并创建 streamingMsg）
     chats.startStreaming(sn);
@@ -155,8 +155,8 @@ function prepareChat() {
         var streamingBubble = lastGroupEl.querySelector('.bubble.streaming');
         var assistantMsgEl = lastGroupEl.querySelector('.message.assistant');
         if (assistantMsgEl) {
-            session.assistantBubble = assistantMsgEl;
-            session.contentDiv = streamingBubble || assistantMsgEl.querySelector('.bubble');
+            stream.assistantBubble = assistantMsgEl;
+            stream.contentDiv = streamingBubble || assistantMsgEl.querySelector('.bubble');
         }
     });
 
@@ -167,9 +167,9 @@ function prepareChat() {
     applyStreamingState(true);
 
     // 创建 AbortController
-    session.abortController = new AbortController();
+    stream.abortController = new AbortController();
 
-    return { content, createdAt, session };
+    return { content, createdAt, stream };
 }
 
 // ============================================================
@@ -179,9 +179,9 @@ function prepareChat() {
 /**
  * 读取 SSE 流数据，按行解析并分发事件到 SSEResponser
  * @param {Response} response
- * @param {ChatSession} session
+ * @param {ChatStream} stream
  */
-async function readSSEBuffer(response, session) {
+async function readSSEBuffer(response, stream) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -204,7 +204,7 @@ async function readSSEBuffer(response, session) {
             try {
                 const event = JSON.parse(jsonStr);
                 // 通过 SSEResponser 分发事件
-                dispatchEventToResponser(event, session);
+                dispatchEventToResponser(event, stream);
             } catch (e) {
                 console.warn('解析 SSE 事件失败:', jsonStr);
             }
@@ -216,7 +216,7 @@ async function readSSEBuffer(response, session) {
         const jsonStr = buffer.trim().slice(6);
         try {
             const event = JSON.parse(jsonStr);
-            dispatchEventToResponser(event, session);
+                dispatchEventToResponser(event, stream);
         } catch (e) {
             console.warn('解析剩余 SSE 事件失败:', jsonStr);
         }
@@ -226,10 +226,10 @@ async function readSSEBuffer(response, session) {
 /**
  * 将 SSE 事件分发到 session 的 SSEResponser
  * @param {object} event
- * @param {ChatSession} session
+ * @param {ChatStream} stream
  */
-function dispatchEventToResponser(event, session) {
-    const responser = session.responser;
+function dispatchEventToResponser(event, stream) {
+    const responser = stream.responser;
     if (!responser) return;
 
     switch (event.type) {
@@ -268,11 +268,11 @@ function dispatchEventToResponser(event, session) {
 
 /**
  * 发起 fetch 请求并读取 SSE 流
- * @param {ChatSession} session
+ * @param {ChatStream} stream
  * @param {string} content
  * @param {string} createdAt
  */
-async function fetchStream(session, content, createdAt) {
+async function fetchStream(stream, content, createdAt) {
     var settings = Alpine.store('settings');
 
     // 发送请求 — 只传用户最新的一句话，历史由后端维护
@@ -286,9 +286,9 @@ async function fetchStream(session, content, createdAt) {
             stream: true,
             deep_think: settings ? settings.deepThink : false,
             web_search_enabled: settings ? settings.webSearch : false,
-            front_sn: session.sn,  // 传递前端临时 SN
+            front_sn: stream.sn,  // 传递前端临时 SN
         }),
-        signal: session.abortController.signal
+        signal: stream.abortController.signal
     });
 
     if (!response.ok) {
@@ -296,7 +296,7 @@ async function fetchStream(session, content, createdAt) {
         throw new Error(`服务器错误 [${response.status}]: ${errText}`);
     }
 
-    await readSSEBuffer(response, session);
+    await readSSEBuffer(response, stream);
 }
 
 // ============================================================
@@ -305,10 +305,10 @@ async function fetchStream(session, content, createdAt) {
 
 /**
  * 处理 AbortError：更新 reasoning 区域状态，空气泡显示中断提示
- * @param {ChatSession} session
+ * @param {ChatStream} stream
  */
-function handleAbortError(session) {
-    const assistantBubble = session.assistantBubble;
+function handleAbortError(stream) {
+    const assistantBubble = stream.assistantBubble;
     if (!assistantBubble) return;
 
     // 设置 Alpine store 中的 reasoningState = 'done'
@@ -317,7 +317,7 @@ function handleAbortError(session) {
     try {
         var chats = window.Alpine.store('chats');
         if (chats) {
-            var chatData = chats.getOrCreate(session.sn);
+            var chatData = chats.getOrCreate(stream.sn);
             if (chatData && chatData.streamingMsg) {
                 chatData.streamingMsg.reasoningState = 'done';
             }
@@ -345,7 +345,7 @@ function handleAbortError(session) {
         }
     }
     // 如果 assistant 气泡为空（尚未收到任何 text 事件），显示中断提示
-    const contentDiv = session.contentDiv;
+    const contentDiv = stream.contentDiv;
     if (contentDiv && !contentDiv.textContent.trim()) {
         contentDiv.innerHTML = '⏹ 已中断';
         contentDiv.classList.remove('streaming');
@@ -356,17 +356,17 @@ function handleAbortError(session) {
 /**
  * 处理流式请求错误
  * @param {Error} err
- * @param {ChatSession} session
+ * @param {ChatStream} stream
  */
-function handleStreamError(err, session) {
+function handleStreamError(err, stream) {
     if (err.name === 'AbortError') {
         // 标记为中断，cleanupAfterStream 据此跳过标题自动修改等操作
-        session.wasAborted = true;
-        handleAbortError(session);
+        stream.wasAborted = true;
+        handleAbortError(stream);
     } else {
         console.error('请求失败:', err);
-        if (session.assistantBubble) {
-            showError(session.assistantBubble, err.message);
+        if (stream.assistantBubble) {
+            showError(stream.assistantBubble, err.message);
         }
     }
 }
@@ -401,44 +401,42 @@ function autoUpdateTitle(wasAborted) {
 
 /**
  * 流结束清理：重置状态、恢复 UI、清理定时器、自动修改标题
- * @param {ChatSession} session
+ * @param {ChatStream} stream
  * @param {boolean} wasAborted  是否被用户中断
  */
-function cleanupAfterStream(session, wasAborted) {
-    session.abortController = null;
+function cleanupAfterStream(stream, wasAborted) {
+    stream.abortController = null;
 
-    // 仅当此 session 仍是活跃 session 时，才操作全局 UI
-    // 避免后台流完成时错误地影响当前 active chat 的 UI 状态
-    const isActiveSession = sessionManager.getActive() === session;
-    if (isActiveSession) {
-        applyStreamingState(false);
-        document.getElementById('messageInput').focus();
-    } else {
-        // 后台流完成：仅更新 Alpine store 中对应 chat 的 isStreaming，
-        // 不触碰全局 UI（当前 active chat 的 streaming 状态不受影响）
+    // 更新 Alpine store 中对应 chat 的 isStreaming（无论活跃/后台都必须重置）
+    // ★ 异常/中断/断连等非 done 事件路径下，finalizeStreaming 不会被调用，
+    //    isStreaming 会永远卡在 true，导致登录按钮等依赖 :disabled 绑定的 UI 永久不可用。
+    //    此处统一重置，与 onDone() 中的 finalizeStreaming() 形成互补。
+    const chats = window.Alpine.store('chats');
+    if (chats) {
         try {
-            var chats = window.Alpine.store('chats');
-            if (chats) {
-                var chatData = chats.getOrCreate(session.sn);
-                if (chatData) {
-                    chatData.isStreaming = false;
-                    // streamingMsg 由 SSEResponser.onDone() 中的 finalizeStreaming() 负责归档清理
-                }
+            var chatData = chats.getOrCreate(stream.sn);
+            if (chatData) {
+                chatData.isStreaming = false;
             }
         } catch(e) {}
     }
 
+    // 仅当此 stream 仍是活跃 stream 时，才操作全局 UI
+    // 避免后台流完成时错误地影响当前 active chat 的 UI 状态
+    const isActiveStream = chats && chats.active && chats.active.sn === stream.sn;
+    if (isActiveStream) {
+        applyStreamingState(false);
+        document.getElementById('messageInput').focus();
+    }
+
     // 移除 streaming 类
-    const contentDiv = session.contentDiv;
+    const contentDiv = stream.contentDiv;
     if (contentDiv) {
         contentDiv.classList.remove('streaming');
     }
 
-    // 清理渲染状态（防止取消请求后定时器残留）
-    session.clearRenderTimer();
-
     // 清理 reasoning 区域的节流渲染定时器（防止取消请求后定时器残留）
-    const assistantBubble = session.assistantBubble;
+    const assistantBubble = stream.assistantBubble;
     if (assistantBubble) {
         const reasoningContentEl = assistantBubble.querySelector('.reasoning-content');
         if (reasoningContentEl && reasoningContentEl.renderTimer) {
@@ -514,13 +512,13 @@ export async function sendMessage() {
     const chatData = prepareChat();
     if (!chatData) return;
 
-    const { content, createdAt, session } = chatData;
+    const { content, createdAt, stream } = chatData;
 
     try {
-        await fetchStream(session, content, createdAt);
+        await fetchStream(stream, content, createdAt);
     } catch (err) {
-        handleStreamError(err, session);
+        handleStreamError(err, stream);
     } finally {
-        cleanupAfterStream(session, session.wasAborted);
+        cleanupAfterStream(stream, stream.wasAborted);
     }
 }

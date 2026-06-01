@@ -3,7 +3,6 @@
 // ============================================================
 
 import { escapeHtml } from './toolsets.js';
-import { sessionManager } from './chat-session-manager.js';
 import { ICON_COPY } from './svg_icons_re.js';
 
 'use strict';
@@ -24,8 +23,8 @@ function remarkableKatex(md) {
     // 查找结束 $$
     var end = start + 2;
     while (end < max - 1) {
-      if (state.src.charCodeAt(end) === 0x24 /* $ */ &&
-          state.src.charCodeAt(end + 1) === 0x24 /* $ */) {
+    if (state.src.charCodeAt(end) === 0x24 /* $ */ &&
+        state.src.charCodeAt(end + 1) === 0x24 /* $ */) {
         // 跳过转义 \$
         if (end > start + 2 && state.src.charCodeAt(end - 1) === 0x5C /* \ */) {
           end += 2;
@@ -72,7 +71,7 @@ function remarkableKatex(md) {
     // 查找结束 $
     var end = start + 1;
     while (end < max) {
-      if (state.src.charCodeAt(end) === 0x24 /* $ */) {
+    if (state.src.charCodeAt(end) === 0x24 /* $ */) {
         // 跳过转义
         if (end > start + 1 && state.src.charCodeAt(end - 1) === 0x5C /* \ */) {
           end++;
@@ -272,7 +271,11 @@ function addCopyButton(pre) {
     const btn = document.createElement('button');
     btn.className = 'copy-btn code-copy-btn';
     btn.dataset.tooltip = '复制代码块';
-    btn.disabled = sessionManager.isStreaming; // 流式输出时禁用
+    try {
+        btn.disabled = !!(window.Alpine && Alpine.store('chats') && Alpine.store('chats').active && Alpine.store('chats').active.isStreaming);
+    } catch(e) {
+        btn.disabled = false;
+    }
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 Markdown</span>';
 
     pre.appendChild(btn);

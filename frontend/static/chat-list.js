@@ -3,9 +3,9 @@
 // 在左侧栏显示用户的对话列表，按时间分组展示
 // ============================================================
 
-import { sessionManager } from './chat-session-manager.js';
+import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
-import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showSources, showTokenUsage, applyStreamingState } from './chat-ui.js';
+import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
@@ -381,7 +381,7 @@ function createChatItem(chat) {
  * 选中一个对话 — 加载该对话的消息并渲染到主区域
  *
  * 变更（SSEResponser 重构后）：
- *   - 通过 sessionManager.switchTo() 切换活跃会话
+ *   - 通过 chatStreamMgr.activateSession() 准备会话
  *   - 旧对话的 SSE 连接继续在后台接收数据（不 abort）
  *   - 旧对话的 DOM 引用被释放，但 streamingMsg 保留
  */
@@ -395,13 +395,20 @@ async function selectChat(sn) {
         }
     } catch(e) {}
 
+    // 小屏抽屉模式下，点击切换对话后自动关闭侧边栏（抽屉）
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats && chats.closeDrawer) {
+            chats.closeDrawer();
+        }
+    } catch(e) {}
+
     // 关闭右键菜单
     closeContextMenu();
 
-    // 0. 通过 sessionManager 切换活跃会话
-    // 旧 session 标记为非活跃（_isActive = false），其 SSE 连接继续后台接收
-    // 新 session 标记为活跃（_isActive = true）
-    sessionManager.switchTo(sn);
+    // 0. 通过 chatStreamMgr 准备会话（getOrCreate + flushToDOM）
+    // 活跃状态由 Alpine.store('chats').switchTo() 管理
+    chatStreamMgr.activateSession(sn);
 
     // 0.1 同步 Alpine store 的 active chat
     // 确保 Alpine 绑定（:disabled, :class 等）引用正确的 chat
@@ -508,9 +515,7 @@ async function selectChat(sn) {
                 if (assistantEntry.usage && assistantMsg) {
                     showTokenUsage(assistantMsg, assistantEntry.usage);
                 }
-                if (assistantEntry.sources && assistantEntry.sources.length > 0) {
-                    showSources(assistantEntry.sources, 'web');
-                }
+                // sources 已由 Alpine 响应式渲染（group.assistant.sources 在 setChatMessageGroups 中设置）
             }
         }
     });
@@ -521,7 +526,7 @@ async function selectChat(sn) {
     //   而追加了 broken message（interrupted=2），导致 lastIsAssistant=true。
     //   此时应优先使用 streamingMsg 的数据恢复流式状态。
     // 场景 B：切换回一个流式已完成的对话（isDone），但 DOM 引用已被释放
-    const session = sessionManager.sessions.get(sn);
+    const stream = chatStreamMgr.get(sn);
 
     // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
     var streamingMsg = null;
@@ -533,7 +538,7 @@ async function selectChat(sn) {
         }
     } catch(e) {}
 
-    if (session && streamingMsg && !streamingMsg.isDone) {
+    if (stream && streamingMsg && !streamingMsg.isDone) {
         // 场景 A：流未完成
         // 如果后端返回的 messages 最后一条是后端追加的 broken message（interrupted=2），
         // 将其从 result.messages 中移除，避免 broken message 污染界面。
@@ -583,8 +588,8 @@ async function selectChat(sn) {
             var streamingBubble = lastGroupEl.querySelector('.bubble.streaming');
             var assistantMsgEl = lastGroupEl.querySelector('.message.assistant');
             if (assistantMsgEl) {
-                session.assistantBubble = assistantMsgEl;
-                session.contentDiv = streamingBubble || assistantMsgEl.querySelector('.bubble');
+                stream.assistantBubble = assistantMsgEl;
+                stream.contentDiv = streamingBubble || assistantMsgEl.querySelector('.bubble');
             }
 
             // 将已有累积内容渲染到 DOM
@@ -601,7 +606,7 @@ async function selectChat(sn) {
             // 标记流式状态
             applyStreamingState(true);
         });
-    } else if (session && streamingMsg && streamingMsg.isDone && !session.assistantBubble) {
+    } else if (stream && streamingMsg && streamingMsg.isDone && !stream.assistantBubble) {
         // 场景 B：流已完成但 DOM 引用已释放
         // 通过 Alpine store 添加一个已完成 assistant group
         try {
@@ -635,12 +640,12 @@ async function selectChat(sn) {
             if (!lastGroupEl) return;
             var assistantMsgEl = lastGroupEl.querySelector('.message.assistant');
             if (assistantMsgEl) {
-                session.assistantBubble = assistantMsgEl;
-                session.contentDiv = assistantMsgEl.querySelector('.bubble');
+                stream.assistantBubble = assistantMsgEl;
+                stream.contentDiv = assistantMsgEl.querySelector('.bubble');
             }
 
             // 渲染 reasoning/usage
-            if (session.assistantBubble) {
+            if (stream.assistantBubble) {
                 // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
                 var sm = null;
                 try {
@@ -651,7 +656,7 @@ async function selectChat(sn) {
                     }
                 } catch(e) {}
                 if (sm && sm.usage) {
-                    showTokenUsage(session.assistantBubble, sm.usage);
+                    showTokenUsage(stream.assistantBubble, sm.usage);
                 }
             }
 
@@ -665,6 +670,10 @@ async function selectChat(sn) {
 
     // 10. 更新刻度导航
     updateTickNav();
+
+    // 11. 清理已完成的非活跃 stream（释放内存）
+    // 切换对话后，旧对话变为非活跃，触发 cleanup 回收
+    chatStreamMgr.cleanup();
 }
 
 // ============================================================
@@ -684,7 +693,10 @@ function showContextMenu(e, chat) {
     menu.style.position = 'fixed';
 
     // 计算菜单位置
-    const rect = e.target.getBoundingClientRect();
+    // 使用 e.currentTarget 而非 e.target：当点击 SVG 内 <path> 子元素时，
+    // e.target 可能是路径元素而非按钮本身，其 bounding rect 可能极小或为零，
+    // 导致菜单定位异常。e.currentTarget 始终指向事件绑定的按钮元素。
+    const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
     const menuHeight = 36 * 3 + 4; // 3 items * 36px + padding
 
@@ -766,7 +778,7 @@ function closeContextMenu() {
  *
  * 注意：此处检查目标 chat 自身的 streaming 状态（而非 active chat），
  * 因为侧边栏重命名操作针对的是右键点击的特定对话，不一定是当前活跃对话。
- * header 标题编辑（chat.js:747）仍使用 sessionManager.isStreaming，
+ * header 标题编辑（chat.js）直接读取 Alpine.store('chats').active?.isStreaming，
  * 因为 header 始终对应 active chat。
  */
 async function handleRename(chat) {
@@ -980,8 +992,8 @@ async function handleDelete(chat) {
             return;
         }
 
-        // 0. 通过 sessionManager 移除 ChatSession（abort 正在进行的 SSE 流）
-        sessionManager.remove(chat.sn);
+        // 0. 通过 chatStreamMgr 移除 ChatStream（abort 正在进行的 SSE 流）
+        chatStreamMgr.remove(chat.sn);
 
         // 从本地数据移除
         const idx = currentChats.findIndex(c => c.sn === chat.sn);

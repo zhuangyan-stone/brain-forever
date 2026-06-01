@@ -648,7 +648,15 @@ document.addEventListener('alpine:init', function() {
             var sm = chat.streamingMsg;
             var render = window._alpineRenderMarkdown || function(s) { return s || ''; };
             lastGroup.assistant.createdAt = sm.createdAt || null;
-            lastGroup.assistant.sources = sm.sources && sm.sources.length > 0 ? sm.sources.slice() : undefined;
+            // 排序：URL 非空的排在前面（与流式期间 _syncWebSourcesToGroup 一致）
+            if (sm.sources && sm.sources.length > 0) {
+                var allSrcs = sm.sources.slice();
+                var withUrl = allSrcs.filter(function(s) { return s.url; });
+                var withoutUrl = allSrcs.filter(function(s) { return !s.url; });
+                lastGroup.assistant.sources = withUrl.concat(withoutUrl);
+            } else {
+                lastGroup.assistant.sources = undefined;
+            }
             lastGroup.assistant.usage = sm.usage || undefined;
             // 从 streamingMsg 拷贝 reasoningState（正常完成→'done'，中断→'interrupted'）
             lastGroup.assistant.reasoningState = sm.reasoningState || undefined;

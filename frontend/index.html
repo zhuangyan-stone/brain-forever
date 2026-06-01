@@ -68,29 +68,33 @@
     <script src="/static/lib/turndown.min.js"></script>
 
     <!-- Alpine Store 注册 — 必须在 Alpine.js 处理 DOM 前注册全局 store，
-         使 HTML 中 $store.* 引用立即可用。
-         此文件为普通 <script>（非 ES Module），因为 Alpine 的 DOM 扫描
-         时机早于 ES Module 的加载。 -->
+        使 HTML 中 $store.* 引用立即可用。
+        此文件为普通 <script>（非 ES Module），因为 Alpine 的 DOM 扫描
+        时机早于 ES Module 的加载。 -->
     <script src="/static/alpine-store.js"></script>
 
     <!-- Alpine 组件注册 — 通过 Alpine.data() 注册 x-data 组件，
-         监听 alpine:init 事件，在 Alpine 初始化时完成注册。
-         必须作为普通 <script> 在 Alpine.js 之前加载，
-         若用 ES Module 则执行时机晚于 Alpine 的 DOM 扫描。 -->
+        监听 alpine:init 事件，在 Alpine 初始化时完成注册。
+        必须作为普通 <script> 在 Alpine.js 之前加载，
+        若用 ES Module 则执行时机晚于 Alpine 的 DOM 扫描。 -->
     <script src="/static/components/buttons.js"></script>
+    <script src="/static/components/chat-container.js"></script>
+    <script src="/static/components/dialogs.js"></script>
+    <script src="/static/components/sources-panel.js"></script>
+    <script src="/static/components/format.js"></script>
 
     <!-- SVG 图标常量 — 必须在 Alpine.js 之前加载（普通<script>），
-         将 svg_icons.js 中的所有图标字符串常量注册到 window 上，
-         供 Alpine 模板中的 x-html 表达式使用。
-         若用 ES Module，执行时机晚于 Alpine 的 DOM 扫描，
-         会导致 "ICON_CLOSE is not defined" 等 ReferenceError。 -->
+        将 svg_icons.js 中的所有图标字符串常量注册到 window 上，
+        供 Alpine 模板中的 x-html 表达式使用。
+        若用 ES Module，执行时机晚于 Alpine 的 DOM 扫描，
+        会导致 "ICON_CLOSE is not defined" 等 ReferenceError。 -->
     <script src="/static/svg_icons.js"></script>
 
     <!-- Alpine.js — 渐进式响应式框架 -->
     <!--
-         Store 由 alpine-store.js 在 alpine:init 事件中注册，
-         组件函数已由上方普通 <script> 加载到全局（window.toggleBtn 等），
-         Alpine x-data 表达式及 $store.* 引用在 Alpine 处理 DOM 时立即可用。
+        Store 由 alpine-store.js 在 alpine:init 事件中注册，
+        组件函数已由上方普通 <script> 加载到全局（window.toggleBtn 等），
+        Alpine x-data 表达式及 $store.* 引用在 Alpine 处理 DOM 时立即可用。
     -->
     <script defer src="/static/lib/alpine.min.js"></script>
 </head>
@@ -264,9 +268,7 @@
                 <span class="main-title" id="headerTitle"></span>
                 <button id="aiTitleBtn" class="icon-btn icon-btn--small ai-title-btn"
                     x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
-                    :disabled="disabled"
-                    x-show="$store.chats.active?.sn"
-                    data-tooltip="让 AI 重新生成标题">
+                    :disabled="disabled" x-show="$store.chats.active?.sn" data-tooltip="让 AI 重新生成标题">
                     <svg viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
                         stroke-linejoin="round" x-html="ICON_AI_TITLE"></svg>
                 </button>
@@ -346,12 +348,10 @@
                                     流式期间：contentHTML/reasoningHTML 持续增长，createdAt=null
                                     完成之后：createdAt 被设置 → 角色标签显示时间、操作按钮出现
                                     模板完全由数据驱动，无需感知 isStreaming。 -->
-                                <div class="message assistant"
-                                    :class="{
+                                <div class="message assistant" :class="{
                                         interrupted: group.assistant.interrupted === 1,
                                         failed: group.assistant.interrupted === 2
-                                    }"
-                                    x-show="group.assistant" x-data="{ collapsed: false }">
+                                    }" x-show="group.assistant" x-data="{ collapsed: false }">
                                     <div class="message-inner">
                                         <!-- ★ 统一角色标签：始终显示，根据 reasoningState 自适应文本。
                                             有 reasoning 时外层标签直接充当折叠切换手柄，▶ 箭头通过 CSS rotate 统一大小。
@@ -393,7 +393,29 @@
                                     </div>
                                 </div>
 
-                                <!-- sources-panel 由 JS 动态管理 -->
+                                <!-- Sources panel — Alpine 响应式数据驱动（仅联网搜索）
+                                    数据流：group.assistant.sources 由 JS 维护，
+                                    Alpine 负责响应式渲染 + 折叠控制，
+                                    SwipePager 触摸翻页由 JS 组件管理。
+                                    x-data 参数 assistant = group.assistant
+                                    用于保持折叠状态和 SwipePager 数据引用。 -->
+                                <div class="sources-panel" x-show="group.assistant.sources?.length > 0"
+                                    x-data="sourcesPanel(group.assistant)" data-source-type="web">
+                                    <div class="sources-section">
+                                        <div class="sources-title sources-collapsible"
+                                            :class="{ expanded: !collapsed, collapsed: collapsed }" role="button"
+                                            tabindex="0" @click="toggle($event)" @keydown.enter.prevent="toggle($event)"
+                                            @keydown.space.prevent="toggle($event)">
+                                            <svg class="sources-icon" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                                stroke-linejoin="round" x-html="ICON_GLOBE"></svg>
+                                            <span x-text="'参考了 ' + (group.assistant.sources?.length ?? 0) + ' 个联网搜索结果'"></span>
+                                        </div>
+                                        <div class="sources-body" :class="{ 'sources-body--open': !collapsed }">
+                                            <div class="sources-items-container swipe-container"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </template>
                     </main>
@@ -404,13 +426,13 @@
 
             <!-- 输入区域 -->
             <!--
-                  注意：input-area 的 .streaming class 由 Alpine 通过
-                  $store.chats.active?.isStreaming 响应式控制（per-chat）。
-                  同时输入面板折叠（.collapsed class）由 chat-ui.js 的
-                  collapseInputArea() / restoreInputArea() 管理，两者互不冲突。
+                注意：input-area 的 .streaming class 由 Alpine 通过
+                $store.chats.active?.isStreaming 响应式控制（per-chat）。
+                同时输入面板折叠（.collapsed class）由 chat-ui.js 的
+                collapseInputArea() / restoreInputArea() 管理，两者互不冲突。
 
-                  优化：使用阻塞式内联脚本在 Alpine 处理 DOM 之前就将 input-area
-                  移入 welcome-message，消除刷新时输入面板从底部跳到中间的视觉跳动。
+                优化：使用阻塞式内联脚本在 Alpine 处理 DOM 之前就将 input-area
+                移入 welcome-message，消除刷新时输入面板从底部跳到中间的视觉跳动。
             -->
             <footer class="input-area" x-data :class="{ streaming: $store.chats.active?.isStreaming }">
                 <div class="send-mode-corner">
@@ -422,15 +444,15 @@
                 </div>
                 <div class="input-wrapper">
                     <!--
-                         messageInput 的 disabled 状态已由 Alpine 通过
-                         $store.chats.active?.isStreaming 响应式管理（per-chat）。
-                         Alpine 未加载时，由 setInputEnabled() 的降级路径控制。
+                        messageInput 的 disabled 状态已由 Alpine 通过
+                        $store.chats.active?.isStreaming 响应式管理（per-chat）。
+                        Alpine 未加载时，由 setInputEnabled() 的降级路径控制。
                     -->
                     <textarea id="messageInput" class="message-input" placeholder="想说点什么？" rows="1" autofocus
                         :disabled="$store.chats.active?.isStreaming ?? false"></textarea>
                     <span class="newline-hint" id="newlineHint"></span>
                     <!-- 中断按钮：仅折叠状态 + 流式输出时显示，展开状态时隐藏（由 sendBtn 承担停止功能）
-                         添加 x-cloak 防止 Alpine 初始化前红色按钮闪现 -->
+                        添加 x-cloak 防止 Alpine 初始化前红色按钮闪现 -->
                     <button id="stopStreamingBtn" class="stop-streaming-btn" x-data x-cloak
                         x-show="($store.chats.inputCollapsed ?? false) && ($store.chats.active?.isStreaming ?? false)"
                         data-tooltip="停止生成">
@@ -482,8 +504,8 @@
             </footer>
 
             <!-- 阻塞式内联脚本：在 Alpine 处理 DOM 之前就将 input-area 移入 welcome-message，
-                 消除刷新时输入面板从底部跳到中间的视觉跳动。
-                 此脚本会在 Alpine（defer）执行之前运行，因为 inline script 是同步执行的。 -->
+                消除刷新时输入面板从底部跳到中间的视觉跳动。
+                此脚本会在 Alpine（defer）执行之前运行，因为 inline script 是同步执行的。 -->
             <script>
                 (function () {
                     var inputArea = document.querySelector('.input-area');
@@ -499,10 +521,10 @@
 
     <!-- Toast 消息容器（Alpine 组件：通过 $store.ui 共享状态） -->
     <!--
-         注意：此处 x-data 为空对象（无本地状态），toast 数据由 Alpine.store('ui')
-         管理，模板中通过 $store.ui.toasts 访问。这种方式避免了 CustomEvent
-         事件监听机制的时序问题——showToast() 直接操作 Alpine.store，响应式系统
-         自动触发 x-for/x-show 更新。
+        注意：此处 x-data 为空对象（无本地状态），toast 数据由 Alpine.store('ui')
+        管理，模板中通过 $store.ui.toasts 访问。这种方式避免了 CustomEvent
+        事件监听机制的时序问题——showToast() 直接操作 Alpine.store，响应式系统
+        自动触发 x-for/x-show 更新。
     -->
     <div class="toast-container" id="toastContainer" x-data="{}">
         <template x-for="toast in $store.ui.toasts" :key="toast.id">
@@ -542,8 +564,8 @@
             </div>
             <div class="dialog-body">
                 <div class="title-edit-original" x-text="displayTitle"></div><label
-                    class="title-edit-label">新标题</label><input type="text" class="title-edit-input"
-                    x-model="editingTitle" maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
+                    class="title-edit-label" for="titleEditInput">新标题</label><input type="text" class="title-edit-input" id="titleEditInput"
+                    name="title" x-model="editingTitle" maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
             </div>
             <div class="dialog-footer">
                 <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>

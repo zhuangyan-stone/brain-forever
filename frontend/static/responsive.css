@@ -50,8 +50,8 @@ body.small-screen-mode .scroll-container.welcome-state .chat-container {
 }
 
 /* 超小屏（手机竖屏）模式下主栏隐藏品牌区域（Logo + 品牌名 + 副标题），
-   只保留切换按钮和对话标题；
-   中屏（481~920px）时 main-brand-area 内只放一个 32×32 logo，由 JS 控制 */
+只保留切换按钮和对话标题；
+中屏（481~920px）时 main-brand-area 内只放一个 32×32 logo，由 JS 控制 */
 @media (max-width: 480px) {
     body.small-screen-mode .main-brand-area {
         display: none !important;

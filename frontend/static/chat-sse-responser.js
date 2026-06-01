@@ -16,9 +16,9 @@
 // ============================================================
 
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
-import { showSources, showTokenUsage, autoScrollToBottom, showError, restoreInputArea, showToast } from './chat-ui.js';
+import { showSources, showTokenUsage, autoScrollToBottom, showError, restoreInputArea, showToast, updateSourcesPagerInDOM } from './chat-ui.js';
 import { addDirtyChat } from './chat-list.js';
-import { sessionManager } from './chat-session-manager.js';
+import { chatStreamMgr } from './chat-stream-mgr.js';
 
 'use strict';
 
@@ -52,6 +52,41 @@ function _getAssistant(sn) {
 }
 
 /**
+ * 将 streamingMsg.sources 同步到 group.assistant.sources（Alpine 响应式数据）
+ * 同时更新 SwipePager。
+ * 仅在活跃 session 且 sources 有数据时调用。
+ * @param {string} sn
+ */
+function _syncWebSourcesToGroup(sn) {
+    try {
+        var chats = window.Alpine.store('chats');
+        if (!chats) return;
+        var chatData = chats.getOrCreate(sn);
+        if (!chatData || !chatData.streamingMsg) return;
+        var groups = chatData.groups;
+        if (!groups || groups.length === 0) return;
+        var assistant = groups[groups.length - 1].assistant;
+        if (!assistant) return;
+
+        // 分组排序：URL 非空的排在前面
+        var sources = chatData.streamingMsg.sources || [];
+        var withUrl = sources.filter(function(s) { return s.url; });
+        var withoutUrl = sources.filter(function(s) { return !s.url; });
+        assistant.sources = withUrl.concat(withoutUrl);
+
+        // 使用 Alpine.nextTick 确保 Alpine 完成 DOM 更新后
+        // 再操作 SwipePager（SwipePager 需要 DOM 容器已就绪）
+        window.Alpine.nextTick(function() {
+            if (typeof updateSourcesPagerInDOM === 'function') {
+                updateSourcesPagerInDOM(assistant);
+            }
+        });
+    } catch(e) {
+        // Alpine store 尚未就绪时静默跳过
+    }
+}
+
+/**
  * SSEResponser — 每个 ChatSession 的 SSE 事件处理器
  *
  * 职责：
@@ -64,21 +99,21 @@ function _getAssistant(sn) {
  */
 export class SSEResponser {
     /**
-     * @param {import('./chat-session.js').ChatSession} session
+     * @param {import('./chat-stream.js').ChatStream} stream
      */
-    constructor(session) {
-        this.session = session;
+    constructor(stream) {
+        this.stream = stream;
         // 节流渲染定时器（content）
         this._renderTimer = null;
         // 节流渲染定时器（reasoning）
         this._reasoningRenderTimer = null;
     }
 
-    /** 判断当前 session 是否是活跃会话 */
+    /** 判断当前 stream 是否是活跃会话 */
     get isActive() {
         try {
             var chats = window.Alpine.store('chats');
-            return chats && chats.active && chats.active.sn === this.session.sn;
+            return chats && chats.active && chats.active.sn === this.stream.sn;
         } catch(e) {
             return false;
         }
@@ -94,7 +129,7 @@ export class SSEResponser {
         try {
             var chats = window.Alpine.store('chats');
             if (!chats) return null;
-            var chatData = chats.getOrCreate(this.session.sn);
+            var chatData = chats.getOrCreate(this.stream.sn);
             return chatData ? chatData.streamingMsg : null;
         } catch(e) {
             return null;
@@ -110,7 +145,7 @@ export class SSEResponser {
     _syncContentToAssistant() {
         var sm = this._getStreamingMsg();
         if (!sm) return;
-        var assistant = _getAssistant(this.session.sn);
+        var assistant = _getAssistant(this.stream.sn);
         if (!assistant) return;
         // 直接更新原始文本（让 Alpine 感知变化，但 throttle 控制渲染频率）
         assistant.content = sm.content;
@@ -127,7 +162,7 @@ export class SSEResponser {
             self._renderTimer = null;
             var sm = self._getStreamingMsg();
             if (!sm) return;
-            var assistant = _getAssistant(self.session.sn);
+            var assistant = _getAssistant(self.stream.sn);
             if (!assistant) return;
             console.log('[throttle] 🅲 contentHTML 设置前', `content长度=${(sm.content||'').length} reasoning长度=${(sm.reasoning||'').length}`);
             assistant.contentHTML = renderMarkdown(sm.content || '');
@@ -149,7 +184,7 @@ export class SSEResponser {
     _syncReasoningToAssistant() {
         var sm = this._getStreamingMsg();
         if (!sm) return;
-        var assistant = _getAssistant(this.session.sn);
+        var assistant = _getAssistant(this.stream.sn);
         if (!assistant) return;
         assistant.reasoning = sm.reasoning;
         this._throttleReasoningRender();
@@ -165,7 +200,7 @@ export class SSEResponser {
             self._reasoningRenderTimer = null;
             var sm = self._getStreamingMsg();
             if (!sm) return;
-            var assistant = _getAssistant(self.session.sn);
+            var assistant = _getAssistant(self.stream.sn);
             if (!assistant) return;
             console.log('[throttle] 🅡 reasoningHTML 设置前', `reasoning长度=${(sm.reasoning||'').length} content长度=${(sm.content||'').length}`);
             assistant.reasoningHTML = renderMarkdown(sm.reasoning || '');
@@ -194,21 +229,18 @@ export class SSEResponser {
             if (!chats) return;
 
             if (frontSN) {
-                // 1. 在 items[] 中通过 frontSN 找到 chat，更新为真实 SN
+                // 1. 先迁移 ChatStreamMgr 的 Map key（避免 Alpine store 先更新后查找不到）
+                var stream = chatStreamMgr.streams.get(frontSN);
+                if (stream) {
+                    chatStreamMgr.streams.delete(frontSN);
+                    chatStreamMgr.streams.set(event.sn, stream);
+                    stream.sn = event.sn;
+                }
+
+                // 2. 再更新 Alpine store items[].sn（原地更新，active.sn 自动反映新值）
                 var idx = chats.items.findIndex(function(c) { return c.sn === frontSN; });
                 if (idx >= 0) {
                     chats.items[idx].sn = event.sn;
-                }
-
-                // 2. 更新 sessionManager：将 key 从 frontSN 迁移到真实 SN
-                var session = sessionManager.sessions.get(frontSN);
-                if (session) {
-                    session.sn = event.sn;
-                    sessionManager.sessions.delete(frontSN);
-                    sessionManager.sessions.set(event.sn, session);
-                    if (sessionManager.activeSessionSN === frontSN) {
-                        sessionManager.activeSessionSN = event.sn;
-                    }
                 }
 
                 // 3. 更新侧边栏 currentChats 中的 SN
@@ -240,8 +272,7 @@ export class SSEResponser {
                     // 侧边栏更新失败不阻塞主流程
                 }
 
-                // 4. 更新 this.session.sn 为真实 SN
-                this.session.sn = event.sn;
+                // 4. stream.sn 已在第 1 步中更新，无需重复赋值
             } else {
                 // 没有 frontSN 时走旧逻辑：直接更新 session SN
                 this.session.sn = event.sn;
@@ -345,7 +376,9 @@ export class SSEResponser {
                 if (!sm.sources) sm.sources = [];
                 sm.sources.push(...newWebSources);
                 if (this.isActive) {
-                    showSources(newWebSources, 'web');
+                    // ★ Alpine 响应式：同步全量 sources 到 group.assistant，
+                    //    由 Alpine 模板 + SwipePager 渲染，不再调用 showSources()。
+                    _syncWebSourcesToGroup(this.stream.sn);
                 }
             }
         }
@@ -503,9 +536,10 @@ export class SSEResponser {
         }
 
         // 如果已完成但 assistantBubble 存在，显示 sources/usage
+        // ★ Alpine 响应式：同步全量 sources 到 group.assistant，不再调用 showSources()
         if (this.session.assistantBubble) {
             if (sm.sources && sm.sources.length > 0) {
-                showSources(sm.sources, 'web');
+                _syncWebSourcesToGroup(this.session.sn);
             }
             if (sm.isDone && sm.usage) {
                 showTokenUsage(this.session.assistantBubble, sm.usage);

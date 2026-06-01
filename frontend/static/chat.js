@@ -22,7 +22,7 @@ import {
     ICON_DOTS, ICON_CLOSE, ICON_PIN, ICON_STOP,
     ICON_ATTACH, ICON_NEW_CHAT, ICON_RESTORE, ICON_COPY_MSG
 } from './svg_icons_re.js';
-import { sessionManager } from './chat-session-manager.js';
+import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 
 'use strict';
@@ -80,7 +80,7 @@ if (aiTitleBtn) {
     let aiTitleDebounceTimer = null;
     aiTitleBtn.addEventListener('click', () => {
         // 正在 SSE 流式输出时，AI 标题按钮不可用（Alpine :disabled 已处理，再加一层防御）
-        if (sessionManager.isStreaming) {
+        if (Alpine.store('chats').active?.isStreaming) {
             return;
         }
         if (aiTitleDebounceTimer) {
@@ -269,6 +269,18 @@ function closeDrawer() {
     updateUI();
     updateBrandLayout();
 }
+
+// 将 closeDrawer 注册到 Alpine store，供 chat-list.js 的 selectChat 等外部模块调用
+try {
+    var _chatsStore = window.Alpine.store('chats');
+    if (_chatsStore) {
+        _chatsStore.closeDrawer = function() {
+            if (isSmallMode && isDrawerOpen) {
+                closeDrawer();
+            }
+        };
+    }
+} catch(e) {}
 
 // 宽屏显隐逻辑
 function hideByUser() {
@@ -644,10 +656,13 @@ messageInput.addEventListener('keydown', (e) => {
 
 // 发送按钮：流式输出中点击停止，否则发送消息
 sendBtn.addEventListener('click', () => {
-    if (sessionManager.isStreaming) {
+    const activeChat = Alpine.store('chats').active;
+    if (activeChat?.isStreaming) {
         // 正在流式输出：停止生成
-        if (sessionManager.abortController) {
-            sessionManager.abortController.abort();
+        const activeSn = activeChat.sn;
+        const stream = activeSn ? chatStreamMgr.get(activeSn) : null;
+        if (stream?.abortController) {
+            stream.abortController.abort();
         }
     } else {
         sendMessage();
@@ -658,8 +673,11 @@ sendBtn.addEventListener('click', () => {
 const stopStreamingBtn = document.getElementById('stopStreamingBtn');
 if (stopStreamingBtn) {
     stopStreamingBtn.addEventListener('click', () => {
-        if (sessionManager.abortController) {
-            sessionManager.abortController.abort();
+        const activeChat = Alpine.store('chats').active;
+        const activeSn = activeChat?.sn;
+        const stream = activeSn ? chatStreamMgr.get(activeSn) : null;
+        if (stream?.abortController) {
+            stream.abortController.abort();
         }
     });
 }
@@ -697,7 +715,7 @@ initTickNav();
 
     headerTitle.addEventListener('click', () => {
         // 正在流式输出时不允许修改标题
-        if (sessionManager.isStreaming) {
+        if (Alpine.store('chats').active?.isStreaming) {
             showToast('正在生成回复，请稍后再修改标题', 'info');
             return;
         }
@@ -755,7 +773,7 @@ initDeleteModal();
 
     loginBtn.addEventListener('click', async () => {
         // 流式输出时，登录按钮直接短路返回，不做任何操作
-        if (sessionManager.isStreaming) {
+        if (Alpine.store('chats').active?.isStreaming) {
             return;
         }
 
@@ -810,7 +828,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // ---- scrollend：滚动完全停止后，折叠输入面板 + 恢复自动滚动 ----
     chatContainer.addEventListener('scrollend', () => {
-        if (!sessionManager.isStreaming) return;
+        if (!Alpine.store('chats').active?.isStreaming) return;
 
         // 滚动停止后才折叠输入面板，避免 scroll anchoring 干扰滚动过程中的检测
         collapseInputArea();
@@ -834,7 +852,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     //     避免 200ms 延迟后 _autoScrolling 已被 setTimeout(0) 清除导致误判。
     let scrollThrottleTimer = null;
     chatContainer.addEventListener('scroll', () => {
-        if (sessionManager.isStreaming) {
+        if (Alpine.store('chats').active?.isStreaming) {
             // ★ 流式分支：无节流，即时处理
             //   auto-scroll 由 throttleRender 每 180ms 调用 autoScrollToBottom 负责
             //   _autoScrolling 在同一事件循环中仍为 true，可准确拦截自己触发的 scroll 事件

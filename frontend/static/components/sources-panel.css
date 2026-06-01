@@ -13,6 +13,13 @@
     animation: fadeIn 0.3s ease;
 }
 
+/* ---- 超小屏：面板内边距缩减 ---- */
+@media (max-width: 480px) {
+    .sources-panel {
+        padding: 8px 10px;
+    }
+}
+
 /* ---- 可折叠区域 ---- */
 
 .sources-section {
@@ -76,10 +83,22 @@
     color: var(--accent);
 }
 
-/* 折叠内容体 */
+/* 折叠内容体（默认隐藏，由 Alpine :class 控制显隐） */
 .sources-body {
+    display: none;
     padding-left: 20px;  /* 与箭头+图标缩进对齐 */
     padding-top: 6px;
+}
+
+.sources-body.sources-body--open {
+    display: block;
+}
+
+/* ---- 超小屏：折叠体缩进缩减 ---- */
+@media (max-width: 480px) {
+    .sources-body {
+        padding-left: 12px;
+    }
 }
 
 /* ---- 来源条目 ---- */
@@ -92,6 +111,15 @@
     background: rgba(79, 195, 247, 0.05);
     border-radius: 6px;
     border-left: 3px solid var(--accent);
+}
+
+/* ---- 超小屏：条目内边距缩窄、左侧竖线变细 ---- */
+@media (max-width: 480px) {
+    .sources-panel .source-item {
+        padding: 4px 6px;
+        border-left-width: 2px;
+        font-size: 0.79rem;
+    }
 }
 
 [data-theme="dark"] .sources-panel .source-item {
@@ -134,12 +162,26 @@
     gap: 8px;
 }
 
+/* ---- 超小屏：标题行 gap 缩窄 ---- */
+@media (max-width: 480px) {
+    .source-title-row {
+        gap: 4px;
+    }
+}
+
 .source-title-row .source-title {
     flex: 1;
     min-width: 0;          /* 允许 flex 子项收缩 */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* 超小屏时标题字号略缩，给更多空间 */
+@media (max-width: 480px) {
+    .source-title-row .source-title {
+        font-size: 0.8rem;
+    }
 }
 
 /* ---- 网站标识（图标 + 名称） ---- */
@@ -193,14 +235,12 @@
     overflow: hidden;
 }
 
-[data-theme="dark"] .source-content-preview {
-    color: #b0b0b0 !important;
-}
-
+/* 超小屏：内容预览行数缩减 */
 @media (max-width: 480px) {
     .source-content-preview {
         -webkit-line-clamp: 2;
         line-clamp: 2;
+        margin-top: 2px !important;  /* 覆盖 inline style */
     }
 }
 
@@ -221,6 +261,14 @@
     padding: 10px 0 4px 0;
 }
 
+/* 超小屏：圆点间距缩窄 */
+@media (max-width: 480px) {
+    .sources-pagination-dots {
+        gap: 6px;
+        padding: 6px 0 2px 0;
+    }
+}
+
 .sources-pagination-dot {
     display: inline-block;
     width: 12px;
@@ -230,6 +278,14 @@
     opacity: 0.35;
     cursor: pointer;
     transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+/* 超小屏：圆点缩小 */
+@media (max-width: 480px) {
+    .sources-pagination-dot {
+        width: 8px;
+        height: 8px;
+    }
 }
 
 .sources-pagination-dot:hover {

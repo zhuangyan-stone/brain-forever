@@ -40,20 +40,20 @@ body {
     主容器 — flex 双栏布局
     ============================================================
     布局结构：
-      .app-container (flex row, 100% x 100%)
-      ├── .left-sidebar (width:380px, hidden class 控制显隐)
-      │   ├── .sidebar-header (标题区, flex-shrink:0)
-      │   │   └── .left-brand-area (品牌容器, 动态渲染)
-      │   └── .sidebar-content (flex:1, overflow-y:auto, 独立滚动)
-      └── .main-content (flex:1, flex column)
-          ├── .main-header (标题区, flex-shrink:0)
-          │   ├── .main-brand-area (品牌容器, 动态渲染)
-          │   ├── .main-title (内容标题)
-          │   └── .main-header-right (主题切换等)
-          ├── .main-body (flex:1, overflow:hidden, 居中)
-          │   └── .scroll-container (width:80%, overflow-y:auto)
-          │       └── #chatContainer (原聊天容器)
-          └── .input-area (原样保留)
+    .app-container (flex row, 100% x 100%)
+    ├── .left-sidebar (width:380px, hidden class 控制显隐)
+    │   ├── .sidebar-header (标题区, flex-shrink:0)
+    │   │   └── .left-brand-area (品牌容器, 动态渲染)
+    │   └── .sidebar-content (flex:1, overflow-y:auto, 独立滚动)
+    └── .main-content (flex:1, flex column)
+        ├── .main-header (标题区, flex-shrink:0)
+        │   ├── .main-brand-area (品牌容器, 动态渲染)
+        │   ├── .main-title (内容标题)
+        │   └── .main-header-right (主题切换等)
+        ├── .main-body (flex:1, overflow:hidden, 居中)
+        │   └── .scroll-container (width:80%, overflow-y:auto)
+        │       └── #chatContainer (原聊天容器)
+        └── .input-area (原样保留)
     ============================================================ */
 
 .app-container {
@@ -245,8 +245,8 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     overflow-y: auto;
     overflow-x: hidden;
     /* 禁用 scroll anchoring：AI 流式输出时内容在上方插入（reasoning 面板展开），
-       scroll anchoring 会调整 scrollTop 并触发 scroll 事件，被误判为用户手动滚动，
-       导致自动滚动永久失效。关闭后由 autoScrollToBottom 手动控制滚动位置。 */
+    scroll anchoring 会调整 scrollTop 并触发 scroll 事件，被误判为用户手动滚动，
+    导致自动滚动永久失效。关闭后由 autoScrollToBottom 手动控制滚动位置。 */
     overflow-anchor: none;
 }
 
@@ -765,7 +765,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 /* 热点内容容器 — 位于欢迎面板上方，固定在顶部，不参与居中。
-   空时高度为 0，有内容时自然撑开。 */
+空时高度为 0，有内容时自然撑开。 */
 .hotContent {
     flex-shrink: 0;
     width: 100%;
@@ -779,7 +779,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 /* 欢迎状态下，整个 .scroll-container 切换为垂直居中布局，
-   使欢迎信息与底部输入框一起在页面中垂直居中 */
+使欢迎信息与底部输入框一起在页面中垂直居中 */
 .scroll-container.welcome-state {
     display: flex;
     flex-direction: column;
@@ -859,8 +859,8 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 /* 宽屏模式下侧边栏展开时：偏移半个侧边栏宽度（180px），
-   使免责声明在主内容区中居左 = calc(50% + 180px)，配合
-   translateX(-50%) 实现主内容区水平居中。 */
+使免责声明在主内容区中居左 = calc(50% + 180px)，配合
+translateX(-50%) 实现主内容区水平居中。 */
 body:not(.small-screen-mode):has(.left-sidebar:not(.hidden)) .ai-disclaimer {
     left: calc(50% + 180px);
 }

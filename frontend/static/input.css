@@ -6,8 +6,8 @@
     ============================================================ */
 
 /* Alpine.js x-cloak：在 Alpine 初始化前隐藏带 x-cloak 属性的元素，
-   防止 x-show 元素在 Alpine 评估表达式前短暂可见（Flash of Uninitialized x-show）。
-   Alpine 初始化后自动移除该属性。 */
+防止 x-show 元素在 Alpine 评估表达式前短暂可见（Flash of Uninitialized x-show）。
+Alpine 初始化后自动移除该属性。 */
 [x-cloak] {
     display: none !important;
 }

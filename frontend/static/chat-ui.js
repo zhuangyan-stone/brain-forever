@@ -4,12 +4,160 @@
 
 import { escapeHtml, truncate } from './toolsets.js';
 import { updateCurrentChatTitle } from './chat-list.js';
-import { sessionManager } from './chat-session-manager.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
 import { ICON_GLOBE } from './svg_icons_re.js';
 
 'use strict';
+
+// ============================================================
+// 工具函数 — WebSource 条目 DOM 创建
+// ============================================================
+
+/**
+ * createSourceItemElement — 创建单个 source 条目的 DOM 元素
+ * 提取为独立函数，供 Alpine x-init 中的 SwipePager renderPage 使用。
+ * @param {object} src - source 数据
+ * @returns {HTMLElement}
+ */
+export function createSourceItemElement(src) {
+    const item = document.createElement('div');
+    item.className = 'source-item';
+
+    // 清理标题：去除重复的网站名称以及 "（发布时间：XXXX）" 后缀
+    let cleanTitle = src.title || '';
+    cleanTitle = cleanTitle.replace(/[（(]发布时间：.*?[）)]/g, '').trim();
+    const siteName = src.site_name || '';
+    if (siteName) {
+        if (cleanTitle.startsWith(siteName)) {
+            cleanTitle = cleanTitle.slice(siteName.length);
+        }
+        if (cleanTitle.endsWith(siteName)) {
+            cleanTitle = cleanTitle.slice(0, -siteName.length);
+        }
+        cleanTitle = cleanTitle.replace(/^[\s\-_:—：]+|[\s\-_:—：]+$/g, '');
+    }
+    if (!cleanTitle) {
+        cleanTitle = src.title ? src.title.replace(/[（(]发布时间：.*?[）)]/g, '').trim() : '';
+    }
+
+    let siteBadgeHtml = '';
+    if (src.site_icon || src.site_name) {
+        const iconHtml = src.site_icon
+            ? `<img class="source-site-icon" src="${escapeHtml(src.site_icon)}" alt="" onerror="this.style.display='none'" decoding="async">`
+            : '';
+        const nameHtml = src.site_name
+            ? `<span class="source-site-name">${escapeHtml(src.site_name)}</span>`
+            : '';
+        if (iconHtml || nameHtml) {
+            siteBadgeHtml = `<span class="source-site-badge">${iconHtml}${nameHtml}</span>`;
+        }
+    }
+
+    const titleHtml = src.url
+        ? `<a class="source-title source-link" href="${escapeHtml(src.url)}" target="_blank" rel="noopener">${escapeHtml(cleanTitle)}</a>`
+        : `<span class="source-title">${escapeHtml(cleanTitle)}</span>`;
+
+    const publishHtml = src.publish_date
+        ? `<span style="color:var(--text-muted);font-size:0.75rem;display:block;margin-top:4px">[发布于：${escapeHtml(src.publish_date)}]</span>`
+        : '';
+
+    item.innerHTML = `
+        <div class="source-title-row">
+            ${titleHtml}
+            ${siteBadgeHtml}
+        </div>
+        ${publishHtml}
+        ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)" class="source-content-preview">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
+    `;
+    return item;
+}
+
+/**
+ * initSourcesPager — 在容器上初始化 SwipePager 触摸翻页组件
+ * 供 Alpine x-init 调用，通过 window._initSourcesPager 暴露。
+ *
+ * @param {HTMLElement} container - .sources-items-container 元素
+ * @param {object} assistant - group.assistant 对象（含 sources 数组）
+ * @returns {SwipePager|null}
+ */
+export function initSourcesPager(container, assistant) {
+    if (!container || !assistant || !assistant.sources || assistant.sources.length === 0) return null;
+
+    const PAGE_SIZE = 5;
+    const totalPages = Math.ceil(assistant.sources.length / PAGE_SIZE);
+    if (totalPages <= 1) {
+        // 只有一页时不用翻页组件，直接渲染全部条目
+        container.innerHTML = '';
+        assistant.sources.forEach(function(src) {
+            container.appendChild(createSourceItemElement(src));
+        });
+        return null;
+    }
+
+    const pager = new SwipePager(container, {
+        totalPages: totalPages,
+        renderPage: function(pane, pageIndex) {
+            pane.innerHTML = '';
+            if (pageIndex === null || pageIndex < 0 || pageIndex >= totalPages) return;
+            const start = pageIndex * PAGE_SIZE;
+            const end = Math.min(start + PAGE_SIZE, assistant.sources.length);
+            for (let i = start; i < end; i++) {
+                pane.appendChild(createSourceItemElement(assistant.sources[i]));
+            }
+        },
+        showDots: true,
+        dotsClass: 'sources-pagination-dots',
+        dotClass: 'sources-pagination-dot',
+        onPageChange: function() {
+            scrollPanelIntoView(container);
+        },
+    });
+    pager.mount(0);
+    // 在容器上存储 pager 引用，供 updateSourcesPagerInDOM 外部更新
+    container._pager = pager;
+    return pager;
+}
+
+/**
+ * updateSourcesPagerInDOM — 更新当前活跃组中 sources 的 SwipePager
+ * 在流式期间新 sources 到达时调用，使翻页组件反映最新数据。
+ *
+ * ★ 仅在 body 可见（panel 已展开）时初始化/更新 SwipePager。
+ *    body 隐藏（display:none）时容器宽度为 0，SwipePager 三栏布局会坍缩，
+ *    因此标记为数据待更新，由 toggle() 展开时触发。
+ *
+ * @param {object} assistant - group.assistant 对象
+ */
+export function updateSourcesPagerInDOM(assistant) {
+    if (!assistant || !assistant.sources || assistant.sources.length === 0) return;
+    const lastGroup = document.querySelector('.message-group:last-child');
+    if (!lastGroup) return;
+    const container = lastGroup.querySelector('.sources-items-container');
+    if (!container) return;
+
+    // 如果 body 隐藏（display:none），容器无宽度 → 跳过，标记数据待同步
+    const body = container.closest('.sources-body');
+    if (body && body.style.display === 'none') {
+        container.dataset.sourcesDirty = '1';
+        return;
+    }
+
+    const PAGE_SIZE = 5;
+    const newTotalPages = Math.ceil(assistant.sources.length / PAGE_SIZE);
+
+    if (container._pager) {
+        // 已有翻页组件 → 更新总页数
+        container._pager.updateTotal(newTotalPages);
+    } else {
+        // 首次初始化 SwipePager（或直接渲染单页内容）
+        initSourcesPager(container, assistant);
+    }
+}
+
+// 暴露给 Alpine / buttons.js 调用
+window._initSourcesPager = initSourcesPager;
+window._updateSourcesPagerInDOM = updateSourcesPagerInDOM;
 
 /** UI 渲染节流间隔（毫秒） */
 const UI_RENDER_INTERVAL = 180;
@@ -276,7 +424,8 @@ export function showSources(sources, type) {
     if (!lastGroup) return; // 没有消息组时不做任何事
 
     // 在当前消息组内查找或创建 sources 面板（每个组独立）
-    let panel = lastGroup.querySelector('.sources-panel');
+    // 跳过 Alpine 管理的 panel（含 x-data 属性），RAG 使用独立 panel
+    let panel = lastGroup.querySelector('.sources-panel:not([x-data])');
     if (!panel) {
         panel = document.createElement('div');
         panel.className = 'sources-panel';
@@ -339,121 +488,11 @@ export function showSources(sources, type) {
             }
         });
     } else if (type === 'web') {
-        // ---- 联网搜索结果（分页显示） ----
-        // 分组：URL 非空的排在前面，URL 为空的排在后面
-        const withUrl = sources.filter(s => s.url);
-        const withoutUrl = sources.filter(s => !s.url);
-        sources = withUrl.concat(withoutUrl);
-        const PAGE_SIZE = 5;
-        const totalPages = Math.ceil(sources.length / PAGE_SIZE);
-
-        // 复用 section 时清空内容重新填充
-        section.innerHTML = '';
-
-        const title = document.createElement('div');
-        title.className = 'sources-title sources-collapsible';
-        title.innerHTML = `${globeIconSvg} 参考了 ${sources.length} 个联网搜索结果`;
-        title.setAttribute('role', 'button');
-        title.tabIndex = 0;
-        section.appendChild(title);
-
-        const body = document.createElement('div');
-        body.className = 'sources-body';
-        body.style.display = 'none'; // 默认折叠
-
-        // 容器：用于存放当前页的条目（内含 slider 实现滑动动效）
-        const itemsContainer = document.createElement('div');
-        itemsContainer.className = 'sources-items-container';
-        body.appendChild(itemsContainer);
-
-        /**
-         * 构建单个 source 条目的 DOM 元素
-         */
-        function createSourceItem(src) {
-            const item = document.createElement('div');
-            item.className = 'source-item';
-
-            // 清理标题：去除标题中重复的网站名称以及搜索引擎附加的 "（发布时间：XXXX）" 后缀
-            let cleanTitle = src.title || '';
-            cleanTitle = cleanTitle.replace(/[（(]发布时间：.*?[）)]/g, '').trim();
-            const siteName = src.site_name || '';
-            if (siteName) {
-                if (cleanTitle.startsWith(siteName)) {
-                    cleanTitle = cleanTitle.slice(siteName.length);
-                }
-                if (cleanTitle.endsWith(siteName)) {
-                    cleanTitle = cleanTitle.slice(0, -siteName.length);
-                }
-                cleanTitle = cleanTitle.replace(/^[\s\-_:—：]+|[\s\-_:—：]+$/g, '');
-            }
-            if (!cleanTitle) {
-                cleanTitle = src.title ? src.title.replace(/[（(]发布时间：.*?[）)]/g, '').trim() : '';
-            }
-
-            let siteBadgeHtml = '';
-            if (src.site_icon || src.site_name) {
-                const iconHtml = src.site_icon
-                    ? `<img class="source-site-icon" src="${escapeHtml(src.site_icon)}" alt="" onerror="this.style.display='none'" decoding="async">`
-                    : '';
-                const nameHtml = src.site_name
-                    ? `<span class="source-site-name">${escapeHtml(src.site_name)}</span>`
-                    : '';
-                if (iconHtml || nameHtml) {
-                    siteBadgeHtml = `<span class="source-site-badge">${iconHtml}${nameHtml}</span>`;
-                }
-            }
-
-            const titleHtml = src.url
-                ? `<a class="source-title source-link" href="${escapeHtml(src.url)}" target="_blank" rel="noopener">${escapeHtml(cleanTitle)}</a>`
-                : `<span class="source-title">${escapeHtml(cleanTitle)}</span>`;
-
-            const publishHtml = src.publish_date
-                ? `<span style="color:var(--text-muted);font-size:0.75rem;display:block;margin-top:4px">[发布于：${escapeHtml(src.publish_date)}]</span>`
-                : '';
-
-            item.innerHTML = `
-                <div class="source-title-row">
-                    ${titleHtml}
-                    ${siteBadgeHtml}
-                </div>
-                ${publishHtml}
-                ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)" class="source-content-preview">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
-            `;
-            return item;
-        }
-
-        // ---- 使用 SwipePager 组件替代内联触摸翻页逻辑 ----
-        const pager = new SwipePager(itemsContainer, {
-            totalPages: totalPages,
-            renderPage: (pane, pageIndex) => {
-                pane.innerHTML = '';
-                if (pageIndex === null || pageIndex < 0 || pageIndex >= totalPages) return;
-                const start = pageIndex * PAGE_SIZE;
-                const end = Math.min(start + PAGE_SIZE, sources.length);
-                for (let i = start; i < end; i++) {
-                    pane.appendChild(createSourceItem(sources[i]));
-                }
-            },
-            showDots: true,
-            dotsClass: 'sources-pagination-dots',
-            dotClass: 'sources-pagination-dot',
-            onPageChange: () => {
-                // 翻页后，如果面板高度变化导致内容不可见，自动滚动补偿
-                scrollPanelIntoView(itemsContainer);
-            },
-        });
-        pager.mount(0);
-
-        section.appendChild(body);
-
-        // 点击标题切换折叠
-        title.addEventListener('click', () => toggleSourcesSection(title, body));
-        title.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleSourcesSection(title, body);
-            }
-        });
+        // ---- 联网搜索结果（Alpine 响应式管理） ----
+        // 不再创建 DOM，只需确保 Alpine store 中有完整的数据。
+        // Alpine 模板通过 group.assistant.sources 响应式渲染，
+        // SwipePager 由 Alpine x-init 初始化。
+        // 数据已在调用方（onSources/flushToDOM）中同步到 store。
     }
 
     // 仅新创建的 section 需要追加到 panel
@@ -500,6 +539,9 @@ function scrollPanelIntoView(panel) {
         }
     });
 }
+
+// 暴露给 Alpine / buttons.js 中 sourcesPanel 组件使用
+window.scrollPanelIntoView = scrollPanelIntoView;
 
 /**
  * toggleSourcesSection 切换引用来源区域的折叠/展开
