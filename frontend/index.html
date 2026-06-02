@@ -116,11 +116,13 @@
             <!-- 侧边栏 Tab 切换 -->
             <div class="sidebar-tabs" x-data>
                 <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'timeline' }"
+                    :style="{ flex: $store.chats.sidebarTab === 'timeline' ? '1.618' : '1' }"
                     @click="$store.chats.switchSidebarTab('timeline')">
                     <span class="sidebar-tab-icon">&#x1F4C5;</span>
                     <span>时间</span>
                 </button>
                 <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'category' }"
+                    :style="{ flex: $store.chats.sidebarTab === 'category' ? '1.618' : '1' }"
                     @click="$store.chats.switchSidebarTab('category')">
                     <span class="sidebar-tab-icon">🏷️</span>
                     <span>类别</span>
