@@ -182,6 +182,7 @@ document.addEventListener('alpine:init', function() {
         inputCollapsed: false,   // 输入面板是否折叠，由 chat-ui.js 的 collapseInputArea/restoreInputArea 更新
         welcomeMessage: '',      // 欢迎消息文本，非空时显示欢迎页（由 Alpine x-show 驱动）
         chatsTimeline: [],       // 时间线 tab 的分组数据（按时间/置顶加工）
+        chats: [],               // 原始对话列表（单一数据源，替代 chat-list.js 的 currentChats）
         activeChatSN: null,      // 当前选中的对话 SN，供侧边栏高亮
         sidebarTab: 'timeline',  // 侧边栏当前 tab: 'timeline' | 'category'
         collapsedGroups: {},     // 折叠状态: { 'groupLabel': true/false }
@@ -226,6 +227,7 @@ document.addEventListener('alpine:init', function() {
                 _groupSeq: 0,
             };
             this.chatsTimeline = [];
+            this.chats = [];
             this.chatCategories = [];
             // 重置输入面板折叠状态
             this.inputCollapsed = false;
@@ -279,6 +281,13 @@ document.addEventListener('alpine:init', function() {
         },
 
         restructChatLists: function(chats, activeSN) {
+            // 如果传入了 chats 参数，同步保存到 this.chats；
+            // 否则从 this.chats 读取（支持调用方不传参的场景）
+            if (chats !== undefined) {
+                this.chats = chats;
+            } else {
+                chats = this.chats;
+            }
             this.activeChatSN = activeSN || null;
             if (!chats || chats.length === 0) {
                 this.chatsTimeline = [];
@@ -753,6 +762,7 @@ document.addEventListener('alpine:init', function() {
             this.activeIndex = -1;
             this.blankItem = null;
             this.chatsTimeline = [];
+            this.chats = [];
             this.chatCategories = [];
             this.activeChatSN = null;
         },

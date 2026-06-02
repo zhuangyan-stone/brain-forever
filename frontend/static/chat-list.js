@@ -44,10 +44,9 @@ function truncateTitle(title, maxLen = 25) {
 
 // ============================================================
 // 对话列表渲染
+// ★ 迁移完成：currentChats → store.chats，activeChatSN → store.activeChatSN
 // ============================================================
 
-export let currentChats = [];       // 当前对话列表
-let activeChatSN = null;     // 当前选中的对话 SN
 let contextMenuEl = null;       // 当前打开的右键菜单
 let contextTargetSN = null;     // 右键菜单目标对话 SN
 let hoverMenuTimer = null;     // hover 弹出菜单的关闭定时器
@@ -55,10 +54,9 @@ let hoverMenuTimer = null;     // hover 弹出菜单的关闭定时器
 /**
  * 清除当前激活的选中状态（新对话等场景使用）
  * 移除所有 .chat-item 的 .active 类，重置 activeChatSN 为 null
+ * ★ 迁移后：只写 Alpine store，模块变量不再需要
  */
 export function clearActiveChat() {
-    activeChatSN = null;
-    // 同步到 Alpine store
     try {
         var chatsStore = window.Alpine.store('chats');
         if (chatsStore) {
@@ -74,6 +72,7 @@ export function clearActiveChat() {
  * 后续由 getCurrentChatIfNeeded → updateChatEntry 拿到真实 SN 后再添加。
  * @param {string} title - 新对话的标题（截取自首条用户消息）
  * @param {string} [sn] - 对话 SN，必须为有效值才加入侧边栏
+ * ★ 迁移后：操作 store.chats 替代模块变量 currentChats
  */
 export function addDirtyChat(title, sn) {
     // 没有有效 SN 的 blankChat 不加入侧边栏
@@ -81,13 +80,18 @@ export function addDirtyChat(title, sn) {
         return;
     }
 
-    // 如果该 SN 已存在于 currentChats 中（例如从 chat_created 和 updateChatEntry 两次添加），
+    var chatsStore = window.Alpine.store('chats');
+    if (!chatsStore) return;
+
+    const chatList = chatsStore.chats;
+
+    // 如果该 SN 已存在于 chatList 中（例如从 chat_created 和 updateChatEntry 两次添加），
     // 仅更新标题，避免重复插入。
-    const existing = currentChats.find(c => c.sn === sn);
+    const existing = chatList.find(c => c.sn === sn);
     if (existing) {
         if (title) existing.title = title;
-        activeChatSN = sn;
-        renderChatList(currentChats, activeChatSN);
+        chatsStore.activeChatSN = sn;
+        renderChatList(chatList, sn);
         return;
     }
 
@@ -104,14 +108,13 @@ export function addDirtyChat(title, sn) {
     };
 
     // 插入到列表头部（最新消息位置）
-    currentChats.unshift(dirtyChat);
+    chatList.unshift(dirtyChat);
 
-    // 已有真实 SN，设置 activeChatSN，
-    // 这样后续 updateCurrentChatTitle 才能正确找到 DOM 元素并更新标题。
-    activeChatSN = sn;
+    // 已有真实 SN，设置 activeChatSN，供后续 updateChatTitleBySN 等函数正确找到 DOM 元素并更新标题。
+    chatsStore.activeChatSN = sn;
 
     // 复用 renderChatList 的完整渲染逻辑
-    renderChatList(currentChats, activeChatSN);
+    renderChatList(chatList, sn);
 }
 
 /**
@@ -120,13 +123,10 @@ export function addDirtyChat(title, sn) {
  * @param {string} [activeSN] - 当前激活的对话 SN
  */
 export function renderChatList(chats, activeSN) {
-    currentChats = chats || [];
-    activeChatSN = activeSN || null;
-
     // 关闭可能打开的右键菜单
     closeContextMenu();
 
-    // 同步到 Alpine store — Alpine 模板会响应式更新 DOM
+    // 写入 Alpine store — restructChatLists 内部会同步到 store.chats
     try {
         var chatsStore = window.Alpine.store('chats');
         if (chatsStore) {
@@ -142,21 +142,19 @@ export function renderChatList(chats, activeSN) {
  *   - 通过 chatStreamMgr.activateSession() 准备会话
  *   - 旧对话的 SSE 连接继续在后台接收数据（不 abort）
  *   - 旧对话的 DOM 引用被释放，但 streamingMsg 保留
+ *
+ * ★ 迁移后：基于 Alpine store 的 activeChatSN 作为单一数据源判断，
+ *   不再依赖模块变量 activeChatSN。第二个防御性条件不再需要。
  */
 async function selectChat(sn) {
-    // 记录是否切换到不同对话 — 统一经过关抽屉逻辑后，决定是否跳过切换
-    let hasChanged = activeChatSN !== sn;
-    if (hasChanged) activeChatSN = sn;
-
     // 一次性获取 Alpine store 引用，避免函数内反复调用 window.Alpine.store('chats')
     // 如果 store 不可用，继续执行无意义，直接返回
     var chats = window.Alpine.store('chats');
     if (!chats) return;
 
-    // 同步到 Alpine store（侧边栏高亮 + 关闭抽屉）
-    if (hasChanged || chats.activeChatSN !== activeChatSN) {
-        chats.activeChatSN = activeChatSN;
-    }
+    // 基于 Alpine store 作为单一数据源判断是否切换到不同对话
+    let hasChanged = chats.activeChatSN !== sn;
+    if (hasChanged) chats.activeChatSN = sn;
 
     if (chats.closeDrawer) {
         chats.closeDrawer();
@@ -584,8 +582,9 @@ async function handleRename(chat) {
                 }
                 // 更新本地数据
                 chat.title = newTitle;
-                // 重新渲染列表
-                renderChatList(currentChats, activeChatSN);
+                // 重新渲染列表 — 从 store 读取
+                var chatsStore = window.Alpine.store('chats');
+                renderChatList(chatsStore ? chatsStore.chats : [], chatsStore ? chatsStore.activeChatSN : null);
                 showToast('已重命名', 'success');
                 return true;
             } catch (e) {
@@ -598,6 +597,7 @@ async function handleRename(chat) {
 
 /**
  * 切换置顶状态
+ * ★ 迁移后：从 store.chats 获取列表
  */
 async function handleTogglePin(chat) {
     const newPinned = !chat.pinned;
@@ -612,8 +612,9 @@ async function handleTogglePin(chat) {
         }
         // 更新本地数据
         chat.pinned = newPinned;
-        // 重新渲染列表
-        renderChatList(currentChats, activeChatSN);
+        // 重新渲染列表 — restructChatLists 会从 store.chats 读取
+        var chatsStore = window.Alpine.store('chats');
+        renderChatList(chatsStore ? chatsStore.chats : [], chatsStore ? chatsStore.activeChatSN : null);
         showToast(newPinned ? '已置顶' : '已取消置顶', 'success');
     } catch (e) {
         showToast('操作出错', 'error');
@@ -621,47 +622,14 @@ async function handleTogglePin(chat) {
 }
 
 /**
- * 更新当前活动对话的标题并同步到侧边栏
- * 直接操作 DOM，不重新渲染整个列表
- * 当 activeChatSN 为 null（新对话刚创建后，列表尚未从后端刷新）时，
- * 尝试通过 currentChats 中标题为空的项来匹配新对话。
- * @param {string} newTitle - 新标题
- */
-export function updateCurrentChatTitle(newTitle) {
-    if (!newTitle) return;
-
-    let sn = activeChatSN;
-
-    // 新对话刚创建后 activeChatSN 为 null（clearActiveChat 清除了选中状态），
-    // 此时 currentChats 中最后一个（最旧的）对话可能有一个空标题或默认标题的占位。
-    // 但我们无法精确匹配到新对话，因此直接跳过 DOM 更新，
-    // 等待后续 refreshChatListIfNeeded 从后端拉取完整列表后再渲染。
-    if (!sn) {
-        return;
-    }
-
-    // 更新内存中的标题
-    const chat = currentChats.find(c => c.sn === sn);
-    if (chat) {
-        chat.title = newTitle;
-    }
-
-    // 直接更新 Alpine 模板渲染的 DOM
-    const activeItems = document.querySelectorAll(`.chat-item[data-sn="${sn}"] .chat-item-title`);
-    if (activeItems.length > 0) {
-        activeItems.forEach(el => {
-            el.textContent = truncateTitle(newTitle);
-        });
-    }
-}
-
-/**
- * 根据 SN 更新指定对话的标题（仅当该 chat 仍存在于 currentChats 中时）。
+ * 根据 SN 更新指定对话的标题（仅当该 chat 仍存在于 store.chats 中时）。
  * 用于 AI 标题推荐的回调中，确保标题始终更新到正确的对话上，
  * 即使当前活跃对话已切换，或该对话已被删除。
  *
- * 如果 chat 不存在于 currentChats 中（已被删除），则静默跳过。
+ * 如果 chat 不存在于 store.chats 中（已被删除），则静默跳过。
  * 成功更新后重新渲染侧边栏列表。
+ *
+ * ★ 迁移后：操作 store.chats 替代 currentChats
  *
  * @param {string} sn - 目标对话的 SN
  * @param {string} newTitle - 新标题
@@ -669,8 +637,11 @@ export function updateCurrentChatTitle(newTitle) {
 export function updateChatTitleBySN(sn, newTitle) {
     if (!sn || !newTitle) return;
 
-    // 在 currentChats 中查找目标 chat
-    const chat = currentChats.find(c => c.sn === sn);
+    var chatsStore = window.Alpine.store('chats');
+    if (!chatsStore) return;
+
+    // 在 store.chats 中查找目标 chat
+    const chat = chatsStore.chats.find(c => c.sn === sn);
     if (!chat) {
         // chat 已被删除（不存在于列表中），静默跳过
         return;
@@ -694,9 +665,11 @@ export function updateChatTitleBySN(sn, newTitle) {
  * 替换旧的 refreshChatListIfNeeded 全量刷新方式。
  *
  * 功能：
- *   - 如果该 SN 已存在于 currentChats 中，更新其标题
+ *   - 如果该 SN 已存在于 store.chats 中，更新其标题
  *   - 如果不存在（新对话的脏数据尚未被后端确认），移除脏数据 (sn=null) 并添加新条目
  *   - 然后重新渲染整个列表
+ *
+ * ★ 迁移后：操作 store.chats 替代 currentChats
  *
  * @param {string} sn - 对话 SN（来自后端）
  * @param {string} title - 对话标题
@@ -705,11 +678,16 @@ export function updateChatTitleBySN(sn, newTitle) {
 export function updateChatEntry(sn, title, titleState) {
     if (!sn) return;
 
+    var chatsStore = window.Alpine.store('chats');
+    if (!chatsStore) return;
+
+    const chatList = chatsStore.chats;
+
     // 检查该 SN 是否已存在
-    const existing = currentChats.find(c => c.sn === sn);
+    const existing = chatList.find(c => c.sn === sn);
     if (existing) {
         // 已存在：仅更新标题
-        // 注意：后端在新对话时 currentChat.title 为空字符串，
+        // 注意：后端在新对话时 chat.title 为空字符串，
         // 此时前端已有正确的原始标题，因此仅当 title 有值时更新。
         if (title) {
             existing.title = title;
@@ -717,7 +695,10 @@ export function updateChatEntry(sn, title, titleState) {
         existing.title_state = titleState;
     } else {
         // 不存在：移除脏数据（sn=null 的占位条目），然后添加真实条目
-        currentChats = currentChats.filter(c => c.sn !== null);
+        var filtered = chatList.filter(c => c.sn !== null);
+        // 原地替换数组内容（保持引用一致，避免 Alpine 丢失响应式追踪）
+        chatList.length = 0;
+        chatList.push.apply(chatList, filtered);
 
         // 创建新条目
         const now = new Date().toISOString();
@@ -732,11 +713,11 @@ export function updateChatEntry(sn, title, titleState) {
             create_at: now,
             update_at: now,
         };
-        currentChats.unshift(newChat);
+        chatList.unshift(newChat);
     }
 
     // 重新渲染列表
-    renderChatList(currentChats, activeChatSN);
+    renderChatList(chatList, chatsStore.activeChatSN);
 }
 
 /**
@@ -760,22 +741,20 @@ async function handleDelete(chat) {
         // 0. 通过 chatStreamMgr 移除 ChatStream（abort 正在进行的 SSE 流）
         chatStreamMgr.remove(chat.sn);
 
-        // 从本地数据移除
-        const idx = currentChats.findIndex(c => c.sn === chat.sn);
-        if (idx >= 0) {
-            currentChats.splice(idx, 1);
+        // 从 Alpine store 统一移除数据
+        var chatsStore = window.Alpine.store('chats');
+        if (chatsStore) {
+            // 从 chatList 中移除
+            const idx = chatsStore.chats.findIndex(c => c.sn === chat.sn);
+            if (idx >= 0) {
+                chatsStore.chats.splice(idx, 1);
+            }
+            // 从 items[] 中同步移除 ChatData
+            chatsStore.removeChat(chat.sn);
         }
 
-        // 从 Alpine store 的 items[] 中同步移除 ChatData
-        try {
-            var chats = window.Alpine.store('chats');
-            if (chats) {
-                chats.removeChat(chat.sn);
-            }
-        } catch(e) {}
-
         // 如果删除的是当前活动对话，清空主界面（消息、标题、刻度导航等）
-        if (activeChatSN === chat.sn) {
+        if (chatsStore && chatsStore.activeChatSN === chat.sn) {
             // 清空消息状态
             resetTickState();
 
@@ -792,14 +771,15 @@ async function handleDelete(chat) {
             }
 
             // 重置当前选中状态
-            activeChatSN = null;
+            chatsStore.activeChatSN = null;
 
             // 显示欢迎消息（会同时清空 header 标题）
             showWelcomeMessage();
         }
 
-        // 重新渲染列表（activeChatSN 已置 null，侧边栏无选中项）
-        renderChatList(currentChats, activeChatSN);
+        // 重新渲染列表
+        var activeSN = chatsStore ? chatsStore.activeChatSN : null;
+        renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
         showToast('已删除', 'success');
     } catch (e) {
         showToast('删除出错', 'error');
@@ -828,15 +808,14 @@ try {
 
         /**
          * setSidebarChats — 替换侧边栏对话列表（切换用户时使用）。
-         * 更新模块级 currentChats 变量，并通过 restructChatLists 刷新 Alpine 响应式渲染。
+         * 直接调用 restructChatLists 写入 Alpine store（内部会同步到 store.chats）。
          * 供 chat-api.js 等外部模块在切换用户后调用，避免循环依赖。
+         * ★ 迁移后：不再维护模块变量 currentChats / activeChatSN
          * @param {Array} chatList - 新的对话数组
          * @param {string} [activeSN] - 当前选中的对话 SN
          */
         chats.setSidebarChats = function(chatList, activeSN) {
             closeContextMenu();
-            currentChats = chatList || [];
-            activeChatSN = activeSN || null;
             chats.restructChatLists(chatList, activeSN);
         };
     }

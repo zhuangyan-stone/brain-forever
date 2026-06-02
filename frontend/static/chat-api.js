@@ -131,7 +131,7 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
             const stickyOptions = {
                 onApply: async (newTitle) => {
                     // 严格依据返回的 sn 找到对应的 chat 来更新标题
-                    // 即使 chat 已被删除（不存在于 currentChats），前端也能正确处理
+                    // 即使 chat 已被删除（不存在于 store.chats），前端也能正确处理
                     const { updateChatTitleBySN } = await import('./chat-list.js');
                     
                     // 先调用后端 PUT 保存标题（携带 sn 确保更新到正确的 chat）
