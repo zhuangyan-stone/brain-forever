@@ -148,18 +148,24 @@ func extractMessagesForTitle(msgs []Message) []Message {
 	i := 5
 	samples := msgs[0:i]
 
-	count := i
+	count, last := i, c-1
 
-	for j := i + 1; j < c-1; j++ {
+	for j := i + 1; j < last; j++ {
 		msg := msgs[j]
 
-		if utf8.RuneCountInString(msg.Content) > 1024 {
-			msg.Content = string([]rune(msg.Content)[:1024]) + "..."
+		ml := 1024
+		if count > 25 {
+			ml = 512
+		}
+		if utf8.RuneCountInString(msg.Content) > ml {
+			msg.Content = string([]rune(msg.Content)[:ml]) + "..."
 		}
 
 		if msg.Role == llm.RoleAssistant {
-			if rng.Intn(3) != 1 {
-				continue
+			if count > 50 {
+				if rng.Intn(3) != 1 {
+					continue
+				}
 			}
 
 			msg.Reasoning = ""
@@ -169,7 +175,7 @@ func extractMessagesForTitle(msgs []Message) []Message {
 		count++
 	}
 
-	samples = append(samples, msgs[c-1])
+	samples = append(samples, msgs[last])
 	return samples
 }
 
