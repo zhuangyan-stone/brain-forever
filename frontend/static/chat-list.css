@@ -55,7 +55,7 @@
 .chat-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
 }
 
 .chat-list-empty {
@@ -67,7 +67,7 @@
 
 /* ---------- 分组 ---------- */
 .chat-group {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .chat-group-header {
@@ -76,7 +76,7 @@
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 0.5rem 0.75rem 0.25rem;
+    padding: 0.3rem 0.75rem 0.15rem;
     user-select: none;
     display: flex;
     align-items: center;
@@ -119,14 +119,14 @@
 
 /* ---------- 日期子分组（更早分组下） ---------- */
 .chat-date-group {
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .chat-date-header {
     font-size: 0.7rem;
     font-weight: 500;
     color: var(--text-muted);
-    padding: 0.35rem 0.75rem 0.15rem;
+    padding: 0.2rem 0.75rem 0.1rem;
     user-select: none;
     opacity: 0.8;
     display: flex;
@@ -169,12 +169,12 @@
 .chat-item {
     display: flex;
     align-items: center;
-    padding: 0.5rem 0.75rem;
+    padding: 0.4125rem 0.75rem;
     border-radius: 6px;
     cursor: pointer;
     position: relative;
     transition: background-color 0.15s ease;
-    min-height: 40px;
+    min-height: 34px;
     gap: 4px;
 }
 
@@ -226,8 +226,8 @@
 /* ---------- 更多按钮（...） ---------- */
 .chat-item-more-btn {
     flex-shrink: 0;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border: none;
     background: transparent;
     color: var(--text-muted);
@@ -310,8 +310,8 @@
 /* ---------- 回收站分组 ---------- */
 .chat-group-trash {
     border-top: 1px solid var(--border);
-    margin-top: 8px;
-    padding-top: 4px;
+    margin-top: 4px;
+    padding-top: 2px;
 }
 
 .chat-group-trash .chat-group-header {
