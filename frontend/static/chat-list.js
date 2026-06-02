@@ -144,22 +144,30 @@ export function renderChatList(chats, activeSN) {
  *   - 旧对话的 DOM 引用被释放，但 streamingMsg 保留
  */
 async function selectChat(sn) {
-    // 如果点击的是当前已选中的对话，直接忽略，避免重复 API 调用和 DOM 重建
-    if (activeChatSN === sn) return;
-    activeChatSN = sn;
+    // 记录是否切换到不同对话 — 统一经过关抽屉逻辑后，决定是否跳过切换
+    let hasChanged = activeChatSN !== sn;
+    if (hasChanged) activeChatSN = sn;
 
     // 一次性获取 Alpine store 引用，避免函数内反复调用 window.Alpine.store('chats')
     // 如果 store 不可用，继续执行无意义，直接返回
     var chats = window.Alpine.store('chats');
     if (!chats) return;
 
-    // 同步到 Alpine store（侧边栏高亮、抽屉关闭、active chat 切换、清空 groups）
-    chats.activeChatSN = sn;
+    // 同步到 Alpine store（侧边栏高亮 + 关闭抽屉）
+    if (hasChanged || chats.activeChatSN !== activeChatSN) {
+        chats.activeChatSN = activeChatSN;
+    }
+
     if (chats.closeDrawer) {
         chats.closeDrawer();
     }
-    chats.getOrCreate(sn);  // 确保 items 中有此 chat
-    chats.switchTo(sn);     // 切换 activeIndex
+
+    // 点击同一对话（如当前活动 chat 标题），关完抽屉就返回，不做切换
+    if (!hasChanged) return;
+
+    // 切换 activeIndex + 清空 groups
+    chats.getOrCreate(sn);
+    chats.switchTo(sn);
     if (chats.active) {
         chats.active.groups = [];
         chats.active._groupSeq = 0;
