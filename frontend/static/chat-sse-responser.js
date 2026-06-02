@@ -240,6 +240,9 @@ export class SSEResponser {
                 }
 
                 // 3. 更新侧边栏 currentChats 中的 SN
+                // ★ 修复：不强制将 activeChatSN 更新为 event.sn。
+                //   用户在流式过程中可能已切换到其他对话，此时不应覆盖其选择。
+                //   只在用户仍在此对话（activeChatSN === frontSN）时才更新 activeChatSN。
                 try {
                     var chatListModule = window.__chatListModule;
                     if (!chatListModule) {
@@ -250,7 +253,10 @@ export class SSEResponser {
                                 var chatIdx = currentChats.findIndex(function(c) { return c.sn === frontSN; });
                                 if (chatIdx >= 0) {
                                     currentChats[chatIdx].sn = event.sn;
-                                    mod.renderChatList(currentChats, event.sn);
+                                    // ★ 使用当前的 activeChatSN 保留用户的选择状态
+                                    //   如果用户已切换到其他对话，activeChatSN 不应被覆盖
+                                    var currentActiveSN = chats.activeChatSN === frontSN ? event.sn : chats.activeChatSN;
+                                    mod.renderChatList(currentChats, currentActiveSN);
                                 }
                             }
                         });
@@ -260,7 +266,9 @@ export class SSEResponser {
                             var chatIdx = currentChats.findIndex(function(c) { return c.sn === frontSN; });
                             if (chatIdx >= 0) {
                                 currentChats[chatIdx].sn = event.sn;
-                                chatListModule.renderChatList(currentChats, event.sn);
+                                // ★ 使用当前的 activeChatSN 保留用户的选择状态
+                                var currentActiveSN = chats.activeChatSN === frontSN ? event.sn : chats.activeChatSN;
+                                chatListModule.renderChatList(currentChats, currentActiveSN);
                             }
                         }
                     }
@@ -270,12 +278,14 @@ export class SSEResponser {
 
                 // 4. stream.sn 已在第 1 步中更新，无需重复赋值
             } else {
-            	// 没有 frontSN 时走旧逻辑：直接更新 stream SN
-            	this.stream.sn = event.sn;
+             // 没有 frontSN 时走旧逻辑：直接更新 stream SN
+             this.stream.sn = event.sn;
             }
 
-            // 更新 Alpine store 的 activeChatSN
-            chats.activeChatSN = event.sn;
+            // ★ 修复：只在用户仍在此对话时更新 activeChatSN，不覆盖用户已切换的选择
+            if (chats.activeChatSN === frontSN) {
+                chats.activeChatSN = event.sn;
+            }
         } catch(e) {
             console.warn('[SSE] onChatCreated 处理失败:', e);
         }
@@ -422,7 +432,8 @@ export class SSEResponser {
                 if (chats) {
                     var chatData = chats.getOrCreate(this.stream.sn);
                     var title = chatData && chatData.title ? chatData.title : '对话';
-                    showToast('AI 回复完毕 ——\n「' + title + '」', 'info', 4000);
+                    var displayTitle = title.length > 15 ? title.substring(0, 15) + '…' : title;
+                    showToast('AI 回复完毕 ——\n「' + displayTitle + '」', 'info', 4000);
                 }
             } catch(e) {}
         }

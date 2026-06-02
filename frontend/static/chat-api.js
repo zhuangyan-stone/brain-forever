@@ -69,15 +69,30 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
     // 如果标题已被修改过（AI 修改或用户手动修改），不再请求
     // 状态只能从低往高变（0→1, 0→2, 1→2），>= 1 即表示已非原始状态
     // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制请求 AI 重新生成
+    //
+    // ★ 修复：通过 sn 参数定位目标对话的 titleState，而非依赖 chats.active。
+    //   用户在流式过程中可能已切换到其他对话，此时 chats.active 指向错误的对象。
     var chats = window.Alpine.store('chats');
-    var activeTitleState = (chats && chats.active) ? chats.active.titleState : 0;
+    var activeTitleState = 0;
+    if (sn && chats) {
+        var targetChat = chats.getOrCreate(sn);
+        if (targetChat) {
+            activeTitleState = targetChat.titleState || 0;
+        }
+    } else if (chats && chats.active) {
+        activeTitleState = chats.active.titleState || 0;
+    }
     if (!force && activeTitleState >= TITLE_STATE.AI) {
         return;
     }
 
     // 脏对话（临时 SN，尚未被后端确认）不允许 AI 推荐标题
-    if (chats && chats.isDirtyChat && chats.isDirtyChat()) {
-        return;
+    // ★ 使用 sn 定位目标对话检查脏状态，而非依赖 chats.active
+    if (chats && chats.isDirtyChat) {
+        var dirtyCheck = sn ? chats.getOrCreate(sn) : undefined;
+        if (chats.isDirtyChat(dirtyCheck)) {
+            return;
+        }
     }
 
     try {
@@ -96,8 +111,18 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
         if (data.title && data.changed === true) {
             // 异步调用期间用户可能已手动修改标题，再次检查防止覆盖
             // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制显示推荐
-            var chats2 = window.Alpine.store('chats');
-            var currentTitleState = (chats2 && chats2.active) ? chats2.active.titleState : 0;
+            //
+            // ★ 使用 targetSN 定位目标对话检查 titleState，而非依赖 chats.active
+            // ★ chats 已在外层获取，直接复用
+            var currentTitleState = 0;
+            if (targetSN && chats) {
+                var targetChat2 = chats.getOrCreate(targetSN);
+                if (targetChat2) {
+                    currentTitleState = targetChat2.titleState || 0;
+                }
+            } else if (chats && chats.active) {
+                currentTitleState = chats.active.titleState || 0;
+            }
             if (!force && currentTitleState === TITLE_STATE.USER) {
                 return;
             }
@@ -114,12 +139,12 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
                     if (!success) return;
 
                     // 如果 targetSN 匹配当前活跃 chat，更新 header 标题
-                    var chats3 = window.Alpine.store('chats');
-                    var activeSN = (chats3 && chats3.active) ? chats3.active.sn : null;
+                    // ★ chats 已在外层获取，通过闭包直接复用
+                    var activeSN = (chats && chats.active) ? chats.active.sn : null;
                     if (activeSN === targetSN) {
                         updateHeaderTitle(newTitle);
-                        if (chats3 && chats3.active) {
-                            chats3.active.titleState = TITLE_STATE.AI;
+                        if (chats && chats.active) {
+                            chats.active.titleState = TITLE_STATE.AI;
                         }
                     }
 
@@ -141,21 +166,18 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
 }
 
 /**
- * putChatTitle 向后端发送 PUT 请求更新 chat 标题。
- * 成功后标记 titleState 为指定状态，并更新本地标题。
+ * putChatTitle 向后端发送 PUT 请求更新指定 chat 标题。
  * @param {string} title - 新标题
  * @param {number} [titleState=TITLE_STATE.USER] - 标题修改状态，默认用户修改（2）
- * @param {string} [sn] - 可选，指定要更新的 chat SN（不传则更新当前活跃 chat）
+ * @param {string} sn - 必传，指定要更新的 chat SN
  * @returns {Promise<boolean>} 是否成功
  */
 export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
-	if (!title) return false;
+	if (!title || !sn) return false;
 	try {
-		let url = '/api/session/title?title=' + encodeURIComponent(title) +
-			'&state=' + encodeURIComponent(titleState);
-		if (sn) {
-			url += '&sn=' + encodeURIComponent(sn);
-		}
+		const url = '/api/session/title?title=' + encodeURIComponent(title) +
+			'&state=' + encodeURIComponent(titleState) +
+			'&sn=' + encodeURIComponent(sn);
 		const response = await fetch(url, {
 			method: 'PUT',
 		});
@@ -163,13 +185,11 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 			console.warn('更新标题失败:', response.status);
 			return false;
 		}
-		// 不携带 sn 时更新的是当前活跃 chat，更新 Alpine store
-		// 携带 sn 时由调用方自行处理本地状态
-		if (!sn) {
-			var chats4 = window.Alpine.store('chats');
-			if (chats4 && chats4.active) {
-				chats4.active.titleState = titleState;
-			}
+		// 如果更新的就是当前活跃 chat，同步更新本地 title 和 titleState
+		var chats = window.Alpine.store('chats');
+		if (chats && chats.active && chats.active.sn === sn) {
+			chats.active.title = title;
+			chats.active.titleState = titleState;
 		}
 		return true;
 	} catch (e) {
@@ -307,7 +327,7 @@ export async function switchToUser(data) {
 	//   使用 setTimeout(0) 推迟到当前宏任务完成、所有 mouse 事件处理完毕后再更新 DOM。
 	setTimeout(function() {
 		try {
-			var chats = window.Alpine.store('chats');
+			// ★ 通过闭包直接复用外层 chats，无需重新获取
 			if (chats) {
 				chats.currentUserNo = data.user_no || '';
 				chats.currentUserAvatar = data.avatar || '';
@@ -322,14 +342,14 @@ export async function switchToUser(data) {
 	//   - 后端 Go nil slice 序列化为 JSON null
 	//   - 如果只用 if (data.chats)，null 为 falsy，侧边栏不会被清除
 	//   统一转为 [] 确保侧边栏被正确清空。
-	try {
-		var chatsStore = window.Alpine.store('chats');
-		if (chatsStore && chatsStore.setSidebarChats) {
-			chatsStore.setSidebarChats(data.chats || [], null);
-		}
-	} catch(e) {
-		console.warn('switchToUser: 刷新侧边栏失败', e);
-	}
+try {
+// ★ 复用上方已获取的 chats（同一函数内），无需重新获取
+if (chats && chats.setSidebarChats) {
+chats.setSidebarChats(data.chats || [], null);
+}
+} catch(e) {
+console.warn('switchToUser: 刷新侧边栏失败', e);
+}
 
 	// ★ 恢复欢迎状态：switchToUser 执行过程中，chats.resetToBlank() 将 activeIndex 设为 -1，
 	//   但 welcome-message DOM 元素已被移除，Alpine 的 x-show 无法重新创建已销毁的元素。
@@ -370,13 +390,13 @@ export async function onChatLogout() {
 			// 重置前端状态（清空消息、侧边栏等）
 			resetTickState();
 			try {
-				var chatsStore = window.Alpine.store('chats');
-				if (chatsStore) {
+				var chats = window.Alpine.store('chats');
+				if (chats) {
 					// ★ 必须使用 resetToBlank() 而非 reset()，
 					//    原因同上 switchToUser() 注释。
-					chatsStore.resetToBlank();
-					chatsStore.currentUserNo = '';
-					chatsStore.currentUserAvatar = '';
+					chats.resetToBlank();
+					chats.currentUserNo = '';
+					chats.currentUserAvatar = '';
 				}
 			} catch(e) {}
 
@@ -392,9 +412,9 @@ export async function onChatLogout() {
 				const listData = await listResp.json();
 				if (listData.chats) {
 					try {
-						var chatsStore2 = window.Alpine.store('chats');
-						if (chatsStore2 && chatsStore2.setSidebarChats) {
-							chatsStore2.setSidebarChats(listData.chats, null);
+						// ★ 复用上方已获取的 chats（同一函数内），无需重新获取
+						if (chats && chats.setSidebarChats) {
+							chats.setSidebarChats(listData.chats, null);
 						}
 					} catch(e) {
 						console.warn('onChatLogout: 刷新侧边栏失败', e);

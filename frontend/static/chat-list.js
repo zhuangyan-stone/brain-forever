@@ -144,22 +144,26 @@ export function renderChatList(chats, activeSN) {
  *   - 旧对话的 DOM 引用被释放，但 streamingMsg 保留
  */
 async function selectChat(sn) {
+    // 如果点击的是当前已选中的对话，直接忽略，避免重复 API 调用和 DOM 重建
+    if (activeChatSN === sn) return;
     activeChatSN = sn;
-    // 同步到 Alpine store（用于侧边栏高亮）
-    try {
-        var chats = window.Alpine.store('chats');
-        if (chats) {
-            chats.activeChatSN = sn;
-        }
-    } catch(e) {}
 
-    // 小屏抽屉模式下，点击切换对话后自动关闭侧边栏（抽屉）
-    try {
-        var chats = window.Alpine.store('chats');
-        if (chats && chats.closeDrawer) {
-            chats.closeDrawer();
-        }
-    } catch(e) {}
+    // 一次性获取 Alpine store 引用，避免函数内反复调用 window.Alpine.store('chats')
+    // 如果 store 不可用，继续执行无意义，直接返回
+    var chats = window.Alpine.store('chats');
+    if (!chats) return;
+
+    // 同步到 Alpine store（侧边栏高亮、抽屉关闭、active chat 切换、清空 groups）
+    chats.activeChatSN = sn;
+    if (chats.closeDrawer) {
+        chats.closeDrawer();
+    }
+    chats.getOrCreate(sn);  // 确保 items 中有此 chat
+    chats.switchTo(sn);     // 切换 activeIndex
+    if (chats.active) {
+        chats.active.groups = [];
+        chats.active._groupSeq = 0;
+    }
 
     // 关闭右键菜单
     closeContextMenu();
@@ -168,28 +172,8 @@ async function selectChat(sn) {
     // 活跃状态由 Alpine.store('chats').switchTo() 管理
     chatStreamMgr.activateSession(sn);
 
-    // 0.1 同步 Alpine store 的 active chat
-    // 确保 Alpine 绑定（:disabled, :class 等）引用正确的 chat
-    // 避免切换到非流式 chat 后输入面板仍被禁用
-    try {
-        var chats = window.Alpine.store('chats');
-        if (chats) {
-            chats.getOrCreate(sn);  // 确保 items 中有此 chat
-            chats.switchTo(sn);     // 切换 activeIndex
-        }
-    } catch(e) {}
-
     // 1. 清空当前消息状态
     resetTickState();
-
-    // 2. 清空 Alpine store 中的 groups（Alpine x-for 会自动移除 DOM）
-    try {
-        var chats = window.Alpine.store('chats');
-        if (chats && chats.active) {
-            chats.active.groups = [];
-            chats.active._groupSeq = 0;
-        }
-    } catch(e) {}
 
     // 3. 移除 welcome-message（如果有），把 input-area 移回原位
     const existingWelcome = document.querySelector('.welcome-message');
@@ -226,26 +210,22 @@ async function selectChat(sn) {
     }
 
     // 7. 更新标题
+    // ★ 后端在创建新对话时 title 为空字符串（尚未同步前端标题），
+    //   此时 fallback 到 Alpine store 中已设置的标题
+    //   （addUserMessage 时写入的 truncateTitle），避免 header 残留旧标题。
+    //   注意：此时 chats.switchTo(sn) 已在开头执行，active 指向目标对话。
     if (result.title) {
         updateHeaderTitle(result.title);
+    } else if (chats.active && chats.active.title) {
+        updateHeaderTitle(chats.active.title);
     }
-    if (typeof result.title_state === 'number') {
-        try {
-            var chats = window.Alpine.store('chats');
-            if (chats && chats.active) {
-                chats.active.titleState = result.title_state;
-            }
-        } catch(e) {}
+    if (typeof result.title_state === 'number' && chats.active) {
+        chats.active.titleState = result.title_state;
     }
 
     // 8. 渲染消息 — 通过 Alpine store 的 groups 数据驱动
     // 转换 messages → groups 并设置到 Alpine store（按 SN 查找，而非假定 active）
-    try {
-        var chats = window.Alpine.store('chats');
-        if (chats) {
-            chats.setChatMessageGroups(sn, result.messages);
-        }
-    } catch(e) {}
+    chats.setChatMessageGroups(sn, result.messages);
 
     // 8.1 渲染 reasoning、sources、token-info（这些仍由 JS 管理，Alpine 未覆盖）
     // 需要等待 Alpine 渲染完成后操作 DOM
@@ -288,13 +268,8 @@ async function selectChat(sn) {
 
     // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
     var streamingMsg = null;
-    try {
-        var chats = window.Alpine.store('chats');
-        if (chats) {
-            var chatData = chats.getOrCreate(sn);
-            if (chatData) streamingMsg = chatData.streamingMsg;
-        }
-    } catch(e) {}
+    var chatData = chats.getOrCreate(sn);
+    if (chatData) streamingMsg = chatData.streamingMsg;
 
     if (stream && streamingMsg && !streamingMsg.isDone) {
         // 场景 A：流未完成
@@ -306,33 +281,23 @@ async function selectChat(sn) {
         if (lastMsg && lastMsg.role === 'assistant' && lastMsg.interrupted === 2) {
             result.messages.pop();
             // 重新设置 groups（不含 broken message）
-            try {
-                var chats = window.Alpine.store('chats');
-                if (chats) {
-                    chats.setChatMessageGroups(sn, result.messages);
-                }
-            } catch(e) {}
+            chats.setChatMessageGroups(sn, result.messages);
         }
 
         // 将 streamingMsg 的累积数据同步到最后一个 group 的 assistant
         // ★ 不 push 新 group（会导致 user:null，触发 Alpine 模板 crash）。
         //   最后一个 group 已在 setChatMessageGroups 中创建（含 user 数据），
         //   此处只需将 streaming 累积内容填入 assistant 即可。
-        try {
-            var chats = window.Alpine.store('chats');
-            if (chats) {
-                var chatData = chats.getOrCreate(sn);
-                if (chatData && chatData.groups.length > 0) {
-                    var lastGroup = chatData.groups[chatData.groups.length - 1];
-                    var asst = lastGroup.assistant;
-                    asst.content = streamingMsg.content || '';
-                    asst.reasoning = streamingMsg.reasoning || null;
-                    asst.reasoningState = streamingMsg.reasoning ? (streamingMsg.reasoningState || 'thinking') : undefined;
-                    asst.contentHTML = streamingMsg.content ? renderMarkdown(streamingMsg.content) : '';
-                    asst.reasoningHTML = streamingMsg.reasoning ? renderMarkdown(streamingMsg.reasoning) : undefined;
-                }
-            }
-        } catch(e) {}
+        var chatData = chats.getOrCreate(sn);
+        if (chatData && chatData.groups.length > 0) {
+            var lastGroup = chatData.groups[chatData.groups.length - 1];
+            var asst = lastGroup.assistant;
+            asst.content = streamingMsg.content || '';
+            asst.reasoning = streamingMsg.reasoning || null;
+            asst.reasoningState = streamingMsg.reasoning ? (streamingMsg.reasoningState || 'thinking') : undefined;
+            asst.contentHTML = streamingMsg.content ? renderMarkdown(streamingMsg.content) : '';
+            asst.reasoningHTML = streamingMsg.reasoning ? renderMarkdown(streamingMsg.reasoning) : undefined;
+        }
 
         // 获取 Alpine 渲染后的 DOM 引用
         requestAnimationFrame(function() {
@@ -350,13 +315,8 @@ async function selectChat(sn) {
             // 将已有累积内容渲染到 DOM
             // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
             var sm = null;
-            try {
-                var chats = window.Alpine.store('chats');
-                if (chats) {
-                    var chatData = chats.getOrCreate(sn);
-                    if (chatData) sm = chatData.streamingMsg;
-                }
-            } catch(e) {}
+            var chatData = chats.getOrCreate(sn);
+            if (chatData) sm = chatData.streamingMsg;
 
             // 标记流式状态
             applyStreamingState(true);
@@ -366,26 +326,21 @@ async function selectChat(sn) {
         // 将 streamingMsg 的完成数据同步到最后一个 group 的 assistant
         // ★ 不 push 新 group（会导致 user:null，触发 Alpine 模板 crash）。
         //   最后一个 group 已在 setChatMessageGroups 中创建（含 user 数据）。
-        try {
-            var chats = window.Alpine.store('chats');
-            if (chats) {
-                var chatData = chats.getOrCreate(sn);
-                if (chatData && chatData.groups.length > 0) {
-                    var sm = streamingMsg;
-                    var lastGroup = chatData.groups[chatData.groups.length - 1];
-                    var asst = lastGroup.assistant;
-                    asst.content = sm.content || '';
-                    asst.createdAt = sm.createdAt || null;
-                    asst.reasoning = sm.reasoning || undefined;
-                    asst.reasoningState = sm.reasoning ? 'done' : undefined;
-                    asst.sources = sm.sources && sm.sources.length > 0 ? sm.sources.slice() : undefined;
-                    asst.usage = sm.usage || undefined;
-                    asst.contentHTML = renderMarkdown(sm.content || '');
-                    asst.reasoningHTML = sm.reasoning ? renderMarkdown(sm.reasoning) : undefined;
-                    lastGroup.msgId = sm.msgId || lastGroup.msgId;
-                }
-            }
-        } catch(e) {}
+        var chatData = chats.getOrCreate(sn);
+        if (chatData && chatData.groups.length > 0) {
+            var sm = streamingMsg;
+            var lastGroup = chatData.groups[chatData.groups.length - 1];
+            var asst = lastGroup.assistant;
+            asst.content = sm.content || '';
+            asst.createdAt = sm.createdAt || null;
+            asst.reasoning = sm.reasoning || undefined;
+            asst.reasoningState = sm.reasoning ? 'done' : undefined;
+            asst.sources = sm.sources && sm.sources.length > 0 ? sm.sources.slice() : undefined;
+            asst.usage = sm.usage || undefined;
+            asst.contentHTML = renderMarkdown(sm.content || '');
+            asst.reasoningHTML = sm.reasoning ? renderMarkdown(sm.reasoning) : undefined;
+            lastGroup.msgId = sm.msgId || lastGroup.msgId;
+        }
 
         // 获取 Alpine 渲染后的 DOM 引用
         requestAnimationFrame(function() {
@@ -403,13 +358,8 @@ async function selectChat(sn) {
             if (stream.assistantBubble) {
                 // 从 Alpine store 获取 streamingMsg（ChatSession 不再持有）
                 var sm = null;
-                try {
-                    var chats = window.Alpine.store('chats');
-                    if (chats) {
-                        var chatData = chats.getOrCreate(sn);
-                        if (chatData) sm = chatData.streamingMsg;
-                    }
-                } catch(e) {}
+                var chatData = chats.getOrCreate(sn);
+                if (chatData) sm = chatData.streamingMsg;
                 if (sm && sm.usage) {
                     showTokenUsage(stream.assistantBubble, sm.usage);
                 }
@@ -732,7 +682,7 @@ export function updateChatTitleBySN(sn, newTitle) {
 
 /**
  * 更新或添加侧边栏中的单个对话条目。
- * 由 getCurrentChatIfNeeded 在第一轮对话完成后调用，
+ * 由 syncSidebarChatEntry 在第一轮对话完成后调用，
  * 替换旧的 refreshChatListIfNeeded 全量刷新方式。
  *
  * 功能：

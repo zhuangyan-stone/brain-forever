@@ -381,36 +381,51 @@ function handleStreamError(err, stream) {
 // ============================================================
 
 /**
- * 标题自动修改：仅在第一组消息（第一条用户消息 + 第一条 AI 回复）后尝试优化标题
+ * applyAIAutoTitle：仅在第一组消息完成后，自动请求 AI 为对话生成/优化标题。
+ *
+ * ★ 修复：通过 sn 参数指定目标对话，而非依赖 chats.active。
+ *   用户在流式过程中可能已切换到其他对话，activeChat 不再指向流式对话。
+ *
  * @param {boolean} wasAborted  是否被用户中断
+ * @param {string} sn - 目标对话 SN（来自 ChatStream）
  */
-function autoUpdateTitle(wasAborted) {
+function applyAIAutoTitle(wasAborted, sn) {
+    if (wasAborted || !sn) return;
+
     // 条件：
     //   - 未被中断（AI 回复被掐断时不取标题，因为回复不完整）
     //   - 标题未被修改过（titleState >= 1 表示已被 AI 或用户修改，不再请求）
     //   - 仅在第一组消息时允许（groups.length <= 1，即第一轮对话）
-    // 更严格的触发条件：仅在第一轮对话后自动请求 AI 生成标题，后续轮次不再自动触发
+    // ★ 通过 getOrCreate(sn) 获取目标对话，而非依赖 chats.active
     var chats = window.Alpine.store('chats');
-    var activeChat = chats ? chats.active : null;
-    if (!activeChat) return;
-    if (wasAborted || activeChat.titleState >= TITLE_STATE.AI || activeChat.groups.length > 1) return;
+    if (!chats) return;
+    var chatData = chats.getOrCreate(sn);
+    if (!chatData) return;
+    if (chatData.titleState >= TITLE_STATE.AI || chatData.groups.length > 1) return;
 
     // 原标题：使用当前已有的标题（可能是 AI 已修改过的），而不是重新从第一条消息截取
     // 这样后端可以基于当前标题判断是否需要更新
     // 如果 title 为空（新对话首次发送消息），传空字符串让后端基于对话历史生成
-    const originalTitle = activeChat.title || '';
+    const originalTitle = chatData.title || '';
     // 异步调用，不阻塞后续操作
     // 传递当前 chat SN，确保后端返回时前端能精确定位到正确的对话
-    fetchChatTitle(originalTitle, false, activeChat.sn);
+    fetchChatTitle(originalTitle, false, sn);
 }
 
 /**
  * 流结束清理：重置状态、恢复 UI、清理定时器、自动修改标题
+ *
+ * ★ 修复：将 stream.sn 传递给 autoUpdateTitle 和 getCurrentChatIfNeeded，
+ *   确保它们操作的是正确的对话（流式对话），而非依赖可能已改变的 chats.active。
+ *
  * @param {ChatStream} stream
  * @param {boolean} wasAborted  是否被用户中断
  */
 function cleanupAfterStream(stream, wasAborted) {
     stream.abortController = null;
+
+    // ★ 在清理前捕获流式对话的 SN（后续可能被其他操作改变）
+    const streamSN = stream.sn;
 
     // 更新 Alpine store 中对应 chat 的 isStreaming（无论活跃/后台都必须重置）
     // ★ 异常/中断/断连等非 done 事件路径下，finalizeStreaming 不会被调用，
@@ -419,7 +434,7 @@ function cleanupAfterStream(stream, wasAborted) {
     const chats = window.Alpine.store('chats');
     if (chats) {
         try {
-            var chatData = chats.getOrCreate(stream.sn);
+            var chatData = chats.getOrCreate(streamSN);
             if (chatData) {
                 chatData.isStreaming = false;
             }
@@ -428,7 +443,7 @@ function cleanupAfterStream(stream, wasAborted) {
 
     // 仅当此 stream 仍是活跃 stream 时，才操作全局 UI
     // 避免后台流完成时错误地影响当前 active chat 的 UI 状态
-    const isActiveStream = chats && chats.active && chats.active.sn === stream.sn;
+    const isActiveStream = chats && chats.active && chats.active.sn === streamSN;
     if (isActiveStream) {
         applyStreamingState(false);
         document.getElementById('messageInput').focus();
@@ -450,42 +465,43 @@ function cleanupAfterStream(stream, wasAborted) {
         }
     }
 
-    // 标题自动修改
-    autoUpdateTitle(wasAborted);
+    // 自动请求 AI 生成标题 — 传递 streamSN 确保操作正确的对话
+    applyAIAutoTitle(wasAborted, streamSN);
 
-    // 第一轮对话完成后，获取当前对话的信息并更新侧边栏单个条目（登录用户可见）
-    getCurrentChatIfNeeded(wasAborted);
+    // 第一轮对话完成后，同步 Alpine store 的 titleState 到侧边栏条目 — 传递 streamSN
+    syncSidebarChatEntry(wasAborted, streamSN);
 }
 
 /**
- * getCurrentChatIfNeeded 在第一轮对话完成后，调用专用 API 获取当前对话的信息，
- * 然后只更新侧边栏中对应的单个条目（而非刷新整个列表）。
+ * syncSidebarChatEntry 在第一轮对话完成后，确保侧边栏中有该对话的条目。
+ * 同步 Alpine store 的 titleState 到侧边栏条目（而非刷新整个列表）。
  * 这避免了 refreshChatListIfNeeded 的"全量替换"方式可能导致的重复条目和标题覆盖问题。
+ *
+ * ★ 修复：不再依赖 /api/chat/current（该 API 返回的是后端当前活跃对话的数据，
+ *   用户在流式过程中可能已切换到其他对话，此时返回的是错误对话的信息）。
+ *   改用本地 Alpine store 中的数据（title/titleState 已在 addUserMessage 时设置）。
+ *
  * 条件：
  *   - 未被中断（AI 回复不完整时列表无意义）
  *   - 仅在第一组消息后触发（groups.length <= 1）
+ *
+ * @param {boolean} wasAborted  是否被用户中断
+ * @param {string} sn - 目标对话 SN（来自 ChatStream）
  */
-async function getCurrentChatIfNeeded(wasAborted) {
-    // 被中断或非第一轮对话，跳过
-    var chats = window.Alpine.store('chats');
-    var activeChat = chats ? chats.active : null;
-    if (wasAborted || !activeChat || activeChat.groups.length > 1) return;
+async function syncSidebarChatEntry(wasAborted, sn) {
+    // 被中断或缺少 SN，跳过
+    if (wasAborted || !sn) return;
 
-    try {
-        const response = await fetch('/api/chat/current');
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.sn) {
-            // 后端在新对话时 currentChat.title 为空字符串（尚未设置），
-            // 此时前端已有正确的原始标题（来自用户首条消息截取），
-            // 因此仅当后端返回的 title 非空时才更新，避免空标题覆盖前端已有标题。
-            const title = data.title || undefined;
-            const { updateChatEntry } = await import('./chat-list.js');
-            updateChatEntry(data.sn, title, data.title_state);
-        }
-    } catch (e) {
-        console.warn('获取当前对话信息失败:', e);
-    }
+    // 通过 getOrCreate(sn) 获取目标对话，而非依赖 chats.active
+    var chats = window.Alpine.store('chats');
+    if (!chats) return;
+    var chatData = chats.getOrCreate(sn);
+    if (!chatData || chatData.groups.length > 1) return;
+
+    // 使用本地 Alpine store 数据更新侧边栏条目
+    // title 传 undefined 保留 addDirtyChat 已设置的正确标题，不覆盖
+    const { updateChatEntry } = await import('./chat-list.js');
+    updateChatEntry(sn, undefined, chatData.titleState);
 }
 
 // ============================================================

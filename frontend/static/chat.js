@@ -772,7 +772,7 @@ initTickNav();
             currentTitle: currentTitle,
             onConfirm: async (newTitle) => {
                 // 先调后端 API 保存新标题
-                const success = await putChatTitle(newTitle, TITLE_STATE.USER);
+                const success = await putChatTitle(newTitle, TITLE_STATE.USER, activeChat.sn);
                 if (success) {
                     // 后端确认成功后，更新页面标题
                     updateHeaderTitle(newTitle);
