@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -285,22 +284,12 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Build the LLM prompt with i18n support
 	systemPrompt := i18n.SystemPrompt.TL(lang, "title")
-	var contentBuilder strings.Builder
 
-	for _, msg := range samples {
-		switch msg.Role {
-		case llm.RoleUser:
-			contentBuilder.WriteString("A: ")
-		case llm.RoleAssistant:
-			contentBuilder.WriteString("B: ")
-		}
-		contentBuilder.WriteString(msg.Content)
-		contentBuilder.WriteString("\n")
-	}
-
-	messages := make([]llm.Message, 0, 2)
+	messages := make([]llm.Message, 0, 1+len(samples))
 	messages = append(messages, llm.Message{Role: llm.RoleSystem, Content: systemPrompt})
-	messages = append(messages, llm.Message{Role: llm.RoleUser, Content: contentBuilder.String()})
+	for _, msg := range samples {
+		messages = append(messages, llm.Message{Role: msg.Role, Content: msg.Content})
+	}
 
 	newTitle := ""
 	titleChanged := false
