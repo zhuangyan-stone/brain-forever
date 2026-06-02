@@ -733,14 +733,17 @@ async function handleDelete(chat) {
             var deletedChat = chatsStore.chats[idx];
             chatsStore.chats.splice(idx, 1);
 
-            // 移入回收站列表
-            if (!chatsStore.deletedChats) {
-                chatsStore.deletedChats = [];
-            }
-            // 确保不重复添加
-            var existsInTrash = chatsStore.deletedChats.find(function(c) { return c.sn === chat.sn; });
-            if (!existsInTrash) {
-                chatsStore.deletedChats.unshift(deletedChat);
+            // ★ 回收站从未加载过 → 不往 UI 回收站丢（展开时会从服务端拉取全量数据）
+            //   回收站已加载过 → 必须往回收站 UI 丢，保证本地数据与后端一致
+            if (chatsStore.trashLoaded) {
+                if (!chatsStore.deletedChats) {
+                    chatsStore.deletedChats = [];
+                }
+                // 确保不重复添加
+                var existsInTrash = chatsStore.deletedChats.find(function(c) { return c.sn === chat.sn; });
+                if (!existsInTrash) {
+                    chatsStore.deletedChats.unshift(deletedChat);
+                }
             }
         }
         // 从 items[] 中同步移除 ChatData
@@ -776,10 +779,13 @@ async function handleDelete(chat) {
     renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
     showToast('对话已移入回收站', 'success');
 
-    // 如果回收站当前处于折叠状态，在下一个 tick 展开它（包括触发数据的拉取）
-    if (chatsStore && !chatsStore.trashExpanded) {
+    // ★ 回收站从未加载过 → 在下一个 tick 展开它（触发 toggleTrash 拉取服务端全量数据）
+    //   回收站已加载过 → 不再展开（本地已有完整数据，无需重复拉取）
+    if (chatsStore && !chatsStore.trashLoaded) {
         window.Alpine.nextTick(function() {
-            chatsStore.toggleTrash();
+            if (!chatsStore.trashExpanded) {
+                chatsStore.toggleTrash();
+            }
         });
     }
 }
