@@ -422,7 +422,7 @@ export class SSEResponser {
                 if (chats) {
                     var chatData = chats.getOrCreate(this.stream.sn);
                     var title = chatData && chatData.title ? chatData.title : '对话';
-                    showToast('「' + title + '」AI 回复完毕', 'info', 4000);
+                    showToast('AI 回复完毕 ——\n「' + title + '」', 'info', 4000);
                 }
             } catch(e) {}
         }
