@@ -191,6 +191,7 @@ document.addEventListener('alpine:init', function() {
         currentUserAvatar: '',   // 当前登录用户头像 URL，由 onChatLogin 设置
         deletedChats: [],        // 回收站中的对话列表（已逻辑删除）
         trashExpanded: false,    // 回收站是否展开
+        trashLoaded: false,      // 回收站是否已从服务端全量加载
 
         // ---- 计算属性 ----
         get active() {
@@ -238,6 +239,7 @@ document.addEventListener('alpine:init', function() {
             // 重置回收站状态
             this.deletedChats = [];
             this.trashExpanded = false;
+            this.trashLoaded = false;
         },
 
         /**
@@ -290,13 +292,14 @@ document.addEventListener('alpine:init', function() {
          */
         toggleTrash: function() {
             this.trashExpanded = !this.trashExpanded;
-            // 如果展开且未加载数据，自动加载
-            if (this.trashExpanded && (!this.deletedChats || this.deletedChats.length === 0)) {
+            // 如果展开且尚未全量加载过，从服务端拉取
+            if (this.trashExpanded && !this.trashLoaded) {
                 var self = this;
                 fetch('/api/chat/deleted')
                     .then(function(resp) { return resp.json(); })
                     .then(function(data) {
                         self.deletedChats = data.chats || [];
+                        self.trashLoaded = true;
                         // 重新渲染列表（更新回收站分组中的 items）
                         self.restructChatLists();
                     })
@@ -811,6 +814,7 @@ document.addEventListener('alpine:init', function() {
             this.activeChatSN = null;
             this.deletedChats = [];
             this.trashExpanded = false;
+            this.trashLoaded = false;
         },
     });
 

@@ -775,6 +775,13 @@ async function handleDelete(chat) {
     var activeSN = chatsStore ? chatsStore.activeChatSN : null;
     renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
     showToast('对话已移入回收站', 'success');
+
+    // 如果回收站当前处于折叠状态，在下一个 tick 展开它（包括触发数据的拉取）
+    if (chatsStore && !chatsStore.trashExpanded) {
+        window.Alpine.nextTick(function() {
+            chatsStore.toggleTrash();
+        });
+    }
 }
 
 /**

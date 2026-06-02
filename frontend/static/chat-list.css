@@ -344,6 +344,10 @@
     color: var(--text-muted);
 }
 
+.chat-item-trash:hover .trash-item-title {
+    color: var(--text-primary);
+}
+
 .trash-empty {
     font-size: 0.75rem;
     padding: 0.5rem 0.75rem;
