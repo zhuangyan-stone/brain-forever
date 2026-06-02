@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -130,11 +131,13 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 //
 // For AI messages in the middle portion, a randomized sampling (≈1/3 probability)
 // is used instead of a fixed ID%3==0 pattern. This ensures that when a user
-// requests title suggestions multiple times, different message subsets are fed
-// to the LLM, producing more diverse title candidates.
+// extractMessagesForTitle returns a representative subset of messages for title generation.
+// It always includes the first 5 messages and the last message, and randomly samples
+// intermediate assistant messages to provide diverse context. Content exceeding 1024 runes
+// is truncated. This diversity helps produce varied title candidates across multiple calls.
 func extractMessagesForTitle(msgs []Message) []Message {
 	c := len(msgs)
-	if c <= 50 {
+	if c <= 5 {
 		return msgs
 	}
 
@@ -142,22 +145,28 @@ func extractMessagesForTitle(msgs []Message) []Message {
 	// so each invocation gets a different sampling pattern.
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	i := c/3 + 1
+	i := 5
 	samples := msgs[0:i]
 
-	for j := i + 1; j < c-1; j++ {
-		if msgs[j].Role == llm.RoleUser {
-			samples = append(samples, msgs[j])
-		} else if rng.Intn(3) == 0 {
-			msg := msgs[j]
-			msg.Reasoning = ""
+	count := i
 
-			if utf8.RuneCountInString(msg.Content) > 600 {
-				msg.Content = string([]rune(msg.Content)[:600])
+	for j := i + 1; j < c-1; j++ {
+		msg := msgs[j]
+
+		if utf8.RuneCountInString(msg.Content) > 1024 {
+			msg.Content = string([]rune(msg.Content)[:1024]) + "..."
+		}
+
+		if msg.Role == llm.RoleAssistant {
+			if rng.Intn(3) != 1 {
+				continue
 			}
 
-			samples = append(samples, msg)
+			msg.Reasoning = ""
 		}
+
+		samples = append(samples, msg)
+		count++
 	}
 
 	samples = append(samples, msgs[c-1])
@@ -246,15 +255,25 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 		msgs = []Message{}
 	}
 	samples := extractMessagesForTitle(msgs)
+	msgs = nil
 
 	// Build the LLM prompt with i18n support
-	systemPrompt := i18n.SystemPrompt.TL(lang, "title")
+	systemPromptBuilder := &strings.Builder{}
+	systemPromptBuilder.WriteString(i18n.SystemPrompt.TL(lang, "title"))
+	systemPromptBuilder.WriteString("\n------")
 
-	messages := make([]llm.Message, 0, 1+len(samples))
-	messages = append(messages, llm.Message{Role: llm.RoleSystem, Content: systemPrompt})
 	for _, msg := range samples {
-		messages = append(messages, llm.Message{Role: msg.Role, Content: msg.Content})
+		if msg.Role == llm.RoleUser {
+			systemPromptBuilder.WriteString("\nA: ")
+		} else if msg.Role == llm.RoleAssistant {
+			systemPromptBuilder.WriteString("\nB: ")
+		}
+
+		systemPromptBuilder.WriteString(msg.Content)
 	}
+
+	messages := make([]llm.Message, 1)
+	messages[0] = llm.Message{Role: llm.RoleSystem, Content: systemPromptBuilder.String()}
 
 	newTitle := ""
 	titleChanged := false
