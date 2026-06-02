@@ -14,7 +14,7 @@ import { initPage } from './chat-init.js';
 import { clearAllStickyNotes } from './components/sticky-mgr.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
-import { clearActiveChat } from './chat-list.js';
+import { clearActiveChat, updateChatTitleBySN } from './chat-list.js';
 import { ICON_TOGGLE } from './svg_icons_re.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
@@ -774,8 +774,9 @@ initTickNav();
                 // 先调后端 API 保存新标题
                 const success = await putChatTitle(newTitle, TITLE_STATE.USER, activeChat.sn);
                 if (success) {
-                    // 后端确认成功后，更新页面标题
+                    // 后端确认成功后，更新页面标题和侧边栏
                     updateHeaderTitle(newTitle);
+                    updateChatTitleBySN(activeChat.sn, newTitle);
                     showToast('标题已更新', 'success');
                     return true;
                 } else {

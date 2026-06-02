@@ -239,37 +239,16 @@ export class SSEResponser {
                     chats.items[idx].sn = event.sn;
                 }
 
-                // 3. 更新侧边栏 currentChats 中的 SN
-                // ★ 修复：不强制将 activeChatSN 更新为 event.sn。
-                //   用户在流式过程中可能已切换到其他对话，此时不应覆盖其选择。
-                //   只在用户仍在此对话（activeChatSN === frontSN）时才更新 activeChatSN。
+                // 3. 更新侧边栏 store.chats 中的 SN
+                // ★ 直接操作 Alpine store，不再依赖 chat-list.js 的模块变量
                 try {
-                    var chatListModule = window.__chatListModule;
-                    if (!chatListModule) {
-                        // 动态导入 chat-list.js 获取 currentChats 引用
-                        import('./chat-list.js').then(function(mod) {
-                            var currentChats = mod.currentChats;
-                            if (currentChats) {
-                                var chatIdx = currentChats.findIndex(function(c) { return c.sn === frontSN; });
-                                if (chatIdx >= 0) {
-                                    currentChats[chatIdx].sn = event.sn;
-                                    // ★ 使用当前的 activeChatSN 保留用户的选择状态
-                                    //   如果用户已切换到其他对话，activeChatSN 不应被覆盖
-                                    var currentActiveSN = chats.activeChatSN === frontSN ? event.sn : chats.activeChatSN;
-                                    mod.renderChatList(currentChats, currentActiveSN);
-                                }
-                            }
-                        });
-                    } else {
-                        var currentChats = chatListModule.currentChats;
-                        if (currentChats) {
-                            var chatIdx = currentChats.findIndex(function(c) { return c.sn === frontSN; });
-                            if (chatIdx >= 0) {
-                                currentChats[chatIdx].sn = event.sn;
-                                // ★ 使用当前的 activeChatSN 保留用户的选择状态
-                                var currentActiveSN = chats.activeChatSN === frontSN ? event.sn : chats.activeChatSN;
-                                chatListModule.renderChatList(currentChats, currentActiveSN);
-                            }
+                    var chatList = chats.chats;
+                    if (chatList) {
+                        var chatIdx = chatList.findIndex(function(c) { return c.sn === frontSN; });
+                        if (chatIdx >= 0) {
+                            chatList[chatIdx].sn = event.sn;
+                            // restructChatLists 会同步更新 activeChatSN 并重新加工聊天列表
+                            chats.restructChatLists(chatList, chats.activeChatSN);
                         }
                     }
                 } catch(e) {
@@ -280,11 +259,6 @@ export class SSEResponser {
             } else {
              // 没有 frontSN 时走旧逻辑：直接更新 stream SN
              this.stream.sn = event.sn;
-            }
-
-            // ★ 修复：只在用户仍在此对话时更新 activeChatSN，不覆盖用户已切换的选择
-            if (chats.activeChatSN === frontSN) {
-                chats.activeChatSN = event.sn;
             }
         } catch(e) {
             console.warn('[SSE] onChatCreated 处理失败:', e);

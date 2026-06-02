@@ -3,7 +3,6 @@
 // ============================================================
 
 import { escapeHtml, truncate } from './toolsets.js';
-import { updateCurrentChatTitle } from './chat-list.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
 import { ICON_GLOBE } from './svg_icons_re.js';
@@ -561,7 +560,9 @@ function toggleSourcesSection(titleEl, bodyEl) {
 }
 
 /**
- * updateHeaderTitle 更新 header 左侧的对话标题，并同步到侧边栏
+ * updateHeaderTitle 更新 header 左侧的对话标题
+ * 注意：此函数只负责 header 标题和 Alpine store，不负责侧边栏 DOM 更新。
+ * 侧边栏标题更新请调用 updateChatTitleBySN()。
  * @param {string} title
  */
 export function updateHeaderTitle(title) {
@@ -586,11 +587,6 @@ export function updateHeaderTitle(title) {
             activeChat.title = title;
         }
     } catch(e) {}
-
-    // 同步更新侧边栏中当前对话的标题
-    if (title) {
-        updateCurrentChatTitle(title);
-    }
 }
 
 /**
