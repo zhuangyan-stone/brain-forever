@@ -393,7 +393,10 @@
                 <div class="scroll-container welcome-state" id="scrollContainer"
                     :class="{ 'welcome-state': $store.chats.activeIndex === -1 }">
                     <!-- 未来热点内容容器，由 JS 动态填充，位于欢迎面板上方 -->
-                    <div class="hotContent" x-show="$store.chats.activeIndex === -1">
+                    <!-- ★ 空 x-data 自建 Alpine 作用域，确保 x-show 的响应式绑定生效。
+                         不写 x-data 时，该元素位于 Alpine 根作用域，但作为 #chatContainer
+                         （x-data="chatContainer()"）的兄弟元素，其 Alpine 指令可能不被处理。 -->
+                    <div class="hotContent" x-data x-show="$store.chats.activeIndex === -1">
                     </div>
                     <!-- 聊天区域 — Alpine x-for 数据驱动渲染 -->
                     <main class="chat-container" id="chatContainer" x-data="chatContainer()" x-init="init($el)">

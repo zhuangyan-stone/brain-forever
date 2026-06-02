@@ -600,25 +600,26 @@ export function showWelcomeMessage() {
     updateHeaderTitle('');
 
     // ★ 确保 .welcome-message 元素存在于 DOM 中
-    //    Alpine 的 x-show 在条件从 true→false→true 切换时，可能从 DOM 中移除了元素，
-    //    导致 querySelector 找不到。需要手动确保元素存在。
+    //    selectChat() 会从 DOM 中移除 .welcome-message 元素（existingWelcome.remove()），
+    //    因此后续调用 showWelcomeMessage() 时 querySelector 可能找不到元素。
+    //    需要手动重新创建，并添加 x-show 属性让 Alpine 接管响应式控制。
     var chatContainer = document.getElementById('chatContainer');
     var welcomeMsgEl = chatContainer ? chatContainer.querySelector('.welcome-message') : null;
     if (!welcomeMsgEl && chatContainer) {
         // 手动创建 welcome-message 元素
+        // ★ 必须添加 x-show 属性，否则 Alpine 无法响应式隐藏它，
+        //   用户发送消息后欢迎语仍会可见。
         welcomeMsgEl = document.createElement('div');
         welcomeMsgEl.className = 'welcome-message';
-        welcomeMsgEl.style.display = 'flex';
-        welcomeMsgEl.style.flexDirection = 'column';
-        welcomeMsgEl.style.alignItems = 'center';
-        welcomeMsgEl.style.justifyContent = 'center';
-        welcomeMsgEl.style.textAlign = 'center';
-        welcomeMsgEl.style.width = '100%';
-        welcomeMsgEl.style.gap = '24px';
-        
+        welcomeMsgEl.setAttribute('x-show', "$store.chats.activeIndex === -1");
+        // 不设 style.display，由 Alpine 的 x-show 控制
+
         var welcomeText = document.createElement('p');
         welcomeText.className = 'welcome-text';
+        // 使用 x-text 让 Alpine 响应式管理文本内容（welcomeMessage 清空时 fallback 到默认文本）
+        welcomeText.setAttribute('x-text', "$store.chats.welcomeMessage || '你好！我是「第2大脑」AI助手'");
         var chats = window.Alpine.store('chats');
+        // 初始文本：先直接设置一次，让 Alpine 编译 x-text 之前有内容
         welcomeText.textContent = (chats && chats.welcomeMessage) || '你好！我是「第2大脑」AI助手';
         welcomeMsgEl.appendChild(welcomeText);
         
@@ -628,6 +629,12 @@ export function showWelcomeMessage() {
             chatContainer.insertBefore(welcomeMsgEl, xforTemplate);
         } else {
             chatContainer.appendChild(welcomeMsgEl);
+        }
+
+        // ★ 调用 Alpine.initTree() 让 Alpine 处理新元素上的 x-show / x-text 指令，
+        //   否则动态添加的 Alpine 指令不会生效。
+        if (window.Alpine && typeof window.Alpine.initTree === 'function') {
+            window.Alpine.initTree(welcomeMsgEl);
         }
     }
 
