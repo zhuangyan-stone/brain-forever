@@ -110,6 +110,9 @@ window.confirmDelete = async function() {
         // 更新刻度导航
         updateTickNav();
 
+        // 显示删除成功提示
+        showToast('消息已删除', 'success');
+
     } catch (e) {
         console.error('删除失败:', e);
         showToast('删除失败: ' + e.message, 'error');

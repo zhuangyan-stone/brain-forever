@@ -763,7 +763,7 @@ async function handleDelete(chat) {
         // 重新渲染列表
         var activeSN = chatsStore ? chatsStore.activeChatSN : null;
         renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
-        showToast('已删除', 'success');
+        showToast('对话已删除', 'success');
 }
 
 // ============================================================
