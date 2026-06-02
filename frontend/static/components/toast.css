@@ -29,6 +29,7 @@
     max-width: 480px;
     text-align: left;
     word-break: break-word;
+    white-space: pre-wrap;
 }
 
 /* 颜色变体 */
