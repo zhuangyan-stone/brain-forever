@@ -189,6 +189,8 @@ document.addEventListener('alpine:init', function() {
         chatCategories: [],      // 分类 tab 的分组数据
         currentUserNo: '',       // 当前登录用户号，由 initPage / onChatLogin 设置，供登录按钮 Alpine 模板渲染
         currentUserAvatar: '',   // 当前登录用户头像 URL，由 onChatLogin 设置
+        deletedChats: [],        // 回收站中的对话列表（已逻辑删除）
+        trashExpanded: false,    // 回收站是否展开
 
         // ---- 计算属性 ----
         get active() {
@@ -233,6 +235,9 @@ document.addEventListener('alpine:init', function() {
             this.inputCollapsed = false;
             // 重置侧边栏选中状态
             this.activeChatSN = null;
+            // 重置回收站状态
+            this.deletedChats = [];
+            this.trashExpanded = false;
         },
 
         /**
@@ -278,6 +283,36 @@ document.addEventListener('alpine:init', function() {
          */
         isCollapsed: function(groupKey) {
             return !!this.collapsedGroups[groupKey];
+        },
+
+        /**
+         * 切换回收站展开/折叠状态
+         */
+        toggleTrash: function() {
+            this.trashExpanded = !this.trashExpanded;
+            // 如果展开且未加载数据，自动加载
+            if (this.trashExpanded && (!this.deletedChats || this.deletedChats.length === 0)) {
+                var self = this;
+                fetch('/api/chat/deleted')
+                    .then(function(resp) { return resp.json(); })
+                    .then(function(data) {
+                        self.deletedChats = data.chats || [];
+                        // 重新渲染列表（更新回收站分组中的 items）
+                        self.restructChatLists();
+                    })
+                    .catch(function(err) {
+                        console.warn('加载回收站列表失败:', err);
+                    });
+            }
+        },
+
+        /**
+         * 设置回收站中的对话列表（由 chat-list.js 调用）
+         * @param {Array} chats
+         */
+        setDeletedChats: function(chats) {
+            this.deletedChats = chats || [];
+            this.restructChatLists();
         },
 
         restructChatLists: function(chats, activeSN) {
@@ -388,9 +423,18 @@ document.addEventListener('alpine:init', function() {
                     });
                 }
                 groups.push({ label: '更早', type: 'earlier', subGroups: earlierItems });
-                }
-    
-                this.chatsTimeline = groups;
+            }
+
+        // 7. 回收站 — 始终在时间线最底部
+        var deletedCount = this.deletedChats ? this.deletedChats.length : 0;
+        groups.push({
+            label: '🗑️ 回收站',
+            type: 'trash',
+            count: deletedCount,
+            items: this.deletedChats || [],
+        });
+
+        this.chatsTimeline = groups;
 
             // ---- 构建分类分组（category tab）- 只保留一级分类 ----
             var catKeys = Object.keys(categorized);
@@ -765,6 +809,8 @@ document.addEventListener('alpine:init', function() {
             this.chats = [];
             this.chatCategories = [];
             this.activeChatSN = null;
+            this.deletedChats = [];
+            this.trashExpanded = false;
         },
     });
 

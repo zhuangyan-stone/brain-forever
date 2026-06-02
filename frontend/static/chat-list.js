@@ -6,10 +6,10 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { ICON_EDIT, ICON_DELETE, ICON_PIN } from './svg_icons_re.js';
+import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 import { renderMarkdown } from './chat-markdown.js';
 
@@ -707,10 +707,10 @@ export function updateChatEntry(sn, title, titleState) {
 }
 
 /**
- * 删除对话
+ * 删除对话（逻辑删除 — 移入回收站）
  */
 async function handleDelete(chat) {
-    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」删除后不可恢复，请确认是否删除？`);
+    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」将被移入回收站，确认删除？`);
     if (result !== 1) {
         return;
     }
@@ -721,49 +721,157 @@ async function handleDelete(chat) {
         return;
     }
 
-        // 0. 通过 chatStreamMgr 移除 ChatStream（abort 正在进行的 SSE 流）
-        chatStreamMgr.remove(chat.sn);
+    // 0. 通过 chatStreamMgr 移除 ChatStream（abort 正在进行的 SSE 流）
+    chatStreamMgr.remove(chat.sn);
 
-        // 从 Alpine store 统一移除数据
-        var chatsStore = window.Alpine.store('chats');
-        if (chatsStore) {
-            // 从 chatList 中移除
-            const idx = chatsStore.chats.findIndex(c => c.sn === chat.sn);
-            if (idx >= 0) {
-                chatsStore.chats.splice(idx, 1);
+    // 从 Alpine store 统一移除数据
+    var chatsStore = window.Alpine.store('chats');
+    if (chatsStore) {
+        // 从 chatList 中移除
+        const idx = chatsStore.chats.findIndex(c => c.sn === chat.sn);
+        if (idx >= 0) {
+            var deletedChat = chatsStore.chats[idx];
+            chatsStore.chats.splice(idx, 1);
+
+            // 移入回收站列表
+            if (!chatsStore.deletedChats) {
+                chatsStore.deletedChats = [];
             }
-            // 从 items[] 中同步移除 ChatData
-            chatsStore.removeChat(chat.sn);
+            // 确保不重复添加
+            var existsInTrash = chatsStore.deletedChats.find(function(c) { return c.sn === chat.sn; });
+            if (!existsInTrash) {
+                chatsStore.deletedChats.unshift(deletedChat);
+            }
+        }
+        // 从 items[] 中同步移除 ChatData
+        chatsStore.removeChat(chat.sn);
+    }
+
+    // 如果删除的是当前活动对话，清空主界面（消息、标题、刻度导航等）
+    if (chatsStore && chatsStore.activeChatSN === chat.sn) {
+        // 清空消息状态
+        resetTickState();
+
+        // 移除所有消息 DOM
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
         }
 
-        // 如果删除的是当前活动对话，清空主界面（消息、标题、刻度导航等）
-        if (chatsStore && chatsStore.activeChatSN === chat.sn) {
-            // 清空消息状态
-            resetTickState();
-
-            // 移除所有消息 DOM
-            const chatContainer = document.getElementById('chatContainer');
-            if (chatContainer) {
-                chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
-            }
-
-            // 清空刻度导航
-            const tickNav = document.getElementById('tickNav');
-            if (tickNav) {
-                tickNav.innerHTML = '';
-            }
-
-            // 重置当前选中状态
-            chatsStore.activeChatSN = null;
-
-            // 显示欢迎消息（会同时清空 header 标题）
-            showWelcomeMessage();
+        // 清空刻度导航
+        const tickNav = document.getElementById('tickNav');
+        if (tickNav) {
+            tickNav.innerHTML = '';
         }
 
+        // 重置当前选中状态
+        chatsStore.activeChatSN = null;
+
+        // 显示欢迎消息（会同时清空 header 标题）
+        showWelcomeMessage();
+    }
+
+    // 重新渲染列表
+    var activeSN = chatsStore ? chatsStore.activeChatSN : null;
+    renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
+    showToast('对话已移入回收站', 'success');
+}
+
+/**
+ * 从回收站恢复对话
+ */
+async function handleRestore(chat) {
+    const ok = await restoreChat(chat.sn);
+    if (!ok) {
+        showToast('恢复失败', 'error');
+        return;
+    }
+
+    var chatsStore = window.Alpine.store('chats');
+    if (chatsStore) {
+        // 从 deletedChats 中移除
+        var trashIdx = chatsStore.deletedChats.findIndex(function(c) { return c.sn === chat.sn; });
+        if (trashIdx >= 0) {
+            var restoredChat = chatsStore.deletedChats[trashIdx];
+            chatsStore.deletedChats.splice(trashIdx, 1);
+
+            // 确保 restoredChat 未被标记为 deleted
+            restoredChat.deleted = false;
+
+            // 加回主列表
+            if (!chatsStore.chats) {
+                chatsStore.chats = [];
+            }
+            // 检查是否已存在（防止重复）
+            var exists = chatsStore.chats.find(function(c) { return c.sn === chat.sn; });
+            if (!exists) {
+                chatsStore.chats.unshift(restoredChat);
+            }
+        }
+
+        // 重新渲染
+        renderChatList(chatsStore.chats, chatsStore.activeChatSN);
+    }
+    showToast('对话已恢复', 'success');
+}
+
+/**
+ * 从回收站永久删除对话
+ */
+async function handlePermanentDelete(chat) {
+    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」永久删除后不可恢复，请确认？`);
+    if (result !== 1) {
+        return;
+    }
+
+    const ok = await permanentDeleteChat(chat.sn);
+    if (!ok) {
+        showToast('永久删除失败', 'error');
+        return;
+    }
+
+    var chatsStore = window.Alpine.store('chats');
+    if (chatsStore) {
+        var trashIdx = chatsStore.deletedChats.findIndex(function(c) { return c.sn === chat.sn; });
+        if (trashIdx >= 0) {
+            chatsStore.deletedChats.splice(trashIdx, 1);
+        }
+        // 同时清理 items 中可能残留的数据
+        chatsStore.removeChat(chat.sn);
+
+        // 重新渲染
+        renderChatList(chatsStore.chats, chatsStore.activeChatSN);
+    }
+    showToast('对话已永久删除', 'success');
+}
+
+/**
+ * 清空回收站（永久删除所有回收站中的对话）
+ */
+async function handleEmptyTrash() {
+    // 获取回收站中的对话数量
+    var chatsStore = window.Alpine.store('chats');
+    var count = chatsStore && chatsStore.deletedChats ? chatsStore.deletedChats.length : 0;
+    if (count === 0) return;
+
+    const result = await msgbox.warning(`回收站中有 ${count} 个对话，清空后不可恢复，请确认？`);
+    if (result !== 1) {
+        return;
+    }
+
+    const ok = await emptyTrash();
+    if (!ok) {
+        showToast('清空回收站失败', 'error');
+        return;
+    }
+
+    if (chatsStore) {
+        // 清空本地回收站列表
+        chatsStore.deletedChats = [];
         // 重新渲染列表
-        var activeSN = chatsStore ? chatsStore.activeChatSN : null;
-        renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
-        showToast('对话已删除', 'success');
+        renderChatList(chatsStore.chats, chatsStore.activeChatSN);
+    }
+    showToast('回收站已清空', 'success');
 }
 
 // ============================================================
@@ -787,6 +895,81 @@ try {
         };
 
         /**
+         * closeContextMenu — 关闭当前打开的右键菜单（由分组头部 @mouseenter 调用）
+         */
+        chats.closeContextMenu = closeContextMenu;
+
+        /**
+         * 回收站右键菜单 — 显示恢复/永久删除选项
+         */
+        chats.showTrashContextMenu = function(e, chat) {
+            closeContextMenu();
+
+            contextTargetSN = chat.sn;
+
+            const menu = document.createElement('div');
+            menu.className = 'chat-context-menu';
+            menu.style.position = 'fixed';
+
+            const rect = e.currentTarget.getBoundingClientRect();
+            const menuWidth = 160;
+            const menuHeight = 36 * 2 + 4;
+
+            const isSmallScreen = document.body.classList.contains('small-screen-mode');
+            let left, top;
+
+            if (isSmallScreen) {
+                left = rect.left;
+                top = rect.bottom + 4;
+                if (left + menuWidth > window.innerWidth) {
+                    left = window.innerWidth - menuWidth - 8;
+                }
+                if (top + menuHeight > window.innerHeight) {
+                    top = rect.top - menuHeight - 4;
+                }
+            } else {
+                left = rect.right + 4;
+                top = rect.top;
+                if (left + menuWidth > window.innerWidth) {
+                    left = rect.left - menuWidth - 4;
+                }
+                if (top + menuHeight > window.innerHeight) {
+                    top = window.innerHeight - menuHeight - 8;
+                }
+            }
+
+            menu.style.left = Math.max(4, left) + 'px';
+            menu.style.top = Math.max(4, top) + 'px';
+
+            // 恢复
+            const restoreItem = document.createElement('div');
+            restoreItem.className = 'chat-context-menu-item';
+            restoreItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_RESTORE + '</svg> 恢复';
+            restoreItem.addEventListener('click', function() {
+                closeContextMenu();
+                handleRestore(chat);
+            });
+            menu.appendChild(restoreItem);
+
+            // 永久删除
+            const deleteItem = document.createElement('div');
+            deleteItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
+            deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 永久删除';
+            deleteItem.addEventListener('click', function() {
+                closeContextMenu();
+                handlePermanentDelete(chat);
+            });
+            menu.appendChild(deleteItem);
+
+            document.body.appendChild(menu);
+            contextMenuEl = menu;
+
+            setTimeout(function() {
+                document.addEventListener('click', closeContextMenu, { once: true });
+            }, 0);
+        };
+
+        /**
          * setSidebarChats — 替换侧边栏对话列表（切换用户时使用）。
          * 直接调用 restructChatLists 写入 Alpine store（内部会同步到 store.chats）。
          * 供 chat-api.js 等外部模块在切换用户后调用，避免循环依赖。
@@ -798,6 +981,12 @@ try {
             closeContextMenu();
             chats.restructChatLists(chatList, activeSN);
         };
+
+        /**
+         * emptyTrash — 清空回收站
+         * 由 Alpine 模板 @click="$store.chats.emptyTrash()" 调用
+         */
+        chats.emptyTrash = handleEmptyTrash;
     }
 } catch(e) {
     console.warn('chat-list: 无法注册到 Alpine store', e);

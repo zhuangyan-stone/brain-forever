@@ -306,3 +306,84 @@
 .chat-context-menu-item-danger:hover {
     background: var(--error-bg);
 }
+
+/* ---------- 回收站分组 ---------- */
+.chat-group-trash {
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding-top: 4px;
+}
+
+.chat-group-trash .chat-group-header {
+    opacity: 0.8;
+}
+
+.chat-group-trash .chat-group-header:hover {
+    opacity: 1;
+}
+
+.trash-count {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-left: 2px;
+    opacity: 0.6;
+}
+
+/* 回收站中的对话项 */
+.chat-item-trash {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.chat-item-trash:hover {
+    opacity: 1;
+    background: var(--bg-user);
+}
+
+.trash-item-title {
+    color: var(--text-muted);
+}
+
+.trash-empty {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* ---------- 清空回收站按钮 ---------- */
+.trash-clear-btn {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.trash-clear-btn svg {
+    transition: transform 0.25s ease;
+}
+
+.trash-clear-btn:hover svg {
+    transform: rotate(100deg);
+}
+
+.chat-group-header:hover .trash-clear-btn {
+    opacity: 0.6;
+}
+
+.trash-clear-btn:hover {
+    opacity: 1 !important;
+    background: var(--error-bg);
+    color: var(--error-text);
+}

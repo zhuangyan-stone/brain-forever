@@ -540,7 +540,7 @@ export async function togglePinChat(sn, pinned) {
 }
 
 /**
- * deleteChat 删除指定对话及其所有消息。
+ * deleteChat 逻辑删除指定对话（移入回收站）。
  * @param {string} sn - 对话 SN
  * @returns {Promise<boolean>} 是否成功
  */
@@ -553,6 +553,75 @@ export async function deleteChat(sn) {
         return response.ok;
     } catch (e) {
         console.warn('删除对话失败:', e);
+        return false;
+    }
+}
+
+/**
+ * listDeletedChats 获取回收站中的对话列表。
+ * @returns {Promise<Array|null>}
+ */
+export async function listDeletedChats() {
+    try {
+        const response = await fetch('/api/chat/deleted');
+        if (response.ok) {
+            const data = await response.json();
+            return data.chats || [];
+        }
+    } catch (e) {
+        console.warn('获取回收站列表失败:', e);
+    }
+    return null;
+}
+
+/**
+ * restoreChat 从回收站恢复指定对话。
+ * @param {string} sn - 对话 SN
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function restoreChat(sn) {
+    if (!sn) return false;
+    try {
+        const response = await fetch('/api/chat/restore?sn=' + encodeURIComponent(sn), {
+            method: 'PUT',
+        });
+        return response.ok;
+    } catch (e) {
+        console.warn('恢复对话失败:', e);
+        return false;
+    }
+}
+
+/**
+ * permanentDeleteChat 永久删除回收站中的指定对话（不可恢复）。
+ * @param {string} sn - 对话 SN
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function permanentDeleteChat(sn) {
+    if (!sn) return false;
+    try {
+        const response = await fetch('/api/chat/permanent?sn=' + encodeURIComponent(sn), {
+            method: 'DELETE',
+        });
+        return response.ok;
+    } catch (e) {
+        console.warn('永久删除对话失败:', e);
+        return false;
+    }
+}
+
+/**
+ * emptyTrash 清空回收站（永久删除所有回收站中的对话）。
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function emptyTrash() {
+    try {
+        const response = await fetch('/api/chat/trash', {
+            method: 'DELETE',
+        });
+        return response.ok;
+    } catch (e) {
+        console.warn('清空回收站失败:', e);
         return false;
     }
 }

@@ -271,6 +271,56 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 	return nil
 }
 
+// FindChatBySN finds a chat by its SN (regardless of deleted status).
+func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
+	var chat Chat
+	err := s.db.Get(&chat,
+		`SELECT id, sn, role_no, title, title_state, extract_mode,
+		        trait_time, extracted_message_count,
+		        deleted, pinned, category, create_at, update_at
+		 FROM chat_sessions WHERE sn = ?`, sn,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("chat not found (sn=%s): %w", sn, err)
+	}
+	return &chat, nil
+}
+
+// ListDeletedChats lists the most recent N deleted chat records, ordered by update_at descending.
+func (s *ChatStore) ListDeletedChats(n int) ([]Chat, error) {
+	var chats []Chat
+	err := s.db.Select(&chats,
+		`SELECT id, sn, role_no, title, title_state, extract_mode,
+		        trait_time, extracted_message_count,
+		        deleted, pinned, category, create_at, update_at
+		 FROM chat_sessions
+		 WHERE deleted = 1
+		 ORDER BY update_at DESC
+		 LIMIT ?`,
+		n,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list deleted chats. %w", err)
+	}
+	return chats, nil
+}
+
+// RestoreChat restores a soft-deleted chat by setting deleted = 0.
+func (s *ChatStore) RestoreChat(sn string) error {
+	result, err := s.db.Exec(
+		"UPDATE chat_sessions SET deleted = 0 WHERE sn = ?",
+		sn,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to restore chat. %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("chat not found (sn=%s)", sn)
+	}
+	return nil
+}
+
 // ListChats lists the most recent N non-deleted chat records, ordered by pinned first, then update_at descending.
 func (s *ChatStore) ListChats(n int) ([]Chat, error) {
 	var chats []Chat
@@ -322,6 +372,53 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
 		return fmt.Errorf("chat not found (id=%d)", id)
+	}
+	return nil
+}
+
+// EmptyTrash permanently deletes all soft-deleted chats (and their messages/web_sources).
+func (s *ChatStore) EmptyTrash() error {
+	// Get all deleted chat IDs first
+	var deletedIDs []int64
+	err := s.db.Select(&deletedIDs,
+		"SELECT id FROM chat_sessions WHERE deleted = 1",
+	)
+	if err != nil {
+		return fmt.Errorf("failed to query deleted chats: %w", err)
+	}
+
+	if len(deletedIDs) == 0 {
+		return nil
+	}
+
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, id := range deletedIDs {
+		// Delete all web sources under this session
+		_, err = tx.Exec("DELETE FROM web_sources WHERE chat_id = ?", id)
+		if err != nil {
+			return fmt.Errorf("failed to delete web sources for chat %d: %w", id, err)
+		}
+
+		// Delete all messages under this session
+		_, err = tx.Exec("DELETE FROM chat_messages WHERE chat_id = ?", id)
+		if err != nil {
+			return fmt.Errorf("failed to delete messages for chat %d: %w", id, err)
+		}
+	}
+
+	// Delete all deleted sessions
+	_, err = tx.Exec("DELETE FROM chat_sessions WHERE deleted = 1")
+	if err != nil {
+		return fmt.Errorf("failed to delete trashed sessions: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
 }

@@ -16,7 +16,7 @@ import (
 // ChatDelete handler — DELETE /api/chat?sn=XXX
 // ============================================================
 
-// OnChatDelete handles DELETE /api/chat — deletes a chat session by SN.
+// OnChatDelete handles DELETE /api/chat — soft-deletes (moves to trash) a chat session by SN.
 // Also removes it from the in-memory chat list. If the deleted chat is the
 // current active chat, resets the current chat to nil.
 func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
@@ -35,14 +35,14 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	// Phase 1: Find the chat by SN and remove from in-memory list (under chatsMu lock)
-	var chatID int
+	var chatID int64
 	session.chatsMu.Lock()
 
 	var found bool
 	for i := range session.chats {
 		if session.chats[i].SN == sn {
-			chatID = int(session.chats[i].ID)
-			// Remove from in-memory list
+			chatID = session.chats[i].ID
+			// Remove from in-memory list (normal chats)
 			session.chats = append(session.chats[:i], session.chats[i+1:]...)
 			found = true
 			break
@@ -60,19 +60,178 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Phase 2: Physically delete from DB
-	if err := session.chatStore.PhysicalDelete(chatID, sn); err != nil {
-		log.Printf("failed to delete session (sn=%s, id=%d): %v", sn, chatID, err)
+	// Phase 2: Soft-delete (logic delete) — move to trash
+	if err := session.chatStore.LogicDelete(sn); err != nil {
+		log.Printf("failed to logic-delete session (sn=%s): %v", sn, err)
 		http.Error(w, "failed to delete session", http.StatusInternalServerError)
 		return
 	}
 
 	// Phase 3: If the deleted chat is the current active chat, reset it (under mu lock)
 	session.mu.Lock()
-	if session.currentChat != nil && session.currentChat.dbChat != nil && session.currentChat.dbChat.ID == int64(chatID) {
+	if session.currentChat != nil && session.currentChat.dbChat != nil && session.currentChat.dbChat.ID == chatID {
 		session.currentChat = &chat{}
 	}
 	session.mu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+	})
+}
+
+// ============================================================
+// ListDeletedChats handler — GET /api/chat/deleted
+// ============================================================
+
+// OnListDeletedChats handles GET /api/chat/deleted — returns the list of
+// soft-deleted (trashed) chats for the current session's user.
+func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	session.chatsMu.Lock()
+	chatStore := session.chatStore
+	session.chatsMu.Unlock()
+
+	deletedChats, err := chatStore.ListDeletedChats(100)
+	if err != nil {
+		log.Printf("failed to list deleted chats: %v", err)
+		http.Error(w, "failed to list deleted chats", http.StatusInternalServerError)
+		return
+	}
+
+	if deletedChats == nil {
+		deletedChats = []store.Chat{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"chats": deletedChats,
+	})
+}
+
+// ============================================================
+// RestoreChat handler — PUT /api/chat/restore?sn=XXX
+// ============================================================
+
+// OnRestoreChat handles PUT /api/chat/restore — restores a soft-deleted chat
+// and adds it back to the in-memory chat list.
+func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sn := r.URL.Query().Get("sn")
+	if sn == "" {
+		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	// Restore in DB
+	session.chatsMu.Lock()
+	chatStore := session.chatStore
+	session.chatsMu.Unlock()
+
+	if err := chatStore.RestoreChat(sn); err != nil {
+		log.Printf("failed to restore chat (sn=%s): %v", sn, err)
+		http.Error(w, "failed to restore chat", http.StatusInternalServerError)
+		return
+	}
+
+	// Reload the restored chat from DB and add back to in-memory list
+	session.chatsMu.Lock()
+	chats, err := session.chatStore.ListChats(100)
+	if err == nil {
+		session.chats = chats
+	}
+	session.chatsMu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+	})
+}
+
+// ============================================================
+// PermanentDelete handler — DELETE /api/chat/permanent?sn=XXX
+// ============================================================
+
+// OnPermanentDelete handles DELETE /api/chat/permanent — permanently deletes
+// a soft-deleted chat (physical delete from DB).
+func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sn := r.URL.Query().Get("sn")
+	if sn == "" {
+		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	// Find the chat from DB (regardless of deleted status)
+	session.chatsMu.Lock()
+	chatStore := session.chatStore
+	session.chatsMu.Unlock()
+
+	chat, err := chatStore.FindChatBySN(sn)
+	if err != nil {
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+
+	chatID := chat.ID
+
+	if err := chatStore.PhysicalDelete(int(chatID), sn); err != nil {
+		log.Printf("failed to permanently delete session (sn=%s): %v", sn, err)
+		http.Error(w, "failed to delete session", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+	})
+}
+
+// ============================================================
+// EmptyTrash handler — DELETE /api/chat/trash
+// ============================================================
+
+// OnEmptyTrash handles DELETE /api/chat/empty-trash — permanently deletes
+// all soft-deleted chats (clears the recycle bin).
+func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	session.chatsMu.Lock()
+	chatStore := session.chatStore
+	session.chatsMu.Unlock()
+
+	if err := chatStore.EmptyTrash(); err != nil {
+		log.Printf("failed to empty trash: %v", err)
+		http.Error(w, "failed to empty trash", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{

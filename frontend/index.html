@@ -142,7 +142,9 @@
                         <!-- 普通分组（置顶、今天、昨天、7天内、30天内） -->
                         <template x-if="group.type === 'normal'">
                             <div>
-                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)">
+                                <div class="chat-group-header"
+                                    @click="$store.chats.toggleCollapse(group.label)"
+                                    @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
@@ -176,7 +178,9 @@
                         <!-- 更早分组（含日期子分组） -->
                         <template x-if="group.type === 'earlier'">
                             <div>
-                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)">
+                                <div class="chat-group-header"
+                                    @click="$store.chats.toggleCollapse(group.label)"
+                                    @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
@@ -186,7 +190,8 @@
                                     <template x-for="sub in group.subGroups" :key="sub.dateLabel">
                                         <div class="chat-date-group">
                                             <div class="chat-date-header"
-                                                @click="$store.chats.toggleCollapse(group.label + '|' + sub.dateLabel)">
+                                                @click="$store.chats.toggleCollapse(group.label + '|' + sub.dateLabel)"
+                                                @mouseenter="$store.chats.closeContextMenu()">
                                                 <span class="collapse-arrow date-arrow"
                                                     x-text="$store.chats.isCollapsed(group.label + '|' + sub.dateLabel) ? '+' : '−'"></span>
                                                 <span x-text="sub.dateLabel"></span>
@@ -219,6 +224,49 @@
                                 </div>
                             </div>
                         </template>
+
+                        <!-- 回收站分组 — 始终在时间线最底部 -->
+                        <template x-if="group.type === 'trash'">
+                            <div class="chat-group chat-group-trash">
+                                <div class="chat-group-header"
+                                    @click="$store.chats.toggleTrash()"
+                                    @mouseenter="$store.chats.closeContextMenu()">
+                                    <span class="collapse-arrow"
+                                        :class="{ collapsed: !$store.chats.trashExpanded }">&#x276F;</span>
+                                    <span>回收站</span>
+                                    <span class="trash-count" x-show="group.count > 0"
+                                        x-text="'(' + group.count + ')'"></span>
+                                    <button class="trash-clear-btn" x-show="group.count > 0"
+                                        @click.stop="$store.chats.emptyTrash()"
+                                        data-tooltip="清空回收站"
+                                        title="清空回收站">
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
+                                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                            stroke-linejoin="round" x-html="ICON_TRASH"></svg>
+                                    </button>
+                                </div>
+                                <div class="chat-group-body"
+                                    :class="{ collapsed: !$store.chats.trashExpanded }">
+                                    <template x-if="group.items.length === 0">
+                                        <div class="chat-list-empty trash-empty">回收站为空</div>
+                                    </template>
+                                    <template x-for="chat in group.items" :key="chat.sn">
+                                        <div class="chat-item chat-item-trash"
+                                            :data-sn="chat.sn"
+                                            @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                            <div class="chat-item-title trash-item-title"
+                                                x-text="chat.title || '新对话'"></div>
+                                            <button class="chat-item-more-btn"
+                                                @mouseenter="$store.chats.showTrashContextMenu($event, chat)"
+                                                @click.stop="$store.chats.showTrashContextMenu($event, chat)">
+                                                <svg viewBox="0 0 16 16" width="14" height="14"
+                                                    fill="currentColor" x-html="ICON_DOTS"></svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </template>
             </div>
@@ -233,7 +281,8 @@
                     <template x-for="catGroup in ($store.chats.chatCategories || [])" :key="catGroup.label">
                         <div class="chat-group">
                             <div class="chat-group-header"
-                                @click="$store.chats.toggleCollapse('cat|' + catGroup.label)">
+                                @click="$store.chats.toggleCollapse('cat|' + catGroup.label)"
+                                @mouseenter="$store.chats.closeContextMenu()">
                                 <span class="collapse-arrow"
                                     :class="{ collapsed: $store.chats.isCollapsed('cat|' + catGroup.label) }">&#x276F;</span>
                                 <span x-text="catGroup.label"></span>

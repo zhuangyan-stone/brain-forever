@@ -159,6 +159,12 @@ func main() {
 	mux.Handle("/api/chat/login", http.HandlerFunc(chatHandler.OnLogin))
 	mux.Handle("/api/chat/logout", http.HandlerFunc(chatHandler.OnLogout))
 
+	// Recycle bin (trash) endpoints
+	mux.Handle("/api/chat/deleted", http.HandlerFunc(chatHandler.OnListDeletedChats))
+	mux.Handle("/api/chat/restore", http.HandlerFunc(chatHandler.OnRestoreChat))
+	mux.Handle("/api/chat/permanent", http.HandlerFunc(chatHandler.OnPermanentDelete))
+	mux.Handle("/api/chat/trash", http.HandlerFunc(chatHandler.OnEmptyTrash))
+
 	// Health check endpoint
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
