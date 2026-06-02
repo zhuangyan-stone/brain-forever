@@ -266,6 +266,7 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 		session.mu.Lock()
 		if session.currentChat.dbChat != nil {
 			dbSessionID = session.currentChat.dbChat.ID
+			chatSN = session.currentChat.dbChat.SN
 		}
 		session.mu.Unlock()
 	}
@@ -324,21 +325,10 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 		titleChanged = true
 	}
 
-	// Resolve the SN to return — use the requested chatSN if provided,
-	// otherwise read the current chat's SN from the session.
-	responseSN := chatSN
-	if responseSN == "" {
-		session.mu.Lock()
-		if session.currentChat.dbChat != nil {
-			responseSN = session.currentChat.dbChat.SN
-		}
-		session.mu.Unlock()
-	}
-
 	// Return the new title and the SN as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"sn":      responseSN,
+		"sn":      chatSN,
 		"title":   newTitle,
 		"changed": titleChanged,
 	})

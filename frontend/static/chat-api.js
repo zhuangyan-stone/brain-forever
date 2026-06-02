@@ -2,7 +2,7 @@
 // chat-api.js — API 调用封装
 // ============================================================
 
-import { updateHeaderTitle } from './chat-ui.js';
+import { updateHeaderTitle, showToast } from './chat-ui.js';
 import { resetTickState } from './tick-state.js';
 import { showAiTitleSuggestion } from './components/sticky-ai-title.js';
 
@@ -107,6 +107,11 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
 
         // 从返回数据中提取目标 chat SN，用于后续精确定位
         const targetSN = data.sn || sn || null;
+
+        if (data.changed === false) {
+            showToast('抱歉，AI 想不出新的标题了', 'info', 4000);
+            return;
+        }
 
         if (data.title && data.changed === true) {
             // 异步调用期间用户可能已手动修改标题，再次检查防止覆盖
