@@ -111,7 +111,7 @@ type LLMInfo struct {
 	Website string `json:"website"`
 }
 
-// OnGetLLMInfo handles GET /api/chat/info/llm requests.
+// OnGetLLMInfo handles GET /api/info/llm/chat requests.
 // Returns the current chat LLM provider name, model name, and official website URL as JSON.
 func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

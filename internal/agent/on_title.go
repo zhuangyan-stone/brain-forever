@@ -15,15 +15,16 @@ import (
 )
 
 // ============================================================
-// PutChatTitle handler — PUT /api/session/title?title=XXX&state=N
+// PutChatTitle handler — PUT /api/chat/title?title=XXX&state=N&sn=XXX
 // ============================================================
 
-// OnPutChatTitle handles PUT /api/session/title — updates the chat title
+// OnPutChatTitle handles PUT /api/chat/title — updates the chat title
 // and marks the title state.
 // Query parameters:
 //
 //	title — the new title to set (required)
 //	state — title modification state: 0=original, 1=AI-modified, 2=user-modified (default: 2)
+//	sn    — the target chat SN (required)
 //
 // Returns HTTP 200 on success.
 func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
@@ -55,98 +56,61 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Read optional sn parameter — if provided, update a specific session from the list
-	// instead of the current active session
+	// Read the required sn parameter — update a specific session from the list
 	sn := r.URL.Query().Get("sn")
+	if sn == "" {
+		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		return
+	}
 
 	// Resolve sessionID from cookie
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// ------------------------------------------
-	// sn != "" : Sidebar rename (historical session)
-	//   → Uses chatsMu: only protects chats slice + chatStore (independent of streaming)
-	// sn == "" : Header title edit (current active session)
-	//   → Uses mu: protects currentChat.title + titleState
-	// ------------------------------------------
-	if sn != "" {
-		// Update a specific session from the user's session list (e.g., rename from sidebar)
-		// This operates on a different session_id from any in-progress streaming,
-		// so it uses chatsMu (independent of session.mu) to avoid blocking streaming.
+	// Update a specific session from the user's session list (e.g., rename from sidebar).
+	// Uses chatsMu (independent of session.mu) to avoid blocking streaming.
+	session.chatsMu.Lock()
 
-		session.chatsMu.Lock()
-
-		// Find the session by SN (under lock)
-		var targetIndex = -1
-		for i := range session.chats {
-			if session.chats[i].SN == sn {
-				targetIndex = i
-				break
-			}
+	// Find the session by SN (under lock)
+	var targetIndex = -1
+	for i := range session.chats {
+		if session.chats[i].SN == sn {
+			targetIndex = i
+			break
 		}
-		if targetIndex == -1 {
-			session.chatsMu.Unlock()
-			http.Error(w, "session not found", http.StatusNotFound)
-			return
-		}
-
-		// Capture needed data under lock, then release immediately
-		targetID := session.chats[targetIndex].ID
-		chatStore := session.chatStore
-		session.chatsMu.Unlock()
-
-		// DB write outside lock (different session_id, no conflict with streaming)
-		if err := chatStore.UpdateChatTitle(
-			targetID,
-			newTitle,
-			int8(titleState),
-		); err != nil {
-			log.Printf("failed to update session title in DB: %v", err)
-			http.Error(w, "failed to update session title", http.StatusInternalServerError)
-			return
-		}
-
-		// Re-acquire lock briefly to update in-memory cache
-		session.chatsMu.Lock()
-		for i := range session.chats {
-			if session.chats[i].SN == sn {
-				session.chats[i].Title = newTitle
-				session.chats[i].TitleState = int8(titleState)
-				break
-			}
-		}
-		session.chatsMu.Unlock()
-	} else {
-		// Update the current active session title atomically (title + state).
-		// This uses session.mu because it modifies currentChat, which is also
-		// accessed by OnNewMessage during streaming.
-		session.mu.Lock()
-		session.currentChat.title = newTitle
-		if titleState > session.currentChat.titleState {
-			session.currentChat.titleState = titleState
-		}
-
-		var dbSessionID int64
-		if session.currentChat.dbChat != nil {
-			dbSessionID = session.currentChat.dbChat.ID
-		}
-
-		// Sync title to DB if the current chat has a DB session
-		if dbSessionID != 0 {
-			if err := session.chatStore.UpdateChatTitle(
-				dbSessionID,
-				newTitle,
-				int8(titleState),
-			); err != nil {
-				log.Printf("failed to update session title in DB: %v", err)
-			}
-		}
-		session.mu.Unlock()
-
-		// Sync the title to the in-memory chat list (sess.chats) so that
-		// subsequent GET /api/session calls return the correct title for the sidebar.
-		session.syncCurrentChatTitleToChatList(newTitle, int(titleState))
 	}
+	if targetIndex == -1 {
+		session.chatsMu.Unlock()
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+
+	// Capture needed data under lock, then release immediately
+	targetID := session.chats[targetIndex].ID
+	chatStore := session.chatStore
+	session.chatsMu.Unlock()
+
+	// DB write outside lock (different session_id, no conflict with streaming)
+	if err := chatStore.UpdateChatTitle(
+		targetID,
+		newTitle,
+		int8(titleState),
+	); err != nil {
+		log.Printf("failed to update session title in DB: %v", err)
+		http.Error(w, "failed to update session title", http.StatusInternalServerError)
+		return
+	}
+
+	// Re-acquire lock briefly to update in-memory cache
+	session.chatsMu.Lock()
+	for i := range session.chats {
+		if session.chats[i].SN == sn {
+			session.chats[i].Title = newTitle
+			session.chats[i].TitleState = int8(titleState)
+			break
+		}
+	}
+	session.chatsMu.Unlock()
 
 	// Return simple 200 OK
 	w.Header().Set("Content-Type", "application/json")

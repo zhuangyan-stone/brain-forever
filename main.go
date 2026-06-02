@@ -133,9 +133,9 @@ func main() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
-	mux.Handle("/api/chat/info/llm", http.HandlerFunc(chatHandler.OnGetLLMInfo))
+	mux.Handle("/api/info/llm/chat", http.HandlerFunc(chatHandler.OnGetLLMInfo))
 	mux.Handle("/api/session", http.HandlerFunc(chatHandler.OnSession))
-	mux.Handle("/api/session/title", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/api/chat/title", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			chatHandler.OnProposeChatTitle(w, r)

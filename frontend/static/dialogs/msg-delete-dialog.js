@@ -10,6 +10,7 @@
 import { escapeHtml } from '../toolsets.js';
 import { showToast } from '../chat-ui.js';
 import { updateTickNav } from '../chat-ticknav.js';
+import { deleteMessage } from '../chat-api.js';
 
 'use strict';
 
@@ -97,15 +98,9 @@ window.confirmDelete = async function() {
         // msgId 为 0 表示提交未完成，仅删除前端数据
         if (msgId) {
             // 有有效 ID，先调后端 API 删除
-            const response = await fetch('/api/chat/messages', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ msg_id: msgId })
-            });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`删除失败 [${response.status}]: ${errText}`);
+            const ok = await deleteMessage(msgId);
+            if (!ok) {
+                throw new Error('删除失败，服务器返回错误');
             }
         }
 

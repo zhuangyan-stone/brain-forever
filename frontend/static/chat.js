@@ -12,7 +12,7 @@ import { initCopyHandlers } from './chat-copy.js';
 import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { initPage } from './chat-init.js';
 import { clearAllStickyNotes } from './components/sticky-mgr.js';
-import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat } from './chat-api.js';
+import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat, fetchLlmInfo } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, updateChatTitleBySN } from './chat-list.js';
 import { ICON_TOGGLE } from './svg_icons_re.js';
@@ -46,7 +46,7 @@ initDom();
 initTooltip();
 
 // ============================================================
-// 主题切换 — applyTheme 被 Alpine store toggleTheme() 通过
+// 主题切换 — applyTheme846 被 Alpine store toggleTheme() 通过
 // 'theme-changed' 自定义事件触发
 // ============================================================
 
@@ -842,21 +842,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 // 页面加载后获取当前使用的 AI 信息（名称、模型、官网），更新底部免责声明
 window.addEventListener('DOMContentLoaded', async () => {
-    try {
-        const response = await fetch('/api/chat/info/llm');
-        if (response.ok) {
-            const data = await response.json();
-            const disclaimer = document.getElementById('aiDisclaimer');
-            if (disclaimer && data.name && data.website) {
-                const modelTip = data.model ? `模型：${data.model}` : '';
-                disclaimer.innerHTML = `内容由 AI（<a href="${data.website}" target="_blank" rel="noopener noreferrer" data-tooltip="${modelTip}">${data.name}</a>）生成，请仔细甄别`;
-            } else if (disclaimer && data.name) {
-                disclaimer.textContent = `内容由 AI（${data.name}）生成，请仔细甄别`;
-            }
-        }
-    } catch (e) {
-        // 静默失败，保留默认免责声明文本
-        console.debug('获取 AI 信息失败:', e);
+    const data = await fetchLlmInfo();
+    if (!data) return;
+    const disclaimer = document.getElementById('aiDisclaimer');
+    if (disclaimer && data.name && data.website) {
+        const modelTip = data.model ? `模型：${data.model}` : '';
+        disclaimer.innerHTML = `内容由 AI（<a href="${data.website}" target="_blank" rel="noopener noreferrer" data-tooltip="${modelTip}">${data.name}</a>）生成，请仔细甄别`;
+    } else if (disclaimer && data.name) {
+        disclaimer.textContent = `内容由 AI（${data.name}）生成，请仔细甄别`;
     }
 });
 

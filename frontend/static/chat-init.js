@@ -10,6 +10,7 @@
 
 import { showWelcomeMessage } from './chat-ui.js';
 import { renderChatList } from './chat-list.js';
+import { fetchSession, fetchChatList } from './chat-api.js';
 
 'use strict';
 
@@ -28,30 +29,15 @@ export async function initPage() {
     // Step 1: GET /api/session — 创建/获取 HTTP session
     let currentUserNo = '';
     let welcomeMessage = '';
-    try {
-        const sessionResp = await fetch('/api/session');
-        if (sessionResp.ok) {
-            const sessionData = await sessionResp.json();
-            currentUserNo = sessionData.user_no || '';
-            welcomeMessage = sessionData.welcome || '';
-        } else {
-            console.warn('session init failed:', sessionResp.status);
-        }
-    } catch (e) {
-        console.warn('session init error:', e);
+    const sessionData = await fetchSession();
+    if (sessionData) {
+        currentUserNo = sessionData.user_no || '';
+        welcomeMessage = sessionData.welcome || '';
     }
 
     // Step 2: GET /api/chat/list — 取当前 HTTP session 用户的 chats 列表
     // 用户身份由 cookie 中的 http-session-sn 识别，不传 query 参数
-    let chatListData = null;
-    try {
-        const chatListResp = await fetch('/api/chat/list');
-        if (chatListResp.ok) {
-            chatListData = await chatListResp.json();
-        }
-    } catch (e) {
-        console.warn('fetch chat list error:', e);
-    }
+    let chatListData = await fetchChatList();
 
     // Step 3: 加工对话列表并存入 Alpine store（侧边栏通过响应式模板自动渲染）
     // renderChatList → restructChatLists 会将原始列表存入 store.chats

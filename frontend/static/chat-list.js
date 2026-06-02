@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN } from './svg_icons_re.js';
@@ -20,7 +20,8 @@ import { renderMarkdown } from './chat-markdown.js';
  * 截取标题，最多25字
  */
 function truncateTitle(title, maxLen = 25) {
-    if (!title) return '新对话';
+    const defaultTitle = '新对话';
+    if (!title) return defaultTitle;
     // 折叠空白
     let result = '';
     let space = false;
@@ -39,7 +40,7 @@ function truncateTitle(title, maxLen = 25) {
     if (result.length > maxLen) {
         return result.slice(0, maxLen) + '…';
     }
-    return result || '新对话';
+    return result || defaultTitle;
 }
 
 // ============================================================
@@ -571,26 +572,18 @@ async function handleRename(chat) {
     showTitleEditDialog({
         currentTitle: chat.title || '',
         onConfirm: async (newTitle) => {
-            try {
-                const response = await fetch('/api/session/title?title=' + encodeURIComponent(newTitle) +
-                    '&state=' + TITLE_STATE.USER + '&sn=' + encodeURIComponent(chat.sn), {
-                    method: 'PUT',
-                });
-                if (!response.ok) {
-                    showToast('重命名失败', 'error');
-                    return false;
-                }
-                // 更新本地数据
-                chat.title = newTitle;
-                // 重新渲染列表 — 从 store 读取
-                var chatsStore = window.Alpine.store('chats');
-                renderChatList(chatsStore ? chatsStore.chats : [], chatsStore ? chatsStore.activeChatSN : null);
-                showToast('已重命名', 'success');
-                return true;
-            } catch (e) {
-                showToast('重命名出错', 'error');
+            const ok = await putChatTitle(newTitle, TITLE_STATE.USER, chat.sn);
+            if (!ok) {
+                showToast('重命名失败', 'error');
                 return false;
             }
+            // 更新本地数据
+            chat.title = newTitle;
+            // 重新渲染列表 — 从 store 读取
+            var chatsStore = window.Alpine.store('chats');
+            renderChatList(chatsStore ? chatsStore.chats : [], chatsStore ? chatsStore.activeChatSN : null);
+            showToast('已重命名', 'success');
+            return true;
         },
     });
 }
@@ -601,24 +594,17 @@ async function handleRename(chat) {
  */
 async function handleTogglePin(chat) {
     const newPinned = !chat.pinned;
-    try {
-        const response = await fetch('/api/chat/pin?sn=' + encodeURIComponent(chat.sn) +
-            '&pinned=' + newPinned, {
-            method: 'PUT',
-        });
-        if (!response.ok) {
-            showToast('操作失败', 'error');
-            return;
-        }
-        // 更新本地数据
-        chat.pinned = newPinned;
-        // 重新渲染列表 — restructChatLists 会从 store.chats 读取
-        var chatsStore = window.Alpine.store('chats');
-        renderChatList(chatsStore ? chatsStore.chats : [], chatsStore ? chatsStore.activeChatSN : null);
-        showToast(newPinned ? '已置顶' : '已取消置顶', 'success');
-    } catch (e) {
-        showToast('操作出错', 'error');
+    const ok = await togglePinChat(chat.sn, newPinned);
+    if (!ok) {
+        showToast('操作失败', 'error');
+        return;
     }
+    // 更新本地数据
+    chat.pinned = newPinned;
+    // 重新渲染列表 — restructChatLists 会从 store.chats 读取
+    var chatsStore = window.Alpine.store('chats');
+    renderChatList(chatsStore ? chatsStore.chats : [], chatsStore ? chatsStore.activeChatSN : null);
+    showToast(newPinned ? '已置顶' : '已取消置顶', 'success');
 }
 
 /**
@@ -729,14 +715,11 @@ async function handleDelete(chat) {
         return;
     }
 
-    try {
-        const response = await fetch('/api/chat?sn=' + encodeURIComponent(chat.sn), {
-            method: 'DELETE',
-        });
-        if (!response.ok) {
-            showToast('删除失败', 'error');
-            return;
-        }
+    const ok = await deleteChat(chat.sn);
+    if (!ok) {
+        showToast('删除失败', 'error');
+        return;
+    }
 
         // 0. 通过 chatStreamMgr 移除 ChatStream（abort 正在进行的 SSE 流）
         chatStreamMgr.remove(chat.sn);
@@ -781,9 +764,6 @@ async function handleDelete(chat) {
         var activeSN = chatsStore ? chatsStore.activeChatSN : null;
         renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
         showToast('已删除', 'success');
-    } catch (e) {
-        showToast('删除出错', 'error');
-    }
 }
 
 // ============================================================

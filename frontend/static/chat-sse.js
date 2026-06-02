@@ -13,7 +13,7 @@ import { chatStreamMgr } from './chat-stream-mgr.js';
 import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, restoreInputArea } from './chat-ui.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { TITLE_STATE, fetchChatTitle, truncateTitle } from './chat-api.js';
+import { TITLE_STATE, fetchChatTitle, truncateTitle, sendChatMessage } from './chat-api.js';
 import { addDirtyChat } from './chat-list.js';
 
 'use strict';
@@ -283,23 +283,15 @@ async function fetchStream(stream, content, createdAt) {
     // 发送请求 — 只传用户最新的一句话，历史由后端维护
     // front_sn 传递前端生成的临时 SN，后端在 chat_created 事件中返回它，
     // 前端据此将临时 SN 替换为真实 SN。
-    const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            message: { id: 0, role: 'user', content, created_at: createdAt },
-            stream: true,
-            deep_think: settings ? settings.deepThink : false,
-            web_search_enabled: settings ? settings.webSearch : false,
-            front_sn: stream.sn,  // 传递前端临时 SN
-        }),
-        signal: stream.abortController.signal
+    const response = await sendChatMessage({
+        content,
+        createdAt,
+        stream: true,
+        deepThink: settings ? settings.deepThink : false,
+        webSearch: settings ? settings.webSearch : false,
+        frontSn: stream.sn,
+        signal: stream.abortController.signal,
     });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`服务器错误 [${response.status}]: ${errText}`);
-    }
 
     await readSSEBuffer(response, stream);
 }

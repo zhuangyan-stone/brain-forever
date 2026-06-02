@@ -97,7 +97,7 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
 
     try {
         // 构建 URL：携带 sn 参数（如果提供）
-        let url = '/api/session/title?title=' + encodeURIComponent(originalTitle);
+        let url = '/api/chat/title?title=' + encodeURIComponent(originalTitle);
         if (sn) {
             url += '&sn=' + encodeURIComponent(sn);
         }
@@ -180,7 +180,7 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
 export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 	if (!title || !sn) return false;
 	try {
-		const url = '/api/session/title?title=' + encodeURIComponent(title) +
+		const url = '/api/chat/title?title=' + encodeURIComponent(title) +
 			'&state=' + encodeURIComponent(titleState) +
 			'&sn=' + encodeURIComponent(sn);
 		const response = await fetch(url, {
@@ -471,6 +471,142 @@ export async function switchChat(sn) {
 		console.warn('切换会话出错:', e);
 		return null;
 	}
+}
+
+/**
+ * fetchLlmInfo 获取当前使用的 AI 信息（名称、模型、官网）。
+ * @returns {Promise<{name: string, model?: string, website?: string}|null>}
+ */
+export async function fetchLlmInfo() {
+    try {
+        const response = await fetch('/api/info/llm/chat');
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (e) {
+        console.debug('获取 AI 信息失败:', e);
+    }
+    return null;
+}
+
+/**
+ * fetchSession 获取/创建 HTTP session，返回 session 数据（user_no, welcome 等）。
+ * @returns {Promise<{user_no?: string, welcome?: string}|null>}
+ */
+export async function fetchSession() {
+    try {
+        const response = await fetch('/api/session');
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (e) {
+        console.warn('session 初始化失败:', e);
+    }
+    return null;
+}
+
+/**
+ * fetchChatList 获取当前用户的对话列表。
+ * @returns {Promise<{chats?: Array}|null>}
+ */
+export async function fetchChatList() {
+    try {
+        const response = await fetch('/api/chat/list');
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (e) {
+        console.warn('获取对话列表失败:', e);
+    }
+    return null;
+}
+
+/**
+ * togglePinChat 切换指定对话的置顶状态。
+ * @param {string} sn - 对话 SN
+ * @param {boolean} pinned - 是否置顶
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function togglePinChat(sn, pinned) {
+    if (!sn) return false;
+    try {
+        const response = await fetch('/api/chat/pin?sn=' + encodeURIComponent(sn) +
+            '&pinned=' + pinned, { method: 'PUT' });
+        return response.ok;
+    } catch (e) {
+        console.warn('切换置顶失败:', e);
+        return false;
+    }
+}
+
+/**
+ * deleteChat 删除指定对话及其所有消息。
+ * @param {string} sn - 对话 SN
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function deleteChat(sn) {
+    if (!sn) return false;
+    try {
+        const response = await fetch('/api/chat?sn=' + encodeURIComponent(sn), {
+            method: 'DELETE',
+        });
+        return response.ok;
+    } catch (e) {
+        console.warn('删除对话失败:', e);
+        return false;
+    }
+}
+
+/**
+ * deleteMessage 删除指定消息（仅删除消息，不删除对话）。
+ * @param {number} msgId - 消息 ID
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function deleteMessage(msgId) {
+    if (!msgId) return false;
+    try {
+        const response = await fetch('/api/chat/messages', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ msg_id: msgId }),
+        });
+        return response.ok;
+    } catch (e) {
+        console.warn('删除消息失败:', e);
+        return false;
+    }
+}
+
+/**
+ * sendChatMessage 发送用户消息到后端，返回 Response 对象供 SSE 流式读取。
+ * @param {object} params
+ * @param {string} params.content - 消息内容
+ * @param {string} params.createdAt - 消息创建时间
+ * @param {boolean} params.stream - 是否启用流式响应
+ * @param {boolean} params.deepThink - 是否启用深度思考
+ * @param {boolean} params.webSearch - 是否启用联网搜索
+ * @param {string} params.frontSn - 前端临时 SN
+ * @param {AbortSignal} [params.signal] - 可选的 AbortSignal
+ * @returns {Promise<Response>} fetch Response 对象
+ */
+export async function sendChatMessage({ content, createdAt, stream, deepThink, webSearch, frontSn, signal }) {
+    const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message: { id: 0, role: 'user', content, created_at: createdAt },
+            stream: !!stream,
+            deep_think: !!deepThink,
+            web_search_enabled: !!webSearch,
+            front_sn: frontSn,
+        }),
+        signal: signal || undefined,
+    });
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`服务器错误 [${response.status}]: ${errText}`);
+    }
+    return response;
 }
 
 // ============================================================
