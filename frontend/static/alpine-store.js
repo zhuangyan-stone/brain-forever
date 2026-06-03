@@ -45,7 +45,7 @@ document.addEventListener('alpine:init', function() {
     // ES Module 通过 Alpine.store('settings') 直接访问。
     // ============================================================
     Alpine.store('settings', {
-        deepThink: typeof _bfSettings.deepThink === 'boolean' ? _bfSettings.deepThink : true,
+        deepThink: typeof _bfSettings.deepThink === 'boolean' ? _bfSettings.deepThink : false,
         webSearch: typeof _bfSettings.webSearch === 'boolean' ? _bfSettings.webSearch : true,
         sendMode: typeof _bfSettings.sendMode === 'number' ? _bfSettings.sendMode : 0,
         theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 0,
