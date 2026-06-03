@@ -405,9 +405,9 @@ func streamChatCompletion(
 // If the LLM calls a tool (e.g. web_search), it executes the tool via the
 // ToolExecutor, appends the tool result, and re-streams with the updated messages.
 //
-// When the tool call iteration limit is reached, DisableToolChoice() is called
-// on the request to prevent the LLM from calling more tools, forcing it to
-// answer directly.
+// When the tool call iteration limit is reached, DisableToolChoice(true) is called
+// on the request to prevent the LLM from calling more tools (setting tool_choice to
+// "none" and clearing tool definitions), forcing it to answer directly.
 //
 // Parameters:
 //   - ctx: context for cancellation
@@ -448,6 +448,9 @@ func (c *DeepSeekClient) ChatWithPipeline(
 	for {
 		toolCallIterations++
 
+		// Debug: print current iteration count
+		fmt.Printf("[TOOL_DEBUG] toolCallIterations=%d, max=%d\n", toolCallIterations, maxToolCallIterations)
+
 		// Build the streaming request with tools
 		req := ChatCompletionRequest{
 			Model:    c.model,
@@ -469,7 +472,8 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		// When the limit is reached, disable tool choice so the LLM must
 		// answer directly, rather than appending a prompt message.
 		if toolCallIterations > maxToolCallIterations {
-			req.DisableToolChoice()
+			fmt.Printf("[TOOL_DEBUG] LIMIT REACHED! Disabling tool choice.\n")
+			req.DisableToolChoice(false)
 		}
 
 		// Start streaming connection

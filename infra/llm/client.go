@@ -196,9 +196,13 @@ type ChatCompletionRequest struct {
 	ReasoningEffort string `json:"reasoning_effort,omitempty"`
 }
 
-func (req *ChatCompletionRequest) DisableToolChoice() {
+func (req *ChatCompletionRequest) DisableToolChoice(clearTools bool) {
 	// Set ToolChoice to "none" — prevents the LLM from calling any tool.
 	req.ToolChoice = json.RawMessage(`"none"`)
+
+	if clearTools && len(req.Tools) > 0 {
+		req.Tools = nil
+	}
 }
 
 func (req *ChatCompletionRequest) EnableToolChoice() {

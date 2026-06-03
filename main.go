@@ -47,7 +47,7 @@ func main() {
 			EnvKey:                "DEEPSEEK_API_KEY",
 			BaseURL:               "https://api.deepseek.com/beta",
 			Model:                 "deepseek-v4-flash",
-			MaxToolCallIterations: 9,
+			MaxToolCallIterations: 2,
 		},
 		TraitLLM: config.TraitLLMConfig{
 			EnvKey:                "DEEPSEEK_API_KEY",
