@@ -269,9 +269,10 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 	systemPromptBuilder.WriteString("\n------")
 
 	for _, msg := range samples {
-		if msg.Role == llm.RoleUser {
+		switch msg.Role {
+		case llm.RoleUser:
 			systemPromptBuilder.WriteString("\nA: ")
-		} else if msg.Role == llm.RoleAssistant {
+		case llm.RoleAssistant:
 			systemPromptBuilder.WriteString("\nB: ")
 		}
 
