@@ -951,18 +951,55 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // ---- 恢复条件 2：输入框内容变化（用户开始输入） ----
     messageInput.addEventListener('input', restoreInputArea);
+// ---- 恢复条件 3：点击输入区域任意位置 ----
+inputArea.addEventListener('click', (e) => {
+    if (isInputCollapsed()) {
+        messageInput.focus();
+    }
+});
 
-    // ---- 恢复条件 3：点击输入区域任意位置 ----
-    inputArea.addEventListener('click', (e) => {
-        if (isInputCollapsed()) {
-            messageInput.focus();
+// ---- 当发送消息后恢复 ----
+const sendBtn = document.getElementById('sendBtn');
+if (sendBtn) {
+    sendBtn.addEventListener('click', restoreInputArea);
+}
+
+})();
+
+// ============================================================
+// 全局热键 — F2：聚焦输入框
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'F2') {
+        e.preventDefault();
+        const msgInput = document.getElementById('messageInput');
+        if (msgInput) {
+            // 如果输入面板已折叠，先恢复
+            if (isInputCollapsed()) {
+                restoreInputArea();
+            }
+            msgInput.focus();
         }
+    }
+});
+
+// ============================================================
+// Placeholder 动态提示 — 无焦点时显示 F2 快捷键提示
+// ============================================================
+(function initPlaceholderHint() {
+    const PLACEHOLDER_FOCUS = '说点什么？';
+    const PLACEHOLDER_BLUR =  '需要输入？按 F2！';
+    const msgInput = document.getElementById('messageInput');
+    if (!msgInput) return;
+
+    // 初始状态：无焦点，显示 F2 提示
+    msgInput.placeholder = PLACEHOLDER_BLUR;
+
+    msgInput.addEventListener('focus', () => {
+        msgInput.placeholder = PLACEHOLDER_FOCUS;
     });
 
-    // ---- 当发送消息后恢复 ----
-    const sendBtn = document.getElementById('sendBtn');
-    if (sendBtn) {
-        sendBtn.addEventListener('click', restoreInputArea);
-    }
-
+    msgInput.addEventListener('blur', () => {
+        msgInput.placeholder = PLACEHOLDER_BLUR;
+    });
 })();
