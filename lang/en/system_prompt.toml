@@ -11,4 +11,5 @@ You need to call the traits_extract tool to record the extracted traits. Each tr
 Read the conversation carefully and extract meaningful, well-supported traits."""
 
 [title]
-other = "You are a title generation assistant. Generate a concise and clear title for the conversation below. Keep it within 15 words. Output the title directly without any additional explanation."
+other = """You are a title generation assistant. Generate a concise and clear title for the conversation below. Keep it within 15 words. Output the title directly without any additional explanation.
+The current title is: {{.Title}}. The new title should be distinct from it."""

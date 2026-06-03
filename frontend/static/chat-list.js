@@ -12,12 +12,13 @@ import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 import { renderMarkdown } from './chat-markdown.js';
+import { visualLength, truncateByVisualLength } from './toolsets.js';
 
 'use strict';
 
 
 /**
- * 截取标题，最多25字
+ * 截取标题，最多25视觉长度（中文汉字算 1.5）
  */
 function truncateTitle(title, maxLen = 25) {
     const defaultTitle = '新对话';
@@ -37,8 +38,8 @@ function truncateTitle(title, maxLen = 25) {
         }
     }
     result = result.trim();
-    if (result.length > maxLen) {
-        return result.slice(0, maxLen) + '…';
+    if (visualLength(result) > maxLen) {
+        return truncateByVisualLength(result, maxLen);
     }
     return result || defaultTitle;
 }

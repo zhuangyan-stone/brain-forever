@@ -3,7 +3,7 @@
 // ============================================================
 
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, targetTickIndex, setTargetTickIndex, pendingHighlightIndex, setPendingHighlightIndex, MAX_VISIBLE_TICKS, resetTickState } from './tick-state.js';
-import { truncate } from './toolsets.js';
+import { truncateByVisualLength } from './toolsets.js';
 
 'use strict';
 
@@ -64,7 +64,7 @@ export function updateTickNav() {
     for (let i = startIdx; i < endIdx; i++) {
         const userMsg = userMessages[i];
         const content = userMsg.querySelector('.bubble').textContent || '';
-        const title = truncate(content.replace(/\n/g, ' ').trim(), 30);
+        const title = truncateByVisualLength(content.replace(/\n/g, ' ').trim(), 30);
 
         const tick = document.createElement('div');
         tick.className = 'tick';

@@ -2,7 +2,7 @@
 // chat-ui.js — DOM 操作（addMessage、showSources、toast、错误显示等）
 // ============================================================
 
-import { escapeHtml, truncate } from './toolsets.js';
+import { escapeHtml, truncateByVisualLength } from './toolsets.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { SwipePager } from './components/swipe-pager.js';
 import { ICON_GLOBE } from './svg_icons_re.js';
@@ -67,7 +67,7 @@ export function createSourceItemElement(src) {
             ${siteBadgeHtml}
         </div>
         ${publishHtml}
-        ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)" class="source-content-preview">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
+        ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)" class="source-content-preview">${escapeHtml(truncateByVisualLength(src.content, 100))}</div>` : ''}
     `;
     return item;
 }
@@ -469,7 +469,7 @@ export function showSources(sources, type) {
             item.innerHTML = `
                 <span class="source-title">${escapeHtml(src.title)}</span>
                 <span class="source-score">相似度: ${(src.score * 100).toFixed(1)}%</span>
-                ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)">${escapeHtml(truncate(src.content, 100))}</div>` : ''}
+                ${src.content ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--text-muted)">${escapeHtml(truncateByVisualLength(src.content, 100))}</div>` : ''}
             `;
             body.appendChild(item);
         });

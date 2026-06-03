@@ -5,6 +5,7 @@
 import { updateHeaderTitle, showToast } from './chat-ui.js';
 import { resetTickState } from './tick-state.js';
 import { showAiTitleSuggestion } from './components/sticky-ai-title.js';
+import { visualLength, truncateByVisualLength } from './toolsets.js';
 
 /**
  * 标题修改状态常量
@@ -17,9 +18,9 @@ export const TITLE_STATE = {
 
 /**
  * truncateTitle 截取字符串作为对话标题。
- * 与后端 internal/agent/on_session.go 中的 truncateTitle 逻辑一致：
+ * 保留原始逻辑：
  *   - 折叠空白字符（换行、制表符、空格）为单个空格
- *   - 限制最多 50 个字符，超长加 "…"
+ *   - 限制最多 50 视觉长度，中文汉字算 1.5，超长加 "…"
  *
  * @param {string} s - 原始字符串
  * @returns {string} 截取后的标题
@@ -42,9 +43,9 @@ export function truncateTitle(s) {
     }
     // 去除首尾空格
     result = result.trim();
-    // 限制最多 50 个字符
-    if (result.length > 50) {
-        return result.slice(0, 50) + '…';
+    // 限制最多 50 视觉长度（中文汉字算 1.5）
+    if (visualLength(result) > 50) {
+        return truncateByVisualLength(result, 50);
     }
     return result;
 }

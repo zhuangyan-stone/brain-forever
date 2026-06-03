@@ -13,6 +13,7 @@ import (
 
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
+	"BrainForever/toolset"
 )
 
 // ============================================================
@@ -265,7 +266,7 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Build the LLM prompt with i18n support
 	systemPromptBuilder := &strings.Builder{}
-	systemPromptBuilder.WriteString(i18n.SystemPrompt.TL(lang, "title"))
+	systemPromptBuilder.WriteString(i18n.SystemPrompt.TL(lang, "title", map[string]interface{}{"Title": originalTitle}))
 	systemPromptBuilder.WriteString("\n------")
 
 	for _, msg := range samples {
@@ -302,11 +303,11 @@ func (h *ChatAgent) OnProposeChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Validate the generated title:
 	// - If LLM returned empty content, fall back to original title
-	// - If the generated title is unreasonably long (>50 runes), the LLM likely
+	// - If the generated title is unreasonably long (>50 visual length), the LLM likely
 	//   failed to generate a concise title; discard it and use the original title instead.
-	//   50 runes ≈ 15 Chinese characters or 8 English words, matching the prompt constraints.
-	const maxTitleLen = 50
-	if newTitle == "" || len([]rune(newTitle)) > maxTitleLen {
+	//   50 visual length ≈ 33 Chinese characters or 50 English chars, matching the prompt constraints.
+	const maxTitleLen = 50.0
+	if newTitle == "" || toolset.VisualLength(newTitle) > maxTitleLen {
 		newTitle = originalTitle
 	}
 

@@ -39,8 +39,24 @@ func IsEmoji(r rune) bool {
 		(r >= 0x200D) // Zero Width Joiner (ZWJ, used for combining emoji)
 }
 
-// TruncateTitle truncates a string to at most maxLen runes for use as a session title.
+// VisualLength 计算字符串的"视觉长度"。
+// CJK 字符每个算 1.5，ASCII 等窄字符每个算 1。
+// 与前端 toolsets.js 的 visualLength 保持一致。
+func VisualLength(s string) float64 {
+	var length float64
+	for _, r := range s {
+		if IsCJK(r) {
+			length += 1.5
+		} else {
+			length += 1
+		}
+	}
+	return length
+}
+
+// TruncateTitle truncates a string to at most maxLen visual length for use as a session title.
 // It also collapses whitespace/newlines into a single space.
+// CJK characters count as 1.5, ASCII/narrow characters count as 1.
 // If the string exceeds maxLen, it appends "…" at the end.
 func TruncateTitle(s string, maxLen int) string {
 	// Collapse whitespace and newlines
@@ -60,10 +76,25 @@ func TruncateTitle(s string, maxLen int) string {
 		}
 	}
 	trimmed := string(result)
-	// Limit to maxLen characters
-	runes2 := []rune(trimmed)
-	if len(runes2) > maxLen {
-		return string(runes2[:maxLen]) + "…"
+
+	// Check visual length
+	if VisualLength(trimmed) <= float64(maxLen) {
+		return trimmed
 	}
-	return trimmed
+
+	// Truncate by visual length, reserving space for "…" (visual length 1)
+	var truncated []rune
+	var visualLen float64
+	for _, r := range trimmed {
+		charLen := 1.0
+		if IsCJK(r) {
+			charLen = 1.5
+		}
+		if visualLen+charLen > float64(maxLen)-1 {
+			break
+		}
+		truncated = append(truncated, r)
+		visualLen += charLen
+	}
+	return string(truncated) + "…"
 }
