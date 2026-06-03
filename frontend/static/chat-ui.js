@@ -312,6 +312,21 @@ export function showToast(message, type, duration) {
 }
 
 /**
+ * showToastHTML 显示支持 HTML 内容和点击回调的 Toast
+ *
+ * @param {string} html - 支持 HTML 标签的消息内容
+ * @param {'error'|'success'|'info'} [type='error']
+ * @param {number} [duration=4000]
+ * @param {function} [onClick] - 点击 toast 时的回调函数
+ */
+export function showToastHTML(html, type, duration, onClick) {
+    type = type || 'error';
+    duration = duration || 4000;
+
+    Alpine.store('ui').showToastHTML(html, type, duration, onClick);
+}
+
+/**
  * showError 通过 Toast 显示错误信息，同时在控制台输出出错信息
  * @param {HTMLElement} assistantBubble
  * @param {string} message

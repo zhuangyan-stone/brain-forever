@@ -16,7 +16,8 @@
 // ============================================================
 
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
-import { showSources, showTokenUsage, autoScrollToBottom, showError, restoreInputArea, showToast, updateSourcesPagerInDOM } from './chat-ui.js';
+import { escapeHtml } from './toolsets.js';
+import { showSources, showTokenUsage, autoScrollToBottom, showError, restoreInputArea, showToast, showToastHTML, updateSourcesPagerInDOM } from './chat-ui.js';
 import { addDirtyChat } from './chat-list.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
 
@@ -401,13 +402,24 @@ export class SSEResponser {
         	this._applyDoneToDOM(event);
         } else {
             // 后台流完成：弹出 toast 提示用户
+            // ★ 使用 showToastHTML 使标题可点击，点击后跳转到该对话
             try {
                 var chats = window.Alpine.store('chats');
                 if (chats) {
                     var chatData = chats.getOrCreate(this.stream.sn);
-                    var title = chatData && chatData.title ? chatData.title : '对话';
-                    var displayTitle = title.length > 15 ? title.substring(0, 15) + '…' : title;
-                    showToast('AI 回复完毕 ——\n「' + displayTitle + '」', 'info', 4000);
+                    var title = chatData && chatData.title ? chatData.title : '';
+                    var displayTitle = title.length > 15 ? title.substring(0, 15) + '…' : (title || '对话');
+                    var sn = this.stream.sn;
+                    // 构建 HTML 消息：标题部分使用 .toast-link 样式，点击切换到目标对话
+                    var htmlMessage = 'AI 回复完毕 ——<br>「<span class="toast-link">' + escapeHtml(displayTitle) + '</span>」';
+                    showToastHTML(htmlMessage, 'info', 5000, function() {
+                        try {
+                            var c = window.Alpine.store('chats');
+                            if (c && typeof c.selectChat === 'function') {
+                                c.selectChat(sn);
+                            }
+                        } catch(e) {}
+                    });
                 }
             } catch(e) {}
         }
@@ -479,13 +491,18 @@ export class SSEResponser {
             autoScrollToBottom();
         }, 480);
 
-        // 5. 用户向上滚动时提示
+        // 5. 回复完成提示
+        // ★ 如果用户向上滚动过（页面不在底部），显示 toast 提醒；
+        //    如果用户停留在底部，则不需要显示 toast（滚动和内容可见本身就是提示）。
         try {
             var chats = window.Alpine.store('chats');
-            if (chats && chats.active && chats.active.userScrolledUp) {
-                setTimeout(function() {
-                    showToast('AI 回复完毕', 'info', 4000);
-                }, 500);
+            if (chats && chats.active) {
+                if (chats.active.userScrolledUp) {
+                    // 用户已向上滚动：延迟显示 toast，让内容先渲染
+                    setTimeout(function() {
+                        showToast('AI 回复完毕', 'info', 4000);
+                    }, 500);
+                }
             }
         } catch(e) {}
     }

@@ -115,17 +115,24 @@ document.addEventListener('alpine:init', function() {
         _nextToastId: 0,
 
         /**
-         * 添加一条 Toast
+         * _addToast — 内部方法：创建 toast 并管理其生命周期
+         * 所有消息统一使用 x-html 渲染（showToast 已对纯文本做 HTML 转义）
          * @param {string} message
-         * @param {'error'|'success'|'info'} [type='error']
-         * @param {number} [duration=4000]
+         * @param {'error'|'success'|'info'} type
+         * @param {number} duration
+         * @param {function|null} onClick - 点击回调
+         * @returns {number} toast id
          */
-        showToast: function(message, type, duration) {
-            if (!type) type = 'error';
-            if (!duration) duration = 4000;
+        _addToast: function(message, type, duration, onClick) {
             var id = ++this._nextToastId;
             var self = this;
-            var toast = { id: id, message: message, type: type, visible: false };
+            var toast = {
+                id: id,
+                message: message,
+                type: type,
+                visible: false,
+                onClick: (typeof onClick === 'function') ? onClick : null,
+            };
             this.toasts.push(toast);
 
             // 下一帧触发进入动画
@@ -142,6 +149,37 @@ document.addEventListener('alpine:init', function() {
                     self.toasts = self.toasts.filter(function(t) { return t.id !== id; });
                 }, 300);
             }, duration);
+
+            return id;
+        },
+
+        /**
+         * showToast — 纯文本 Toast
+         * 会对 message 做 HTML 转义，防止 XSS
+         * @param {string} message
+         * @param {'error'|'success'|'info'} [type='error']
+         * @param {number} [duration=4000]
+         */
+        showToast: function(message, type, duration) {
+            if (!type) type = 'error';
+            if (!duration) duration = 4000;
+            // HTML 转义：& < > 三个危险字符
+            var safe = String(message).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+            this._addToast(safe, type, duration, null);
+        },
+
+        /**
+         * showToastHTML — HTML 内容 Toast（支持点击回调）
+         * 不会对 html 做转义，调用方需确保 HTML 安全性
+         * @param {string} html - 支持 HTML 标签的消息内容
+         * @param {'error'|'success'|'info'} [type='error']
+         * @param {number} [duration=4000]
+         * @param {function} [onClick] - 点击 toast 时的回调函数
+         */
+        showToastHTML: function(html, type, duration, onClick) {
+            if (!type) type = 'error';
+            if (!duration) duration = 4000;
+            this._addToast(html, type, duration, onClick || null);
         },
     });
 

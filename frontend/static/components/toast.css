@@ -65,3 +65,15 @@
     opacity: 0;
     transform: translateX(20px);
 }
+
+/* Toast 中的可点击链接样式——用于跨 chat 提醒中的对话标题跳转 */
+.toast-link {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+}
+.toast-link:hover {
+    text-decoration-color: #fff;
+}
