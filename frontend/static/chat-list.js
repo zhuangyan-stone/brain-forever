@@ -386,6 +386,12 @@ async function selectChat(sn) {
     window.Alpine.nextTick(function() {
         updateTickNav();
         autoScrollToBottom();
+        // ★ 延迟二次滚动兜底：Alpine 渲染完成后，输入面板展开或字体/图片加载
+        //   可能导致页面高度变化，初次 scrollTop 可能未达真正底部。
+        //   类似 _applyDoneToDOM 中 480ms 延迟二次滚动的策略。
+        setTimeout(function() {
+            autoScrollToBottom();
+        }, 480);
     });
 
     // 11. 清理已完成的非活跃 stream（释放内存）
