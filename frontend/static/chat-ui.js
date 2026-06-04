@@ -611,6 +611,10 @@ export function updateHeaderTitle(title) {
  * 若 store 中为空则使用默认文本兜底。
  */
 export function showWelcomeMessage() {
+    // ★ 恢复输入面板（移除 .collapsed 类），否则删除已折叠的对话后，
+    //   输入面板虽处于 welcome 状态居中位置，但仍保留收缩样式。
+    restoreInputArea();
+
     // 清空 header 标题（欢迎页不需要显示对话标题）
     updateHeaderTitle('');
 
