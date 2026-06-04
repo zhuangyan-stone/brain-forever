@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH } from './svg_icons_re.js';
@@ -776,6 +776,36 @@ async function handleDelete(chat) {
 
         // 重置当前选中状态
         chatsStore.activeChatSN = null;
+
+        // ★★★ 修复：删除活跃 chat 后，显式调用"新对话"流程
+        //
+        // 问题背景：
+        //   1. removeChat() 会将 blankItem 设为 null，导致 chats.active 返回 null，
+        //      之前修复了 frontend blankItem 重建，但消息仍可能关联到旧 chat。
+        //   2. 后端 OnChatDelete 虽会重置 session.currentChat = &chat{}，
+        //      但其 reset 时机在 LogicDelete（I/O 操作）之后，存在竞态条件——
+        //      如果 OnNewMessage 在 LogicDelete 和 reset 之间获取 mu，
+        //      ensureSessionDBForChat 会误认为当前 chat 仍有效，将新消息写入旧 chat。
+        //
+        // 解决方案：删除完成后，再调用一次 createBlankChat() (PUT /api/chat/new)。
+        // 这是一个独立的 HTTP 请求，在 DELETE 完成后才发起，不存在竞态。
+        // PUT /api/chat/new 是"新对话"按钮的标准路径，已充分测试。
+        // 即使后端 currentChat 已被 OnChatDelete 重置，此调用也是安全的（幂等）。
+        await createBlankChat();
+
+        // ★ 重建 blankItem，使 chats.active 恢复为有效的空白对话对象
+        chatsStore.activeIndex = -1;
+        chatsStore.blankItem = {
+            sn: '',
+            title: '',
+            titleState: 0,
+            isStreaming: false,
+            userScrolledUp: false,
+            streamingMsg: null,
+            groups: [],
+            _groupSeq: 0,
+        };
+        chatsStore.inputCollapsed = false;
 
         // 显示欢迎消息（会同时清空 header 标题）
         showWelcomeMessage();
