@@ -37,6 +37,7 @@
 /* ---- 消息文本 ---- */
 .msgbox-message {
     margin: 0;
+    white-space: pre-wrap;
 }
 
 /* ---- 危险/删除按钮（红色） ---- */

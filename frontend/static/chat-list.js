@@ -717,7 +717,7 @@ export function updateChatEntry(sn, title, titleState) {
  * 删除对话（逻辑删除 — 移入回收站）
  */
 async function handleDelete(chat) {
-    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」将被移入回收站，确认删除？`);
+    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」\n将被移入回收站，确认删除？`);
     if (result !== 1) {
         return;
     }
@@ -869,7 +869,7 @@ async function handleRestore(chat) {
  * 从回收站永久删除对话
  */
 async function handlePermanentDelete(chat) {
-    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」永久删除后不可恢复，请确认？`);
+    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」\n永久删除后不可恢复，请确认？`);
     if (result !== 1) {
         return;
     }
