@@ -308,46 +308,99 @@ function handleAbortError(stream) {
     const assistantBubble = stream.assistantBubble;
     if (!assistantBubble) return;
 
-    // 设置 Alpine store 中的 reasoningState = 'done'
-    // ★ 中断与完成在角色标签上统一显示"思考完成"，
-    //    后端会为中断消息追加 broken message 标记。
     try {
         var chats = window.Alpine.store('chats');
-        if (chats) {
-            var chatData = chats.getOrCreate(stream.sn);
-            if (chatData && chatData.streamingMsg) {
-                chatData.streamingMsg.reasoningState = 'done';
-            }
-            // 同步到 group.assistant，使 Alpine 模板中的 role-label-ai 立即更新
-            var groups = chatData.groups;
-            if (groups && groups.length > 0) {
-                var assistant = groups[groups.length - 1].assistant;
-                if (assistant) {
-                    assistant.reasoningState = 'done';
-                }
-            }
-        }
-    } catch(e) {}
+        if (!chats) return;
+        var chatData = chats.getOrCreate(stream.sn);
+        var sm = chatData?.streamingMsg;
+        var groups = chatData?.groups;
+        var assistant = groups?.[groups.length - 1]?.assistant;
+        if (!sm || !assistant) return;
 
-    // 将 reasoning 区域从 active 切换为 done 状态
-    const area = assistantBubble.querySelector('.reasoning-area.active');
-    if (area) {
-        area.classList.remove('active');
-        area.classList.add('done');
-        // 清理 reasoning 节流渲染定时器
-        const reasoningContentEl = area.querySelector('.reasoning-content');
-        if (reasoningContentEl && reasoningContentEl.renderTimer) {
-            clearTimeout(reasoningContentEl.renderTimer);
-            reasoningContentEl.renderTimer = null;
+        // ============================================================
+        // 1. 设置 reasoningState = 'done'
+        //    中断与完成在角色标签上统一显示"思考完成"。
+        // ============================================================
+        sm.reasoningState = 'done';
+        assistant.reasoningState = 'done';
+
+        // ============================================================
+        // 2. 补全 createdAt 时间戳
+        //    中断时 SSE done 事件未到达，onDone 不会设置 createdAt，
+        //    但角色标签（assistantLabel）依赖 assistant.createdAt 显示时间。
+        //    若缺失则显示空括号"思考完成 ()"，刷新后才正常。
+        //    此处用本地当前时间补充，确保中断后立即显示正确时间。
+        // ============================================================
+        if (!sm.createdAt) {
+            sm.createdAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
         }
-    }
-    // 如果 assistant 气泡为空（尚未收到任何 text 事件），显示中断提示
-    const contentDiv = stream.contentDiv;
-    if (contentDiv && !contentDiv.textContent.trim()) {
-        contentDiv.innerHTML = '⏹ 已中断';
-        contentDiv.classList.remove('streaming');
+        if (!assistant.createdAt) {
+            assistant.createdAt = sm.createdAt;
+        }
+
+        // ============================================================
+        // 3. 设置 interrupted = 1，触发 Alpine 模板中的 :class 绑定
+        //    <div class="message assistant" :class="{
+        //        interrupted: group.assistant.interrupted === 1,
+        //        failed: group.assistant.interrupted === 2
+        //    }">
+        //    此标志位仅用于前端样式控制（虚线边框 + 浅色文字），
+        //    不再追加额外的中断提示文字。
+        // ============================================================
+        assistant.interrupted = 1;
+
+        // ============================================================
+        // 4. 将 reasoning 区域从 active 切换为 done 状态
+        // ============================================================
+        const area = assistantBubble.querySelector('.reasoning-area.active');
+        if (area) {
+            area.classList.remove('active');
+            area.classList.add('done');
+            // 清理 reasoning 节流渲染定时器
+            const reasoningContentEl = area.querySelector('.reasoning-content');
+            if (reasoningContentEl && reasoningContentEl.renderTimer) {
+                clearTimeout(reasoningContentEl.renderTimer);
+                reasoningContentEl.renderTimer = null;
+            }
+        }
+
+        // ============================================================
+        // 5. 立即渲染中断时的最新内容
+        //    清除所有节流定时器 + 强制 renderMarkdown，
+        //    确保用户看到的是全部已累积内容的最新渲染，而非 180ms 前的快照。
+        // ============================================================
+        if (stream.responser?._renderTimer) {
+            clearTimeout(stream.responser._renderTimer);
+            stream.responser._renderTimer = null;
+        }
+        assistant.contentHTML = renderMarkdown(sm.content || '');
+
+        if (stream.responser?._reasoningRenderTimer) {
+            clearTimeout(stream.responser._reasoningRenderTimer);
+            stream.responser._reasoningRenderTimer = null;
+        }
+        if (sm.reasoning) {
+            assistant.reasoningHTML = renderMarkdown(sm.reasoning);
+        }
+
+        // ============================================================
+        // 6. 更新 DOM 状态：移除 streaming 类，添加 interrupted 类
+        //    触发 CSS 样式切换：
+        //      - 移除流式输出时的隐藏样式（如复制按钮隐藏）
+        //      - 添加中断样式（虚线边框、浅色文字）
+        // ============================================================
+        const contentDiv = stream.contentDiv;
+        if (contentDiv) {
+            contentDiv.classList.remove('streaming');
+        }
         assistantBubble.classList.add('interrupted');
-    }
+
+        // ============================================================
+        // 7. 自动滚动到底部（让用户看到中断时的完整内容）
+        // ============================================================
+        autoScrollToBottom();
+
+    } catch(e) {}
 }
 
 /**
@@ -454,6 +507,19 @@ function cleanupAfterStream(stream, wasAborted) {
         if (reasoningContentEl && reasoningContentEl.renderTimer) {
             clearTimeout(reasoningContentEl.renderTimer);
             reasoningContentEl.renderTimer = null;
+        }
+    }
+
+    // ★ 兜底清理：清除 SSEResponser 上的节流定时器引用，
+    //   防止 handleAbortError 已设置的最终渲染被后续 setTimeout 覆盖。
+    if (stream.responser) {
+        if (stream.responser._renderTimer) {
+            clearTimeout(stream.responser._renderTimer);
+            stream.responser._renderTimer = null;
+        }
+        if (stream.responser._reasoningRenderTimer) {
+            clearTimeout(stream.responser._reasoningRenderTimer);
+            stream.responser._reasoningRenderTimer = null;
         }
     }
 

@@ -7,11 +7,5 @@ other = "Failed to set tool arguments: {{.Error}}"
 [server_error]
 other = "Oops! Server error!\n{{.Error}}"
 
-[assistant_broken_message]
-other = "Oops! My reply process was forcibly interrupted..."
-
-[assistant_failed_message]
-other = "Sorry, I encountered an error while responding. The reply is incomplete."
-
 [welcome_message]
 other = "Hello! Chat with me more, and I will become your second brain."

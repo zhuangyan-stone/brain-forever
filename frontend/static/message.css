@@ -1,4 +1,4 @@
-/* ============================================================
+ /* ============================================================
     第2大脑 AI 助手 — 消息气泡样式（原 markdown.css）
     ============================================================
     依赖：style.css（主题变量）
@@ -233,29 +233,69 @@
 }
 
 /* ============================================================
-    中断消息状态 — 用户手动中断 AI 回复时显示
+    中断 / 失败消息状态 — 打断样式（纸撕开锯齿边缘）
+    -------------------------------------------------------
+    共用规则：.message.interrupted 与 .message.failed
+    差异仅在于边框颜色：
+      - interrupted → var(--warning-border)
+      - failed      → var(--error-border)
     ============================================================ */
 
-.message.interrupted .bubble {
+/* ---- 气泡本体共用 ---- */
+.message.interrupted .bubble,
+.message.failed .bubble {
+    position: relative;
     background: var(--bg-secondary);
-    border: 1px dashed var(--warning-border);
+    border-bottom: none;
     color: var(--text-muted);
     font-size: 0.85rem;
-    text-align: center;
-    padding: 8px 16px;
+    padding: 8px 16px 16px;
+    margin-bottom: 12px;
+    border-radius: var(--radius, 12px) var(--radius, 12px) 0 0;
+}
+.message.interrupted .bubble { border: 1px solid var(--warning-border); }
+.message.failed .bubble     { border: 1px solid var(--error-border); }
+
+/* ---- 纸撕开锯齿边缘（::after）共用 ---- */
+.message.interrupted .bubble::after,
+.message.failed .bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: -1px;
+    right: -1px;
+    height: 12px;
+    background: var(--bg-secondary);
+    clip-path: polygon(
+        0% 0%,
+        2.0%  50%,  4.0%  15%,  6.0%  40%,  8.0%   0%,
+       10.0%  35%, 12.0%  10%, 14.0%  55%, 16.0%   5%,
+       18.0%  40%, 20.0%  20%, 22.0%  50%, 24.0%   0%,
+       26.0%  30%, 28.0%   8%, 30.0%  45%, 32.0%  12%,
+       34.0%  38%, 36.0%  25%, 38.0%  55%, 40.0%   0%,
+       42.0%  35%, 44.0%  15%, 46.0%  50%, 48.0%   8%,
+       50.0%  40%, 52.0%  20%, 54.0%  48%, 56.0%   0%,
+       58.0%  30%, 60.0%  12%, 62.0%  45%, 64.0%   5%,
+       66.0%  38%, 68.0%  22%, 70.0%  52%, 72.0%   0%,
+       74.0%  35%, 76.0%  15%, 78.0%  42%, 80.0%   8%,
+       82.0%  30%, 84.0%  12%, 86.0%  55%, 88.0%   0%,
+       90.0%  38%, 92.0%  18%, 94.0%  45%, 96.0%   5%,
+       98.0%  32%, 100%   0%
+    );
+}
+.message.interrupted .bubble::after {
+    border-left: 1px solid var(--warning-border);
+    border-right: 1px solid var(--warning-border);
+}
+.message.failed .bubble::after {
+    border-left: 1px solid var(--error-border);
+    border-right: 1px solid var(--error-border);
 }
 
-/* ============================================================
-    失败消息状态 — 后台错误（LLM/API异常）导致回答不完整
-    ============================================================ */
-
-.message.failed .bubble {
+/* 亮色主题下纸撕边缘背景色适配 */
+[data-theme="light"] .message.interrupted .bubble::after,
+[data-theme="light"] .message.failed .bubble::after {
     background: var(--bg-secondary);
-    border: 1px solid var(--error-border);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    text-align: center;
-    padding: 8px 16px;
 }
 
 /* ============================================================

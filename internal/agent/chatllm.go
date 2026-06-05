@@ -202,12 +202,14 @@ func (h *ChatAgent) callLLMWithPipeline(
 		// Even on error, persist a failed assistant message so the conversation
 		// history remains consistent (the user message is already in DB).
 		// Mark it as interrupted=2 (backend-error) so the frontend can display
-		// the correct state.
-		failedMsg := i18n.TL(lang, "assistant_failed_message")
+		// the correct state via the .failed CSS class.
+		// Keep the partial reply as content so the user can see what the LLM
+		// generated before the error occurred.
 		assistantMsg = &Message{
 			ID:          userMsgID,
 			Role:        llm.RoleAssistant,
-			Content:     failedMsg,
+			Content:     reply,
+			Reasoning:   reasoning,
 			CreatedAt:   time.Now().UTC().Format("2006-01-02T15:04:05Z"),
 			Interrupted: 2,
 		}
@@ -254,15 +256,20 @@ func (h *ChatAgent) callLLMWithPipeline(
 				Reasoning: reasoning,
 				CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
 				Usage:     usage,
+				Interrupted: func() int {
+					if isInterrupted {
+						return 1
+					}
+					return 0
+				}(),
 			}
 
-			// If the stream was interrupted by the user (clicked stop),
-			// mark as interrupted=1 and append the broken message marker.
-			if isInterrupted {
-				assistantMsg.Interrupted = 1
-				brokenMsg := i18n.TL(lang, "assistant_broken_message")
-				assistantMsg.Content += "\n\n---\n" + brokenMsg
-			}
+			// Uncomment below to append a broken message marker on interruption:
+			// if isInterrupted {
+			// 	assistantMsg.Interrupted = 1
+			// 	brokenMsg := i18n.TL(lang, "assistant_broken_message")
+			// 	assistantMsg.Content += "\n\n---\n" + brokenMsg
+			// }
 
 			// Attach web search sources so they can be restored after page refresh
 			webPages := pipeline.GetWebSearchResult()
