@@ -733,33 +733,54 @@ async function handleDelete(chat) {
 
     // 从 Alpine store 统一移除数据
     var chatsStore = window.Alpine.store('chats');
-    if (chatsStore) {
-        // 从 chatList 中移除
-        const idx = chatsStore.chats.findIndex(c => c.sn === chat.sn);
-        if (idx >= 0) {
-            var deletedChat = chatsStore.chats[idx];
-            chatsStore.chats.splice(idx, 1);
 
-            // ★ 回收站从未加载过 → 不往 UI 回收站丢（展开时会从服务端拉取全量数据）
-            //   回收站已加载过 → 必须往回收站 UI 丢，保证本地数据与后端一致
-            if (chatsStore.trashLoaded) {
-                if (!chatsStore.deletedChats) {
-                    chatsStore.deletedChats = [];
-                }
-                // 确保不重复添加
-                var existsInTrash = chatsStore.deletedChats.find(function(c) { return c.sn === chat.sn; });
-                if (!existsInTrash) {
-                    chatsStore.deletedChats.unshift(deletedChat);
-                }
+    // store 为空直接退出，后续不再反复判断
+    if (!chatsStore) return;
+
+    // ★ 在删除前记住它是不是 active chat
+    const isDeletingActive = chatsStore.activeChatSN === chat.sn;
+
+    // 从 chatList 中移除
+    const idx = chatsStore.chats.findIndex(c => c.sn === chat.sn);
+    if (idx >= 0) {
+        var deletedChat = chatsStore.chats[idx];
+        chatsStore.chats.splice(idx, 1);
+
+        // ★ 回收站从未加载过 → 不往 UI 回收站丢（展开时会从服务端拉取全量数据）
+        //   回收站已加载过 → 必须往回收站 UI 丢，保证本地数据与后端一致
+        if (chatsStore.trashLoaded) {
+            if (!chatsStore.deletedChats) {
+                chatsStore.deletedChats = [];
+            }
+            // 确保不重复添加
+            var existsInTrash = chatsStore.deletedChats.find(function(c) { return c.sn === chat.sn; });
+            if (!existsInTrash) {
+                chatsStore.deletedChats.unshift(deletedChat);
             }
         }
-        // 从 items[] 中同步移除 ChatData
-        chatsStore.removeChat(chat.sn);
     }
+    // 从 items[] 中同步移除 ChatData
+    chatsStore.removeChat(chat.sn);
 
-    // 如果删除的是当前活动对话，清空主界面（消息、标题、刻度导航等）
-    if (chatsStore && chatsStore.activeChatSN === chat.sn) {
-        // 清空消息状态
+  
+    // 如果删除的是当前活动对话，重置状态进入欢迎页
+    if (isDeletingActive) {
+        // 重置 Alpine store 状态为空白对话
+        chatsStore.activeChatSN = '';
+        chatsStore.activeIndex = -1;
+        chatsStore.blankItem = {
+            sn: '',
+            title: '',
+            titleState: 0,
+            isStreaming: false,
+            userScrolledUp: false,
+            streamingMsg: null,
+            groups: [],
+            _groupSeq: 0,
+        };
+        chatsStore.inputCollapsed = false;
+
+        // 清空刻度状态
         resetTickState();
 
         // 移除所有消息 DOM
@@ -774,51 +795,23 @@ async function handleDelete(chat) {
             tickNav.innerHTML = '';
         }
 
-        // 重置当前选中状态
-        chatsStore.activeChatSN = null;
-
-        // ★★★ 修复：删除活跃 chat 后，显式调用"新对话"流程
-        //
-        // 问题背景：
-        //   1. removeChat() 会将 blankItem 设为 null，导致 chats.active 返回 null，
-        //      之前修复了 frontend blankItem 重建，但消息仍可能关联到旧 chat。
-        //   2. 后端 OnChatDelete 虽会重置 session.currentChat = &chat{}，
-        //      但其 reset 时机在 LogicDelete（I/O 操作）之后，存在竞态条件——
-        //      如果 OnNewMessage 在 LogicDelete 和 reset 之间获取 mu，
-        //      ensureSessionDBForChat 会误认为当前 chat 仍有效，将新消息写入旧 chat。
-        //
-        // 解决方案：删除完成后，再调用一次 createBlankChat() (PUT /api/chat/new)。
-        // 这是一个独立的 HTTP 请求，在 DELETE 完成后才发起，不存在竞态。
-        // PUT /api/chat/new 是"新对话"按钮的标准路径，已充分测试。
-        // 即使后端 currentChat 已被 OnChatDelete 重置，此调用也是安全的（幂等）。
+        // ★ 调用后端 reset currentChat（删除前 deleteChat 已调用，再额外重置一次）
         await createBlankChat();
 
-        // ★ 重建 blankItem，使 chats.active 恢复为有效的空白对话对象
-        chatsStore.activeIndex = -1;
-        chatsStore.blankItem = {
-            sn: '',
-            title: '',
-            titleState: 0,
-            isStreaming: false,
-            userScrolledUp: false,
-            streamingMsg: null,
-            groups: [],
-            _groupSeq: 0,
-        };
-        chatsStore.inputCollapsed = false;
-
-        // 显示欢迎消息（会同时清空 header 标题）
-        showWelcomeMessage();
+        // ★ nextTick 中调用 showWelcomeMessage，确保 Alpine 已处理完所有响应式更新
+        //   （如 group 清空、activeIndex 变化等），再执行 DOM 重建。
+        window.Alpine.nextTick(function() {
+            showWelcomeMessage();
+        });
     }
 
     // 重新渲染列表
-    var activeSN = chatsStore ? chatsStore.activeChatSN : null;
-    renderChatList(chatsStore ? chatsStore.chats : [], activeSN);
+    renderChatList(chatsStore.chats, chatsStore.activeChatSN);
     showToast('对话已移入回收站', 'success');
 
     // ★ 回收站从未加载过 → 在下一个 tick 展开它（触发 toggleTrash 拉取服务端全量数据）
     //   回收站已加载过 → 不再展开（本地已有完整数据，无需重复拉取）
-    if (chatsStore && !chatsStore.trashLoaded) {
+    if (!chatsStore.trashLoaded) {
         window.Alpine.nextTick(function() {
             if (!chatsStore.trashExpanded) {
                 chatsStore.toggleTrash();

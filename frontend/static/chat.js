@@ -988,7 +988,7 @@ document.addEventListener('keydown', (e) => {
 // ============================================================
 (function initPlaceholderHint() {
     const PLACEHOLDER_FOCUS = '说点什么？';
-    const PLACEHOLDER_BLUR =  '需要输入？按 F2！';
+    const PLACEHOLDER_BLUR =  '需要输入？按 F2';
     const msgInput = document.getElementById('messageInput');
     if (!msgInput) return;
 

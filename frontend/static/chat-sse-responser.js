@@ -248,7 +248,13 @@ export class SSEResponser {
                         var chatIdx = chatList.findIndex(function(c) { return c.sn === frontSN; });
                         if (chatIdx >= 0) {
                             chatList[chatIdx].sn = event.sn;
-                            // restructChatLists 会同步更新 activeChatSN 并重新加工聊天列表
+                            // ★ 同步更新 activeChatSN：如果之前指向临时 SN，更新为真实 SN
+                            //   否则侧边栏 chat-item 的 SN 已变为真实 SN，但 activeChatSN 仍为临时 SN，
+                            //   导致 :class="{ active: chat.sn === $store.chats.activeChatSN }" 匹配失败。
+                            if (chats.activeChatSN === frontSN) {
+                                chats.activeChatSN = event.sn;
+                            }
+                            // restructChatLists 会重新加工聊天列表
                             chats.restructChatLists(chatList, chats.activeChatSN);
                         }
                     }
