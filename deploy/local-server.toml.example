@@ -5,8 +5,15 @@
 # ============================================================
 
 [server]
+# 服务标识，用于日志
+name = "local-server"
 # 本地监听地址
 addr = ":8080"
+# 以下超时配置单位为秒，0 表示不超时
+read_timeout = 30
+read_header_timeout = 10
+write_timeout = 30
+idle_timeout = 60
 
 [logger]
 file = "log/local-server.log"
@@ -20,5 +27,7 @@ users_db = "users.db"
 anonymous_db = "anonymous.db"
 
 [frontend]
+# 前端静态文件目录
 dir = "./frontend"
+# 禁用浏览器缓存（开发环境使用）
 cache_disable = false

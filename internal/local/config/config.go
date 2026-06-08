@@ -14,11 +14,43 @@ package config
 // Config is the top-level configuration for the agent layer.
 type Config struct {
 	Logger      LoggerConfig
+	Server      ServerConfig
+	Frontend    FrontendConfig
 	Embedder    EmbedderConfig
 	VectorStore VectorStoreConfig
 	ChatLLM     ChatLLMConfig
 	TraitLLM    TraitLLMConfig // LLM client for trait extraction
 	WebSearch   WebSearchConfig
+}
+
+// ServerConfig configures the HTTP server.
+type ServerConfig struct {
+	// Name is the server identifier, used in logs.
+	Name string
+
+	// Addr is the listen address, e.g. ":8080" or "[::]:8080".
+	// Overridable by PROXY_ADDR environment variable.
+	Addr string
+
+	// ReadTimeout is the maximum duration for reading the entire request, including the body.
+	ReadTimeout int // seconds, 0 = no timeout
+	// ReadHeaderTimeout is the amount of time allowed to read request headers.
+	ReadHeaderTimeout int // seconds, 0 = no timeout
+	// WriteTimeout is the maximum duration before timing out writes of the response.
+	WriteTimeout int // seconds, 0 = no timeout
+	// IdleTimeout is the maximum amount of time to wait for the next request when keep-alives are enabled.
+	IdleTimeout int // seconds, 0 = no timeout
+}
+
+// FrontendConfig configures the static file serving for the frontend.
+type FrontendConfig struct {
+	// Dir is the directory path for frontend static files.
+	// Default: "./frontend".
+	Dir string
+
+	// CacheDisable disables browser caching for development.
+	// When true, sets Cache-Control: no-cache headers on static files.
+	CacheDisable bool
 }
 
 // LoggerConfig configures the golbal logger
