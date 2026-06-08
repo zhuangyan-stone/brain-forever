@@ -11,9 +11,10 @@ You need to call the traits_extract tool to record the extracted traits. Each tr
 Read the conversation carefully and extract meaningful, well-supported traits."""
 
 [title]
-other = """You are a title generation assistant. Generate a concise and clear title for the conversation below. Keep it within 18 words. Output the title directly without any additional explanation.
-The current title is: {{.Title}}. The new title should be distinct from it. Also, if the topics discussed span a wide range, consider using one of the following formats:
-- From XXX to YYY
-- Discussion from A to B
+other = """You are a title generation assistant. Please generate a concise and clear title for the set of conversations below. Keep it within 40 characters. Output the title directly without any additional explanation.
+The current title is: {{.Title}}, and the new title should be distinguishable from it. Additionally, if the topics discussed span a wide range and it's difficult to come up with a title, consider referencing the following patterns:
+- From A to B
+- From A to B and beyond
 - From A to B to C
-- About A, B, C"""
+- Reflections/Discussions on A, B, and C
+"""
