@@ -99,20 +99,6 @@ Alpine 初始化后自动移除该属性。 */
     color: var(--text-muted);
 }
 
-/* 输入框右下角换行提示 */
-.newline-hint {
-    position: absolute;
-    right: 8px;
-    bottom: 4px;
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    opacity: 0.5;
-    user-select: none;
-    pointer-events: none;
-    white-space: nowrap;
-    transition: opacity 0.2s;
-}
-
 /* 滑块开关 — 轨道底色偏暗，滑块（圆块）高亮 */
 .send-mode-switch {
     position: relative;
@@ -132,9 +118,9 @@ Alpine 初始化后自动移除该属性。 */
 .switch-slider {
     position: absolute;
     inset: 0;
-    background: var(--bg-input);          /* 轨道 — 略深于周围背景，营造凹陷感 */
+    background: var(--switch-track-bg);   /* 轨道 — 比容器更深，营造凹陷感 */
     border: 1px solid var(--accent);      /* 边框 — 始终高亮 */
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.35);  /* 内阴影 — 凹陷立体感 */
+    box-shadow: var(--shadow-inset);      /* 内阴影 — 凹陷立体感，随主题自适应 */
     border-radius: 16px;
     transition: background 0.25s;
 }
@@ -246,8 +232,7 @@ Alpine 初始化后自动移除该属性。 */
 }
 
 .input-area.collapsed .send-mode-corner,
-.input-area.collapsed .input-footer,
-.input-area.collapsed .newline-hint {
+.input-area.collapsed .input-footer {
     display: none;
 }
 
@@ -260,11 +245,6 @@ Alpine 初始化后自动移除该属性。 */
 /* 折叠状态下，编辑框有焦点时显示边框色（与展开状态一致） */
 .input-area.collapsed .input-wrapper:focus-within {
     border-color: var(--accent);
-}
-
-/* 折叠时隐藏换行提示 */
-.input-area.collapsed .newline-hint {
-    display: none;
 }
 
 .input-area.collapsed .message-input {

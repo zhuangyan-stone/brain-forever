@@ -547,7 +547,6 @@
                     -->
                     <textarea id="messageInput" class="message-input" placeholder="说点什么？" rows="1" autofocus
                         :disabled="$store.chats.active?.isStreaming ?? false"></textarea>
-                    <span class="newline-hint" id="newlineHint"></span>
                     <!-- 中断按钮：仅折叠状态 + 流式输出时显示，展开状态时隐藏（由 sendBtn 承担停止功能）
                         添加 x-cloak 防止 Alpine 初始化前红色按钮闪现 -->
                     <button id="stopStreamingBtn" class="stop-streaming-btn" x-data x-cloak

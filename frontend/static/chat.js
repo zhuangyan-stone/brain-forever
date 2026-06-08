@@ -618,13 +618,6 @@ messageInput.addEventListener('input', () => {
     messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
 });
 
-// 换行提示文本
-const NEWLINE_HINT_LABELS = {
-    normal: '换行：Shift+回车键',
-    alternate: '换行：回车键'
-};
-
-const newlineHint = document.getElementById('newlineHint');
 const sendModeTextLeft = document.getElementById('sendModeTextLeft');
 const sendModeTextRight = document.getElementById('sendModeTextRight');
 
@@ -634,12 +627,6 @@ function updateSendModeLabels() {
     // 切换左右文字的高亮状态
     sendModeTextLeft.classList.toggle('active', !isAlternate);
     sendModeTextRight.classList.toggle('active', isAlternate);
-    // 同步更新换行提示
-    if (newlineHint) {
-        newlineHint.textContent = isAlternate
-            ? NEWLINE_HINT_LABELS.alternate
-            : NEWLINE_HINT_LABELS.normal;
-    }
 }
 
 // 滑块切换发送模式
