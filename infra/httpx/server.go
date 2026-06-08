@@ -142,9 +142,12 @@ func (s *Server) Start() {
 
 	s.wg.Add(1)
 
+	started := make(chan struct{})
+
 	go func() {
 		defer s.wg.Done()
 		s.logger.Infof("Starting, listening on %s", s.svc.Addr)
+		close(started)
 
 		if err := s.svc.ListenAndServe(); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
@@ -152,6 +155,8 @@ func (s *Server) Start() {
 			}
 		}
 	}()
+
+	<-started
 }
 
 // Stop stops the server

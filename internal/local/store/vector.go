@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"BrainForever/infra/embedder"
+	"BrainForever/infra/zylog"
 
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
 	"github.com/jmoiron/sqlx"
@@ -34,11 +35,12 @@ type VectorStore struct {
 	db        *sqlx.DB
 	dimension int
 	embedder  embedder.Embedder
+	logger    zylog.Logger
 }
 
 // NewVectorStore creates a new VectorStore
 // dimension is obtained from embedder.Dimension() to ensure consistency with Embedder output
-func NewVectorStore(dbPath string, e embedder.Embedder) (*VectorStore, error) {
+func NewVectorStore(dbPath string, e embedder.Embedder, logger zylog.Logger) (*VectorStore, error) {
 	// Enable sqlite-vec (global effect)
 	sqlite_vec.Auto()
 
@@ -48,7 +50,7 @@ func NewVectorStore(dbPath string, e embedder.Embedder) (*VectorStore, error) {
 	}
 
 	dimension := e.Dimension()
-	store := &VectorStore{db: db, dimension: dimension, embedder: e}
+	store := &VectorStore{db: db, dimension: dimension, embedder: e, logger: logger}
 	if err := store.initSchema(); err != nil {
 		return nil, err
 	}
@@ -62,7 +64,7 @@ func (s *VectorStore) initSchema() error {
 	if err := s.db.QueryRow("SELECT vec_version()").Scan(&vecVersion); err != nil {
 		return fmt.Errorf("sqlite-vec not loaded correctly. %w", err)
 	}
-	fmt.Printf("✓ sqlite-vec version: %s\n", vecVersion)
+	s.logger.Infof("✓ sqlite-vec version: %s", vecVersion)
 
 	schema := fmt.Sprintf(`
 		-- vec0 virtual table: HNSW vector index

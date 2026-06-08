@@ -60,7 +60,7 @@ func InitVectorStore(cfg config.VectorStoreConfig, e embedder.Embedder, logger z
 		dbPath = "./localdb/brain.db"
 	}
 
-	vs, err := store.NewVectorStore(dbPath, e)
+	vs, err := store.NewVectorStore(dbPath, e, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
 	}
