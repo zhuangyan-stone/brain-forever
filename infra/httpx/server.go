@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -21,6 +22,10 @@ type Config struct {
 	ReadHeaderTimeout time.Duration
 	WriteTimeout      time.Duration
 	IdleTimeout       time.Duration
+
+	// Charset is the default charset to append to response Content-Type headers
+	// when no charset is specified (e.g., "utf-8"). If empty, no charset is added.
+	Charset string
 }
 
 // Server is an API server based on HTTP protocol
@@ -76,10 +81,82 @@ func (s *Server) Handle(pattern string, fn http.HandlerFunc) {
 // wrapHandler returns a handler func that delegates to fn.
 // Each handler is responsible for setting its own Content-Type header.
 // Static files served via http.FileServer auto-detect their Content-Type.
+// If Config.Charset is set, the handler will automatically append
+// "; charset=<charset>" to the Content-Type header when no charset is
+// already specified.
 func (s *Server) wrapHandler(fn http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r)
+	charset := s.cfg.Charset
+	if charset == "" {
+		// No charset configured, pass through directly
+		return func(w http.ResponseWriter, r *http.Request) {
+			fn(w, r)
+		}
 	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		fn(&charsetResponseWriter{
+			ResponseWriter: w,
+			charset:        charset,
+		}, r)
+	}
+}
+
+// charsetResponseWriter wraps http.ResponseWriter to inject charset
+// into the Content-Type header on first write, if no charset is set.
+type charsetResponseWriter struct {
+	http.ResponseWriter
+	charset     string
+	wroteHeader bool
+}
+
+// hasTextContentType reports whether the given MIME type supports charset.
+// Binary types like image/*, audio/*, video/*, font/*, application/octet-stream,
+// application/pdf, multipart/* should not have charset appended.
+func hasTextContentType(ct string) bool {
+	lower := strings.ToLower(ct)
+
+	// XML-based and JSON-based structured formats support charset,
+	// regardless of top-level media type (e.g. image/svg+xml).
+	if strings.HasSuffix(lower, "+xml") || strings.HasSuffix(lower, "+json") {
+		return true
+	}
+
+	switch {
+	case strings.HasPrefix(lower, "text/"):
+		return true
+	case strings.HasPrefix(lower, "application/"):
+		// Only specific text-based application subtypes support charset
+		switch {
+		case strings.Contains(lower, "json"),
+			strings.Contains(lower, "xml"),
+			strings.Contains(lower, "javascript"),
+			strings.Contains(lower, "ecmascript"),
+			strings.Contains(lower, "x-www-form-urlencoded"):
+			return true
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+}
+
+func (w *charsetResponseWriter) WriteHeader(statusCode int) {
+	if !w.wroteHeader {
+		w.wroteHeader = true
+		ct := w.Header().Get("Content-Type")
+		if ct != "" && !strings.Contains(strings.ToLower(ct), "charset=") && hasTextContentType(ct) {
+			w.Header().Set("Content-Type", ct+"; charset="+w.charset)
+		}
+	}
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *charsetResponseWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(b)
 }
 
 // registerMethod registers a handler restricted to the given HTTP method
