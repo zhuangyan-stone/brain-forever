@@ -8,6 +8,7 @@ import (
 
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
+	"BrainForever/infra/zylog"
 	"BrainForever/internal/local/agent/toolimp"
 	"BrainForever/internal/local/store"
 )
@@ -267,6 +268,8 @@ type ChatAgent struct {
 	// Used for translating system prompts, tool descriptions, and other
 	// content sent to the AI API and frontend.
 	defaultLang string
+
+	logger zylog.Logger // Structured logger for the agent
 }
 
 // LLMInfo is the response for the LLM info endpoint.
@@ -310,6 +313,7 @@ func NewChatHandler(
 	cookieName string,
 	defaultLang string,
 	anonymousStore *store.ChatStore,
+	logger zylog.Logger,
 ) *ChatAgent {
 	if defaultLang == "" {
 		defaultLang = "en"
@@ -321,6 +325,7 @@ func NewChatHandler(
 		sessionManager: NewSessionManager(anonymousStore),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
+		logger:         logger,
 	}
 }
 

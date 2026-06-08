@@ -3,12 +3,12 @@ package agent
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"BrainForever/infra/embedder"
 	"BrainForever/infra/llm"
 	"BrainForever/infra/searcher"
+	"BrainForever/infra/zylog"
 	"BrainForever/internal/local/agent/toolimp"
 	"BrainForever/internal/local/config"
 	"BrainForever/internal/local/store"
@@ -20,7 +20,7 @@ import (
 // ============================================================
 
 // InitEmbedder creates an Embedder based on the given configuration.
-func InitEmbedder(cfg config.EmbedderConfig) embedder.Embedder {
+func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embedder {
 	provider := cfg.Provider
 	if provider == "" {
 		provider = "ali"
@@ -39,21 +39,22 @@ func InitEmbedder(cfg config.EmbedderConfig) embedder.Embedder {
 			envKey = "ZHIPUAI_API_KEY"
 		}
 		e = embedder.NewZhipuEmbedder(cfg.APIKey, envKey, dimension)
-		fmt.Printf("✓ Using Zhipu Embedder: %s (%d dims)\n", e.Model(), e.Dimension())
+
+		logger.Infof("✓ Using Zhipu Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	default:
 		envKey := cfg.EnvKey
 		if envKey == "" {
 			envKey = "DASHSCOPE_API_KEY"
 		}
 		e = embedder.NewDashScopeEmbedder(cfg.APIKey, envKey, dimension)
-		fmt.Printf("✓ Using DashScope Embedder: %s (%d dims)\n", e.Model(), e.Dimension())
+		logger.Infof("✓ Using DashScope Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	}
 
 	return e
 }
 
 // InitVectorStore creates a VectorStore (knowledge base / trait search).
-func InitVectorStore(cfg config.VectorStoreConfig, e embedder.Embedder) (*store.VectorStore, error) {
+func InitVectorStore(cfg config.VectorStoreConfig, e embedder.Embedder, logger zylog.Logger) (*store.VectorStore, error) {
 	dbPath := cfg.DBPath
 	if dbPath == "" {
 		dbPath = "./localdb/brain.db"
@@ -64,11 +65,12 @@ func InitVectorStore(cfg config.VectorStoreConfig, e embedder.Embedder) (*store.
 		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
 	}
 
+	logger.Infof("✓ VectorStore initialized: %s", dbPath)
 	return vs, nil
 }
 
 // InitLLMClient creates an LLM chat completion client.
-func InitLLMClient(cfg config.ChatLLMConfig) llm.Client {
+func InitLLMClient(cfg config.ChatLLMConfig, logger zylog.Logger) llm.Client {
 	envKey := cfg.EnvKey
 	if envKey == "" {
 		envKey = "DEEPSEEK_API_KEY"
@@ -101,7 +103,7 @@ func InitLLMClient(cfg config.ChatLLMConfig) llm.Client {
 
 // InitWebSearchClient creates a web search client based on the given configuration.
 // Returns nil if the provider is empty or the API key is not set.
-func InitWebSearchClient(cfg config.WebSearchConfig) toolimp.WebSearcher {
+func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolimp.WebSearcher {
 	provider := cfg.Provider
 	if provider == "" {
 		provider = os.Getenv("SEARCHER_PROVIDER")
@@ -121,14 +123,14 @@ func InitWebSearchClient(cfg config.WebSearchConfig) toolimp.WebSearcher {
 			apiKey = os.Getenv(envKey)
 		}
 		if apiKey != "" {
-			fmt.Println("✓ Web search enabled (bigmodel.cn)")
+			logger.Infof("✓ Web search enabled (bigmodel.cn)")
 			return &webSearchAdapter{
 				client: searcher.NewZhiPuClient(searcher.WebSearchClientConfig{
 					APIKey: apiKey,
 				}),
 			}
 		}
-		log.Printf("[WARN] %s is not set or empty — web search will be disabled. "+
+		logger.Warnf("%s is not set or empty — web search will be disabled. "+
 			"Set the %s environment variable to enable web search functionality.", envKey, envKey)
 
 	case "bocha":
@@ -141,14 +143,14 @@ func InitWebSearchClient(cfg config.WebSearchConfig) toolimp.WebSearcher {
 			apiKey = os.Getenv(envKey)
 		}
 		if apiKey != "" {
-			fmt.Println("✓ Web search enabled (bocha.cn)")
+			logger.Infof("✓ Web search enabled (bocha.cn)")
 			return &webSearchAdapter{
 				client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
 					APIKey: apiKey,
 				}),
 			}
 		}
-		log.Printf("[WARN] %s is not set or empty — web search will be disabled. "+
+		logger.Warnf("%s is not set or empty — web search will be disabled. "+
 			"Set the %s environment variable to enable web search functionality.", envKey, envKey)
 	}
 
@@ -157,21 +159,22 @@ func InitWebSearchClient(cfg config.WebSearchConfig) toolimp.WebSearcher {
 
 // InitAgent creates a fully initialized ChatHandler from a Config.
 // It also starts the background session GC.
-func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaultLang string) (*ChatAgent, error) {
+// logger: the global logger instance for logging initialization progress.
+func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaultLang string, logger zylog.Logger) (*ChatAgent, error) {
 	// 1. Initialize Embedder
-	embeddingClient := InitEmbedder(cfg.Embedder)
+	embeddingClient := InitEmbedder(cfg.Embedder, logger)
 
 	// 2. Initialize VectorStore
-	vectorStore, err := InitVectorStore(cfg.VectorStore, embeddingClient)
+	vectorStore, err := InitVectorStore(cfg.VectorStore, embeddingClient, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
 	}
 
 	// 3. Initialize Chat LLM Client
-	chatLLMClient := InitLLMClient(cfg.ChatLLM)
+	chatLLMClient := InitLLMClient(cfg.ChatLLM, logger)
 
 	// 4. Initialize Web Search Client
-	webSearchClient := InitWebSearchClient(cfg.WebSearch)
+	webSearchClient := InitWebSearchClient(cfg.WebSearch, logger)
 
 	// 5. Initialize anonymous user ChatStore (localdb/anonymous.db)
 	anonymousStore, err := store.CreateLocalChatScheme("localdb/anonymous.db")
@@ -187,6 +190,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		cookieName,
 		defaultLang,
 		anonymousStore,
+		logger,
 	)
 
 	return chatHandler, nil
