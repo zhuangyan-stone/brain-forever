@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -65,60 +66,57 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
-// Handle registers a handler for the specified HTTP method and pattern
-func (s *Server) Handle(method, pattern string, fn http.HandlerFunc) {
-	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != method {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
+// Handle registers a handler for the specified pattern.
+// It sets common response headers (JSON content type, no caching) and
+// invokes the handler without restricting the HTTP method.
+func (s *Server) Handle(pattern string, fn http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, s.wrapHandler(fn))
+}
 
+// wrapHandler returns a handler func that sets JSON Content-Type header
+// before delegating to fn.
+func (s *Server) wrapHandler(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-		// Disable caching
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Pragma", "no-cache")
-		w.Header().Set("Expires", "0")
-
 		fn(w, r)
-	})
+	}
 }
 
-// HandleFunc registers a route without restricting the HTTP method;
-// the handler determines allowed methods internally.
-// Suitable for scenarios where a single path needs to handle multiple HTTP methods.
-func (s *Server) HandleFunc(pattern string, fn http.HandlerFunc) {
-	s.mux.HandleFunc(pattern, fn)
+// registerMethod registers a handler restricted to the given HTTP method
+// using Go 1.22+ enhanced routing (e.g. "GET /api/chat/title").
+func (s *Server) registerMethod(method, pattern string, fn http.HandlerFunc) {
+	fullPattern := method + " " + pattern
+	s.mux.HandleFunc(fullPattern, s.wrapHandler(fn))
 }
 
-// GET registers a GET route
+// GET registers a GET-only route (Go 1.22+ enhanced routing)
 func (s *Server) GET(pattern string, fn http.HandlerFunc) {
-	s.Handle(http.MethodGet, pattern, fn)
+	s.registerMethod(http.MethodGet, pattern, fn)
 }
 
-// POST registers a POST route
+// POST registers a POST-only route (Go 1.22+ enhanced routing)
 func (s *Server) POST(pattern string, fn http.HandlerFunc) {
-	s.Handle(http.MethodPost, pattern, fn)
+	s.registerMethod(http.MethodPost, pattern, fn)
 }
 
-// PUT registers a PUT route
+// PUT registers a PUT-only route (Go 1.22+ enhanced routing)
 func (s *Server) PUT(pattern string, fn http.HandlerFunc) {
-	s.Handle(http.MethodPut, pattern, fn)
+	s.registerMethod(http.MethodPut, pattern, fn)
 }
 
-// DELETE registers a DELETE route
+// DELETE registers a DELETE-only route (Go 1.22+ enhanced routing)
 func (s *Server) DELETE(pattern string, fn http.HandlerFunc) {
-	s.Handle(http.MethodDelete, pattern, fn)
+	s.registerMethod(http.MethodDelete, pattern, fn)
 }
 
-// HEAD registers a HEAD route
+// HEAD registers a HEAD-only route (Go 1.22+ enhanced routing)
 func (s *Server) HEAD(pattern string, fn http.HandlerFunc) {
-	s.Handle(http.MethodHead, pattern, fn)
+	s.registerMethod(http.MethodHead, pattern, fn)
 }
 
 // Addr returns the listen address
 func (s *Server) Addr() string {
-	return fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.Port)
+	return net.JoinHostPort(s.cfg.Host, fmt.Sprintf("%d", s.cfg.Port))
 }
 
 // Use registers a middleware that wraps the HTTP handler chain at Start
