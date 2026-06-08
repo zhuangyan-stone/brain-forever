@@ -33,23 +33,32 @@ Alpine 初始化后自动移除该属性。 */
     z-index: 100;
 }
 
-/* 右上角发送模式切换 — 在输入框之上右对齐 */
+/* 右上角发送模式切换 — 在输入框之上居中 */
 .send-mode-corner {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 6px;
+    justify-content: end;
+    gap: 8px;
     margin-bottom: 4px;
     padding-right: 2px;
 }
 
-.send-mode-label {
+/* 滑块左右两侧的文字 */
+.send-mode-text {
     font-size: 0.7rem;
     color: var(--text-muted);
     user-select: none;
     white-space: nowrap;
     cursor: pointer;
     transition: color 0.2s;
+    display: inline-block;
+    padding: 0 8px;
+    margin: 0 -8px;
+}
+
+/* 滑块滑向哪边，哪边的文字高亮 */
+.send-mode-text.active {
+    color: var(--accent);
 }
 
 /* 输入框包装 — 使用项目统一圆角 */
@@ -104,7 +113,7 @@ Alpine 初始化后自动移除该属性。 */
     transition: opacity 0.2s;
 }
 
-/* 滑块开关 */
+/* 滑块开关 — 轨道底色偏暗，滑块（圆块）高亮 */
 .send-mode-switch {
     position: relative;
     display: inline-block;
@@ -123,7 +132,9 @@ Alpine 初始化后自动移除该属性。 */
 .switch-slider {
     position: absolute;
     inset: 0;
-    background: var(--border);
+    background: var(--bg-input);          /* 轨道 — 略深于周围背景，营造凹陷感 */
+    border: 1px solid var(--accent);      /* 边框 — 始终高亮 */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.35);  /* 内阴影 — 凹陷立体感 */
     border-radius: 16px;
     transition: background 0.25s;
 }
@@ -131,22 +142,17 @@ Alpine 初始化后自动移除该属性。 */
 .switch-slider::before {
     content: '';
     position: absolute;
-    left: 2px;
-    top: 2px;
+    left: 1px;
+    top: 1px;
     width: 12px;
     height: 12px;
-    background: var(--text-muted);
+    background: var(--accent);   /* 滑块（圆块）— 高亮色 */
     border-radius: 50%;
-    transition: transform 0.25s, background 0.25s;
-}
-
-.send-mode-switch input:checked + .switch-slider {
-    background: var(--accent);
+    transition: transform 0.25s;
 }
 
 .send-mode-switch input:checked + .switch-slider::before {
     transform: translateX(14px);
-    background: #fff;
 }
 
 /* 输入区域底部栏 — 左: 选项按钮, 右: 附件+发送 */

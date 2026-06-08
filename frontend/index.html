@@ -532,11 +532,12 @@
             -->
             <footer class="input-area" x-data :class="{ streaming: $store.chats.active?.isStreaming }">
                 <div class="send-mode-corner">
+                    <span class="send-mode-text send-mode-text--left" id="sendModeTextLeft">回车键发送</span>
                     <label class="send-mode-switch">
                         <input type="checkbox" id="sendModeToggle">
                         <span class="switch-slider"></span>
                     </label>
-                    <span class="send-mode-label" id="sendModeLabel"></span>
+                    <span class="send-mode-text send-mode-text--right" id="sendModeTextRight">Shift+回车键发送</span>
                 </div>
                 <div class="input-wrapper">
                     <!--

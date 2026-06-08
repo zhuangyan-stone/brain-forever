@@ -206,7 +206,7 @@ const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColo
 
 // ===== 品牌文本常量（方便以后修改） =====
 const BRAND_TITLE = '第2大脑';
-const BRAND_SUBTITLE = '比闺蜜懂你' // '养育我的第2大脑'
+const BRAND_SUBTITLE = '尽量懂你' 
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
 function createBrandElement() {
@@ -608,7 +608,6 @@ window.addEventListener('resize', () => {
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
 const sendModeToggle = document.getElementById('sendModeToggle');
-const sendModeLabel = document.getElementById('sendModeLabel');
 
 // ---- 从 settings store 恢复发送模式 ----
 // sendMode: 0=Enter发送, 1=Enter换行
@@ -619,12 +618,6 @@ messageInput.addEventListener('input', () => {
     messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
 });
 
-// 发送模式标签文本
-const SEND_MODE_LABELS = {
-    normal: "回车键发送 ⇄ Shift+回车键",
-    alternate: "Shift+回车键发送 ⇄ 回车键"
-};
-
 // 换行提示文本
 const NEWLINE_HINT_LABELS = {
     normal: '换行：Shift+回车键',
@@ -632,13 +625,15 @@ const NEWLINE_HINT_LABELS = {
 };
 
 const newlineHint = document.getElementById('newlineHint');
+const sendModeTextLeft = document.getElementById('sendModeTextLeft');
+const sendModeTextRight = document.getElementById('sendModeTextRight');
 
-// 更新发送模式标签
-function updateSendModeLabel() {
+// 更新文字高亮状态：滑块滑向哪边，哪边的文字高亮
+function updateSendModeLabels() {
     var isAlternate = Alpine.store('settings').sendMode === 1;
-    sendModeLabel.textContent = isAlternate
-        ? SEND_MODE_LABELS.alternate
-        : SEND_MODE_LABELS.normal;
+    // 切换左右文字的高亮状态
+    sendModeTextLeft.classList.toggle('active', !isAlternate);
+    sendModeTextRight.classList.toggle('active', isAlternate);
     // 同步更新换行提示
     if (newlineHint) {
         newlineHint.textContent = isAlternate
@@ -651,17 +646,21 @@ function updateSendModeLabel() {
 sendModeToggle.addEventListener('change', () => {
     Alpine.store('settings').sendMode = sendModeToggle.checked ? 1 : 0;
     Alpine.store('settings').save();
-    updateSendModeLabel();
+    updateSendModeLabels();
 });
 
-// 点击标签文本也可切换发送模式
-sendModeLabel.addEventListener('click', () => {
+// 点击左侧/右侧文字都可切换到另一模式
+sendModeTextLeft.addEventListener('click', () => {
+    sendModeToggle.checked = !sendModeToggle.checked;
+    sendModeToggle.dispatchEvent(new Event('change'));
+});
+sendModeTextRight.addEventListener('click', () => {
     sendModeToggle.checked = !sendModeToggle.checked;
     sendModeToggle.dispatchEvent(new Event('change'));
 });
 
-// 初始化发送模式标签（从 JS 常量设置初始文本，避免 HTML 中重复定义）
-updateSendModeLabel();
+// 初始化文字高亮状态
+updateSendModeLabels();
 
 // 键盘发送/换行逻辑
 messageInput.addEventListener('keydown', (e) => {
