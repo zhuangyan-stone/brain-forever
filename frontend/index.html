@@ -544,7 +544,7 @@
                         $store.chats.active?.isStreaming 响应式管理（per-chat）。
                         Alpine 未加载时，由 setInputEnabled() 的降级路径控制。
                     -->
-                    <textarea id="messageInput" class="message-input" placeholder="说点什么？(F2 快速聚焦)" rows="1" autofocus
+                    <textarea id="messageInput" class="message-input" placeholder="说点什么？" rows="1" autofocus
                         :disabled="$store.chats.active?.isStreaming ?? false"></textarea>
                     <span class="newline-hint" id="newlineHint"></span>
                     <!-- 中断按钮：仅折叠状态 + 流式输出时显示，展开状态时隐藏（由 sendBtn 承担停止功能）
