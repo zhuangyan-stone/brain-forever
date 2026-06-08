@@ -40,6 +40,7 @@
 /* 可折叠标题 — 可点击 */
 .sources-panel .sources-collapsible {
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     display: flex;
     align-items: center;

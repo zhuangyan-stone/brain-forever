@@ -23,7 +23,7 @@
     <div id="test4"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/remarkable@2.0.1/dist/remarkable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="../frontend/static/lib/katex.min.js"></script>
     <script>
         function remarkableKatex(md) {
             md.inline.ruler.after('escape', 'katex_block', function katexBlock(state, silent) {

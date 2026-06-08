@@ -47,6 +47,7 @@ Alpine 初始化后自动移除该属性。 */
 .send-mode-text {
     font-size: 0.7rem;
     color: var(--text-muted);
+    -webkit-user-select: none;
     user-select: none;
     white-space: nowrap;
     cursor: pointer;
@@ -257,6 +258,11 @@ Alpine 初始化后自动移除该属性。 */
 .input-area.collapsed .message-input::placeholder {
     color: var(--text-muted);
     opacity: 0.6;
+}
+
+/* ---- 隐藏的文件输入（通过 #attachBtn 触发） ---- */
+#fileInput {
+    display: none;
 }
 
 /* ============================================================

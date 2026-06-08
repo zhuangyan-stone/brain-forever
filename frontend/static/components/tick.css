@@ -105,6 +105,7 @@
     text-align: right;
     font-variant-numeric: tabular-nums;
     pointer-events: none;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -231,6 +232,7 @@
     height: 20px;
     border-radius: 6px;
     transition: background 0.2s, opacity 0.2s;
+    -webkit-user-select: none;
     user-select: none;
     opacity: 0.5;
     /* 负 margin 抵消 flex gap 的影响，让箭头紧贴刻度行 */

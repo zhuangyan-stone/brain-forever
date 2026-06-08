@@ -166,6 +166,7 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    -webkit-user-select: none;
     user-select: none;
     border-bottom: 1px solid var(--border);
     padding-bottom: 1px;
@@ -524,6 +525,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     justify-content: center;
     flex-shrink: 0;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
+    -webkit-user-select: none;
     user-select: none;
     white-space: nowrap;
     line-height: 1;
@@ -576,6 +578,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     font-family: inherit;
     font-weight: 500;
     transition: all 0.2s ease;
+    -webkit-user-select: none;
     user-select: none;
     white-space: nowrap;
     flex-shrink: 0;
@@ -595,6 +598,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     font-family: inherit;
     font-weight: 500;
     transition: all 0.2s ease;
+    -webkit-user-select: none;
     user-select: none;
     white-space: nowrap;
     flex-shrink: 0;
@@ -819,8 +823,8 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 .bubble.streaming {
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 .bubble.streaming::after {
@@ -858,6 +862,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     color: var(--text-secondary);
     font-size: 1rem;
     line-height: 1.7;
+    -webkit-user-select: none;
     user-select: none;
     gap: 24px;
     width: 100%;
@@ -954,6 +959,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     opacity: 0.6;
     white-space: nowrap;
     pointer-events: none;
+    -webkit-user-select: none;
     user-select: none;
     z-index: 99;
 }

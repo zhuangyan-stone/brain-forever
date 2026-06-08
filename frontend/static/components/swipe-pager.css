@@ -9,8 +9,8 @@ SwipePager — 通用触摸滑动翻页组件
 .swipe-container {
     overflow: hidden;
     touch-action: pan-y;       /* 允许垂直滚动，捕获水平滑动手势 */
-    user-select: none;         /* 防止滑动时选中文本 */
     -webkit-user-select: none;
+    user-select: none;         /* 防止滑动时选中文本 */
 }
 
 /* ---- 滑动内层：三栏并排，通过 translateX 切换 ---- */

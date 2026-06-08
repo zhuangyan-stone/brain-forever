@@ -107,6 +107,7 @@ buttons.css — 所有按钮样式
     font-family: inherit;
     font-weight: 500;
     transition: all 0.2s ease;
+    -webkit-user-select: none;
     user-select: none;
     white-space: nowrap;
     flex-shrink: 0;
@@ -174,6 +175,7 @@ buttons.css — 所有按钮样式
     font-size: 0.82rem;
     font-family: inherit;
     transition: all 0.2s ease;
+    -webkit-user-select: none;
     user-select: none;
 }
 

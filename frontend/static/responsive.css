@@ -196,7 +196,7 @@ body.small-screen-mode .main-header {
     row-gap: 0;
     padding-top: 0.5rem;
     padding-bottom: 0.25rem;
-    min-height: auto;    /* 取消固定最小高度，由内容撑开 */
+    min-height: 0;    /* 取消固定最小高度，由内容撑开 */
 }
 
 /* 标题占满整行，强制换行到第二行。

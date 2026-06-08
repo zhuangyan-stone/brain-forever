@@ -26,6 +26,7 @@
     border: none;
     border-bottom: 2px solid transparent;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     transition: flex 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.15s ease, border-color 0.15s ease;
     font-family: inherit;
@@ -77,6 +78,7 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 0.3rem 0.75rem 0.15rem;
+    -webkit-user-select: none;
     user-select: none;
     display: flex;
     align-items: center;
@@ -127,6 +129,7 @@
     font-weight: 500;
     color: var(--text-muted);
     padding: 0.2rem 0.75rem 0.1rem;
+    -webkit-user-select: none;
     user-select: none;
     opacity: 0.8;
     display: flex;
@@ -285,6 +288,7 @@
     color: var(--text-primary);
     border-radius: 4px;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     white-space: nowrap;
     transition: background-color 0.1s ease;

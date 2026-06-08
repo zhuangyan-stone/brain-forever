@@ -236,7 +236,7 @@ export async function onChatLogin(userNo) {
 	try {
 		const response = await fetch('/api/chat/login', {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: { 'Content-Type': 'application/json; charset=utf-8' },
 			body: JSON.stringify({ user_no: userNo }),
 		});
 		if (!response.ok) {
@@ -637,7 +637,7 @@ export async function deleteMessage(msgId) {
     try {
         const response = await fetch('/api/chat/messages', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify({ msg_id: msgId }),
         });
         return response.ok;
@@ -662,7 +662,7 @@ export async function deleteMessage(msgId) {
 export async function sendChatMessage({ content, createdAt, stream, deepThink, webSearch, frontSn, signal }) {
     const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({
             message: { id: 0, role: 'user', content, created_at: createdAt },
             stream: !!stream,

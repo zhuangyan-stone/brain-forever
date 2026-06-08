@@ -61,7 +61,7 @@
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css -->
     <link rel="stylesheet" href="/static/lib/styles/katex.min.css">
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js -->
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="/static/lib/katex.min.js"></script>
     <!-- KaTeX 集成由 chat-markdown.js 中的 remarkableKatex 插件处理（不再需要 marked-katex-extension） -->
     <!-- turndown.js — HTML 转 Markdown（用于剪贴板多格式复制） -->
     <!-- CDN 备用: https://cdn.jsdelivr.net/npm/turndown/dist/turndown.min.js -->
@@ -577,7 +577,7 @@
                         </button>
                     </div>
                     <div class="input-footer-right">
-                        <input type="file" id="fileInput" style="display:none" multiple>
+                        <input type="file" id="fileInput" multiple>
                         <button id="attachBtn" class="attach-btn" x-data="attachBtn()" data-tooltip="上传附件">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -643,7 +643,7 @@
                 <button class="dialog-close-btn" id="modalCloseBtn" @click="close">&times;</button>
             </div>
             <div class="dialog-body" id="modalBody"></div>
-            <div class="del-preview-note" id="modalDeleteNote" style="display:none">提醒：<br>① 消息（用户和助手）将成组删除<br>②
+            <div class="del-preview-note" id="modalDeleteNote">提醒：<br>① 消息（用户和助手）将成组删除<br>②
                 下一轮对话会有大段词元缓存失效</div>
             <div class="dialog-footer">
                 <button class="dialog-btn dialog-btn-cancel" id="modalCancelBtn" @click="close">取消</button>
