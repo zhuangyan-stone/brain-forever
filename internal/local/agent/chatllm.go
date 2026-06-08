@@ -101,14 +101,19 @@ func (atc *pipelineImp) OnWebSource(sources []toolimp.WebSource) {
 }
 
 func (ate *pipelineImp) GetWebSearchResult() (sources []toolimp.WebSource) {
-	urlSet := make(map[string]bool, 50)
-	sources = make([]toolimp.WebSource, 0, 50)
+	urlSet := make(map[string]bool, 100)
+	sources = make([]toolimp.WebSource, 0, 100)
+	const maxSources = 100
 
 	for _, tl := range ate.tools {
 		if tl.GetName() == toolimp.WebSearchToolName {
 			if searcherTl := tl.(*toolimp.WebSearchToolImp); searcherTl != nil {
-				// Deduplicate
+				// Deduplicate, capped at maxSources
 				for _, page := range searcherTl.WebPages {
+					if len(sources) >= maxSources {
+						break
+					}
+
 					url := page.URL
 					if url == "" {
 						sources = append(sources, page)
