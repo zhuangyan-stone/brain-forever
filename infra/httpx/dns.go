@@ -120,13 +120,13 @@ func NewDNSFallbackDialContext(dialer *net.Dialer, fallbackServers []string) fun
 		// Step 1: Try system DNS first (uses cgo/getaddrinfo on Windows)
 		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
 		if err == nil && len(ips) > 0 {
-			return dialResolvedIPs(ctx, dialer, network, host, port, ips)
+			return dialResolvedIPs(ctx, dialer, network, port, ips)
 		}
 
 		// Step 2: System DNS failed, try fallback DNS resolver (pure Go with domestic DNS)
 		ips, fallbackErr := fallbackResolver.LookupIPAddr(ctx, host)
 		if fallbackErr == nil && len(ips) > 0 {
-			return dialResolvedIPs(ctx, dialer, network, host, port, ips)
+			return dialResolvedIPs(ctx, dialer, network, port, ips)
 		}
 
 		// Both failed — return the original system DNS error for clarity
@@ -138,7 +138,7 @@ func NewDNSFallbackDialContext(dialer *net.Dialer, fallbackServers []string) fun
 }
 
 // dialResolvedIPs attempts to establish a connection to each resolved IP address.
-func dialResolvedIPs(ctx context.Context, dialer *net.Dialer, network, host, port string, ips []net.IPAddr) (net.Conn, error) {
+func dialResolvedIPs(ctx context.Context, dialer *net.Dialer, network, port string, ips []net.IPAddr) (net.Conn, error) {
 	var firstErr error
 	for _, ip := range ips {
 		targetAddr := net.JoinHostPort(ip.IP.String(), port)

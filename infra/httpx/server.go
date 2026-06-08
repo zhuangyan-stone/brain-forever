@@ -73,11 +73,11 @@ func (s *Server) Handle(pattern string, fn http.HandlerFunc) {
 	s.mux.HandleFunc(pattern, s.wrapHandler(fn))
 }
 
-// wrapHandler returns a handler func that sets JSON Content-Type header
-// before delegating to fn.
+// wrapHandler returns a handler func that delegates to fn.
+// Each handler is responsible for setting its own Content-Type header.
+// Static files served via http.FileServer auto-detect their Content-Type.
 func (s *Server) wrapHandler(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		fn(w, r)
 	}
 }

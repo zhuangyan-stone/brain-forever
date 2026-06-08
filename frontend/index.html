@@ -447,7 +447,7 @@
                                 <div class="message assistant" :class="{
                                         interrupted: group.assistant.interrupted === 1,
                                         failed: group.assistant.interrupted === 2
-                                    }" x-show="group.assistant" x-data="{ collapsed: false }">
+                                    }" x-show="group.assistant" x-data="{ collapsed: group.assistant.createdAt ? true : false }">
                                     <div class="message-inner">
                                         <!-- ★ 统一角色标签：始终显示，根据 reasoningState 自适应文本。
                                             有 reasoning 时外层标签直接充当折叠切换手柄，▶ 箭头通过 CSS rotate 统一大小。
