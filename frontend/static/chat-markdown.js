@@ -39,11 +39,6 @@ function remarkableKatex(md) {
 
     if (!silent) {
       var content = state.src.slice(start + 2, end);
-      // [诊断] 检测到块级公式
-      if (content.trim()) {
-        console.debug('[KaTeX诊断] 块级公式匹配: content=%o, context="%s"',
-          content, state.src.slice(Math.max(0, start - 15), end + 15));
-      }
       state.push({
         type: 'katex_block',
         content: content,
@@ -86,10 +81,6 @@ function remarkableKatex(md) {
 
     if (!silent) {
       var content = state.src.slice(start + 1, end);
-      // [诊断] 检测到行内公式，记录上下文以排查误匹配
-      var context = state.src.slice(Math.max(0, start - 10), end + 10);
-      console.debug('[KaTeX诊断] 行内公式匹配: content=%o, end=%d, max=%d, context="%s"',
-        content, end, max, context);
       state.push({
         type: 'katex_inline',
         content: content,
@@ -111,7 +102,7 @@ function remarkableKatex(md) {
       });
       return result;
     } catch (e) {
-      console.debug('[KaTeX诊断] 块级公式渲染失败: content=%o, error=%o', tokens[idx].content, e.message);
+      console.error('[KaTeX] 块级公式渲染失败: content=%o, error=%o', tokens[idx].content, e.message);
       return '<div class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</div>';
     }
   };
@@ -124,7 +115,7 @@ function remarkableKatex(md) {
       });
       return result;
     } catch (e) {
-      console.debug('[KaTeX诊断] 行内公式渲染失败: content=%o, error=%o', tokens[idx].content, e.message);
+      console.error('[KaTeX] 行内公式渲染失败: content=%o, error=%o', tokens[idx].content, e.message);
       return '<span class="katex-error">' + self.utils.escapeHtml(tokens[idx].content) + '</span>';
     }
   };
@@ -159,9 +150,6 @@ function fixTableAlignment(text) {
         if (!/-/.test(line)) return line;
         // 检查是否包含连续冒号（2 个以上）
         if (!/:{2,}/.test(line)) return line;
-        // deepseek 当前输出的表格 markdown 中常有 :: 甚至 ::: 的错误，
-        // 当发现此问题时输出调试信息，以便后续 deepseek 官方修复后可移除本函数
-        console.debug("malformed table separator detected:", line);
         // 将连续 2+ 个冒号替换为单个冒号
         return line.replace(/:{2,}/g, ':');
     });
@@ -174,11 +162,6 @@ function fixTableAlignment(text) {
  */
 export function renderMarkdown(text) {
     if (!text) return '';
-    // [诊断] 记录输入文本是否包含 $ 符号
-    if (text.indexOf('$') !== -1) {
-        console.debug('[KaTeX诊断] renderMarkdown 输入含 $: text.length=%d, $出现次数=%d',
-            text.length, (text.match(/\$/g) || []).length);
-    }
     try {
         // 修复 AI 模型输出的表格对齐分隔行中的多余冒号（如 ::---- → :----）
         const fixed = fixTableAlignment(text);
@@ -191,12 +174,6 @@ export function renderMarkdown(text) {
         // 注册 KaTeX 插件
         md.use(remarkableKatex);
         const html = md.render(fixed);
-        // [诊断] 检查渲染结果是否包含公式
-        if (html.indexOf('katex') !== -1) {
-            var katexCount = (html.match(/class="katex"/g) || []).length;
-            var errorCount = (html.match(/katex-error/g) || []).length;
-            console.debug('[KaTeX诊断] 渲染完成: 成功公式=%d, 错误=%d', katexCount, errorCount);
-        }
         // 将 HTML 插入临时容器，对代码块执行语法高亮
         return highlightCodeBlocks(html);
     } catch (e) {

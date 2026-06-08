@@ -485,7 +485,7 @@ export async function fetchLlmInfo() {
             return await response.json();
         }
     } catch (e) {
-        console.debug('获取 AI 信息失败:', e);
+        console.error('获取 AI 信息失败:', e);
     }
     return null;
 }

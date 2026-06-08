@@ -286,7 +286,6 @@ export class SSEResponser {
         } else {
             sm.reasoning += event.content || '';
         }
-        console.log('[SSE] 🧠 onReasoning', `content长度=${sm.reasoning.length} subject=${event.subject||''}`);
         // 同步到 group.assistant + 节流渲染 HTML
         this._syncReasoningToAssistant();
     }
@@ -297,7 +296,6 @@ export class SSEResponser {
     onReasoningEnd() {
         var sm = this._getStreamingMsg();
         if (!sm) return;
-        console.log('[SSE] 🧠 onReasoningEnd');
         sm.reasoningState = 'done';
         // 同步 reasoningState 到 group.assistant
         var assistant = _getAssistant(this.stream.sn);

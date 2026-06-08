@@ -448,9 +448,6 @@ func (c *DeepSeekClient) ChatWithPipeline(
 	for {
 		toolCallIterations++
 
-		// Debug: print current iteration count
-		fmt.Printf("[TOOL_DEBUG] toolCallIterations=%d, max=%d\n", toolCallIterations, maxToolCallIterations)
-
 		// Build the streaming request with tools
 		req := ChatCompletionRequest{
 			Model:    c.model,
@@ -472,7 +469,6 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		// When the limit is reached, disable tool choice so the LLM must
 		// answer directly, rather than appending a prompt message.
 		if toolCallIterations > maxToolCallIterations {
-			fmt.Printf("[TOOL_DEBUG] LIMIT REACHED! Disabling tool choice.\n")
 			req.DisableToolChoice(false)
 		}
 
