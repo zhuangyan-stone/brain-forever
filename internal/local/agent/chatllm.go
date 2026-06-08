@@ -101,9 +101,9 @@ func (atc *pipelineImp) OnWebSource(sources []toolimp.WebSource) {
 }
 
 func (ate *pipelineImp) GetWebSearchResult() (sources []toolimp.WebSource) {
-	urlSet := make(map[string]bool, 100)
-	sources = make([]toolimp.WebSource, 0, 100)
 	const maxSources = 100
+	urlSet := make(map[string]bool, maxSources)
+	sources = make([]toolimp.WebSource, 0, maxSources)
 
 	for _, tl := range ate.tools {
 		if tl.GetName() == toolimp.WebSearchToolName {
