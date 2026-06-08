@@ -12,7 +12,10 @@ addr = ":8080"
 # 以下超时配置单位为秒，0 表示不超时
 read_timeout = 30
 read_header_timeout = 10
-write_timeout = 30
+# write_timeout 必须设为 0（不限时），因为 SSE 流式响应是长连接，
+# LLM 流式输出可能持续数分钟（尤其是启用联网搜索 + 深度思考时）。
+# 设为有限值会导致 SSE 写入超时，触发 i/o timeout 错误。
+write_timeout = 0
 idle_timeout = 60
 
 [logger]

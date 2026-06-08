@@ -479,7 +479,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		// Start streaming connection
 		stream := c.ChatStreamWithOptions(ctx, req)
 		if err = stream.Err(); err != nil {
-			return "", "", fmt.Errorf("failed to call LLM API: client not initialized. %w", err)
+			return "", "", fmt.Errorf("failed to call LLM API. %w", err)
 		}
 
 		// Read all chunks from the stream — collect reply, reasoning, and tool calls
