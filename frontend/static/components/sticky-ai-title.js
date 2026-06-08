@@ -12,8 +12,8 @@
 
 'use strict';
 
-import { ICON_CLOSE, ICON_RESTORE } from '../svg_icons_re.js';
-import { getContainer, restoreNote } from './sticky-mgr.js';
+import { ICON_CLOSE } from '../svg_icons_re.js';
+import { getContainer } from './sticky-mgr.js';
 
 /** 定时时长（毫秒）— 15 秒后自动应用标题 */
 const TIMER_DURATION = 15000;
@@ -37,19 +37,7 @@ export function showAiTitleSuggestion(message, title, options = {}) {
     const note = document.createElement('div');
     note.className = 'sticky-note';
 
-    // ---- 右上角按钮组 ----
-    // 恢复最大化按钮（方框图标）— 放在关闭按钮左边
-    const restoreBtn = document.createElement('button');
-    restoreBtn.className = 'sticky-note-restore';
-    restoreBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICON_RESTORE + '</svg>';
-    restoreBtn.setAttribute('aria-label', '恢复窗口大小');
-    restoreBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        restoreNote(note);
-    });
-    note.appendChild(restoreBtn);
-
-    // 右上角关闭按钮（对称小叉 SVG）
+    // ---- 右上角关闭按钮 ----
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sticky-note-close';
     closeBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICON_CLOSE + '</svg>';
@@ -70,12 +58,6 @@ export function showAiTitleSuggestion(message, title, options = {}) {
         }
     });
     note.appendChild(closeBtn);
-
-    // 折叠后只显示的标题行
-    const collapsedTitleEl = document.createElement('div');
-    collapsedTitleEl.className = 'sticky-note-collapsed-title';
-    collapsedTitleEl.textContent = title;
-    note.appendChild(collapsedTitleEl);
 
     // 消息文本
     const msgEl = document.createElement('div');

@@ -9,7 +9,7 @@ import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showToken
 import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH } from './svg_icons_re.js';
+import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { visualLength, truncateByVisualLength } from './toolsets.js';
@@ -425,7 +425,7 @@ function showContextMenu(e, chat) {
     // 导致菜单定位异常。e.currentTarget 始终指向事件绑定的按钮元素。
     const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 36 * 3 + 4; // 3 items * 36px + padding
+    const menuHeight = 36 * 3 + 4 + 10; // 3 items * 36px + padding + separator
 
     const isSmallScreen = document.body.classList.contains('small-screen-mode');
     let left, top;
@@ -462,16 +462,6 @@ function showContextMenu(e, chat) {
     menu.style.left = Math.max(4, left) + 'px';
     menu.style.top = Math.max(4, top) + 'px';
 
-    // 重命名
-    const renameItem = document.createElement('div');
-    renameItem.className = 'chat-context-menu-item';
-    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名';
-    renameItem.addEventListener('click', () => {
-        closeContextMenu();
-        handleRename(chat);
-    });
-    menu.appendChild(renameItem);
-
     // 置顶/取消置顶
     const pinItem = document.createElement('div');
     pinItem.className = 'chat-context-menu-item';
@@ -485,6 +475,21 @@ function showContextMenu(e, chat) {
         handleTogglePin(chat);
     });
     menu.appendChild(pinItem);
+
+    // 重命名
+    const renameItem = document.createElement('div');
+    renameItem.className = 'chat-context-menu-item';
+    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名';
+    renameItem.addEventListener('click', () => {
+        closeContextMenu();
+        handleRename(chat);
+    });
+    menu.appendChild(renameItem);
+
+    // 分隔线
+    const separator = document.createElement('div');
+    separator.className = 'chat-context-menu-separator';
+    menu.appendChild(separator);
 
     // 删除（警告色）
     const deleteItem = document.createElement('div');
@@ -717,7 +722,7 @@ export function updateChatEntry(sn, title, titleState) {
  * 删除对话（逻辑删除 — 移入回收站）
  */
 async function handleDelete(chat) {
-    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」\n将被移入回收站，确认删除？`);
+    const result = await msgbox.warning(`〔${truncateTitle(chat.title)}〕\n\n将被移入回收站，请确认？`);
     if (result !== 1) {
         return;
     }
@@ -862,7 +867,7 @@ async function handleRestore(chat) {
  * 从回收站永久删除对话
  */
 async function handlePermanentDelete(chat) {
-    const result = await msgbox.warning(`「${truncateTitle(chat.title)}」\n永久删除后不可恢复，请确认？`);
+    const result = await msgbox.warning(`〔${truncateTitle(chat.title)}〕将被永久删除！\n\n此操作不可恢复，请确认？`);
     if (result !== 1) {
         return;
     }
@@ -897,7 +902,7 @@ async function handleEmptyTrash() {
     var count = chatsStore && chatsStore.deletedChats ? chatsStore.deletedChats.length : 0;
     if (count === 0) return;
 
-    const result = await msgbox.warning(`回收站中有 ${count} 个对话，清空后不可恢复，请确认？`);
+    const result = await msgbox.warning(`回收站中有 ${count} 个对话将被一次性清空。\n\n此操作不可恢复，请确认？`);
     if (result !== 1) {
         return;
     }
@@ -987,7 +992,7 @@ try {
             // 恢复
             const restoreItem = document.createElement('div');
             restoreItem.className = 'chat-context-menu-item';
-            restoreItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_RESTORE + '</svg> 恢复';
+            restoreItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_TRASH_RESTORE + '</svg> 恢复';
             restoreItem.addEventListener('click', function() {
                 closeContextMenu();
                 handleRestore(chat);

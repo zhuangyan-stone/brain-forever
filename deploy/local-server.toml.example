@@ -1,0 +1,24 @@
+# ============================================================
+# BrainForever local-server 部署配置文件示例
+# 复制此文件到部署目录，按环境修改配置。
+# API Key 等敏感信息请使用环境变量，不要写入此文件。
+# ============================================================
+
+[server]
+# 本地监听地址
+addr = ":8080"
+
+[logger]
+file = "log/local-server.log"
+level = "INFO"
+
+[data]
+# 数据存储目录（SQLite 数据库文件存放位置）
+dir = "./localdb"
+brain_db = "brain.db"
+users_db = "users.db"
+anonymous_db = "anonymous.db"
+
+[frontend]
+dir = "./frontend"
+cache_disable = false

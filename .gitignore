@@ -3,9 +3,10 @@ log/
 *.log
 # --- Build artifacts ---
 __debug_bin*
-brain.exe
-brain-forever.exe
-brain-forever
+local-server
+local-server.exe
+remote-server
+remote-server.exe
 *.exe
 
 # --- Database files ---

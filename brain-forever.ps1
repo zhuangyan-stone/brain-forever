@@ -1,7 +1,7 @@
 ﻿# ============================================
 # BrainForever Launcher (PowerShell)
 # Reads .env, sets environment variables,
-# then starts brain-forever.exe
+# then starts local-server.exe
 # ============================================
 
 # Set console output to UTF-8 so Chinese characters display correctly
@@ -69,32 +69,31 @@ Write-Host "[2/3] Environment variables loaded successfully." -ForegroundColor Y
 Write-Host ""
 
 # --------------------------------------------------
-# 3. Start brain-forever.exe
+# 3. Start local-server.exe
 # --------------------------------------------------
-Write-Host "[3/3] Starting brain-forever.exe..." -ForegroundColor Yellow
+Write-Host "[3/3] Starting local-server.exe..." -ForegroundColor Yellow
 Write-Host ""
 
-if (-not (Test-Path "brain-forever.exe")) {
-    Write-Host "[ERROR] brain-forever.exe not found! Please build first with b.bat." -ForegroundColor Red
+if (-not (Test-Path "local-server.exe")) {
+    Write-Host "[ERROR] local-server.exe not found! Please build first with b.bat." -ForegroundColor Red
     Read-Host "Press Enter to exit"
     exit 1
 }
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  BrainForever is starting..." -ForegroundColor Cyan
+Write-Host "  BrainForever (local-server) is starting..." -ForegroundColor Cyan
 Write-Host "  Open http://localhost:8080 in your browser" -ForegroundColor Cyan
 Write-Host "  Press Ctrl+C to stop the server" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Start brain-forever.exe directly. Ctrl+C is forwarded to the
-# Go program's signal.NotifyContext (SIGINT) for graceful shutdown.
-& ".\brain-forever.exe"
+# Start local-server.exe
+& ".\local-server.exe"
 $exitCode = $LASTEXITCODE
 
 if ($exitCode -ne 0) {
     Write-Host ""
-    Write-Host "[ERROR] brain-forever.exe exited with code $exitCode" -ForegroundColor Red
+    Write-Host "[ERROR] local-server.exe exited with code $exitCode" -ForegroundColor Red
 }
 
 exit $exitCode

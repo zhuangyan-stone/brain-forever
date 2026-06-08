@@ -7,7 +7,7 @@
 //   import msgbox from './components/msgbox.js';
 //
 //   // 警告框 — 返回 Promise<number>：-1（取消）或 1（确认）
-//   const result = await msgbox.warning('「xxx」删除后不可恢复，请确认是否删除？');
+//   const result = await msgbox.warning('〔xxx〕删除后不可恢复，请确认是否删除？');
 //   if (result === 1) { /* 执行删除 */ }
 //
 //   // 信息框 — 返回 Promise<void>

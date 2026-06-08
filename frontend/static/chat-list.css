@@ -307,6 +307,13 @@
     background: var(--error-bg);
 }
 
+/* 菜单分隔线 */
+.chat-context-menu-separator {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--border);
+}
+
 /* ---------- 回收站分组 ---------- */
 .chat-group-trash {
     border-top: 1px solid var(--border);

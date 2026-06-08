@@ -33,48 +33,6 @@ sticky-ai-title.css — 便利贴式标题推荐组件
     animation: stickyNoteEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* ========== 折叠状态 ========== */
-.sticky-note.collapsed {
-    padding: 10px 16px;
-    cursor: pointer;
-    transform: rotate(0deg);
-    box-shadow:
-        0 1px 4px rgba(0, 0, 0, 0.12),
-        0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-.sticky-note.collapsed .sticky-note-message,
-.sticky-note.collapsed .sticky-note-title,
-.sticky-note.collapsed .sticky-note-actions,
-.sticky-note.collapsed .sticky-note-restore {
-    display: none;
-}
-
-.sticky-note.collapsed .sticky-note-collapsed-title {
-    display: block;
-}
-
-.sticky-note-collapsed-title {
-    display: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--sticky-note-text, #3e3e3e);
-    padding-right: 28px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.4;
-}
-
-@keyframes stickyNoteCollapse {
-    0% { opacity: 1; transform: scale(1); padding: 16px 16px 12px; }
-    100% { opacity: 1; transform: scale(1); padding: 10px 16px; }
-}
-
-.sticky-note.collapsing {
-    animation: stickyNoteCollapse 0.3s ease forwards;
-}
-
 /* 右上角关闭按钮 */
 .sticky-note-close {
     position: absolute;
@@ -104,41 +62,6 @@ sticky-ai-title.css — 便利贴式标题推荐组件
 
 .sticky-note-close svg {
     display: block;
-}
-
-/* 恢复最大化按钮 */
-.sticky-note-restore {
-    display: none;
-    position: absolute;
-    top: 6px;
-    right: 34px;
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--sticky-note-text, #3e3e3e);
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.35;
-    transition: opacity 0.15s ease, background 0.15s ease;
-    padding: 0;
-    user-select: none;
-    z-index: 1;
-}
-
-.sticky-note-restore:hover {
-    opacity: 0.7;
-    background: rgba(128, 128, 128, 0.12);
-}
-
-.sticky-note-restore svg {
-    display: block;
-}
-
-.sticky-note.collapsed .sticky-note-restore {
-    display: flex;
 }
 
 /* 主题 */
@@ -223,10 +146,6 @@ sticky-ai-title.css — 便利贴式标题推荐组件
 
 [data-theme="dark"] .sticky-note-progress-fill {
     background: linear-gradient(90deg, #57C3C3, #3DA8A8);
-}
-
-.sticky-note.collapsed .sticky-note-progress {
-    display: none;
 }
 
 /* 按钮行 */
@@ -339,14 +258,4 @@ body.small-screen-mode .sticky-note-btn {
 body.small-screen-mode .sticky-note-progress {
     margin: 6px 0 8px;
     height: 3px;
-}
-
-/* 小屏下折叠状态的便利贴 */
-body.small-screen-mode .sticky-note.collapsed {
-    padding: 8px 14px;
-}
-
-body.small-screen-mode .sticky-note-collapsed-title {
-    font-size: 0.78rem;
-    padding-right: 24px;
 }

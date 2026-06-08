@@ -67,34 +67,6 @@ export function getContainer() {
 }
 
 /**
- * 折叠便利贴：只显示标题，隐藏消息、推荐标题、按钮行和恢复按钮。
- * @param {HTMLElement} note - 便利贴 DOM 元素
- */
-export function collapseNote(note) {
-    if (note.classList.contains('collapsed') || note.classList.contains('leaving')) return;
-
-    note.classList.add('collapsing');
-    note.addEventListener('animationend', () => {
-        note.classList.remove('collapsing');
-        note.classList.add('collapsed');
-    }, { once: true });
-}
-
-/**
- * 恢复便利贴：从折叠状态展开，显示完整内容。
- * @param {HTMLElement} note - 便利贴 DOM 元素
- */
-export function restoreNote(note) {
-    if (!note.classList.contains('collapsed')) return;
-
-    note.classList.remove('collapsed');
-    const collapsedTitle = note.querySelector('.sticky-note-collapsed-title');
-    if (collapsedTitle) {
-        collapsedTitle.remove();
-    }
-}
-
-/**
  * 清除所有便利贴（用于切换会话时清理）
  */
 export function clearAllStickyNotes() {
