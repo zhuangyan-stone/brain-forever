@@ -3,9 +3,9 @@ log/
 *.log
 # --- Build artifacts ---
 __debug_bin*
-local-server
+/local-server
 local-server.exe
-remote-server
+/remote-server
 remote-server.exe
 *.exe
 
