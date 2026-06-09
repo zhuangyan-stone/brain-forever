@@ -11,27 +11,42 @@
         await msgbox.warning('「xxx」删除后不可恢复，请确认是否删除？');
     ============================================================ */
 
-/* ---- 头部左侧：图标 + 标题 水平排列 ---- */
-.dialog-header-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* ---- 头部图标 ---- */
-.msgbox-header-icon {
-    font-size: 1.15rem;
-    line-height: 1;
-}
-
-/* ---- 消息框内容区 ---- */
+/* ---- 消息框内容区：左右布局（图标 | 文本） ---- */
 .msgbox-body {
+    display: flex;
+    gap: 16px;
+    align-items: center;
     text-align: left;
     padding: 24px 20px 16px;
     font-size: 0.95rem;
     color: var(--text-primary);
     line-height: 1.7;
     word-break: break-word;
+}
+
+/* ---- 左侧：图标区（固定 64×64） ---- */
+.msgbox-icon-left {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: var(--bg-secondary, #f0f0f0);
+}
+
+/* ---- 图标字符 ---- */
+.msgbox-icon-char {
+    font-size: 4rem;
+    line-height: 1;
+    user-select: none;
+}
+
+/* ---- 右侧：消息文本区 ---- */
+.msgbox-content-right {
+    flex: 1;
+    min-width: 0;
 }
 
 /* ---- 消息文本 ---- */
@@ -62,18 +77,6 @@
 .msgbox-btn-primary:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
-}
-
-/* ---- 三按钮布局：第一个按钮左对齐，其余靠右 ---- */
-.msgbox-footer-triple {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 4px 20px 12px;
-}
-
-.msgbox-footer-triple .msgbox-btn-first {
-    margin-right: auto;
 }
 
 /* ---- 关闭动画 ---- */

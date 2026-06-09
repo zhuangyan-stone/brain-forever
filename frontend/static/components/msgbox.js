@@ -13,7 +13,7 @@
 //   // 信息框 — 返回 Promise<void>
 //   await msgbox.alert('操作已成功完成。');
 //
-//   // 提问框 — 返回 Promise<number>：-1（取消）、0（否）、1（是）
+//   // 提问框 — 返回 Promise<number>：-1（关闭）、0（否）、1（是）
 //   const answer = await msgbox.confirm('是否保存当前更改？');
 // ============================================================
 
@@ -43,9 +43,9 @@ function closeDialog(overlay) {
  * 图标 Unicode 映射
  */
 const MSGBOX_ICON_CHAR = {
-    info: '\u24D8',     // ⓘ
+    info: '\u1F6C8',     // 🛈
     warning: '\u26A0',  // ⚠
-    question: '\u2753'  // ❓
+    question: '\u2BD1'  // ⯑
 };
 
 /**
@@ -61,26 +61,13 @@ function createDialog(title, iconType) {
     const box = document.createElement('div');
     box.className = 'dialog-box';
 
-    // ---- 头部 ----
+    // ---- 头部（仅标题 + 关闭按钮） ----
     const header = document.createElement('div');
     header.className = 'dialog-header';
 
-    // 左侧：图标 + 标题
-    const leftGroup = document.createElement('div');
-    leftGroup.className = 'dialog-header-left';
-
-    if (iconType && MSGBOX_ICON_CHAR[iconType]) {
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'msgbox-header-icon';
-        iconSpan.textContent = MSGBOX_ICON_CHAR[iconType];
-        leftGroup.appendChild(iconSpan);
-    }
-
     const titleEl = document.createElement('h3');
     titleEl.textContent = title;
-    leftGroup.appendChild(titleEl);
-
-    header.appendChild(leftGroup);
+    header.appendChild(titleEl);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'dialog-close-btn';
@@ -89,10 +76,26 @@ function createDialog(title, iconType) {
     header.appendChild(closeBtn);
     box.appendChild(header);
 
-    // ---- 内容区 ----
+    // ---- 内容区：左右布局（图标 | 消息） ----
     const body = document.createElement('div');
     body.className = 'msgbox-body';
     box.appendChild(body);
+
+    // 左侧：图标（64×64）
+    const iconArea = document.createElement('div');
+    iconArea.className = 'msgbox-icon-left';
+    if (iconType && MSGBOX_ICON_CHAR[iconType]) {
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'msgbox-icon-char';
+        iconSpan.textContent = MSGBOX_ICON_CHAR[iconType];
+        iconArea.appendChild(iconSpan);
+    }
+    body.appendChild(iconArea);
+
+    // 右侧：消息内容区（由具体方法填充）
+    const contentArea = document.createElement('div');
+    contentArea.className = 'msgbox-content-right';
+    body.appendChild(contentArea);
 
     // ---- 底部按钮区（占位，由具体方法填充） ----
     const footer = document.createElement('div');
@@ -101,7 +104,7 @@ function createDialog(title, iconType) {
 
     overlay.appendChild(box);
 
-    return { overlay, body, footer, closeBtn };
+    return { overlay, body, footer, closeBtn, contentArea };
 }
 
 /**
@@ -140,13 +143,13 @@ const msgbox = {
      */
     alert(message) {
         return new Promise((resolve) => {
-            const { overlay, body, footer, closeBtn } = createDialog('信息', 'info');
+            const { overlay, footer, closeBtn, contentArea } = createDialog('信息', 'info');
 
             // 消息内容
             const msgEl = document.createElement('p');
             msgEl.className = 'msgbox-message';
             msgEl.textContent = message;
-            body.appendChild(msgEl);
+            contentArea.appendChild(msgEl);
 
             // "知道了" 按钮
             const okBtn = createBtn('知道了', 'dialog-btn-confirm', () => {
@@ -181,13 +184,13 @@ const msgbox = {
      */
     warning(message) {
         return new Promise((resolve) => {
-            const { overlay, body, footer, closeBtn } = createDialog('警告', 'warning');
+            const { overlay, footer, closeBtn, contentArea } = createDialog('警告', 'warning');
 
             // 消息内容
             const msgEl = document.createElement('p');
             msgEl.className = 'msgbox-message';
             msgEl.textContent = message;
-            body.appendChild(msgEl);
+            contentArea.appendChild(msgEl);
 
             // 通用退出：取消 + 清理 Escape 监听
             function exit(value) {
@@ -236,13 +239,13 @@ const msgbox = {
      */
     confirm(question) {
         return new Promise((resolve) => {
-            const { overlay, body, footer, closeBtn } = createDialog('提问', 'question');
+            const { overlay, footer, closeBtn, contentArea } = createDialog('提问', 'question');
 
             // 问题内容
             const msgEl = document.createElement('p');
             msgEl.className = 'msgbox-message';
             msgEl.textContent = question;
-            body.appendChild(msgEl);
+            contentArea.appendChild(msgEl);
 
             // 通用退出：取消 + 清理 Escape 监听
             function exit(value) {
@@ -251,19 +254,12 @@ const msgbox = {
                 resolve(value);
             }
 
-            // Escape → 取消
+            // Escape → 关闭（返回 -1）
             function onKeyDown(e) {
                 if (e.key === 'Escape') {
                     exit(-1);
                 }
             }
-
-            // 三按钮布局
-            footer.className = 'msgbox-footer-triple';
-
-            // "取消" 按钮（左对齐）
-            const cancelBtn = createBtn('取消', 'dialog-btn-cancel msgbox-btn-first', () => exit(-1));
-            footer.appendChild(cancelBtn);
 
             // "否" 按钮
             const noBtn = createBtn('否', 'dialog-btn-cancel', () => exit(0));
@@ -276,14 +272,14 @@ const msgbox = {
             // 关闭按钮
             closeBtn.addEventListener('click', () => exit(-1));
 
-            // 点击遮罩层外部 → 取消
+            // 点击遮罩层外部 → 关闭
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
                     exit(-1);
                 }
             });
 
-            // Escape → 取消
+            // Escape → 关闭
             document.addEventListener('keydown', onKeyDown);
 
             showDialog(overlay);
