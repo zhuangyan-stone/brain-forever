@@ -16,6 +16,7 @@ import (
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/local/store"
+	"BrainForever/internal/remote/agent"
 	"BrainForever/internal/remote/agent/toolimp"
 )
 
@@ -253,7 +254,7 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 
 	// Set up SSE
 	sw := sse.NewSSEWriter(w)
-	pipeline := toolimp.NewTraitPipeline(sw, toolsImp)
+	pipeline := agent.NewTraitPipeline(sw, toolsImp)
 
 	// Send initial event to confirm connection
 	pipeline.WriteEvent("connected", map[string]interface{}{

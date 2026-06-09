@@ -1,4 +1,4 @@
-package toolimp
+package agent
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/llm"
+	"BrainForever/internal/remote/agent/toolimp"
 )
 
 // ============================================================
@@ -90,7 +91,7 @@ func (r *TraitSSEResponser) OnError(err error) {
 type TraitPipeline struct {
 	*TraitSSEResponser
 	tools  map[string]llm.ToolIMP
-	result *TripTraitsTool // stores the final extraction result
+	result *toolimp.TripTraitsTool // stores the final extraction result
 }
 
 // Compile-time interface check.
@@ -104,7 +105,7 @@ func NewTraitPipeline(sw *sse.Writer, tools []llm.ToolIMP) *TraitPipeline {
 	}
 	for _, t := range tools {
 		p.tools[t.GetName()] = t
-		if imp, ok := t.(*TripTraitsTool); ok {
+		if imp, ok := t.(*toolimp.TripTraitsTool); ok {
 			p.result = imp
 		}
 	}
@@ -139,6 +140,6 @@ func (p *TraitPipeline) Call(toolCallID, toolName string) (string, error) {
 }
 
 // GetResult returns the TripTraitsTool holding the final extraction result.
-func (p *TraitPipeline) GetResult() *TripTraitsTool {
+func (p *TraitPipeline) GetResult() *toolimp.TripTraitsTool {
 	return p.result
 }
