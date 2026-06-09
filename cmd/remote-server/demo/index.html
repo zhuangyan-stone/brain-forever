@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>BrainForever - 用户特征提取 Demo</title>
+	<style>
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+		.container { max-width: 1000px; margin: 0 auto; }
+		h1 { font-size: 1.5rem; margin-bottom: 16px; color: #1a1a2e; }
+		.controls { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+		.control-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; }
+		.control-group label { font-size: 0.8rem; color: #666; font-weight: 600; }
+		.control-group input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
+		.control-group input:focus { outline: none; border-color: #4a6cf7; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
+		.btn { padding: 8px 20px; border: none; border-radius: 4px; font-size: 0.9rem; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+		.btn-primary { background: #4a6cf7; color: #fff; }
+		.btn-primary:hover { background: #3b5de7; }
+		.btn-primary:disabled { background: #a0b4f7; cursor: not-allowed; }
+		.btn-danger { background: #e74c3c; color: #fff; }
+		.btn-danger:hover { background: #c0392b; }
+		.status-bar { padding: 8px 16px; background: #eef; border-radius: 4px; margin-bottom: 16px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+		.status-bar .status-text { color: #4a6cf7; }
+		.status-bar .status-text.error { color: #e74c3c; }
+		.status-bar .status-text.done { color: #27ae60; }
+		.event-log { background: #1a1a2e; color: #e0e0e0; border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.8rem; line-height: 1.6; max-height: 70vh; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+		.event-entry { margin-bottom: 4px; padding: 4px 8px; border-radius: 3px; }
+		.event-entry .event-label { font-weight: bold; margin-right: 8px; }
+		.event-entry.reasoning { background: rgba(255,193,7,0.08); }
+		.event-entry.reasoning .event-label { color: #ffc107; }
+		.event-entry.text { background: rgba(74,108,247,0.08); }
+		.event-entry.text .event-label { color: #4a6cf7; }
+		.event-entry.tool_result { background: rgba(39,174,96,0.1); }
+		.event-entry.tool_result .event-label { color: #27ae60; }
+		.event-entry.error { background: rgba(231,76,60,0.1); }
+		.event-entry.error .event-label { color: #e74c3c; }
+		.event-entry.done { background: rgba(39,174,96,0.15); }
+		.event-entry.done .event-label { color: #27ae60; }
+		.event-entry.connected { background: rgba(74,108,247,0.1); }
+		.event-entry.connected .event-label { color: #4a6cf7; }
+		.event-entry.usage { background: rgba(155,89,182,0.08); }
+		.event-entry.usage .event-label { color: #9b59b6; }
+		.json-data { padding-left: 16px; opacity: 0.9; }
+		.toolbar { display: flex; gap: 8px; align-items: center; }
+		.count-badge { background: #4a6cf7; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+		.features-summary { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+		.features-summary h3 { font-size: 1rem; margin-bottom: 8px; color: #1a1a2e; }
+		.feature-item { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+		.feature-item:last-child { border-bottom: none; }
+		.feature-item .cat-badge { display: inline-block; background: #eef; color: #4a6cf7; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; margin-right: 8px; }
+		.chat-list-item { display: flex; align-items: center; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; background: #fff; }
+		.chat-list-item:hover { border-color: #4a6cf7; background: #f8f9ff; }
+		.chat-list-item.selected { border-color: #4a6cf7; background: #eef1ff; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
+		.chat-list-item .chat-title { flex: 1; font-weight: 500; font-size: 0.9rem; }
+		.chat-list-item .chat-sn { color: #999; font-size: 0.8rem; font-family: 'JetBrains Mono', 'Consolas', monospace; margin-left: 12px; }
+		.chat-list-area { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: none; }
+		.chat-list-area h3 { font-size: 1rem; margin-bottom: 12px; color: #1a1a2e; display: flex; align-items: center; gap: 8px; }
+		.chat-list-area .empty-msg { color: #999; text-align: center; padding: 24px; font-size: 0.9rem; }
+		.chat-list-area .chats-container { max-height: 400px; overflow-y: auto; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>🧠 BrainForever — 用户特征提取验证原型</h1>
+
+		<div class="controls">
+			<div class="control-group">
+				<label for="dbPath">数据库路径 (.db)</label>
+				<div style="display:flex; gap:8px;">
+					<input type="text" id="dbPath" placeholder="例如: ./localdb/chat.db" value="" style="flex:1;">
+					<button class="btn btn-primary" id="btnListChats" onclick="listChats()">📋 列出对话</button>
+				</div>
+			</div>
+			<div class="control-group">
+				<label for="chatSn">对话 SN <span style="color:#999;font-weight:400;">（从下方列表选择后自动填入）</span></label>
+				<input type="text" id="chatSn" placeholder="请先列出对话，然后点击选择" value="" readonly style="background:#f9f9f9; color:#555;">
+			</div>
+			<div class="toolbar">
+				<button class="btn btn-primary" id="btnStart" onclick="startExtraction()">🚀 开始提取</button>
+				<button class="btn btn-danger" id="btnStop" onclick="stopExtraction()" disabled>⏹ 停止</button>
+				<button class="btn" style="background:#eee" onclick="clearLog()">🗑 清除</button>
+				<span id="eventCount" class="count-badge">0 events</span>
+			</div>
+		</div>
+
+		<!-- Chat list area: appears after clicking 列出对话 -->
+		<div id="chatListArea" class="chat-list-area">
+			<h3>💬 对话列表 <span id="chatCount" class="count-badge">0</span></h3>
+			<div id="chatsContainer" class="chats-container">
+				<div class="empty-msg">正在加载...</div>
+			</div>
+		</div>
+
+		<div id="featuresPanel" class="features-summary" style="display:none">
+			<h3>📋 提取结果</h3>
+			<div id="featuresList"></div>
+		</div>
+
+		<div class="status-bar">
+			<span>状态：<span id="statusText" class="status-text">等待开始</span></span>
+			<span id="connectionInfo"></span>
+		</div>
+
+		<div id="eventLog" class="event-log">等待用户操作...</div>
+	</div>
+
+	<script>
+		let eventSource = null;
+		let eventCount = 0;
+		let selectedSn = '';
+
+		// Try to load from localStorage
+		document.addEventListener('DOMContentLoaded', () => {
+			const savedDb = localStorage.getItem('traitDemo_dbPath');
+			const savedSn = localStorage.getItem('traitDemo_chatSn');
+			if (savedDb) document.getElementById('dbPath').value = savedDb;
+			if (savedSn) {
+				document.getElementById('chatSn').value = savedSn;
+				selectedSn = savedSn;
+			}
+		});
+
+		// ============================================================
+		// List chats: call /api/chats?db=<path> and display results
+		// ============================================================
+		function listChats() {
+			const dbPath = document.getElementById('dbPath').value.trim();
+			if (!dbPath) {
+				setStatus('请先输入数据库路径', 'error');
+				return;
+			}
+
+			// Save to localStorage
+			localStorage.setItem('traitDemo_dbPath', dbPath);
+
+			const area = document.getElementById('chatListArea');
+			const container = document.getElementById('chatsContainer');
+			const countBadge = document.getElementById('chatCount');
+
+			area.style.display = 'block';
+			container.innerHTML = '<div class="empty-msg">⏳ 正在加载对话列表...</div>';
+			countBadge.textContent = '0';
+
+			setStatus('正在获取对话列表...', '');
+
+			fetch('/api/chats?db=' + encodeURIComponent(dbPath))
+				.then(function(resp) {
+					if (!resp.ok) {
+						return resp.text().then(function(t) { throw new Error(t); });
+					}
+					return resp.json();
+				})
+				.then(function(data) {
+					const chats = data.chats || [];
+					renderChatList(chats);
+					setStatus('已列出 ' + chats.length + ' 个对话', 'done');
+				})
+				.catch(function(err) {
+					container.innerHTML = '<div class="empty-msg" style="color:#e74c3c;">❌ 加载失败：' + escapeHtml(err.message) + '</div>';
+					setStatus('加载对话列表失败', 'error');
+				});
+		}
+
+		function renderChatList(chats) {
+			const container = document.getElementById('chatsContainer');
+			const countBadge = document.getElementById('chatCount');
+
+			if (!chats || chats.length === 0) {
+				container.innerHTML = '<div class="empty-msg">没有找到对话记录</div>';
+				countBadge.textContent = '0';
+				return;
+			}
+
+			countBadge.textContent = chats.length;
+			container.innerHTML = '';
+
+			chats.forEach(function(chat) {
+				const item = document.createElement('div');
+				item.className = 'chat-list-item';
+				item.dataset.sn = chat.sn;
+				item.dataset.title = chat.title;
+
+				// Highlight if this SN was previously selected
+				if (chat.sn === selectedSn) {
+					item.classList.add('selected');
+				}
+
+				const titleSpan = document.createElement('span');
+				titleSpan.className = 'chat-title';
+				titleSpan.textContent = chat.title || '(无标题)';
+
+				const snSpan = document.createElement('span');
+				snSpan.className = 'chat-sn';
+				snSpan.textContent = chat.sn;
+
+				item.appendChild(titleSpan);
+				item.appendChild(snSpan);
+
+				item.addEventListener('click', function() {
+					selectChat(this);
+				});
+
+				container.appendChild(item);
+			});
+		}
+
+		function selectChat(el) {
+			// Remove selected class from all items
+			document.querySelectorAll('.chat-list-item').forEach(function(item) {
+				item.classList.remove('selected');
+			});
+			el.classList.add('selected');
+
+			const sn = el.dataset.sn;
+			const title = el.dataset.title;
+
+			document.getElementById('chatSn').value = sn;
+			selectedSn = sn;
+
+			// Save to localStorage
+			localStorage.setItem('traitDemo_chatSn', sn);
+
+			setStatus('已选择: ' + (title || '无标题') + ' (' + sn + ')', 'done');
+		}
+
+		function escapeHtml(str) {
+			const div = document.createElement('div');
+			div.textContent = str;
+			return div.innerHTML;
+		}
+
+		// ============================================================
+		// SSE extraction (unchanged logic)
+		// ============================================================
+
+		function appendEvent(eventType, data) {
+			const log = document.getElementById('eventLog');
+			eventCount++;
+			document.getElementById('eventCount').textContent = eventCount + ' events';
+
+			const entry = document.createElement('div');
+			entry.className = 'event-entry ' + eventType;
+
+			const label = document.createElement('span');
+			label.className = 'event-label';
+			label.textContent = '[' + eventType + ']';
+			entry.appendChild(label);
+
+			const dataStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+			const dataSpan = document.createElement('span');
+			dataSpan.className = 'json-data';
+			dataSpan.textContent = dataStr;
+			entry.appendChild(dataSpan);
+
+			log.appendChild(entry);
+			log.scrollTop = log.scrollHeight;
+
+			// Auto-show features panel when done
+			if (eventType === 'done' && data && data.features && data.features.length > 0) {
+				showFeatures(data.features);
+			}
+		}
+
+		function showFeatures(features) {
+			const panel = document.getElementById('featuresPanel');
+			const list = document.getElementById('featuresList');
+			list.innerHTML = '';
+			panel.style.display = 'block';
+
+			features.forEach((f, i) => {
+				const div = document.createElement('div');
+				div.className = 'feature-item';
+				div.innerHTML = `<span class="cat-badge">#${f.category_id} ${f.category_name}</span> ${f.feature_text}`;
+				list.appendChild(div);
+			});
+		}
+
+		function setStatus(text, className) {
+			const el = document.getElementById('statusText');
+			el.textContent = text;
+			el.className = 'status-text' + (className ? ' ' + className : '');
+		}
+
+		function updateButtons(streaming) {
+			document.getElementById('btnStart').disabled = streaming;
+			document.getElementById('btnStop').disabled = !streaming;
+		}
+
+		function clearLog() {
+			document.getElementById('eventLog').innerHTML = '';
+			eventCount = 0;
+			document.getElementById('eventCount').textContent = '0 events';
+			document.getElementById('featuresPanel').style.display = 'none';
+		}
+
+		function stopExtraction() {
+			if (eventSource) {
+				eventSource.close();
+				eventSource = null;
+			}
+			setStatus('已停止', 'error');
+			updateButtons(false);
+		}
+
+		function startExtraction() {
+			const dbPath = document.getElementById('dbPath').value.trim();
+			const chatSn = document.getElementById('chatSn').value.trim();
+
+			if (!dbPath) {
+				setStatus('请先输入数据库路径', 'error');
+				return;
+			}
+			if (!chatSn) {
+				setStatus('请先点击"列出对话"，然后从列表中选择一个对话', 'error');
+				return;
+			}
+
+			// Clear previous log
+			clearLog();
+			setStatus('正在连接...', '');
+			updateButtons(true);
+			document.getElementById('connectionInfo').textContent = 'db: ' + dbPath + ' | sn: ' + chatSn;
+
+			const url = '/api/traits?db=' + encodeURIComponent(dbPath) + '&sn=' + encodeURIComponent(chatSn);
+
+			eventSource = new EventSource(url);
+
+			eventSource.onopen = function() {
+				setStatus('已连接，等待数据...', '');
+			};
+
+			eventSource.onmessage = function(event) {
+				try {
+					const msg = JSON.parse(event.data);
+					const eventType = msg.event || 'unknown';
+					const data = msg.data !== undefined ? msg.data : null;
+
+					appendEvent(eventType, data);
+
+					switch (eventType) {
+						case 'connected':
+							setStatus('已连接，正在提取...', '');
+							break;
+						case 'error':
+							setStatus('错误: ' + (typeof data === 'string' ? data : JSON.stringify(data)), 'error');
+							break;
+						case 'done':
+							setStatus('✅ 提取完成', 'done');
+							updateButtons(false);
+							eventSource.close();
+							eventSource = null;
+							break;
+					}
+				} catch (e) {
+					appendEvent('raw', event.data);
+				}
+			};
+
+			eventSource.onerror = function(e) {
+				if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+					setStatus('连接已关闭', 'error');
+					updateButtons(false);
+					eventSource = null;
+				}
+			};
+		}
+
+		// Handle page unload
+		window.addEventListener('beforeunload', function() {
+			if (eventSource) {
+				eventSource.close();
+			}
+		});
+	</script>
+</body>
+</html>

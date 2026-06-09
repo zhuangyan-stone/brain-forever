@@ -423,6 +423,11 @@ func (s *ChatStore) EmptyTrash() error {
 	return nil
 }
 
+// Close closes the database connection.
+func (s *ChatStore) Close() error {
+	return s.db.Close()
+}
+
 // TouchChat updates the update_at timestamp of a chat session to the current time.
 // This is used when a new message is inserted, so the chat moves to the top
 // of the list when ordered by update_at DESC (e.g., in ListChats).
