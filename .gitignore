@@ -4,9 +4,9 @@ log/
 # --- Build artifacts ---
 __debug_bin*
 /local-server
-local-server.exe
 /remote-server
-remote-server.exe
+brain-forever
+brain-online
 *.exe
 
 # --- Database files ---

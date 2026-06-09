@@ -9,22 +9,22 @@ set -e
 # Enable CGO (required for go-sqlite3)
 export CGO_ENABLED=1
 
-echo "=== BrainForever Builder ==="
+echo "=== d2Brain Builder ==="
 echo ""
 
 # Tidy dependencies
-echo "[1/5] go mod tidy..."
+echo "[1/4] go mod tidy..."
 go mod tidy
 
 # Build local-server
-echo "[2/5] Building local-server..."
-go build -o local-server ./cmd/local-server/
+echo "[2/4] Building brain-forever (local-server)..."
+go build -o brain-forever ./cmd/local-server/
 
 # Build remote-server
-echo "[3/5] Building remote-server..."
-go build -o remote-server ./cmd/remote-server/
+echo "[3/4] Building brain-online (remote-server)..."
+go build -o brain-online ./cmd/remote-server/
 
-echo "[4/5] Build success!"
-echo "  - local-server  (serves frontend + API)"
-echo "  - remote-server (AI backend stub)"
+echo "[4/4] Build success!"
+echo "  - brain-forever (local-server, serves frontend + API)"
+echo "  - brain-online  (remote-server, AI backend stub)"
 echo ""

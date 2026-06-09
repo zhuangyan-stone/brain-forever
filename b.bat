@@ -15,11 +15,11 @@ set "PATH=C:\msys64\ucrt64\bin;%PATH%"
 REM Enable CGO (required for go-sqlite3)
 set "CGO_ENABLED=1"
 
-echo === BrainForever Builder ===
+echo === d2Brain Builder ===
 echo.
 
 REM Tidy dependencies
-echo [1/5] go mod tidy...
+echo [1/4] go mod tidy...
 call go mod tidy
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] go mod tidy failed
@@ -27,25 +27,25 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Build local-server
-echo [2/5] Building local-server...
-go build -o local-server.exe .\cmd\local-server\
+echo [2/4] Building brain-forever (local-server)...
+go build -o brain-forever.exe .\cmd\local-server\
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] local-server build failed
+    echo [ERROR] brain-forever build failed
     exit /b %ERRORLEVEL%
 )
 
 REM Build remote-server
-echo [3/5] Building remote-server...
-go build -o remote-server.exe .\cmd\remote-server\
+echo [3/4] Building brain-online (remote-server)...
+go build -o brain-online.exe .\cmd\remote-server\
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] remote-server build failed
+    echo [ERROR] brain-online build failed
     exit /b %ERRORLEVEL%
 )
 
 echo.
-echo [4/5] Build success!
-echo   - local-server.exe
-echo   - remote-server.exe
+echo [4/4] Build success!
+echo   - brain-forever.exe (local-server)
+echo   - brain-online.exe  (remote-server)
 echo.
 
 endlocal
