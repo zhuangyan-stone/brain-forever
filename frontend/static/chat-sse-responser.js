@@ -24,7 +24,7 @@ import { chatStreamMgr } from './chat-stream-mgr.js';
 'use strict';
 
 /** SSE 渲染节流间隔（毫秒） */
-const SSE_RENDER_INTERVAL = 180;
+const SSE_RENDER_INTERVAL = 150;
 
 /** 工具名称 → 图标映射 */
 const TOOL_ICONS = {
