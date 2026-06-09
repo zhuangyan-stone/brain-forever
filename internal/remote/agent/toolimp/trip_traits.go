@@ -41,12 +41,13 @@ var _ llm.ToolIMP = (*TripTraitsTool)(nil)
 // NewTripTraitsTool creates a TripTraitsTool with a strict schema definition.
 func NewTripTraitsTool() *TripTraitsTool {
 	strict := true
+
 	def := llm.ToolDefinition{
 		Type: "function",
 		Function: llm.ToolFunctionDef{
 			Name:        TripTraitsToolName,
-			Description: "从用户与AI的对话中，识别并提取与用户本人相关的稳定或临时特征。调用此工具以输出特征提取的结构化结果。",
 			Strict:      &strict,
+			Description: "从用户与AI的对话中，识别并提取与用户本人相关的稳定或临时特征。调用此工具以输出特征提取的结构化结果。",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{

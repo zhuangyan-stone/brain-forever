@@ -598,24 +598,32 @@ func makeAssistantMessageForToolCalls(reply, reasoning string, toolCalls []Strea
 func executeToolCalls(pipeline Pipeline, toolCalls []StreamingToolCall, messages *[]Message) error {
 	for _, tc := range toolCalls {
 		if pendingErr := pipeline.Pending(tc.ID, tc.Name, tc.Arguments); pendingErr != nil {
+			// Instead of aborting the entire pipeline, report the error back to
+			// the LLM as a tool result. This gives the LLM a chance to retry with
+			// corrected arguments (e.g. when the JSON is malformed).
 			errMsg := i18n.T("tool_argument_fail", map[string]interface{}{"Error": pendingErr})
-			return fmt.Errorf("[%s(%s)]-%s", tc.Name, tc.Arguments, errMsg)
-		} else {
-			// Execute the tool via the caller
-			resultContent, execErr := pipeline.Call(tc.ID, tc.Name)
-
-			if execErr != nil {
-				errMsg := i18n.T("tool_execution_failed", map[string]interface{}{"Error": execErr})
-				return fmt.Errorf("[%s(%s)]-%s", tc.Name, tc.Arguments, errMsg)
-			}
-
-			// Append the tool result message
 			*messages = append(*messages, Message{
 				Role:       RoleTool,
 				ToolCallID: tc.ID,
-				Content:    resultContent,
+				Content:    fmt.Sprintf("[%s(%s)]-%s", tc.Name, tc.Arguments, errMsg),
 			})
+			continue
 		}
+
+		// Execute the tool via the caller
+		resultContent, execErr := pipeline.Call(tc.ID, tc.Name)
+
+		if execErr != nil {
+			errMsg := i18n.T("tool_execution_failed", map[string]interface{}{"Error": execErr})
+			return fmt.Errorf("[%s(%s)]-%s", tc.Name, tc.Arguments, errMsg)
+		}
+
+		// Append the tool result message
+		*messages = append(*messages, Message{
+			Role:       RoleTool,
+			ToolCallID: tc.ID,
+			Content:    resultContent,
+		})
 	}
 
 	return nil

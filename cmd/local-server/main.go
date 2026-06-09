@@ -111,6 +111,11 @@ func main() {
 	defer userStore.Close()
 
 	// ============================================================
+	// Initialize i18n with local language resources
+	// ============================================================
+	i18n.Init("lang/local")
+
+	// ============================================================
 	// Determine default language for i18n from environment variable
 	// ============================================================
 	defaultLang := os.Getenv("DEFAULT_LANG")

@@ -36,29 +36,39 @@ var (
 
 	// defaultLang is the default language tag used when no language is specified.
 	defaultLang = language.English
+
+	// initialized guards against double-initialization.
+	initialized bool
 )
 
-// init loads translation files from the i18n directory.
-// It recursively loads all .toml files from the directory and its subdirectories,
-// allowing translation files to be organized into subdirectories (e.g., lang/en/, lang/zh-CN/).
+// Init initializes the i18n system by loading all .toml translation files
+// from the specified directory (e.g., "lang/local" or "lang/remote").
 //
-// Files in subdirectories (e.g., lang/en/tools/current_time.toml) have their message IDs
-// automatically prefixed with the file name (without extension) to avoid key collisions.
-// For example, a message with ID "description" in lang/en/tools/current_time.toml
+// Translation files are organized as:
+//
+//	{langDir}/en.toml                          — top-level, no prefix
+//	{langDir}/zh-CN.toml                       — top-level, no prefix
+//	{langDir}/en/tools/current_time.toml        — subdirectory, prefixed with filename
+//	{langDir}/zh-CN/tools/web_search.toml       — subdirectory, prefixed with filename
+//
+// Files in subdirectories have their message IDs automatically prefixed
+// with the file name (without extension) to avoid key collisions.
+// For example, a message with ID "description" in .../current_time.toml
 // becomes "current_time-description".
 //
-// Top-level files (e.g., lang/en.toml) keep their message IDs as-is.
-func init() {
-	// Determine the i18n directory path.
-	// First try relative to the executable, then fall back to the source directory.
-	i18nDir := findI18nDir()
+// Top-level files (e.g., en.toml) keep their message IDs as-is.
+func Init(langDir string) {
+	if initialized {
+		return
+	}
+	initialized = true
 
 	bundle = i18n.NewBundle(language.English)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 
 	// Recursively load all TOML translation files from the directory tree
 	var files []string
-	err := filepath.WalkDir(i18nDir, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(langDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -76,23 +86,23 @@ func init() {
 	}
 
 	if len(files) == 0 {
-		fmt.Fprintf(os.Stderr, "[i18n] no translation files found in %s\n", i18nDir)
+		fmt.Fprintf(os.Stderr, "[i18n] no translation files found in %s\n", langDir)
 		return
 	}
 
 	for _, file := range files {
 		// Determine if this file is in a subdirectory (needs prefix) or top-level (no prefix).
-		relPath, _ := filepath.Rel(i18nDir, file)
+		relPath, _ := filepath.Rel(langDir, file)
 		dir := filepath.Dir(relPath)
 
 		if dir == "." {
-			// Top-level file (e.g., lang/en.toml) — load as-is, no prefix.
+			// Top-level file (e.g., en.toml) — load as-is, no prefix.
 			if _, err := bundle.LoadMessageFile(file); err != nil {
 				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
 			}
 		} else {
-			// Subdirectory file (e.g., lang/en/tools/current_time.toml) — prefix message IDs.
-			if err := loadWithPrefix(file); err != nil {
+			// Subdirectory file (e.g., en/tools/current_time.toml) — prefix message IDs.
+			if err := loadWithPrefix(file, langDir); err != nil {
 				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
 			}
 		}
@@ -106,11 +116,11 @@ func init() {
 // it will be registered as "current_time-description".
 //
 // The file path determines the language tag from the directory structure.
-// The expected path format is: lang/{language_tag}/.../{filename}.toml
-// e.g., "lang/en/tools/current_time.toml" → language tag "en"
+// The expected path format is: {langDir}/{language_tag}/.../{filename}.toml
+// e.g., "lang/local/en/tools/current_time.toml" → language tag "en"
 //
-//	"lang/zh-CN/tools/web_search.toml" → language tag "zh-CN"
-func loadWithPrefix(filePath string) error {
+//	"lang/local/zh-CN/tools/web_search.toml" → language tag "zh-CN"
+func loadWithPrefix(filePath string, langDir string) error {
 	// Read the file content
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -118,12 +128,11 @@ func loadWithPrefix(filePath string) error {
 	}
 
 	// Determine the language tag from the directory structure.
-	// The path is expected to be: lang/{language_tag}/.../{filename}.toml
-	// We use filepath.Rel to get the relative path from the i18n directory,
+	// We use filepath.Rel to get the relative path from langDir,
 	// then extract the first component as the language tag.
 	// e.g., relPath = "en/tools/current_time.toml" → parts[0] = "en"
 	//        relPath = "zh-CN/tools/web_search.toml" → parts[0] = "zh-CN"
-	relPath, _ := filepath.Rel(findI18nDir(), filePath)
+	relPath, _ := filepath.Rel(langDir, filePath)
 	parts := strings.SplitN(relPath, string(filepath.Separator), 3)
 	var langTag string
 	if len(parts) >= 1 {
@@ -187,26 +196,6 @@ func loadWithPrefix(filePath string) error {
 	}
 
 	return nil
-}
-
-// findI18nDir attempts to locate the i18n directory.
-// It checks several common locations relative to the working directory.
-func findI18nDir() string {
-	// Check common locations
-	candidates := []string{
-		"lang",
-		"./lang",
-		"../lang",
-	}
-
-	for _, dir := range candidates {
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			return dir
-		}
-	}
-
-	// Fallback: use the current working directory
-	return "lang"
 }
 
 // getLocalizer returns a localizer for the given language tag.

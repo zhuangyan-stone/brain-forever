@@ -14,6 +14,7 @@ import (
 
 	"BrainForever/infra/httpx"
 	"BrainForever/infra/httpx/sse"
+	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/local/store"
 	"BrainForever/internal/remote/agent"
@@ -31,6 +32,11 @@ import (
 // ============================================================
 
 func main() {
+	// ============================================================
+	// Initialize i18n with remote language resources
+	// ============================================================
+	i18n.Init("lang/remote")
+
 	// ============================================================
 	// Create a signal-aware context
 	// ============================================================
@@ -206,13 +212,19 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[traits] processing chat id=%d sn=%s with %d messages", chat.ID, sn, len(msgs))
 
+	// Determine language for i18n system prompt
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+	if lang == "" {
+		lang = "zh-CN" // Default to Chinese
+	}
+
 	// ----------------------------------------------------------
 	// 2. Build LLM messages
 	// ----------------------------------------------------------
 	llmMsgs := make([]llm.Message, 0, 1+len(msgs))
 	llmMsgs = append(llmMsgs, llm.Message{
 		Role:    llm.RoleSystem,
-		Content: traitSystemPrompt,
+		Content: getTraitSystemPrompt(lang),
 	})
 
 	for _, m := range msgs {
@@ -273,6 +285,13 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 
 	// Force tool choice — only allow the LLM to call the trip_traits tool.
 	req.ForceToolChoice(toolimp.TripTraitsToolName)
+
+	// Debug: log tool_choice and tool names being sent to the API.
+	log.Printf("[traits] sending request: model=%s, tool_choice=%s, tool_count=%d, message_count=%d",
+		req.Model, string(req.ToolChoice), len(req.Tools), len(req.Messages))
+	for i, td := range req.Tools {
+		log.Printf("[traits]   tool[%d]: name=%s, strict=%v", i, td.Function.Name, td.Function.Strict)
+	}
 
 	// Enable strict mode for the tool (set in the tool definition above).
 	// Disable thinking to reduce latency and cost (trait extraction only needs function calling).
@@ -347,7 +366,9 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 	if finishReason == "tool_calls" && len(toolCalls) > 0 {
 		// Set arguments on the tool and execute it
 		for _, tc := range toolCalls {
+			log.Printf("[trip_traits] toolCall: name=%q, arguments=%s", tc.Name, tc.Arguments)
 			if err := pipeline.Pending(tc.ID, tc.Name, tc.Arguments); err != nil {
+
 				pipeline.OnError(fmt.Errorf("set tool arguments failed: %w", err))
 				continue
 			}
