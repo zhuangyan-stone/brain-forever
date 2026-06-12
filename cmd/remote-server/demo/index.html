@@ -45,10 +45,20 @@
 		.toolbar { display: flex; gap: 8px; align-items: center; }
 		.count-badge { background: #4a6cf7; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
 		.features-summary { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-		.features-summary h3 { font-size: 1rem; margin-bottom: 8px; color: #1a1a2e; }
-		.feature-item { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+		.features-summary h3 { font-size: 1rem; margin-bottom: 8px; color: #1a1a2e; display: flex; align-items: center; gap: 8px; }
+		.feature-item { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.85rem; }
 		.feature-item:last-child { border-bottom: none; }
 		.feature-item .cat-badge { display: inline-block; background: #eef; color: #4a6cf7; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; margin-right: 8px; }
+		.feature-item .feature-text { font-weight: 500; }
+		.feature-item .feature-text-empty { color: #999; font-style: italic; }
+		.feature-item .keywords-row { margin-top: 4px; margin-left: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+		.feature-item .kw-badge { display: inline-flex; align-items: center; gap: 3px; background: #f0f4f8; border: 1px solid #dde4ec; border-radius: 4px; padding: 1px 8px; font-size: 0.75rem; color: #455a64; }
+		.feature-item .kw-badge .kw-type { font-weight: 700; color: #78909c; font-size: 0.65rem; }
+		.feature-item .kw-badge .kw-word { color: #37474f; }
+		.feature-item .kw-empty { font-size: 0.75rem; color: #bbb; margin-left: 4px; }
+		.keyword-legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
+		.keyword-legend .legend-item { display: inline-flex; align-items: center; gap: 3px; }
+		.keyword-legend .legend-kw-type { font-weight: 700; color: #78909c; }
 		.chat-list-item { display: flex; align-items: center; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; background: #fff; }
 		.chat-list-item:hover { border-color: #4a6cf7; background: #f8f9ff; }
 		.chat-list-item.selected { border-color: #4a6cf7; background: #eef1ff; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
@@ -99,7 +109,15 @@
 		</div>
 
 		<div id="featuresPanel" class="features-summary" style="display:none">
-			<h3>📋 提取结果</h3>
+			<h3>📋 提取结果 <span id="featuresCount" class="count-badge">0</span></h3>
+			<div id="keywordLegend" class="keyword-legend" style="display:none;">
+				<span class="legend-item"><span class="legend-kw-type">①</span>=时间</span>
+				<span class="legend-item"><span class="legend-kw-type">②</span>=地点</span>
+				<span class="legend-item"><span class="legend-kw-type">③</span>=人</span>
+				<span class="legend-item"><span class="legend-kw-type">④</span>=物</span>
+				<span class="legend-item"><span class="legend-kw-type">⑤</span>=关系</span>
+				<span class="legend-item"><span class="legend-kw-type">⑥</span>=事件</span>
+			</div>
 			<div id="featuresList"></div>
 		</div>
 
@@ -268,16 +286,51 @@
 			}
 		}
 
+		// Keyword type display helpers
+		const KW_TYPE_NAMES = {1:'时间', 2:'地点', 3:'人', 4:'物', 5:'关系', 6:'事件'};
+		const KW_TYPE_SYMBOLS = {1:'①', 2:'②', 3:'③', 4:'④', 5:'⑤', 6:'⑥'};
+
 		function showFeatures(features) {
 			const panel = document.getElementById('featuresPanel');
 			const list = document.getElementById('featuresList');
+			const countBadge = document.getElementById('featuresCount');
+			const legend = document.getElementById('keywordLegend');
 			list.innerHTML = '';
 			panel.style.display = 'block';
+			countBadge.textContent = features.length;
 
-			features.forEach((f, i) => {
+			// Check if any feature has keywords
+			let hasKeywords = features.some(function(f) { return f.keywords && f.keywords.length > 0; });
+			legend.style.display = hasKeywords ? 'flex' : 'none';
+
+			features.forEach(function(f, i) {
 				const div = document.createElement('div');
 				div.className = 'feature-item';
-				div.innerHTML = `<span class="cat-badge">#${f.category_id} ${f.category_name}</span> ${f.feature_text}`;
+
+				// Feature text (escape to prevent XSS, fallback to placeholder if empty)
+				const featText = f.feature_text ? escapeHtml(f.feature_text) : '<span class="feature-text-empty">(空)</span>';
+
+				// Build feature header
+				let html = '<span class="cat-badge">#' + f.category_id + ' ' + escapeHtml(f.category_name) + '</span> ';
+				html += '<span class="feature-text">' + featText + '</span>';
+
+				// Build keywords row
+				if (f.keywords && f.keywords.length > 0) {
+					html += '<div class="keywords-row">';
+					f.keywords.forEach(function(kw) {
+						const typeLabel = KW_TYPE_SYMBOLS[kw.type] || '?' + kw.type;
+						const typeName = KW_TYPE_NAMES[kw.type] || '';
+						html += '<span class="kw-badge" title="' + typeName + '">';
+						html += '<span class="kw-type">' + typeLabel + '</span>';
+						html += '<span class="kw-word">' + escapeHtml(kw.word) + '</span>';
+						html += '</span>';
+					});
+					html += '</div>';
+				} else {
+					html += '<div class="keywords-row"><span class="kw-empty">无关键词</span></div>';
+				}
+
+				div.innerHTML = html;
 				list.appendChild(div);
 			});
 		}

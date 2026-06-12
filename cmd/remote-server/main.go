@@ -232,13 +232,28 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 		if role == "" {
 			continue
 		}
+
+		// Add timestamp prefix [YYYY-MM-DD HH:MM:SS] to help the analyzing LLM
+		// understand when the conversation took place (especially for user messages)
+		content := m.Content
+		if m.CreateAt != "" {
+			if t, err := time.Parse("2006-01-02 15:04:05", m.CreateAt); err == nil {
+				content = "[" + t.Format("2006-01-02 15:04:05") + "] " + content
+			}
+		}
+
+		// For assistant messages: truncate to 1000 runes, skip reasoning
+		// (AI replies are less important than user messages for trait extraction)
+		if role == llm.RoleAssistant {
+			runes := []rune(content)
+			if len(runes) > 1000 {
+				content = string(runes[:1000])
+			}
+		}
+
 		msg := llm.Message{
 			Role:    role,
-			Content: m.Content,
-		}
-		// Include reasoning content for assistant messages
-		if role == llm.RoleAssistant && m.Reasoning != nil {
-			msg.ReasoningContent = *m.Reasoning
+			Content: content,
 		}
 		llmMsgs = append(llmMsgs, msg)
 	}

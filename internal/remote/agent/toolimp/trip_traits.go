@@ -12,22 +12,30 @@ import (
 // tripTraitsTool — implements llm.ToolIMP for trip_traits
 //
 // trip_traits is the tool definition for user personal trait extraction.
-// It follows the 15-category schema defined in doc/特性提取提示词v1.md.
+// It follows the 15-category schema defined in lang/remote/{lang}/system_prompt.toml.
 // ============================================================
 
 // TripTraitsToolName is the name of the user trait extraction tool.
 const TripTraitsToolName = "trip_traits"
 
-// TripTraitsParams matches the output format from doc/特性提取提示词v1.md.
+// TripTraitsParams matches the output format from lang/remote/{lang}/system_prompt.toml.
 type TripTraitsParams struct {
 	Features []TripTraitsFeature `json:"features"`
 }
 
+// TraitKeyword represents a single keyword associated with a trait feature.
+// Type values (1-6): 1=时间, 2=地点, 3=人, 4=物, 5=关系, 6=事件.
+type TraitKeyword struct {
+	Type int    `json:"type"`
+	Word string `json:"word"`
+}
+
 // TripTraitsFeature represents a single extracted user trait.
 type TripTraitsFeature struct {
-	CategoryID   int    `json:"category_id"`
-	CategoryName string `json:"category_name"`
-	FeatureText  string `json:"feature_text"`
+	CategoryID   int            `json:"category_id"`
+	CategoryName string         `json:"category_name"`
+	FeatureText  string         `json:"feature_text"`
+	Keywords     []TraitKeyword `json:"keywords"`
 }
 
 // TripTraitsTool implements llm.ToolIMP for the trip_traits tool.
@@ -69,8 +77,27 @@ func NewTripTraitsTool() *TripTraitsTool {
 									"type":        "string",
 									"description": "简洁描述该特征的短句，尽量保留原意，可概括。注意：该值在 JSON 字符串中，如果内容包含双引号（\"），必须转义为 \\\"，以保证 JSON 语法正确。例如：'身高180cm', '喜欢好天气', '失眠严重'",
 								},
+								"keywords": map[string]any{
+									"type":        "array",
+									"description": "与该特征紧密相关的关键词列表。每个关键词包含 type（1-6）和 word（字符串）。type: 1=时间, 2=地点, 3=人, 4=物, 5=关系, 6=事件。如果无法提取合理关键词可为空数组 []，但不能省略。",
+									"items": map[string]any{
+										"type": "object",
+										"properties": map[string]any{
+											"type": map[string]any{
+												"type":        "number",
+												"description": "关键词类型：1=时间, 2=地点, 3=人, 4=物, 5=关系, 6=事件",
+											},
+											"word": map[string]any{
+												"type":        "string",
+												"description": "关键词文本，应尽量具体化、语义化，不必须直接出现在原文中",
+											},
+										},
+										"required":             []string{"type", "word"},
+										"additionalProperties": false,
+									},
+								},
 							},
-							"required":             []string{"category_id", "category_name", "feature_text"},
+							"required":             []string{"category_id", "category_name", "feature_text", "keywords"},
 							"additionalProperties": false,
 						},
 					},
@@ -224,7 +251,72 @@ func decodeSingleFeature(data []byte) (TripTraitsFeature, error) {
 	f.CategoryID = extractIntField(data, "category_id")
 	f.CategoryName = extractStringFieldDirect(data, "category_name")
 	f.FeatureText = extractStringFieldReEscaped(data, "feature_text")
+	f.Keywords = extractKeywordsField(data)
 	return f, nil
+}
+
+// extractKeywordsField extracts the "keywords" array from a feature JSON object.
+func extractKeywordsField(data []byte) []TraitKeyword {
+	raw := extractRawFieldValue(data, "keywords")
+	if len(raw) == 0 {
+		return nil
+	}
+
+	var keywords []TraitKeyword
+	if err := json.Unmarshal(raw, &keywords); err == nil {
+		return keywords
+	}
+
+	// Fallback: try lenient extraction if standard unmarshal fails
+	// Scan for objects within the array
+	keywords = make([]TraitKeyword, 0)
+	depth := 0
+	objStart := -1
+	inStr := false
+	esc := false
+
+	for i := 0; i < len(raw); i++ {
+		if esc {
+			esc = false
+			continue
+		}
+		if raw[i] == '\\' {
+			esc = true
+			continue
+		}
+		if raw[i] == '"' {
+			inStr = !inStr
+			continue
+		}
+		if inStr {
+			continue
+		}
+
+		switch raw[i] {
+		case '{':
+			if depth == 0 {
+				objStart = i
+			}
+			depth++
+		case '}':
+			depth--
+			if depth == 0 && objStart >= 0 {
+				objBytes := raw[objStart : i+1]
+				var kw TraitKeyword
+				if err := json.Unmarshal(objBytes, &kw); err == nil {
+					keywords = append(keywords, kw)
+				} else {
+					// Individual keyword fallback
+					kw.Type = extractIntField(objBytes, "type")
+					kw.Word = extractStringFieldDirect(objBytes, "word")
+					keywords = append(keywords, kw)
+				}
+				objStart = -1
+			}
+		}
+	}
+
+	return keywords
 }
 
 // extractIntField extracts an integer field from a JSON object byte slice.
