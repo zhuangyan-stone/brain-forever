@@ -24,7 +24,7 @@ type TripTraitsParams struct {
 }
 
 // TraitKeyword represents a single keyword associated with a trait feature.
-// Type values (1-6): 1=时间, 2=地点, 3=人, 4=物, 5=关系, 6=事件.
+// Type values (1-5): 1=时间, 2=地点, 3=人, 4=事物, 5=关系.
 type TraitKeyword struct {
 	Type int    `json:"type"`
 	Word string `json:"word"`
@@ -79,13 +79,13 @@ func NewTripTraitsTool() *TripTraitsTool {
 								},
 								"keywords": map[string]any{
 									"type":        "array",
-									"description": "与该特征紧密相关的关键词列表。每个关键词包含 type（1-6）和 word（字符串）。type: 1=时间, 2=地点, 3=人, 4=物, 5=关系, 6=事件。如果无法提取合理关键词可为空数组 []，但不能省略。",
+									"description": "与该特征紧密相关的关键词列表。每个关键词包含 type（1-5）和 word（字符串）。type: 1=时间, 2=地点, 3=人, 4=事物, 5=关系。如果无法提取合理关键词可为空数组 []，但不能省略。",
 									"items": map[string]any{
 										"type": "object",
 										"properties": map[string]any{
 											"type": map[string]any{
 												"type":        "number",
-												"description": "关键词类型：1=时间, 2=地点, 3=人, 4=物, 5=关系, 6=事件",
+												"description": "关键词类型：1=时间, 2=地点, 3=人, 4=事物, 5=关系",
 											},
 											"word": map[string]any{
 												"type":        "string",

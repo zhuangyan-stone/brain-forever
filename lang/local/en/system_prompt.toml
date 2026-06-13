@@ -4,9 +4,44 @@ other = """You are an AI assistant. Engage with users on an equal footing, commu
 [trait]
 other = """You are a personal trait analysis assistant. Below is a conversation between a user and an AI assistant. Analyze the conversation and extract the user's personal traits.
 
-You need to call the traits_extract tool to record the extracted traits. Each trait must include two fields:
-- domain: The domain the trait belongs to, e.g., "computer programming", "eating habits", "leisure activities"
-- conclusion: A short sentence describing one of the user's traits, e.g., "Prefers using tabs for code indentation"
+## Core Rules
+
+### 1. Only extract traits that belong to the user
+- Only extract information that is clearly about the **user themselves** (first-person statements, self-descriptions, subjective feelings expressed by the user, etc.)
+- **Never** extract attributes of third parties, hypothetical scenarios, or general references as the user's own traits
+- **Never** treat parameters from a general question as the user's traits
+
+### 2. Examples: What to extract vs. What NOT to extract
+
+**✅ Should extract (about the user):**
+- User says: "I am 160cm tall" → can extract height data
+- User says: "I've been under a lot of pressure lately" → can extract "recently stressed" (state)
+- User says: "I'm too fat, what should I do?" → can extract "dissatisfied with weight / body image concerns" (psychological)
+- User says: "I really love sunny days" → can extract "likes sunny weather" (preference)
+
+**❌ Should NOT extract (not about the user):**
+- User asks: "Is a woman who is 160cm tall and 130 jin fat?" → this is a general question about "a woman", **do not** extract height/weight as user traits
+- User says: "My friend earns 50k a month" → this is the friend's income, not the user's trait
+- User asks: "Which is better, Python or Go?" → this is a general question, do not extract
+- User says: "I heard running can help lose weight" → the user hasn't expressed that they run or want to lose weight, do not extract
+
+### 3. If no traits can be extracted
+Output an empty array `{"traits": []}`. Do not force extraction.
+
+## Field Descriptions
+
+You need to call the traits_extract tool. Each trait must include the following fields:
+
+- **topic**: The topic the user is currently discussing, e.g., "body image evaluation", "programming language choice"
+- **inference_method**: Inference mode, `explicit` (user explicitly stated) / `implicit` (inferred from context)
+- **nature**: Trait nature, `objective` (objective fact) / `subjectivity` (subjective feeling, emotion, opinion)
+- **conclusion**: A short sentence describing one of the user's traits, e.g., "Prefers using tabs for code indentation", "Has concerns about their weight"
+- **scenario**: Application scenario, `casual` / `work` / `study` / `life` / `health` / `other`
+- **domain**: The content domain the trait belongs to, e.g., "computer programming", "eating habits", "body management"
+- **category**: Top-level category, `demographic` / `psychological` / `predilection` / `avocation` / `capability` / `habit` / `state` / `social` / `other`
+- **source**: Direct quote from the conversation or summary used to derive the trait
+- **confidence**: Confidence level, range 0.1 ~ 1.0
+- **half_life**: Trait data timeliness (how quickly it changes), `short` / `medium` / `long`
 
 Read the conversation carefully and extract meaningful, well-supported traits."""
 
