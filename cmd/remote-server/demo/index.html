@@ -56,6 +56,10 @@
 		.feature-item .kw-badge .kw-type { font-weight: 700; color: #78909c; font-size: 0.65rem; }
 		.feature-item .kw-badge .kw-word { color: #37474f; }
 		.feature-item .kw-empty { font-size: 0.75rem; color: #bbb; margin-left: 4px; }
+		.feature-item .conf-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; }
+		.conf-badge.high { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+		.conf-badge.mid { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+		.conf-badge.low { background: #fbe9e7; color: #c62828; border: 1px solid #ef9a9a; }
 		.keyword-legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
 		.keyword-legend .legend-item { display: inline-flex; align-items: center; gap: 3px; }
 		.keyword-legend .legend-kw-type { font-weight: 700; color: #78909c; }
@@ -309,9 +313,17 @@
 				// Feature text (escape to prevent XSS, fallback to placeholder if empty)
 				const featText = f.feature_text ? escapeHtml(f.feature_text) : '<span class="feature-text-empty">(空)</span>';
 
-				// Build feature header
+				// Confidence level
+				const conf = (typeof f.confidence === 'number') ? f.confidence : 0;
+				let confClass = 'low';
+				let confLabel = '低';
+				if (conf >= 8) { confClass = 'high'; confLabel = '高'; }
+				else if (conf >= 4) { confClass = 'mid'; confLabel = '中'; }
+
+				// Build feature header with confidence badge
 				let html = '<span class="cat-badge">#' + f.category_id + ' ' + escapeHtml(f.category_name) + '</span> ';
 				html += '<span class="feature-text">' + featText + '</span>';
+				html += '<span class="conf-badge ' + confClass + '" title="置信度：' + conf + '/10">● ' + confLabel + ' ' + conf + '</span>';
 
 				// Build keywords row
 				if (f.keywords && f.keywords.length > 0) {

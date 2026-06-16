@@ -36,6 +36,7 @@ type TripTraitsFeature struct {
 	CategoryName string         `json:"category_name"`
 	FeatureText  string         `json:"feature_text"`
 	Keywords     []TraitKeyword `json:"keywords"`
+	Confidence   int            `json:"confidence"`
 }
 
 // TripTraitsTool implements llm.ToolIMP for the trip_traits tool.
@@ -96,8 +97,12 @@ func NewTripTraitsTool() *TripTraitsTool {
 										"additionalProperties": false,
 									},
 								},
+								"confidence": map[string]any{
+									"type":        "number",
+									"description": "置信度（1-10 整数）：值越大代表对该特征的确信程度越高。对于客观事实类特征（如人口学特性、外部客观事实）给予较高置信度（8-10）；对于主观推断类特征（如人格/性格、价值观与信仰）需谨慎评分（3-7）；仅凭单次调侃或情绪化表达提取的特征，置信度应较低（1-3）。",
+								},
 							},
-							"required":             []string{"category_id", "category_name", "feature_text", "keywords"},
+							"required":             []string{"category_id", "category_name", "feature_text", "keywords", "confidence"},
 							"additionalProperties": false,
 						},
 					},
@@ -252,6 +257,7 @@ func decodeSingleFeature(data []byte) (TripTraitsFeature, error) {
 	f.CategoryName = extractStringFieldDirect(data, "category_name")
 	f.FeatureText = extractStringFieldReEscaped(data, "feature_text")
 	f.Keywords = extractKeywordsField(data)
+	f.Confidence = extractIntField(data, "confidence")
 	return f, nil
 }
 
