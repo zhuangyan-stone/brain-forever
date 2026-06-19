@@ -25,9 +25,9 @@ type TripTraitsParams struct {
 }
 
 // TraitKeyword represents a single keyword associated with a trait feature.
-// Type values (1-6): 1=时间, 2=地点, 3=人, 4=物品, 5=关系, 6=行为.
+// Type values (A-F): A=时间/Time, B=地点/Place, C=人/Person, D=事物/Thing, E=关系/Relationship, F=行为/Behavior.
 type TraitKeyword struct {
-	Type int    `json:"type"`
+	Type string `json:"type"`
 	Word string `json:"word"`
 }
 
@@ -38,6 +38,7 @@ type TripTraitsFeature struct {
 	FeatureText  string         `json:"feature_text"`
 	Keywords     []TraitKeyword `json:"keywords"`
 	Confidence   int            `json:"confidence"`
+	HalfLife     string         `json:"half_life"`
 }
 
 // TripTraitsTool implements llm.ToolIMP for the trip_traits tool.
@@ -88,7 +89,8 @@ func tripTraitsToolDefinition(lang string) llm.ToolDefinition {
 										"type": "object",
 										"properties": map[string]any{
 											"type": map[string]any{
-												"type":        "number",
+												"type":        "string",
+												"enum":        []string{"A", "B", "C", "D", "E", "F"},
 												"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_keyword_type_desc"),
 											},
 											"word": map[string]any{
@@ -104,8 +106,13 @@ func tripTraitsToolDefinition(lang string) llm.ToolDefinition {
 									"type":        "number",
 									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_confidence_desc"),
 								},
+								"half_life": map[string]any{
+									"type":        "string",
+									"enum":        []string{"short", "medium", "long", "permanent"},
+									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_half_life_desc"),
+								},
 							},
-							"required":             []string{"category_id", "category_name", "feature_text", "keywords", "confidence"},
+							"required":             []string{"category_id", "category_name", "feature_text", "keywords", "confidence", "half_life"},
 							"additionalProperties": false,
 						},
 					},
@@ -268,6 +275,7 @@ func decodeSingleFeature(data []byte) (TripTraitsFeature, error) {
 	f.FeatureText = extractStringFieldReEscaped(data, "feature_text")
 	f.Keywords = extractKeywordsField(data)
 	f.Confidence = extractIntField(data, "confidence")
+	f.HalfLife = extractStringFieldDirect(data, "half_life")
 	return f, nil
 }
 
@@ -323,7 +331,7 @@ func extractKeywordsField(data []byte) []TraitKeyword {
 					keywords = append(keywords, kw)
 				} else {
 					// Individual keyword fallback
-					kw.Type = extractIntField(objBytes, "type")
+					kw.Type = extractStringFieldDirect(objBytes, "type")
 					kw.Word = extractStringFieldDirect(objBytes, "word")
 					keywords = append(keywords, kw)
 				}
