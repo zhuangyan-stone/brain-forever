@@ -103,10 +103,14 @@ if (aiTitleBtn) {
 async function startNewChat() {
     var chatsStore = window.Alpine.store('chats');
 
-    // ★ 防重复：如果当前已经是空白对话（脏对话），不再反复调用后端 API。
+    // ★ 防重复：如果当前已经是空白对话（脏对话），不再反复重置前端状态。
     //   用户连续点击"新对话"按钮时，第一次已重置为 blankItem，
-    //   后续点击直接跳过，避免不必要的后端请求。
+    //   后续点击直接跳过，避免不必要的 DOM 操作。
+    // ★ 但必须仍调用 createBlankChat() 复位后端 currentChat，
+    //   否则刷新页面后后端 currentChat 未复位，新消息会复用旧 chat 的 SN。
     if (chatsStore && chatsStore.isDirtyChat && chatsStore.isDirtyChat()) {
+        // 后端 PUT /api/chat/new 是幂等的：如果后端已经是空白状态，onNewChat 是 no-op。
+        await createBlankChat();
         // 但确保输入框聚焦（用户可能期望点击后直接输入）
         const msgInput = document.getElementById('messageInput');
         if (msgInput) {

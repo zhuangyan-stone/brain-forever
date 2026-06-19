@@ -681,7 +681,7 @@ export function updateChatEntry(sn, title, titleState) {
 
     const chatList = chatsStore.chats;
 
-    // 检查该 SN 是否已存在
+    // 检查该 SN 是否已存在（按真实 SN 查找）
     const existing = chatList.find(c => c.sn === sn);
     if (existing) {
         // 已存在：仅更新标题

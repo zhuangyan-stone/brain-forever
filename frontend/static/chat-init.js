@@ -10,7 +10,7 @@
 
 import { showWelcomeMessage } from './chat-ui.js';
 import { renderChatList } from './chat-list.js';
-import { fetchSession, fetchChatList } from './chat-api.js';
+import { fetchSession, fetchChatList, createBlankChat } from './chat-api.js';
 
 'use strict';
 
@@ -38,6 +38,12 @@ export async function initPage() {
     // Step 2: GET /api/chat/list — 取当前 HTTP session 用户的 chats 列表
     // 用户身份由 cookie 中的 http-session-sn 识别，不传 query 参数
     let chatListData = await fetchChatList();
+
+    // Step 2.5: ★ 初始化时强制重置后端 currentChat 为空白状态
+    // 如果不复位后端 currentChat，用户刷新页面后 backend 的 currentChat.dbChat
+    // 仍指向旧会话，导致新消息被追加到旧 chat 中，侧边栏出现重复 SN。
+    // createBlankChat 是幂等的：如果后端已经是 blank chat，onNewChat 是 no-op。
+    await createBlankChat();
 
     // Step 3: 加工对话列表并存入 Alpine store（侧边栏通过响应式模板自动渲染）
     // renderChatList → restructChatLists 会将原始列表存入 store.chats
