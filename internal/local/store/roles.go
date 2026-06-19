@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -14,14 +15,14 @@ import (
 
 // Role represents role information
 type Role struct {
-	ID       int64  `db:"id"`        // Auto-increment primary key
-	RoleNo   int    `db:"role_no"`   // Role number (integer)
-	RoleName string `db:"role_name"` // Role name, max 60 characters
-	UUID     string `db:"uuid"`      // Unique user string (references users.uuid)
-	IsPublic bool   `db:"is_public"` // Whether public, default false
-	IsActive bool   `db:"is_active"` // Whether active
-	CreateAt string `db:"create_at"` // Creation time, defaults to current time
-	UpdateAt string `db:"update_at"` // Last update time, defaults to current time on creation, auto-updated on modification
+	ID       int64     `db:"id"`        // Auto-increment primary key
+	RoleNo   int       `db:"role_no"`   // Role number (integer)
+	RoleName string    `db:"role_name"` // Role name, max 60 characters
+	UUID     string    `db:"uuid"`      // Unique user string (references users.uuid)
+	IsPublic bool      `db:"is_public"` // Whether public, default false
+	IsActive bool      `db:"is_active"` // Whether active
+	CreateAt time.Time `db:"create_at"` // Creation time, defaults to current time
+	UpdateAt time.Time `db:"update_at"` // Last update time, defaults to current time on creation, auto-updated on modification
 }
 
 // ============================================================
