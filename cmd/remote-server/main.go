@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -172,8 +171,10 @@ func handleListChats(w http.ResponseWriter, r *http.Request) {
 // Flow:
 //  1. Opens the database, reads the chat session and its messages.
 //  2. Builds an LLM request with the trait extraction system prompt and tools.
-//  3. Calls DeepSeek's ChatStreamWithOptions with forced tool_choice.
-//  4. Streams each chunk back to the frontend via SSE using the Pipeline interface.
+//  3. Calls DeepSeek's ChatWithOptions (non-streaming) with forced tool_choice.
+//  4. Sends progress status events to the frontend via SSE.
+//  5. Parses the tool call response, executes the trip_traits tool,
+//     and sends the result via SSE.
 func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 	dbPath := r.URL.Query().Get("db")
 	sn := r.URL.Query().Get("sn")
@@ -287,8 +288,11 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 		"message_count": len(msgs),
 	})
 
+	// Send status: preparing the LLM request
+	pipeline.WriteEvent("status", "preparing_request")
+
 	// ----------------------------------------------------------
-	// 5. Build the streaming request with tools
+	// 5. Build the non-streaming request with tools
 	// ----------------------------------------------------------
 	req := llm.ChatCompletionRequest{
 		Model:    model,
@@ -310,86 +314,39 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Enable strict mode for the tool (set in the tool definition above).
 	// Disable thinking to reduce latency and cost (trait extraction only needs function calling).
 	req.Thinking = &llm.ThinkingConfig{Type: "disabled"}
 
 	// ----------------------------------------------------------
-	// 6. Stream call DeepSeek API and forward responses via SSE
+	// 6. Call DeepSeek API (non-streaming) and parse response
 	// ----------------------------------------------------------
-	stream := client.ChatStreamWithOptions(r.Context(), req)
-	if err := stream.Err(); err != nil {
-		pipeline.OnError(fmt.Errorf("stream init failed: %w", err))
+	pipeline.WriteEvent("status", "calling_llm")
+
+	resp, err := client.ChatWithOptions(r.Context(), req)
+	if err != nil {
+		pipeline.OnError(fmt.Errorf("LLM call failed: %w", err))
 		return
 	}
-	defer stream.Close()
 
-	// Process streaming chunks
-	var collectedText strings.Builder
-	var toolCalls []llm.StreamingToolCall // accumulated streaming tool call deltas
-	finishReason := ""
-
-	for stream.Next() {
-		chunk := stream.CurrentChatCompletionChunk()
-
-		// Skip usage-only chunks (no choices)
-		if len(chunk.Choices) == 0 {
-			continue
-		}
-
-		choice := chunk.Choices[0]
-
-		// Forward reasoning content
-		reasoningContent := llm.GetReasoningContentFromChoice(choice)
-		if reasoningContent != "" {
-			pipeline.OnReasoning(reasoningContent)
-		}
-
-		// Forward text content (usually empty when tool calls are forced)
-		if choice.Delta.Content != "" {
-			pipeline.OnText(choice.Delta.Content)
-			collectedText.WriteString(choice.Delta.Content)
-		}
-
-		// Accumulate tool call deltas (streaming tool calls come in chunks)
-		for _, tc := range choice.Delta.ToolCalls {
-			toolCalls = mergeToolCallDeltas(toolCalls, tc)
-		}
-
-		// Track finish_reason
-		if choice.FinishReason != "" {
-			finishReason = choice.FinishReason
-		}
-
-		// When finish_reason is "tool_calls", send an event
-		if choice.FinishReason == "tool_calls" {
-			pipeline.WriteEvent("finish_reason", "tool_calls")
-		}
-
-		// Handle token usage from the final chunk
-		if chunk.Usage != nil && chunk.Usage.TotalTokens > 0 {
-			pipeline.WriteEvent("usage", chunk.Usage)
-		}
+	// Extract usage info if available
+	if resp.Usage != nil && resp.Usage.TotalTokens > 0 {
+		pipeline.WriteEvent("usage", resp.Usage)
 	}
 
-	// Check for stream error
-	if err := stream.Err(); err != nil {
-		pipeline.OnError(fmt.Errorf("stream error: %w", err))
-	}
+	pipeline.WriteEvent("status", "processing_result")
 
 	// ----------------------------------------------------------
-	// 7. If a tool call was made, parse and send the result
+	// 7. Parse tool calls from the non-streaming response
 	// ----------------------------------------------------------
-	if finishReason == "tool_calls" && len(toolCalls) > 0 {
-		// Set arguments on the tool and execute it
-		for _, tc := range toolCalls {
-			log.Printf("[trip_traits] toolCall: name=%q, arguments=%s", tc.Name, tc.Arguments)
-			if err := pipeline.Pending(tc.ID, tc.Name, tc.Arguments); err != nil {
-
+	if len(resp.Choices) > 0 && resp.Choices[0].FinishReason == "tool_calls" {
+		msg := resp.Choices[0].Message
+		for _, tc := range msg.ToolCalls {
+			log.Printf("[trip_traits] toolCall: name=%q, arguments=%s", tc.Function.Name, tc.Function.Arguments)
+			if err := pipeline.Pending(tc.ID, tc.Function.Name, tc.Function.Arguments); err != nil {
 				pipeline.OnError(fmt.Errorf("set tool arguments failed: %w", err))
 				continue
 			}
-			if _, err := pipeline.Call(tc.ID, tc.Name); err != nil {
+			if _, err := pipeline.Call(tc.ID, tc.Function.Name); err != nil {
 				pipeline.OnError(fmt.Errorf("execute tool failed: %w", err))
 				continue
 			}
@@ -397,11 +354,9 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 
 		result := tripTool.GetTraitsResult()
 		pipeline.WriteEvent("tool_result", result)
-	} else {
-		// If no tool call, send the collected text as a fallback
-		if collectedText.Len() > 0 {
-			pipeline.WriteEvent("fallback_text", collectedText.String())
-		}
+	} else if len(resp.Choices) > 0 && resp.Choices[0].Message.Content != "" {
+		// Fallback: if the LLM returned text instead of a tool call
+		pipeline.WriteEvent("fallback_text", resp.Choices[0].Message.Content)
 	}
 
 	// Signal completion
@@ -409,37 +364,6 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 		"chat_id":  chat.ID,
 		"chat_sn":  sn,
 		"features": tripTool.GetTraitsResult().Features,
-	})
-}
-
-// mergeToolCallDeltas merges a streaming tool call delta into the accumulated toolCalls slice.
-// Streaming tool calls arrive in chunks; chunks with the same Index belong to the same
-// logical function call. This function either updates the existing entry (by appending
-// arguments and filling in missing fields) or appends a new entry for a first-seen Index.
-func mergeToolCallDeltas(toolCalls []llm.StreamingToolCall, delta llm.DeltaToolCall) []llm.StreamingToolCall {
-	for i := range toolCalls {
-		if toolCalls[i].Index == delta.Index {
-			if delta.Function.Name != "" {
-				toolCalls[i].Name = delta.Function.Name
-			}
-			if delta.Function.Arguments != "" {
-				toolCalls[i].Arguments += delta.Function.Arguments
-			}
-			if delta.ID != "" {
-				toolCalls[i].ID = delta.ID
-			}
-			if delta.Type != "" {
-				toolCalls[i].Type = delta.Type
-			}
-			return toolCalls
-		}
-	}
-	return append(toolCalls, llm.StreamingToolCall{
-		Index:     delta.Index,
-		ID:        delta.ID,
-		Type:      delta.Type,
-		Name:      delta.Function.Name,
-		Arguments: delta.Function.Arguments,
 	})
 }
 
