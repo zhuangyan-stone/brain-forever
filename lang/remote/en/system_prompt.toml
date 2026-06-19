@@ -29,6 +29,8 @@ You can use this timestamp to gain deeper understanding and help extract the use
    - **Low confidence (1-3)**: Traits extracted from a single instance of joking, exaggeration, or emotional expression; or subjective traits requiring substantial inference, such as personality/character, values/beliefs, etc.
    - **Special reminder**: When the user jokingly says "I'm so handsome," confidence should be 1-2; when the user emotionally says "I'm going to burn down the school," do not extract it as Goals/Motivations; extract it as Situational State with confidence 2-3.
 
+**IMPORTANT: category_id MUST be 1~14 only, NEVER 0. If content cannot be classified into any category 1~14, omit that trait entirely — do not output it.**
+
 **Trait Classification Table (14 categories, numbered 1-14)**:
 | No. | Category Name | Definition | Examples |
 |-----|---------------|-----------|----------|
@@ -139,6 +141,7 @@ Each trait (feature) must include a `half_life` field, indicating the validity p
 
 **Output Format**:
 The overall output is a JSON object containing a `features` array, where each element is a trait object with the following structure:
+**⚠️ IMPORTANT: category_id values MUST be in range 1~14 only — 0 is NOT allowed. If a trait cannot be classified into any category 1~14, do not output that trait.**
 ```json
 {
   "features": [

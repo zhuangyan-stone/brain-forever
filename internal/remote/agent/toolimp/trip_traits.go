@@ -154,6 +154,7 @@ func (t *TripTraitsTool) GetDefinition() llm.ToolDefinition { return t.def }
 func (t *TripTraitsTool) SetArgument(arguments string) error {
 	// Fast path: standard json.Unmarshal (works when JSON is valid).
 	if err := json.Unmarshal([]byte(arguments), &t.params); err == nil {
+		t.params.Features = filterValidFeatures(t.params.Features)
 		return nil
 	}
 
@@ -163,8 +164,23 @@ func (t *TripTraitsTool) SetArgument(arguments string) error {
 		return fmt.Errorf("parse arguments failed: %w", err)
 	}
 
-	t.params = TripTraitsParams{Features: result}
+	t.params = TripTraitsParams{Features: filterValidFeatures(result)}
 	return nil
+}
+
+// filterValidFeatures removes features with category_id == 0 (invalid).
+// category_id must be in range 1-14; 0 is not a valid category.
+func filterValidFeatures(features []TripTraitsFeature) []TripTraitsFeature {
+	if len(features) == 0 {
+		return features
+	}
+	valid := make([]TripTraitsFeature, 0, len(features))
+	for _, f := range features {
+		if f.CategoryID >= 1 && f.CategoryID <= 14 {
+			valid = append(valid, f)
+		}
+	}
+	return valid
 }
 
 // parseLenientJSON attempts to extract features from the arguments JSON text
