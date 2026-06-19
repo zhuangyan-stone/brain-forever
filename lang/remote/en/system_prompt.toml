@@ -109,7 +109,14 @@ Each keyword is an object containing `type` (letter A-F) and `word` (string). Ke
 
 **Special Notes**:
 - For purely numerical descriptions in demographic attributes, such as "25 years old," "6 feet tall," "$5,000 a month," the "thing" to extract is the attribute name, not the value — e.g., "age," "height," "monthly income" — NOT "25 years old," "6 feet," or "$5,000." Only extract the numerical value as a time keyword when it serves as a temporal anchor for a specific event or relationship (e.g., "got married at age 25" — then extract "age 25" as a time keyword).
-- For abstract emotional states, cognitive changes, values, etc. (e.g., "realized health is important," "feels confused and resentful about not being able to find a girlfriend"), effective keywords often cannot be extracted; `keywords` should be an empty array.
+- For abstract emotional states, cognitive changes, values, etc. (e.g., "realized health is important," "feels confused and resentful about not being able to find a girlfriend"), effective keywords often cannot be extracted; `keywords` should be an empty array. However, there is an **important exception**: if the trait description text contains an obvious **subject noun** (such as a specific person C, place B, or thing/entity D, etc.), that subject noun should be extracted as the corresponding keyword type — do not skip keyword extraction simply because the trait itself is abstract. For example:
+  - Trait "believes Confucianism has profoundly influenced the course of Chinese history and the present day" → contains subject noun "Confucianism", should extract `{"type":"D", "word":"Confucianism"}`
+  - Trait "detests social injustice" → contains subject noun "social injustice", should extract `{"type":"D", "word":"social injustice"}`
+  - Trait "firmly believes the Earth is flat" → contains subject noun "flat Earth theory", should extract `{"type":"D", "word":"flat Earth theory"}`
+  - Trait "doesn't believe in traditional Chinese medicine" → contains subject noun "traditional Chinese medicine", should extract `{"type":"D", "word":"traditional Chinese medicine"}` (per the abstraction principle, traditional Chinese medicine as an independent paradigm retains its specific name)
+  - Trait "believes perpetual motion can be invented" → contains subject noun "perpetual motion", should extract `{"type":"D", "word":"perpetual motion"}`
+  
+  **Judgment criterion**: The subject noun is typically the core entity of the trait description — i.e., "what the trait is about." If removing that noun from the description would cause the trait to lose its core information, then that noun should be extracted as a keyword.
 - If the mentioned "person" or "thing" cannot be specified to a particular individual, extract only the "relationship." For example: "my gang of useless buddies" — no need to extract a "person" type keyword; only extract the relationship type "friends."
 
 **Keyword Extraction Process**:
