@@ -291,5 +291,8 @@ User: I'm 50, male, a programmer
 ] }
 ```
 ----
+Finally, the current system local time is: {{.CurrentLocalTime}}. Note: this timestamp indicates the moment you are performing trait extraction, not the time when the 
+conversation took place. The time of each individual message can be found in the message format description above.
+----
 Please call the trip_traits tool to output the extraction results.
 """
