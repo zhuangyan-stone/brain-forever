@@ -85,6 +85,20 @@
 		.chat-list-area h3 { font-size: 1rem; margin-bottom: 12px; color: #1a1a2e; display: flex; align-items: center; gap: 8px; }
 		.chat-list-area .empty-msg { color: #999; text-align: center; padding: 24px; font-size: 0.9rem; }
 		.chat-list-area .chats-container { max-height: 400px; overflow-y: auto; }
+		/* ===== Spinner ===== */
+		@keyframes spin { to { transform: rotate(360deg); } }
+		.spinner {
+			display: inline-block;
+			width: 16px;
+			height: 16px;
+			border: 2.5px solid #ddd;
+			border-top-color: #4a6cf7;
+			border-radius: 50%;
+			animation: spin 0.7s linear infinite;
+			vertical-align: middle;
+			margin-right: 6px;
+		}
+		.spinner.spinner-sm { width: 14px; height: 14px; border-width: 2px; }
 	</style>
 </head>
 <body>
@@ -146,7 +160,7 @@
 		</div>
 
 		<div class="status-bar">
-			<span>状态：<span id="statusText" class="status-text">等待开始</span></span>
+			<span><span id="spinnerIcon" class="spinner" style="display:none;"></span>状态：<span id="statusText" class="status-text">等待开始</span></span>
 			<span id="connectionInfo"></span>
 		</div>
 
@@ -157,6 +171,14 @@
 		let eventSource = null;
 		let eventCount = 0;
 		let selectedSn = '';
+
+		// ---- Spinner controls ----
+		function showSpinner() {
+			document.getElementById('spinnerIcon').style.display = 'inline-block';
+		}
+		function hideSpinner() {
+			document.getElementById('spinnerIcon').style.display = 'none';
+		}
 
 		// Try to load from localStorage
 		document.addEventListener('DOMContentLoaded', () => {
@@ -187,10 +209,11 @@
 			const countBadge = document.getElementById('chatCount');
 
 			area.style.display = 'block';
-			container.innerHTML = '<div class="empty-msg">⏳ 正在加载对话列表...</div>';
+			container.innerHTML = '<div class="empty-msg"><span class="spinner spinner-sm"></span>正在加载对话列表...</div>';
 			countBadge.textContent = '0';
 
 			setStatus('正在获取对话列表...', '');
+			showSpinner();
 
 			fetch('/api/chats?db=' + encodeURIComponent(dbPath))
 				.then(function(resp) {
@@ -203,10 +226,12 @@
 					const chats = data.chats || [];
 					renderChatList(chats);
 					setStatus('已列出 ' + chats.length + ' 个对话', 'done');
+					hideSpinner();
 				})
 				.catch(function(err) {
 					container.innerHTML = '<div class="empty-msg" style="color:#e74c3c;">❌ 加载失败：' + escapeHtml(err.message) + '</div>';
 					setStatus('加载对话列表失败', 'error');
+					hideSpinner();
 				});
 		}
 
@@ -402,6 +427,7 @@
 			eventCount = 0;
 			document.getElementById('eventCount').textContent = '0 events';
 			document.getElementById('featuresPanel').style.display = 'none';
+			hideSpinner();
 		}
 
 		function stopExtraction() {
@@ -410,6 +436,7 @@
 				eventSource = null;
 			}
 			setStatus('已停止', 'error');
+			hideSpinner();
 			updateButtons(false);
 		}
 
@@ -429,6 +456,7 @@
 			// Clear previous log
 			clearLog();
 			setStatus('正在连接...', '');
+			showSpinner();
 			updateButtons(true);
 			document.getElementById('connectionInfo').textContent = 'db: ' + dbPath + ' | sn: ' + chatSn;
 
@@ -454,9 +482,11 @@
 							break;
 						case 'error':
 							setStatus('错误: ' + (typeof data === 'string' ? data : JSON.stringify(data)), 'error');
+							hideSpinner();
 							break;
 						case 'done':
 							setStatus('✅ 提取完成', 'done');
+							hideSpinner();
 							updateButtons(false);
 							eventSource.close();
 							eventSource = null;
@@ -470,6 +500,7 @@
 			eventSource.onerror = function(e) {
 				if (eventSource && eventSource.readyState === EventSource.CLOSED) {
 					setStatus('连接已关闭', 'error');
+					hideSpinner();
 					updateButtons(false);
 					eventSource = null;
 				}
