@@ -455,8 +455,12 @@ export class SSEResponser {
     	const bubble = this.stream.assistantBubble;
 
         // 1. 启用复制按钮
+        // ★ 使用 Alpine.nextTick 确保 Alpine 已完成 contentHTML 的 DOM 更新，
+        //    否则 enableCopyButtons 会找到旧的（即将被替换的）按钮，新按钮保持 disabled。
         if (bubble) {
-            enableCopyButtons(bubble);
+            window.Alpine.nextTick(function() {
+                enableCopyButtons(bubble);
+            });
         }
 
         // 2. 更新 msgId

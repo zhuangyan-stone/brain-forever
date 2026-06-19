@@ -424,6 +424,9 @@ export function initCopyHandlers() {
             return;
         }
 
+        // 按钮禁用时（流式响应未完成）不弹出菜单
+        if (btn.disabled) return;
+
         // 清除之前的定时器
         clearTimeout(hoverTimer);
 
