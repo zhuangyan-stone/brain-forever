@@ -60,9 +60,22 @@
 		.conf-badge.high { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 		.conf-badge.mid { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
 		.conf-badge.low { background: #fbe9e7; color: #c62828; border: 1px solid #ef9a9a; }
+		.feature-item .hl-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; cursor: help; }
+		.hl-badge.short { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+		.hl-badge.medium { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+		.hl-badge.long { background: #f3e5f5; color: #7b1fa2; border: 1px solid #ce93d8; }
+		.hl-badge.permanent { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 		.keyword-legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
 		.keyword-legend .legend-item { display: inline-flex; align-items: center; gap: 3px; }
 		.keyword-legend .legend-kw-type { font-weight: 700; color: #78909c; }
+		.half-life-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
+		.half-life-legend .legend-title { font-weight: 600; color: #555; margin-right: 4px; }
+		.half-life-legend .legend-item { display: inline-flex; align-items: center; gap: 3px; }
+		.half-life-legend .hl-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+		.hl-dot.short { background: #e65100; }
+		.hl-dot.medium { background: #1565c0; }
+		.hl-dot.long { background: #7b1fa2; }
+		.hl-dot.permanent { background: #2e7d32; }
 		.chat-list-item { display: flex; align-items: center; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; background: #fff; }
 		.chat-list-item:hover { border-color: #4a6cf7; background: #f8f9ff; }
 		.chat-list-item.selected { border-color: #4a6cf7; background: #eef1ff; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
@@ -121,6 +134,13 @@
 				<span class="legend-item"><span class="legend-kw-type">D</span>=事物</span>
 				<span class="legend-item"><span class="legend-kw-type">E</span>=关系</span>
 				<span class="legend-item"><span class="legend-kw-type">F</span>=行为</span>
+			</div>
+			<div id="halfLifeLegend" class="half-life-legend" style="display:none;">
+				<span class="legend-title">⏳ 半衰期：</span>
+				<span class="legend-item"><span class="hl-dot short"></span> 短期(天~周)</span>
+				<span class="legend-item"><span class="hl-dot medium"></span> 中期(月~年)</span>
+				<span class="legend-item"><span class="hl-dot long"></span> 长期(年+)</span>
+				<span class="legend-item"><span class="hl-dot permanent"></span> 永久(已完成客观事实)</span>
 			</div>
 			<div id="featuresList"></div>
 		</div>
@@ -294,11 +314,17 @@
 		const KW_TYPE_NAMES = {A:'时间', B:'地点', C:'人', D:'事物', E:'关系', F:'行为'};
 		const KW_TYPE_SYMBOLS = {A:'A', B:'B', C:'C', D:'D', E:'E', F:'F'};
 
+		// Half-life display helpers
+		const HL_LABELS = {short:'短期', medium:'中期', long:'长期', permanent:'永久'};
+		const HL_TITLES = {short:'短期（天~周级）', medium:'中期（月~年级）', long:'长期（年+）', permanent:'永久（已完成的客观事件永不改变）'};
+		const HL_CLASSES = {short:'short', medium:'medium', long:'long', permanent:'permanent'};
+
 		function showFeatures(features) {
 			const panel = document.getElementById('featuresPanel');
 			const list = document.getElementById('featuresList');
 			const countBadge = document.getElementById('featuresCount');
 			const legend = document.getElementById('keywordLegend');
+			const hlLegend = document.getElementById('halfLifeLegend');
 			list.innerHTML = '';
 			panel.style.display = 'block';
 			countBadge.textContent = features.length;
@@ -306,6 +332,10 @@
 			// Check if any feature has keywords
 			let hasKeywords = features.some(function(f) { return f.keywords && f.keywords.length > 0; });
 			legend.style.display = hasKeywords ? 'flex' : 'none';
+
+			// Check if any feature has half_life
+			let hasHalfLife = features.some(function(f) { return f.half_life; });
+			hlLegend.style.display = hasHalfLife ? 'flex' : 'none';
 
 			features.forEach(function(f, i) {
 				const div = document.createElement('div');
@@ -321,10 +351,19 @@
 				if (conf >= 8) { confClass = 'high'; confLabel = '高'; }
 				else if (conf >= 4) { confClass = 'mid'; confLabel = '中'; }
 
-				// Build feature header with confidence badge
+				// Half-life display
+				const hl = f.half_life || '';
+				const hlLabel = HL_LABELS[hl] || '';
+				const hlTitle = HL_TITLES[hl] || '';
+				const hlClass = HL_CLASSES[hl] || '';
+
+				// Build feature header with confidence badge and half-life badge
 				let html = '<span class="cat-badge">#' + f.category_id + ' ' + escapeHtml(f.category_name) + '</span> ';
 				html += '<span class="feature-text">' + featText + '</span>';
 				html += '<span class="conf-badge ' + confClass + '" title="置信度：' + conf + '/10">● ' + confLabel + ' ' + conf + '</span>';
+				if (hl && hlLabel) {
+					html += '<span class="hl-badge ' + hlClass + '" title="半衰期：' + hlTitle + '">⏳ ' + hlLabel + '</span>';
+				}
 
 				// Build keywords row
 				if (f.keywords && f.keywords.length > 0) {
