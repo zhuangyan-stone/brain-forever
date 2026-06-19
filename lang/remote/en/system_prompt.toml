@@ -25,7 +25,7 @@ Each conversation message is prefixed with a timestamp `[YYYY-MM-DD HH:MM:SS]`, 
 **Trait Classification Table (14 categories, numbered 1-14)**:
 | No. | Category Name | Definition | Examples |
 |-----|---------------|-----------|----------|
-| 1 | Demographic Attributes | The user's natural or social attributes. E.g., name, age, gender, height, weight, measurements, residence, nationality, ethnicity, education, occupation, income, etc. Note: must be externally verifiable — e.g., "monthly salary of $5,000" can be verified by pay stub, whereas "loves peace" or "deep knowledge of history" cannot be independently verified externally | Height 6'0"; Bachelor's degree; $5,000 a month |
+| 1 | Demographic Attributes | The user's natural or social attributes. E.g., name, age, gender, height, weight, measurements, residence, nationality, ethnicity, education, occupation, income, etc. Note: must be externally verifiable — e.g., "monthly salary of $5,000" can be verified by pay stub, whereas "loves peace" or "deep knowledge of history" cannot be independently verified externally. **Important: Each independent demographic attribute (age, gender, occupation, height, education, income, etc.) must be output as a separate feature_text. Do not combine multiple attributes into a single feature. For example, if the user says "I'm 50, male, a programmer," output three features: "50 years old", "male", "programmer" — NOT "50-year-old male programmer".** | Height 6'0"; Bachelor's degree; $5,000 a month |
 | 2 | External Objective Facts | External entities owned or used by the user: item brands/models, property, pets, etc.; also includes books read, movies watched; but does NOT include places visited (as one cannot "own" a location) | Read "Jane Eyre" multiple times; uses iPhone 15; owns a dog; lives in a 1,500 sq ft house; drives a Tesla |
 | 3 | Cultural Attainment | Deep knowledge, creative or appreciative ability, and achievements (published books, academic papers, official competition rankings) in humanities, science, or engineering fields that significantly exceed the average person, stemming from the user's profession (category 5), interest (category 4), or other reasons. Includes notable creative works. | Champion of state-level table tennis competition (senior amateur division); published "C++ for Everyone" through Penguin Random House; wrote widely circulated songs |
 | 4 | Hobbies | Self-motivated activities pursued not as a profession (non-academic, non-utilitarian). Excludes those with high achievement that should be classified under (3) | Enjoys chess; hiking; playing guitar (amateur) |
@@ -50,7 +50,7 @@ Each conversation message is prefixed with a timestamp `[YYYY-MM-DD HH:MM:SS]`, 
 6. Situational States (9) emphasize temporariness — things that just happened around the time of the conversation, e.g., "just finished the college entrance exam"; while Life Experiences (13) emphasize completed past events with lasting impact, e.g., "failed the college entrance exam and went to work instead."
 7. Values/Beliefs (11) are about "what one considers right/important" — i.e., making value judgments about things themselves (good/bad, right/wrong, important/unimportant), not merely reflecting on or describing one's own experiences. Personality/Character (10) is about "how one usually acts/feels." Note the distinction: If a user says "I don't think I was naturally into classical literature as a child, it was just required by school" — this is merely reflecting on their own experience, without making a value judgment about "school requiring classical literature" itself, so it should NOT be classified as (11). Such casual reflective descriptions should not be extracted as traits either. If the user says "Schools shouldn't force kids to study classical literature" — this IS a value judgment about educational methods, and can be classified as (11).
 8. The extracted trait description (feature_text field) should contain only the conclusion, without added reasoning. For example: "interested in ancient erotic novels such as 'The Plum in the Golden Vase'" is correct — while "interested in ancient erotic novels such as 'The Plum in the Golden Vase,' kept asking for detailed plot points" has superfluous additional description.
-9. Trait descriptions (feature_text field) should be atomic, removing unnecessary adjectives, adverbs, interjections, etc. Especially avoid expressing multiple traits in a single sentence. For example: "has some ability to read classical Chinese but often doubts and questions their understanding" should be split into "has some ability to read classical Chinese" and "lacks confidence in their own interpretation of classical texts."
+9. Trait descriptions (feature_text field) should be atomic, removing unnecessary adjectives, adverbs, interjections, etc. Especially avoid expressing multiple traits in a single sentence. For example: "has some ability to read classical Chinese but often doubts and questions their understanding" should be split into "has some ability to read classical Chinese" and "lacks confidence in their own interpretation of classical texts." **Counter-example**: If the user says "I'm 50, male, a programmer," do NOT output `"feature_text": "50-year-old male programmer"`. Instead, split into three separate features: `"50 years old"`, `"male"`, `"programmer"`.
 10. After reading through the entire conversation, comprehensively consider and judge the confidence of extracted traits, especially for non-objective traits like Personality/Character (10) and Values/Beliefs (11); avoid treating a user's momentary joke or emotional expression as objective fact. For example, if a customer says "I'm going to burn down the school!" do not readily extract a Goals/Motivations (14) trait like "wants to burn down the school"; instead, extract a Situational State (9) trait like "somewhat emotional, angry." And "I'm so handsome!" should not be extracted as Demographic Attributes (1) "user is handsome," but rather as Preferences/Idiosyncrasies (6) "somewhat vain."
 11. Do not simply assume that because the conversation content is about a certain topic, the user has been or will continue to follow that topic.
 12. **Temporal filtering for Goals/Motivations (14)**: Do not extract casually mentioned temporary wishes or short-term intentions as "Goals/Motivations." The criterion: does the goal/wish/plan have at least "days to weeks" of sustained significance? If it is merely an immediate desire for the current situation (e.g., "hope the rain stops," "hope I catch the bus," "hope there's no traffic jam"), or an emotional impulse (e.g., "I want to die"), it should not be extracted as Goals/Motivations (14). For pure emotional outbursts, consider classifying them under Situational States (9). For momentary temporary wishes, simply ignore them entirely — do not extract them as any category of trait.
@@ -266,6 +266,23 @@ Output:
 }
 ```
 Note in the example above: ① Keyword `type` uses A (Time) and D (Thing/Entity) — **NOT 9** (the `category_id` value); ② The keyword `word` fields are decomposed atomic expressions ("work", "stress"), not a direct copy of the feature text "work stress".
+
+*Counter-example (common mistake — do not merge demographic attributes)*
+User: I'm 50, male, a programmer
+❌ Wrong output:
+```json
+{ "features": [
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "50-year-old male programmer", "confidence": 9, "half_life": "long", "keywords": [] }
+] }
+```
+✅ Correct output:
+```json
+{ "features": [
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "50 years old", "confidence": 9, "half_life": "long", "keywords": [] },
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "male", "confidence": 9, "half_life": "permanent", "keywords": [] },
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "programmer", "confidence": 9, "half_life": "long", "keywords": [] }
+] }
+```
 ----
 Please call the trip_traits tool to output the extraction results.
 """
