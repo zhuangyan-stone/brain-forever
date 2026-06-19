@@ -34,7 +34,7 @@ type Message struct {
 	// Used by the frontend to restore the sources-panel after page refresh.
 	Sources []toolimp.WebSource `json:"sources,omitempty"`
 
-	CreatedAt string `json:"created_at"` // UTC time string, e.g. "2026-05-02T16:30:00Z"
+	CreatedAt time.Time `json:"created_at"` // UTC time, e.g. "2026-05-02T16:30:00Z"
 
 	// Interrupted indicates the message interruption state:
 	//   0 = done (normal completion)

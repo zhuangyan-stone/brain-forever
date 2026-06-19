@@ -236,10 +236,8 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 		// Add timestamp prefix [YYYY-MM-DD HH:MM:SS] to help the analyzing LLM
 		// understand when the conversation took place (especially for user messages)
 		content := m.Content
-		if m.CreateAt != "" {
-			if t, err := time.Parse("2006-01-02 15:04:05", m.CreateAt); err == nil {
-				content = "[" + t.Format("2006-01-02 15:04:05") + "] " + content
-			}
+		if !m.CreateAt.IsZero() {
+			content = "[" + m.CreateAt.In(time.Local).Format("2006-01-02 15:04:05") + "] " + content
 		}
 
 		// For assistant messages: truncate to 1000 runes, skip reasoning

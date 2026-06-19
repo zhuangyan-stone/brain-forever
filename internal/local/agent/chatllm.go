@@ -214,7 +214,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 			Role:        llm.RoleAssistant,
 			Content:     reply,
 			Reasoning:   reasoning,
-			CreatedAt:   time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+			CreatedAt:   time.Now().UTC(),
 			Interrupted: 2,
 		}
 	} else {
@@ -258,7 +258,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 				Role:      llm.RoleAssistant,
 				Content:   reply,
 				Reasoning: reasoning,
-				CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+				CreatedAt: time.Now().UTC(),
 				Usage:     usage,
 				Interrupted: func() int {
 					if isInterrupted {

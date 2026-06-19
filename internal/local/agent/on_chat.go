@@ -336,7 +336,7 @@ func makeAssistantBrokenMessage(lang string, id int64) Message {
 		ID:        id,
 		Role:      llm.RoleAssistant,
 		Content:   brokenMsg,
-		CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+		CreatedAt: time.Now().UTC(),
 	}
 }
 

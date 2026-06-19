@@ -35,8 +35,8 @@ type Chat struct {
 	Pinned                bool `db:"pinned" json:"pinned"`                                   // Whether pinned
 	Category              int  `db:"category" json:"category"`                               // Category ID, 0=uncategorized
 
-	CreateAt string `db:"create_at" json:"create_at"`
-	UpdateAt string `db:"update_at" json:"update_at"`
+	CreateAt time.Time `db:"create_at" json:"create_at"`
+	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
 type Message struct {
@@ -52,25 +52,25 @@ type Message struct {
 	Extracted   bool `db:"extracted"`   // Whether extracted, default 0
 	Interrupted int  `db:"interrupted"` // 0=done, 1=user-interrupted, 2=backend-error
 
-	CreateAt string `db:"create_at"`
-	UpdateAt string `db:"update_at"`
+	CreateAt time.Time `db:"create_at"`
+	UpdateAt time.Time `db:"update_at"`
 }
 
 // WebSource represents a web search result source stored in the database.
 // This is the store-layer equivalent of toolimp.WebSource, defined separately
 // to avoid circular dependencies between store and agent packages.
 type WebSource struct {
-	ID          int64   `db:"id"`      // Auto-increment primary key
-	ChatID      int64   `db:"chat_id"` // References chat_sessions.id
-	MsgID       int64   `db:"msg_id"`  // Message group index (= agent.Message.ID)
-	Title       string  `db:"title"`
-	Content     string  `db:"content"`
-	URL         string  `db:"url"`
-	SiteName    string  `db:"site_name"`
-	SiteIcon    string  `db:"site_icon"`
-	PublishDate string  `db:"publish_date"`
-	Score       float64 `db:"score"`
-	CreateAt    string  `db:"create_at"`
+	ID          int64     `db:"id"`      // Auto-increment primary key
+	ChatID      int64     `db:"chat_id"` // References chat_sessions.id
+	MsgID       int64     `db:"msg_id"`  // Message group index (= agent.Message.ID)
+	Title       string    `db:"title"`
+	Content     string    `db:"content"`
+	URL         string    `db:"url"`
+	SiteName    string    `db:"site_name"`
+	SiteIcon    string    `db:"site_icon"`
+	PublishDate string    `db:"publish_date"`
+	Score       float64   `db:"score"`
+	CreateAt    time.Time `db:"create_at"`
 }
 
 func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
