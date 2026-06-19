@@ -62,14 +62,6 @@ func main() {
 			Model:                 "deepseek-v4-flash",
 			MaxToolCallIterations: 20,
 		},
-		TraitLLM: config.TraitLLMConfig{
-			EnvKey:                "DEEPSEEK_API_KEY",
-			BaseURL:               "https://api.deepseek.com/beta",
-			Model:                 "deepseek-v4-flash",
-			MaxToolCallIterations: 3,
-			ExtractInterval:       5,
-			ExtractTokenThreshold: 200,
-		},
 		WebSearch: config.WebSearchConfig{
 			Provider: os.Getenv("SEARCHER_PROVIDER"),
 		},

@@ -91,4 +91,5 @@ var Tools = NewTLTools(
 	"current_time",
 	"web_search",
 	"traits_extract",
+	"trip_traits",
 )

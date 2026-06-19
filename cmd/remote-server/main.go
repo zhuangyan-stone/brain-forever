@@ -276,7 +276,7 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 4. Create tool and pipeline
 	// ----------------------------------------------------------
-	tripTool := toolimp.NewTripTraitsTool()
+	tripTool := toolimp.NewTripTraitsTool(lang)
 	toolsImp := []llm.ToolIMP{tripTool}
 
 	// Set up SSE

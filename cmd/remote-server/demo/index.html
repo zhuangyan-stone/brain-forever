@@ -118,8 +118,9 @@
 				<span class="legend-item"><span class="legend-kw-type">①</span>=时间</span>
 				<span class="legend-item"><span class="legend-kw-type">②</span>=地点</span>
 				<span class="legend-item"><span class="legend-kw-type">③</span>=人</span>
-				<span class="legend-item"><span class="legend-kw-type">④</span>=事物</span>
+				<span class="legend-item"><span class="legend-kw-type">④</span>=物品</span>
 				<span class="legend-item"><span class="legend-kw-type">⑤</span>=关系</span>
+				<span class="legend-item"><span class="legend-kw-type">⑥</span>=行为</span>
 			</div>
 			<div id="featuresList"></div>
 		</div>
@@ -290,8 +291,8 @@
 		}
 
 		// Keyword type display helpers
-		const KW_TYPE_NAMES = {1:'时间', 2:'地点', 3:'人', 4:'事物', 5:'关系'};
-		const KW_TYPE_SYMBOLS = {1:'①', 2:'②', 3:'③', 4:'④', 5:'⑤'};
+		const KW_TYPE_NAMES = {1:'时间', 2:'地点', 3:'人', 4:'物品', 5:'关系', 6:'行为'};
+		const KW_TYPE_SYMBOLS = {1:'①', 2:'②', 3:'③', 4:'④', 5:'⑤', 6:'⑥'};
 
 		function showFeatures(features) {
 			const panel = document.getElementById('featuresPanel');

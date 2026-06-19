@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 )
 
@@ -24,7 +25,7 @@ type TripTraitsParams struct {
 }
 
 // TraitKeyword represents a single keyword associated with a trait feature.
-// Type values (1-5): 1=时间, 2=地点, 3=人, 4=事物, 5=关系.
+// Type values (1-6): 1=时间, 2=地点, 3=人, 4=物品, 5=关系, 6=行为.
 type TraitKeyword struct {
 	Type int    `json:"type"`
 	Word string `json:"word"`
@@ -41,6 +42,7 @@ type TripTraitsFeature struct {
 
 // TripTraitsTool implements llm.ToolIMP for the trip_traits tool.
 type TripTraitsTool struct {
+	lang   string
 	def    llm.ToolDefinition
 	params TripTraitsParams
 }
@@ -48,16 +50,17 @@ type TripTraitsTool struct {
 // Compile-time interface check.
 var _ llm.ToolIMP = (*TripTraitsTool)(nil)
 
-// NewTripTraitsTool creates a TripTraitsTool with a strict schema definition.
-func NewTripTraitsTool() *TripTraitsTool {
+// tripTraitsToolDefinition builds a ToolDefinition with descriptions localized
+// to the given language via i18n.
+func tripTraitsToolDefinition(lang string) llm.ToolDefinition {
 	strict := true
 
-	def := llm.ToolDefinition{
+	return llm.ToolDefinition{
 		Type: "function",
 		Function: llm.ToolFunctionDef{
 			Name:        TripTraitsToolName,
 			Strict:      &strict,
-			Description: "从用户与AI的对话中，识别并提取与用户本人相关的稳定或临时特征。调用此工具以输出特征提取的结构化结果。",
+			Description: i18n.Tools.TL(lang, TripTraitsToolName, "description"),
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -68,29 +71,29 @@ func NewTripTraitsTool() *TripTraitsTool {
 							"properties": map[string]any{
 								"category_id": map[string]any{
 									"type":        "number",
-									"description": "特征类别编号（0=其他,1=人口学特性,2=外部客观事实,3=文化修为,4=兴趣爱好,5=能力技能,6=偏好/癖好,7=行为习惯,8=健康与疾病,9=情况和状态,10=人格/性格特征,11=价值观与信仰,12=社交关系,13=人生经历,14=目标与动机）",
+									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_category_id_desc"),
 								},
 								"category_name": map[string]any{
 									"type":        "string",
-									"description": "中文类别名（与category_id对应）：其他,人口学特性,外部客观事实,文化修为,兴趣爱好,能力技能,偏好/癖好,行为习惯,健康与疾病,情况和状态,人格/性格特征,价值观与信仰,社交关系,人生经历,目标与动机",
+									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_category_name_desc"),
 								},
 								"feature_text": map[string]any{
 									"type":        "string",
-									"description": "简洁描述该特征的短句，尽量保留原意，可概括。注意：该值在 JSON 字符串中，如果内容包含双引号（\"），必须转义为 \\\"，以保证 JSON 语法正确。例如：'身高180cm', '喜欢好天气', '失眠严重'",
+									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_feature_text_desc"),
 								},
 								"keywords": map[string]any{
 									"type":        "array",
-									"description": "与该特征紧密相关的关键词列表。每个关键词包含 type（1-5）和 word（字符串）。type: 1=时间, 2=地点, 3=人, 4=事物, 5=关系。如果无法提取合理关键词可为空数组 []，但不能省略。",
+									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_keywords_desc"),
 									"items": map[string]any{
 										"type": "object",
 										"properties": map[string]any{
 											"type": map[string]any{
 												"type":        "number",
-												"description": "关键词类型：1=时间, 2=地点, 3=人, 4=事物, 5=关系",
+												"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_keyword_type_desc"),
 											},
 											"word": map[string]any{
 												"type":        "string",
-												"description": "关键词文本，应尽量具体化、语义化，不必须直接出现在原文中",
+												"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_keyword_word_desc"),
 											},
 										},
 										"required":             []string{"type", "word"},
@@ -99,7 +102,7 @@ func NewTripTraitsTool() *TripTraitsTool {
 								},
 								"confidence": map[string]any{
 									"type":        "number",
-									"description": "置信度（1-10 整数）：值越大代表对该特征的确信程度越高。对于客观事实类特征（如人口学特性、外部客观事实）给予较高置信度（8-10）；对于主观推断类特征（如人格/性格、价值观与信仰）需谨慎评分（3-7）；仅凭单次调侃或情绪化表达提取的特征，置信度应较低（1-3）。",
+									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_confidence_desc"),
 								},
 							},
 							"required":             []string{"category_id", "category_name", "feature_text", "keywords", "confidence"},
@@ -112,7 +115,14 @@ func NewTripTraitsTool() *TripTraitsTool {
 			},
 		},
 	}
-	return &TripTraitsTool{def: def}
+}
+
+// NewTripTraitsTool creates a TripTraitsTool with localized descriptions.
+func NewTripTraitsTool(lang string) *TripTraitsTool {
+	return &TripTraitsTool{
+		lang: lang,
+		def:  tripTraitsToolDefinition(lang),
+	}
 }
 
 // GetName returns the tool name.
@@ -479,7 +489,9 @@ func extractRawFieldValue(data []byte, field string) []byte {
 }
 
 // GetPendingText returns a human-readable description shown while the tool is pending.
-func (t *TripTraitsTool) GetPendingText() string { return "正在提取用户特征..." }
+func (t *TripTraitsTool) GetPendingText() string {
+	return i18n.Tools.TL(t.lang, TripTraitsToolName, "pending")
+}
 
 // Execute returns the extracted traits as a JSON string (for the LLM to consume).
 func (t *TripTraitsTool) Execute() (string, error) {

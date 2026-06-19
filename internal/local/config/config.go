@@ -19,7 +19,6 @@ type Config struct {
 	Embedder    EmbedderConfig
 	VectorStore VectorStoreConfig
 	ChatLLM     ChatLLMConfig
-	TraitLLM    TraitLLMConfig // LLM client for trait extraction
 	WebSearch   WebSearchConfig
 }
 
@@ -86,39 +85,6 @@ type VectorStoreConfig struct {
 	// DBPath is the file path to the SQLite database.
 	// Default: "./brain.db".
 	DBPath string
-}
-
-// TraitLLMConfig configures the LLM client used for trait extraction.
-type TraitLLMConfig struct {
-	// APIKey is the API key for the LLM service.
-	// If empty, it will be read from the environment variable specified by EnvKey.
-	APIKey string
-
-	// EnvKey is the environment variable name to read the API key from.
-	// Default: "DEEPSEEK_API_KEY".
-	EnvKey string
-
-	// BaseURL is the API base URL.
-	// Default: "https://api.deepseek.com/beta".
-	BaseURL string
-
-	// Model is the model name.
-	// Default: "deepseek-chat".
-	Model string
-
-	// MaxToolCallIterations is the maximum number of tool call iterations
-	// in the non-streaming loop before forcing a direct answer.
-	// Default: 3.
-	MaxToolCallIterations int
-
-	// ExtractInterval is the number of new user messages after which
-	// trait extraction is triggered. Default: 5.
-	ExtractInterval int
-
-	// ExtractTokenThreshold is the token count threshold for a single
-	// user message; if exceeded, trait extraction is also triggered.
-	// Default: 200.
-	ExtractTokenThreshold int
 }
 
 // ChatLLMConfig configures the LLM chat completion client.
