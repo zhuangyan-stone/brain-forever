@@ -225,7 +225,7 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 	llmMsgs := make([]llm.Message, 0, 1+len(msgs))
 	llmMsgs = append(llmMsgs, llm.Message{
 		Role:    llm.RoleSystem,
-		Content: getTraitSystemPrompt(lang),
+		Content: getTraitSystemPrompt(lang, chat.Title),
 	})
 
 	for _, m := range msgs {
