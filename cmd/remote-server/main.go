@@ -305,7 +305,11 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[traits] sending request: model=%s, tool_choice=%s, tool_count=%d, message_count=%d",
 		req.Model, string(req.ToolChoice), len(req.Tools), len(req.Messages))
 	for i, td := range req.Tools {
-		log.Printf("[traits]   tool[%d]: name=%s, strict=%v", i, td.Function.Name, td.Function.Strict)
+		if td.Function.Strict != nil {
+			log.Printf("[traits]   tool[%d]: name=%s, strict=%v", i, td.Function.Name, *td.Function.Strict)
+		} else {
+			log.Printf("[traits]   tool[%d]: name=%s, strict=nil", i, td.Function.Name)
+		}
 	}
 
 	// Enable strict mode for the tool (set in the tool definition above).
