@@ -244,8 +244,8 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 		// (AI replies are less important than user messages for trait extraction)
 		if role == llm.RoleAssistant {
 			runes := []rune(content)
-			if len(runes) > 1000 {
-				content = string(runes[:1000])
+			if len(runes) > 1024 {
+				content = string(runes[:500]) + "\n...\n" + string(runes[len(runes)-500:])
 			}
 		}
 
