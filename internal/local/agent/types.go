@@ -160,7 +160,7 @@ func (s *session) GetTitle() (string, TitleState) {
 }
 
 // SetTitle sets both the title and its modification state atomically.
-// Title is always updated. TitleState only moves forward (0â†?, 0â†?, 1â†?).
+// Title is always updated. TitleState only moves forward (0->, 0->, 1->).
 func (s *session) SetTitle(newTitle string, newState TitleState) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -342,7 +342,7 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 // a new chat that has NOT yet been added to session.chats[] and has no SN.
 //
 // A blank chat is created by OnNewChat (PUT /api/chat/new) when the user
-// clicks "æ–°å¯¹è¯?. It has no SN, no DB record, and is NOT in session.chats[].
+// clicks "æ–°å¯¹è¯¯. It has no SN, no DB record, and is NOT in session.chats[].
 // The SN is only generated later when ensureDBSession is called (on first message).
 //
 // Detection: a blank chat has dbChat == nil or dbChat.SN == "".
@@ -407,7 +407,7 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 }
 
 // ============================================================
-// DB â†?Agent message conversion helpers
+// DB ->Agent message conversion helpers
 // ============================================================
 
 // convertDBMessagesToAgentMessages converts store.Message slice to agent.Message slice,

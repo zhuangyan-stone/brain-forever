@@ -130,7 +130,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 // all messages are used. For longer message lists, a sampling strategy is
 // applied to include the first, last, and representative intermediate messages.
 //
-// For AI messages in the middle portion, a randomized sampling (â‰?/3 probability)
+// For AI messages in the middle portion, a randomized sampling (~/3 probability)
 // is used instead of a fixed ID%3==0 pattern. This ensures that when a user
 // extractMessagesForTitle returns a representative subset of messages for title generation.
 // It always includes the first 5 messages and the last message, and randomly samples
@@ -305,7 +305,7 @@ func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request
 	// - If LLM returned empty content, fall back to original title
 	// - If the generated title is unreasonably long (>50 visual length), the LLM likely
 	//   failed to generate a concise title; discard it and use the original title instead.
-	//   50 visual length â‰?33 Chinese characters or 50 English chars, matching the prompt constraints.
+	//   50 visual length ~33 Chinese characters or 50 English chars, matching the prompt constraints.
 	const maxTitleLen = 50.0
 	if newTitle == "" || toolset.VisualLength(newTitle) > maxTitleLen {
 		newTitle = originalTitle

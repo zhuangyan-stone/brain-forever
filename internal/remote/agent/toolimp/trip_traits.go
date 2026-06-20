@@ -25,7 +25,7 @@ type TripTraitsParams struct {
 }
 
 // TraitKeyword represents a single keyword associated with a trait feature.
-// Type values (A-F): A=时间/Time, B=地点/Place, C=�?Person, D=事物/Thing, E=关系/Relationship, F=行为/Behavior.
+// Type values (A-F): A=时间/Time, B=地点/Place, C=人Person, D=事物/Thing, E=关系/Relationship, F=行为/Behavior.
 type TraitKeyword struct {
 	Type string `json:"type"`
 	Word string `json:"word"`
@@ -385,9 +385,9 @@ func extractStringFieldDirect(data []byte, field string) string {
 // contains unescaped double quotes, by re-encoding through json.Marshal.
 //
 // How it works:
-//  1. The raw field value is a JSON string like: "偏好�?揭穿"的方�?
+//  1. The raw field value is a JSON string like: "偏好为揭穿"的方式
 //     (with inner double quotes not escaped)
-//  2. We strip the outer quotes, getting: 偏好�?揭穿"的方�?
+//  2. We strip the outer quotes, getting: 偏好为揭穿"的方式
 //  3. We call json.Marshal(inner) to produce a properly escaped JSON string
 //     (this escapes the inner " to \")
 //  4. json.Unmarshal the result to get the clean Go string
@@ -412,8 +412,8 @@ func extractStringFieldReEscaped(data []byte, field string) string {
 	inner := raw[1 : len(raw)-1]
 
 	// json.Marshal(inner) produces a properly escaped JSON string value.
-	// For example: inner = `偏好�?揭穿"的方式`
-	// json.Marshal �?`"偏好用\"揭穿\"的方�?` (properly escaped)
+	// For example: inner = `偏好为揭穿"的方式`
+	// json.Marshal ->`"偏好用\"揭穿\"的方式"` (properly escaped)
 	escaped, err := json.Marshal(inner)
 	if err != nil {
 		return ""
