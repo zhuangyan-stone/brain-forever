@@ -6,10 +6,10 @@ import (
 )
 
 // ============================================================
-// NewChat handler — PUT /api/chat/new
+// NewChat handler -PUT /api/chat/new
 // ============================================================
 
-// OnNewChat handles PUT /api/chat/new — resets currentChat to a "blank chat"
+// OnNewChat handles PUT /api/chat/new -resets currentChat to a "blank chat"
 // (自由指针) state.
 //
 // A blank chat has no SN, no DB record, and is NOT in session.chats[].
@@ -20,7 +20,7 @@ import (
 //  1. If currentChat is nil or points into session.chats[] (a historical chat),
 //     reset it to &chat{} (blank, no SN).
 //  2. If currentChat is already a blank chat (dbChat == nil or SN == ""),
-//     this is a no-op — it's already blank.
+//     this is a no-op -it's already blank.
 //
 // Returns JSON: { sn: "", title: "", title_state: 0 }
 func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,7 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 
 	// Check if currentChat is already a blank chat
 	if session.currentChat.dbChat == nil || session.currentChat.dbChat.SN == "" {
-		// Already blank — no-op
+		// Already blank -no-op
 		session.mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -48,7 +48,7 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// currentChat points into session.chats[] (a historical chat) — reset to blank
+	// currentChat points into session.chats[] (a historical chat) -reset to blank
 	session.currentChat = &chat{}
 
 	session.mu.Unlock()

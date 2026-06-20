@@ -11,14 +11,14 @@ import (
 )
 
 // ============================================================
-// LLMClient — unified interface for LLM API clients
+// LLMClient -unified interface for LLM API clients
 //
 // LLMClient abstracts the common operations of an LLM API client,
 // including chat completion (non-streaming), streaming chat completion,
 // and high-level streaming with tool call support.
 //
 // Implementations:
-//   - DeepSeekRaw (deepseek_raw.go) — uses raw http.Client
+//   - DeepSeekRaw (deepseek_raw.go) -uses raw http.Client
 //
 // Usage:
 //
@@ -85,7 +85,7 @@ type Client interface {
 }
 
 // ============================================================
-// ClientConfig — generic config for creating an LLM client instance
+// ClientConfig -generic config for creating an LLM client instance
 //
 // This struct is used by factory functions (e.g. NewDeepSeekFromConfig)
 // to create a concrete LLM client. DeepSeek-specific fields (e.g. Thinking)
@@ -103,7 +103,7 @@ type ClientConfig struct {
 }
 
 // ============================================================
-// Message role constants — used as the Role field in Message
+// Message role constants -used as the Role field in Message
 // ============================================================
 
 const (
@@ -114,7 +114,7 @@ const (
 )
 
 // ============================================================
-// Message types — mirror the OpenAI chat completion request/response schema
+// Message types -mirror the OpenAI chat completion request/response schema
 // ============================================================
 
 // Message represents a single message in the chat completion request.
@@ -197,7 +197,7 @@ type ChatCompletionRequest struct {
 }
 
 func (req *ChatCompletionRequest) DisableToolChoice(clearTools bool) {
-	// Set ToolChoice to "none" — prevents the LLM from calling any tool.
+	// Set ToolChoice to "none" -prevents the LLM from calling any tool.
 	req.ToolChoice = json.RawMessage(`"none"`)
 
 	if clearTools && len(req.Tools) > 0 {
@@ -206,12 +206,12 @@ func (req *ChatCompletionRequest) DisableToolChoice(clearTools bool) {
 }
 
 func (req *ChatCompletionRequest) EnableToolChoice() {
-	// Set ToolChoice to "auto" — lets the LLM decide whether to call a tool.
+	// Set ToolChoice to "auto" -lets the LLM decide whether to call a tool.
 	req.ToolChoice = json.RawMessage(`"auto"`)
 }
 
 func (req *ChatCompletionRequest) RequiredToolChoice() {
-	// Set ToolChoice to "required" — forces the LLM to call a tool (intelligently)
+	// Set ToolChoice to "required" -forces the LLM to call a tool (intelligently)
 	// rather than producing a text reply.
 	req.ToolChoice = json.RawMessage(`"required"`)
 }
@@ -345,7 +345,7 @@ type ChunkChoice struct {
 }
 
 // ============================================================
-// ChatCompletionChunkDecoder — typed SSE decoder for LLM streaming chunks
+// ChatCompletionChunkDecoder -typed SSE decoder for LLM streaming chunks
 //
 // ChatCompletionChunkDecoder embeds sse.SSEReader and provides
 // typed access to ChatCompletionChunk values. It overrides Next()
@@ -409,7 +409,7 @@ func (d *ChatCompletionChunkDecoder) CurrentChatCompletionChunk() ChatCompletion
 }
 
 // ============================================================
-// ToolDefinition — defines a tool that the LLM can call
+// ToolDefinition -defines a tool that the LLM can call
 // ============================================================
 
 // ToolDefinition defines a function tool that the LLM can call.

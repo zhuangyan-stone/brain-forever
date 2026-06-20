@@ -8,7 +8,7 @@ import (
 )
 
 // ============================================================
-// SSEReader — reads SSE (Server-Sent Events) data lines
+// SSEReader -reads SSE (Server-Sent Events) data lines
 //
 // SSEReader reads an SSE stream line by line using bufio.Scanner,
 // strips the "data: " prefix, and unmarshals the JSON payload
@@ -42,7 +42,7 @@ func (r *Reader) Decode() (data string, ok bool) {
 	for r.scanner.Scan() {
 		line := r.scanner.Text()
 
-		// Empty line — skip
+		// Empty line -skip
 		if line == "" {
 			continue
 		}

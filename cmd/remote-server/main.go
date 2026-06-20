@@ -19,12 +19,12 @@ import (
 )
 
 // ============================================================
-// main — remote-server trait extraction service
+// main -remote-server trait extraction service
 //
 // Listens on :8088 and provides:
-//   - GET  /api/health       — health check
-//   - POST /api/traits       — trait extraction (JSON in/out)
-//   - /demo/                 — static files (demo page)
+//   - GET  /api/health       -health check
+//   - POST /api/traits       -trait extraction (JSON in/out)
+//   - /demo/                 -static files (demo page)
 // ============================================================
 
 func main() {
@@ -64,7 +64,7 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{
 			"error":   "not found",
 			"path":    r.URL.Path,
-			"message": "remote-server — see /demo/ for the demo page",
+			"message": "remote-server -see /demo/ for the demo page",
 		})
 	})
 
@@ -273,7 +273,7 @@ func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
 		Tools:    []llm.ToolDefinition{tripTool.GetDefinition()},
 	}
 
-	// Force tool choice — only allow the LLM to call the trip_traits tool.
+	// Force tool choice -only allow the LLM to call the trip_traits tool.
 	reqBody.ForceToolChoice(toolimp.TripTraitsToolName)
 
 	// Disable thinking to reduce latency and cost

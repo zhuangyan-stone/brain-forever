@@ -12,11 +12,11 @@ import (
 )
 
 // ============================================================
-// ChatHandler — POST /api/chat handler (core)
+// ChatHandler -POST /api/chat handler (core)
 // ============================================================
 
 // Enqueue a new message for request, assign an ID.
-// Writes directly to DB — no in-memory message storage.
+// Writes directly to DB -no in-memory message storage.
 // Must be called with session.mu held.
 func appendNewRequestMessage(session *session, reqMsg *Message) {
 	if reqMsg.ID != 0 {
@@ -31,7 +31,7 @@ func appendNewRequestMessage(session *session, reqMsg *Message) {
 		dbSessionID = session.currentChat.dbChat.ID
 	}
 	if dbSessionID > 0 {
-		dbMessages, err := session.chatStore.ListMessages(dbSessionID)
+		dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
 		if err == nil && len(dbMessages) > 0 {
 			lastMsg := dbMessages[len(dbMessages)-1]
 			lastID = int64(lastMsg.GroupIndex)
@@ -105,9 +105,9 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		panic("new message's ID is zero still after append to messages")
 	}
 
-	// 5. 在释放 mu 前捕获当前 Chat 的 DB ID，用于流式完成后 persist assistant 消息
-	//    session.mu 在流式期间不持有，OnSwitchChat 可能在此期间改变 currentChat，
-	//    导致 persistMessageToDB 将 assistant 写入错误的 Chat。
+	// 5. 在释�?mu 前捕获当�?Chat �?DB ID，用于流式完成后 persist assistant 消息
+	//    session.mu 在流式期间不持有，OnSwitchChat 可能在此期间改变 currentChat�?
+	//    导致 persistMessageToDB �?assistant 写入错误�?Chat�?
 	var msgChatID int64
 	if session.currentChat.dbChat != nil {
 		msgChatID = session.currentChat.dbChat.ID
@@ -171,8 +171,8 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		lang)
 
 	// 10. Persist the assistant message to DB
-	// ★ 使用流式开始时捕获的 chatID，而非 session.currentChat，
-	//    避免 flow 完成前用户切换 Chat 导致 persist 到错误的对话。
+	// �?使用流式开始时捕获�?chatID，而非 session.currentChat�?
+	//    避免 flow 完成前用户切�?Chat 导致 persist 到错误的对话�?
 	if assistantMsg != nil {
 		session.mu.Lock()
 		persistMessageToDB(session, assistantMsg, msgChatID)

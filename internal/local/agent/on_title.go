@@ -17,16 +17,16 @@ import (
 )
 
 // ============================================================
-// PutChatTitle handler — PUT /api/chat/title?title=XXX&state=N&sn=XXX
+// PutChatTitle handler -PUT /api/chat/title?title=XXX&state=N&sn=XXX
 // ============================================================
 
-// OnPutChatTitle handles PUT /api/chat/title — updates the chat title
+// OnPutChatTitle handles PUT /api/chat/title -updates the chat title
 // and marks the title state.
 // Query parameters:
 //
-//	title — the new title to set (required)
-//	state — title modification state: 0=original, 1=AI-modified, 2=user-modified (default: 2)
-//	sn    — the target chat SN (required)
+//	title -the new title to set (required)
+//	state -title modification state: 0=original, 1=AI-modified, 2=user-modified (default: 2)
+//	sn    -the target chat SN (required)
 //
 // Returns HTTP 200 on success.
 func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +58,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Read the required sn parameter — update a specific session from the list
+	// Read the required sn parameter -update a specific session from the list
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
 		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
@@ -89,7 +89,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Capture needed data under lock, then release immediately
 	targetID := session.chats[targetIndex].ID
-	chatStore := session.chatStore
+	chatStore := session.chatsStore
 	session.chatsMu.Unlock()
 
 	// DB write outside lock (different session_id, no conflict with streaming)
@@ -122,7 +122,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// Chat title generation handler — GET /api/session/title?title=XXX
+// Chat title generation handler -GET /api/session/title?title=XXX
 // ============================================================
 
 // extractMessagesForTitle extracts a representative sample of messages
@@ -130,7 +130,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 // all messages are used. For longer message lists, a sampling strategy is
 // applied to include the first, last, and representative intermediate messages.
 //
-// For AI messages in the middle portion, a randomized sampling (≈1/3 probability)
+// For AI messages in the middle portion, a randomized sampling (�?/3 probability)
 // is used instead of a fixed ID%3==0 pattern. This ensures that when a user
 // extractMessagesForTitle returns a representative subset of messages for title generation.
 // It always includes the first 5 messages and the last message, and randomly samples
@@ -204,7 +204,7 @@ func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request
 	// Read the original title from query parameter
 	originalTitle := r.URL.Query().Get("title")
 
-	// Read the optional sn parameter — if provided, generate a title
+	// Read the optional sn parameter -if provided, generate a title
 	// for that specific chat instead of the current active chat.
 	chatSN := r.URL.Query().Get("sn")
 
@@ -232,7 +232,7 @@ func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request
 		session.chatsMu.Unlock()
 
 		if dbSessionID == 0 {
-			// Chat not found (may have been deleted) — return original title
+			// Chat not found (may have been deleted) -return original title
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"sn":      chatSN,
@@ -253,9 +253,9 @@ func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request
 
 	var msgs []Message
 	if dbSessionID > 0 {
-		dbMessages, err := session.chatStore.ListMessages(dbSessionID)
+		dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
 		if err == nil {
-			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatStore, dbSessionID)
+			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, dbSessionID)
 		}
 	}
 	if msgs == nil {
@@ -305,7 +305,7 @@ func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request
 	// - If LLM returned empty content, fall back to original title
 	// - If the generated title is unreasonably long (>50 visual length), the LLM likely
 	//   failed to generate a concise title; discard it and use the original title instead.
-	//   50 visual length ≈ 33 Chinese characters or 50 English chars, matching the prompt constraints.
+	//   50 visual length �?33 Chinese characters or 50 English chars, matching the prompt constraints.
 	const maxTitleLen = 50.0
 	if newTitle == "" || toolset.VisualLength(newTitle) > maxTitleLen {
 		newTitle = originalTitle

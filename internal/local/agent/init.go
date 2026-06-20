@@ -1,4 +1,4 @@
-package agent
+﻿package agent
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 )
 
 // ============================================================
-// Agent initialization — creates the core objects
+// Agent initialization - creates the core objects
 // from a unified Config struct.
 // ============================================================
 
@@ -131,7 +131,7 @@ func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolim
 				}),
 			}
 		}
-		logger.Warnf("%s is not set or empty — web search will be disabled. "+
+		logger.Warnf("%s is not set or empty - web search will be disabled. "+
 			"Set the %s environment variable to enable web search functionality.", envKey, envKey)
 
 	case "bocha":
@@ -151,7 +151,7 @@ func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolim
 				}),
 			}
 		}
-		logger.Warnf("%s is not set or empty — web search will be disabled. "+
+		logger.Warnf("%s is not set or empty - web search will be disabled. "+
 			"Set the %s environment variable to enable web search functionality.", envKey, envKey)
 	}
 
@@ -177,8 +177,8 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// 4. Initialize Web Search Client
 	webSearchClient := InitWebSearchClient(cfg.WebSearch, logger)
 
-	// 5. Initialize anonymous user ChatStore (localdb/anonymous.db)
-	anonymousStore, err := store.CreateLocalChatScheme("localdb/anonymous.db")
+	// 5. Initialize anonymous user ChatStore (localdb/anonymous.chats.db)
+	anonymousStore, err := store.CreateLocalChatScheme("localdb/anonymous.chats.db")
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize anonymous chat store: %w", err)
 	}

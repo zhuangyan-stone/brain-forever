@@ -14,7 +14,7 @@ import (
 )
 
 // ============================================================
-// Agent implementation — ChatHandler executes tools for DeepSeek
+// Agent implementation -ChatHandler executes tools for DeepSeek
 // ============================================================
 
 // Tool implements llm.Agent.
@@ -168,7 +168,7 @@ func (atc *pipelineImp) Call(toolCallID, toolName string) (string, error) {
 }
 
 // ============================================================
-// LLM Streaming Call — delegates to DeepSeekRaw
+// LLM Streaming Call -delegates to DeepSeekRaw
 // ============================================================
 
 // callLLMWithPipeline performs a streaming LLM call with tool support.

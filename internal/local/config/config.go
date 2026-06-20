@@ -1,7 +1,7 @@
 package config
 
 // ============================================================
-// Config — centralized configuration for the BrainForever agent
+// Config -centralized configuration for the BrainForever agent
 //
 // This struct holds the configuration for the four core objects
 // that are initialized in agent/init.go:

@@ -114,7 +114,7 @@ type Usage struct {
 }
 
 // ============================================================
-// Session management — isolates user chat messages by sessionID
+// Session management -isolates user chat messages by sessionID
 // ============================================================
 
 // TitleState represents the state of the session title modification.
@@ -140,15 +140,16 @@ type chat struct {
 // session represents an individual user's session
 type session struct {
 	mu      sync.Mutex // protects: currentChat, userNo, lastActivity
-	chatsMu sync.Mutex // protects: chats, chatStore
+	chatsMu sync.Mutex // protects: chats, chatsStore
 
 	lastActivity time.Time // Last activity time, used by GC for cleanup
 
-	id          string           // HTTP cookie session ID (e.g., "s-<32hex>-<digits>"), set at creation time
-	currentChat *chat            // Current active chat (messages, title, titleState)
-	chats       []store.Chat     // User's chat list from the database
-	userNo      string           // Global unique user serial number; empty string for anonymous users
-	chatStore   *store.ChatStore // Chat database store; never nil after Phase A
+	id          string             // HTTP cookie session ID (e.g., "s-<32hex>-<digits>"), set at creation time
+	currentChat *chat              // Current active chat (messages, title, titleState)
+	chats       []store.Chat       // User's chat list from the database
+	userNo      string             // Global unique user serial number; empty string for anonymous users
+	chatsStore  *store.ChatStore   // Chat database store; never nil after Phase A
+	traitsStore *store.VectorStore // Traits database store; created lazily on first trait extraction
 }
 
 // GetTitle returns the current title and its modification state atomically.
@@ -159,7 +160,7 @@ func (s *session) GetTitle() (string, TitleState) {
 }
 
 // SetTitle sets both the title and its modification state atomically.
-// Title is always updated. TitleState only moves forward (0→1, 0→2, 1→2).
+// Title is always updated. TitleState only moves forward (0�?, 0�?, 1�?).
 func (s *session) SetTitle(newTitle string, newState TitleState) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -170,26 +171,26 @@ func (s *session) SetTitle(newTitle string, newState TitleState) {
 }
 
 // switchToUser switches the session to a logged-in user.
-// Since anonymous users now have their own DB (localdb/anonymous.db),
-// there is no need to migrate anonymous messages — they stay in anonymous.db.
+// Since anonymous users now have their own DB (localdb/anonymous.chats.db),
+// there is no need to migrate anonymous messages -they stay in anonymous.db.
 // This simply opens the user's DB file and loads their chat list.
 //
 // NOTE: The database filename pattern differs between anonymous and logged-in users:
-//   - Anonymous: localdb/anonymous.db  (matches the initial anonymousStore in InitAgent)
+//   - Anonymous: localdb/anonymous.chats.db  (matches the initial anonymousStore in InitAgent)
 //   - Logged-in: localdb/{userNo}.chats.db
 //
-// This is intentional — the anonymous store uses a different filename because
+// This is intentional -the anonymous store uses a different filename because
 // it is created once at startup and shared across all anonymous sessions,
 // while user stores are created per-user on login.
 func (s *session) switchToUser(sn string) {
-	// Phase 1: IO operations (no lock needed — DB creation + query)
+	// Phase 1: IO operations (no lock needed -DB creation + query)
 	var dbFile string
 	if sn == "" {
 		// Anonymous user: use the same DB filename as the initial anonymousStore
-		// (localdb/anonymous.db), NOT "localdb/anonymous.chats.db". The initial
-		// anonymous store is created with "localdb/anonymous.db" in InitAgent,
+		// (localdb/anonymous.chats.db), NOT "localdb/anonymous.chats.db". The initial
+		// anonymous store is created with "localdb/anonymous.chats.db" in InitAgent,
 		// and all anonymous chat data is persisted there.
-		dbFile = "localdb/anonymous.db"
+		dbFile = "localdb/anonymous.chats.db"
 	} else {
 		dbFile = "localdb/" + sn + ".chats.db"
 	}
@@ -208,7 +209,7 @@ func (s *session) switchToUser(sn string) {
 
 	// Phase 2: lock and set state
 	s.chatsMu.Lock()
-	s.chatStore = chatStore
+	s.chatsStore = chatStore
 	s.chats = chats
 	s.chatsMu.Unlock()
 
@@ -255,7 +256,7 @@ func (s *session) switchToChat(sn string) error {
 type SessionManager struct {
 	mu             sync.RWMutex
 	sessions       map[string]*session
-	anonymousStore *store.ChatStore // ChatStore for anonymous users (localdb/anonymous.db)
+	anonymousStore *store.ChatStore // ChatStore for anonymous users (localdb/anonymous.chats.db)
 }
 
 // NewSessionManager creates a SessionManager
@@ -294,7 +295,7 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 		id:           sessionID,
 		lastActivity: time.Now(),
 		userNo:       "",
-		chatStore:    sm.anonymousStore,
+		chatsStore:   sm.anonymousStore,
 		currentChat:  &chat{},
 	}
 	sm.sessions[sessionID] = s
@@ -334,14 +335,14 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	}
 
 	// Delete messages and their web sources from DB
-	return s.chatStore.DeleteMessageGroup(chatID, int(msgID))
+	return s.chatsStore.DeleteMessageGroup(chatID, int(msgID))
 }
 
-// isBlankChat checks whether currentChat is a "blank chat" (自由指针) —
+// isBlankChat checks whether currentChat is a "blank chat" (自由指针) -
 // a new chat that has NOT yet been added to session.chats[] and has no SN.
 //
 // A blank chat is created by OnNewChat (PUT /api/chat/new) when the user
-// clicks "新对话". It has no SN, no DB record, and is NOT in session.chats[].
+// clicks "新对�?. It has no SN, no DB record, and is NOT in session.chats[].
 // The SN is only generated later when ensureDBSession is called (on first message).
 //
 // Detection: a blank chat has dbChat == nil or dbChat.SN == "".
@@ -406,7 +407,7 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 }
 
 // ============================================================
-// DB ↔ Agent message conversion helpers
+// DB �?Agent message conversion helpers
 // ============================================================
 
 // convertDBMessagesToAgentMessages converts store.Message slice to agent.Message slice,
@@ -480,7 +481,7 @@ func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 	if chatID == 0 {
 		return nil, fmt.Errorf("no DB session")
 	}
-	dbMessages, err := s.chatStore.ListMessages(chatID)
+	dbMessages, err := s.chatsStore.ListMessages(chatID)
 	if err != nil {
 		return nil, err
 	}

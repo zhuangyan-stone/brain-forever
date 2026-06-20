@@ -6,10 +6,10 @@ import (
 )
 
 // ============================================================
-// Logout handler — POST /api/chat/logout
+// Logout handler -POST /api/chat/logout
 // ============================================================
 
-// OnLogout handles POST /api/chat/logout — switches the current session
+// OnLogout handles POST /api/chat/logout -switches the current session
 // back to anonymous user, clearing the logged-in state.
 func (h *ChatAgent) OnLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

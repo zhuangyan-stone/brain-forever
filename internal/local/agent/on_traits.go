@@ -1,4 +1,4 @@
-package agent
+﻿package agent
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"BrainForever/infra/zylog"
 	"BrainForever/internal/local/store"
 )
 
@@ -22,8 +23,12 @@ import (
 //  3. Local-server calls remote-server's POST /api/traits
 //  4. Remote-server extracts traits via LLM and returns JSON
 //  5. Local-server embeds each trait via the embedder and stores
-//     traits + keywords into the local VectorStore (brain.db)
+//     traits + keywords into the user-specific traits DB
 //  6. Local-server returns the result to the frontend
+//
+// Traits DB naming:
+//   - Anonymous: localdb/anonymous.traits.db
+//   - Logged-in: localdb/{userNo}.traits.db
 // ============================================================
 
 // traitsFrontendRequest is the request from the frontend to local-server.
@@ -104,6 +109,38 @@ func keywordTypeToInt(t string) int {
 	}
 }
 
+// userTraitsDBPath returns the traits database path for the given user.
+// Anonymous users get "localdb/anonymous.traits.db".
+// Logged-in users get "localdb/{userNo}.traits.db".
+func userTraitsDBPath(userNo string) string {
+	if userNo == "" {
+		return "localdb/anonymous.traits.db"
+	}
+	return "localdb/" + userNo + ".traits.db"
+}
+
+// ensureTraitsStore ensures that the session has a traitsStore, creating one
+// if necessary. Returns the traits store.
+func (s *session) ensureTraitsStore(embedderDim int, logger zylog.Logger) (*store.VectorStore, error) {
+	// Fast path: already exists
+	if s.traitsStore != nil {
+		return s.traitsStore, nil
+	}
+
+	// Determine the DB path based on user
+	dbPath := userTraitsDBPath(s.userNo)
+
+	// Create the VectorStore (this also initializes sqlite-vec tables)
+	vs, err := store.NewVectorStore(dbPath, embedderDim, logger)
+	if err != nil {
+		return nil, fmt.Errorf("create traits store failed (%s): %w", dbPath, err)
+	}
+
+	s.traitsStore = vs
+	log.Printf("[traits] created traits store: %s (dim=%d)", dbPath, embedderDim)
+	return vs, nil
+}
+
 // OnExtractTraits handles POST /api/chat/traits — accepts a chat SN,
 // reads the chat messages from the local database, then calls the
 // remote-server's trait extraction API, embeds and stores the results,
@@ -145,7 +182,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	chatStore := session.chatStore
+	chatsStore := session.chatsStore
 	session.chatsMu.Unlock()
 
 	if foundChat == nil {
@@ -156,7 +193,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 3. Read messages from database
 	// ----------------------------------------------------------
-	dbMessages, err := chatStore.ListMessages(foundChat.ID)
+	dbMessages, err := chatsStore.ListMessages(foundChat.ID)
 	if err != nil {
 		log.Printf("[traits] list messages failed: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
@@ -264,10 +301,10 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 7. Embed each trait and store into local VectorStore
+	// 7. Embed each trait and store into user-specific traits DB
 	// ----------------------------------------------------------
 	if len(remoteResp.Features) > 0 {
-		if err := h.storeTraits(r.Context(), remoteResp.Features); err != nil {
+		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features); err != nil {
 			log.Printf("[traits] store traits failed (non-fatal): %v", err)
 			// Non-fatal: still return features to frontend even if storage fails
 		}
@@ -282,17 +319,24 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[traits] completed for sn=%s, features=%d", req.SN, len(remoteResp.Features))
 }
 
-// storeTraits embeds each trait feature and stores it along with keywords
-// into the local VectorStore (brain.db).
-func (h *ChatAgent) storeTraits(ctx context.Context, features []traitsFeature) error {
-	// Access the underlying vector store and embedder through the traitSearcher adapter.
+// storeTraitsInSession embeds each trait feature and stores it along with keywords
+// into the session's per-user traits database.
+func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature) error {
+	// Get the embedder from the traitSearcher adapter
 	adapter, ok := h.traitSearcher.(*traitSearchAdapter)
 	if !ok {
 		return fmt.Errorf("traitSearcher is not a *traitSearchAdapter")
 	}
 
-	vs := adapter.store
 	emb := adapter.embedder
+	embedderDim := emb.Dimension()
+
+	// Ensure the session has a traits store (create lazily)
+	// Use the logger from the ChatAgent
+	vs, err := session.ensureTraitsStore(embedderDim, h.logger)
+	if err != nil {
+		return fmt.Errorf("ensure traits store: %w", err)
+	}
 
 	for _, f := range features {
 		if f.FeatureText == "" {
@@ -320,8 +364,9 @@ func (h *ChatAgent) storeTraits(ctx context.Context, features []traitsFeature) e
 			continue
 		}
 
-		log.Printf("[traits] stored trait id=%d: '%s' (cat=%d, conf=%d, half=%s)",
-			traitID, f.FeatureText, f.CategoryID, f.Confidence, f.HalfLife)
+		log.Printf("[traits] stored trait id=%d: '%s' (cat=%d, conf=%d, half=%s) in %s",
+			traitID, f.FeatureText, f.CategoryID, f.Confidence, f.HalfLife,
+			userTraitsDBPath(session.userNo))
 
 		// Store keywords
 		for _, kw := range f.Keywords {

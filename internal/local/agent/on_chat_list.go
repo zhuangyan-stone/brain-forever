@@ -8,10 +8,10 @@ import (
 )
 
 // ============================================================
-// Chat list handler — GET /api/chat/list
+// Chat list handler -GET /api/chat/list
 // ============================================================
 
-// OnGetChats handles GET /api/chat/list — returns the chat list
+// OnGetChats handles GET /api/chat/list -returns the chat list
 // for the current HTTP session's user (including anonymous users).
 //
 // The user is identified by the HTTP session cookie, not by a query parameter.
@@ -44,7 +44,7 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// Anonymous user: load from anonymous store
 			session.chatsMu.Lock()
-			loadedChats, err := session.chatStore.ListChats(100)
+			loadedChats, err := session.chatsStore.ListChats(100)
 			if err == nil {
 				session.chats = loadedChats
 				chats = loadedChats
@@ -58,7 +58,7 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 		session.chatsMu.Unlock()
 	}
 
-	// Ensure we never return nil — return empty array instead
+	// Ensure we never return nil -return empty array instead
 	if chats == nil {
 		chats = []store.Chat{}
 	}

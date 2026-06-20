@@ -11,7 +11,7 @@ import (
 )
 
 // ============================================================
-// sseEvent — JSON structure for each SSE data message
+// sseEvent -JSON structure for each SSE data message
 // ============================================================
 
 type sseEvent struct {
@@ -20,7 +20,7 @@ type sseEvent struct {
 }
 
 // ============================================================
-// TraitSSEResponser — implements llm.SSEResponser
+// TraitSSEResponser -implements llm.SSEResponser
 //
 // Wraps an SSE writer and forwards LLM streaming events (reasoning,
 // text, errors, tool calls) to the frontend as structured JSON SSE events.
@@ -80,7 +80,7 @@ func (r *TraitSSEResponser) OnError(err error) {
 }
 
 // ============================================================
-// TraitPipeline — implements llm.Pipeline
+// TraitPipeline -implements llm.Pipeline
 //
 // Combines TraitSSEResponser (SSE streaming) with ToolCaller
 // (tool execution) into a single Pipeline implementation.

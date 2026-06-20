@@ -9,7 +9,7 @@ import (
 )
 
 // ============================================================
-// DB Utilities — session & message persistence
+// DB Utilities -session & message persistence
 // ============================================================
 
 // generateSessionSN generates a globally unique serial number for a chat session.
@@ -31,7 +31,7 @@ func ensureSessionDBForChat(session *session) {
 	sn := generateSessionSN()
 	title := session.currentChat.title
 
-	dbChat, err := session.chatStore.InsertChat(sn, 0, title, 0)
+	dbChat, err := session.chatsStore.InsertChat(sn, 0, title, 0)
 	if err != nil {
 		log.Printf("failed to insert DB chat for user %s: %v", session.userNo, err)
 		return
@@ -82,7 +82,7 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 		reasoning = &msg.Reasoning
 	}
 
-	if err := session.chatStore.InsertMessage(
+	if err := session.chatsStore.InsertMessage(
 		chatID,
 		groupIndex,
 		role,
@@ -110,14 +110,14 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 				Score:       src.Score,
 			})
 		}
-		if err := session.chatStore.InsertWebSources(chatID, msg.ID, storeSources); err != nil {
+		if err := session.chatsStore.InsertWebSources(chatID, msg.ID, storeSources); err != nil {
 			log.Printf("failed to persist web sources for user %s: %v", session.userNo, err)
 		}
 	}
 
 	// Touch the chat session's update_at so it floats to the top
 	// when the list is ordered by update_at DESC.
-	if err := session.chatStore.TouchChat(chatID); err != nil {
+	if err := session.chatsStore.TouchChat(chatID); err != nil {
 		log.Printf("failed to touch chat update_at for user %s: %v", session.userNo, err)
 	}
 

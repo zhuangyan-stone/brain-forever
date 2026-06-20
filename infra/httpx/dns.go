@@ -129,7 +129,7 @@ func NewDNSFallbackDialContext(dialer *net.Dialer, fallbackServers []string) fun
 			return dialResolvedIPs(ctx, dialer, network, port, ips)
 		}
 
-		// Both failed — return the original system DNS error for clarity
+		// Both failed -return the original system DNS error for clarity
 		if err != nil {
 			return nil, fmt.Errorf("DNS lookup failed for %s (tried system and fallback DNS): %w", host, err)
 		}

@@ -17,7 +17,7 @@ import (
 )
 
 // ============================================================
-// DeepSeek — DeepSeek API client using raw http.Client
+// DeepSeek -DeepSeek API client using raw http.Client
 //
 // This implementation uses net/http directly (no openai-go SDK dependency)
 // to provide an alternative way of calling the DeepSeek API.
@@ -63,7 +63,7 @@ func NewDeepSeekClient(baseURL, apiKey, envKey, model string) *DeepSeekClient {
 }
 
 // ============================================================
-// DeepseekClientConfig — DeepSeek-specific internal config
+// DeepseekClientConfig -DeepSeek-specific internal config
 //
 // This private struct extends RawClientConfig with DeepSeek-specific
 // fields such as Thinking mode. It is used internally by
@@ -146,7 +146,7 @@ func (c *DeepSeekClient) storeUsage(usage Usage) {
 }
 
 // ============================================================
-// Chat — chat completion (non-streaming)
+// Chat -chat completion (non-streaming)
 // ============================================================
 
 // Chat sends a chat message and gets a reply (non-streaming).
@@ -219,7 +219,7 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 }
 
 // ============================================================
-// ChatStream — streaming chat completion
+// ChatStream -streaming chat completion
 // ============================================================
 
 // ChatStream sends a chat request and returns a stream for reading chunks.
@@ -291,7 +291,7 @@ func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatComp
 }
 
 // ============================================================
-// ReasoningContent helpers — extract reasoning_content from streaming chunks
+// ReasoningContent helpers -extract reasoning_content from streaming chunks
 // ============================================================
 
 // GetReasoningContentFromChoice extracts the "reasoning_content" field from a ChunkChoice.
@@ -301,7 +301,7 @@ func GetReasoningContentFromChoice(choice ChunkChoice) string {
 }
 
 // ============================================================
-// streamChatCompletion — read all chunks from a streaming LLM response
+// streamChatCompletion -read all chunks from a streaming LLM response
 // ============================================================
 
 // StreamResult holds the aggregated result from reading a streaming LLM response.
@@ -398,7 +398,7 @@ func streamChatCompletion(
 }
 
 // ============================================================
-// ChatWithPipeline — high-level streaming with tool support
+// ChatWithPipeline -high-level streaming with tool support
 // ============================================================
 
 // ChatWithPipeline performs a streaming LLM call with tool support.
@@ -478,7 +478,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 			return "", "", fmt.Errorf("failed to call LLM API. %w", err)
 		}
 
-		// Read all chunks from the stream — collect reply, reasoning, and tool calls
+		// Read all chunks from the stream -collect reply, reasoning, and tool calls
 		streamResult, err := streamChatCompletion(ctx, stream, pipeline, c.SetUsageInfo)
 		if err != nil {
 			return "", "", fmt.Errorf("Read chunks from stream fail. %w", err)
@@ -489,7 +489,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		//   1. LLM reasoning_content (the model's internal chain-of-thought)
 		//   2. Tool calls (invoking external tools like web_search is also considered
 		//      part of the AI's thinking process)
-		// We intentionally do NOT emit OnReasoningEnd here — doing so would
+		// We intentionally do NOT emit OnReasoningEnd here -doing so would
 		// send a premature "reasoning_end" event after each tool call iteration,
 		// causing the frontend to show "reasion finished" while the LLM is still
 		// processing (e.g. after a tool result is appended and the LLM re-enters
@@ -520,7 +520,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 			continue
 		}
 
-		// Normal completion (stop, length, etc.) — break out of the loop.
+		// Normal completion (stop, length, etc.) -break out of the loop.
 		// The actual return is handled after the loop, where OnReasoningEnd
 		// is called by the defer above.
 		reply = streamResult.Reply
@@ -589,7 +589,7 @@ func makeAssistantMessageForToolCalls(reply, reasoning string, toolCalls []Strea
 }
 
 // ============================================================
-// executeToolCalls — execute a batch of tool calls and append results to messages
+// executeToolCalls -execute a batch of tool calls and append results to messages
 // ============================================================
 
 // executeToolCalls iterates over each tool call, calls Pending and Call on the

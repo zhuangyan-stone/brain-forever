@@ -10,7 +10,7 @@ import (
 )
 
 // ============================================================
-// Web Search — online search interface
+// Web Search -online search interface
 // ============================================================
 
 // WebSource represents a web search result source.
@@ -33,7 +33,7 @@ type WebSearcher interface {
 }
 
 // ============================================================
-// Web Search Tool — LLM function-calling for online search
+// Web Search Tool -LLM function-calling for online search
 // ============================================================
 
 // WebSearchToolName is the name of the tool used for web search.

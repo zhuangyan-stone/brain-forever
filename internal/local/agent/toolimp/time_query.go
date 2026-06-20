@@ -28,7 +28,7 @@ func getCurrentTime() string {
 // timeQueryToolDefinition returns the ToolDefinition for time query
 // using llm types, with translated descriptions.
 //
-// This tool takes no parameters — the LLM simply calls it to get the
+// This tool takes no parameters -the LLM simply calls it to get the
 // current local time with timezone information.
 func timeQueryToolDefinition(lang string) llm.ToolDefinition {
 	// Build the schema as a Go map and marshal it to JSON.

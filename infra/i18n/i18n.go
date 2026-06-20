@@ -46,10 +46,10 @@ var (
 //
 // Translation files are organized as:
 //
-//	{langDir}/en.toml                          — top-level, no prefix
-//	{langDir}/zh-CN.toml                       — top-level, no prefix
-//	{langDir}/en/tools/current_time.toml        — subdirectory, prefixed with filename
-//	{langDir}/zh-CN/tools/web_search.toml       — subdirectory, prefixed with filename
+//	{langDir}/en.toml                          -top-level, no prefix
+//	{langDir}/zh-CN.toml                       -top-level, no prefix
+//	{langDir}/en/tools/current_time.toml        -subdirectory, prefixed with filename
+//	{langDir}/zh-CN/tools/web_search.toml       -subdirectory, prefixed with filename
 //
 // Files in subdirectories have their message IDs automatically prefixed
 // with the file name (without extension) to avoid key collisions.
@@ -96,12 +96,12 @@ func Init(langDir string) {
 		dir := filepath.Dir(relPath)
 
 		if dir == "." {
-			// Top-level file (e.g., en.toml) — load as-is, no prefix.
+			// Top-level file (e.g., en.toml) -load as-is, no prefix.
 			if _, err := bundle.LoadMessageFile(file); err != nil {
 				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
 			}
 		} else {
-			// Subdirectory file (e.g., en/tools/current_time.toml) — prefix message IDs.
+			// Subdirectory file (e.g., en/tools/current_time.toml) -prefix message IDs.
 			if err := loadWithPrefix(file, langDir); err != nil {
 				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
 			}
@@ -117,9 +117,9 @@ func Init(langDir string) {
 //
 // The file path determines the language tag from the directory structure.
 // The expected path format is: {langDir}/{language_tag}/.../{filename}.toml
-// e.g., "lang/local/en/tools/current_time.toml" → language tag "en"
+// e.g., "lang/local/en/tools/current_time.toml" �?language tag "en"
 //
-//	"lang/local/zh-CN/tools/web_search.toml" → language tag "zh-CN"
+//	"lang/local/zh-CN/tools/web_search.toml" �?language tag "zh-CN"
 func loadWithPrefix(filePath string, langDir string) error {
 	// Read the file content
 	data, err := os.ReadFile(filePath)
@@ -130,8 +130,8 @@ func loadWithPrefix(filePath string, langDir string) error {
 	// Determine the language tag from the directory structure.
 	// We use filepath.Rel to get the relative path from langDir,
 	// then extract the first component as the language tag.
-	// e.g., relPath = "en/tools/current_time.toml" → parts[0] = "en"
-	//        relPath = "zh-CN/tools/web_search.toml" → parts[0] = "zh-CN"
+	// e.g., relPath = "en/tools/current_time.toml" �?parts[0] = "en"
+	//        relPath = "zh-CN/tools/web_search.toml" �?parts[0] = "zh-CN"
 	relPath, _ := filepath.Rel(langDir, filePath)
 	parts := strings.SplitN(relPath, string(filepath.Separator), 3)
 	var langTag string

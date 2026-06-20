@@ -14,10 +14,10 @@ import (
 )
 
 // ============================================================
-// ChatDelete handler — DELETE /api/chat?sn=XXX
+// ChatDelete handler -DELETE /api/chat?sn=XXX
 // ============================================================
 
-// OnChatDelete handles DELETE /api/chat — soft-deletes (moves to trash) a chat session by SN.
+// OnChatDelete handles DELETE /api/chat -soft-deletes (moves to trash) a chat session by SN.
 // Also removes it from the in-memory chat list. If the deleted chat is the
 // current active chat, resets the current chat to nil.
 func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
@@ -62,20 +62,20 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Phase 2: If the deleted chat is the current active chat, reset it (under mu lock)
-	// ★ 必须在 LogicDelete（I/O 操作）之前执行，以避免竞态条件：
-	//   如果 OnNewMessage 在 chatsMu unlock 和 mu lock 之间获取到 mu，
-	//   会发现 currentChat.dbChat 仍然指向被删除的 chat（非 nil），
-	//   导致 ensureSessionDBForChat 直接 return，将新消息写入已删除的 chat。
-	//   将 reset 移到 LogicDelete 之前 + 紧跟在 chatsMu unlock 之后，
-	//   可将竞争窗口从"毫秒级 I/O 时长"缩小到"几纳秒的 CPU 指令间隙"。
+	// �?必须�?LogicDelete（I/O 操作）之前执行，以避免竞态条件：
+	//   如果 OnNewMessage �?chatsMu unlock �?mu lock 之间获取�?mu�?
+	//   会发�?currentChat.dbChat 仍然指向被删除的 chat（非 nil），
+	//   导致 ensureSessionDBForChat 直接 return，将新消息写入已删除�?chat�?
+	//   �?reset 移到 LogicDelete 之前 + 紧跟�?chatsMu unlock 之后�?
+	//   可将竞争窗口�?毫秒�?I/O 时长"缩小�?几纳秒的 CPU 指令间隙"�?
 	session.mu.Lock()
 	if session.currentChat != nil && session.currentChat.dbChat != nil && session.currentChat.dbChat.ID == chatID {
 		session.currentChat = &chat{}
 	}
 	session.mu.Unlock()
 
-	// Phase 3: Soft-delete (logic delete) — move to trash
-	if err := session.chatStore.LogicDelete(sn); err != nil {
+	// Phase 3: Soft-delete (logic delete) -move to trash
+	if err := session.chatsStore.LogicDelete(sn); err != nil {
 		log.Printf("failed to logic-delete session (sn=%s): %v", sn, err)
 		http.Error(w, "failed to delete session", http.StatusInternalServerError)
 		return
@@ -88,10 +88,10 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// ListDeletedChats handler — GET /api/chat/deleted
+// ListDeletedChats handler -GET /api/chat/deleted
 // ============================================================
 
-// OnListDeletedChats handles GET /api/chat/deleted — returns the list of
+// OnListDeletedChats handles GET /api/chat/deleted -returns the list of
 // soft-deleted (trashed) chats for the current session's user.
 func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -103,7 +103,7 @@ func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	session.chatsMu.Lock()
-	chatStore := session.chatStore
+	chatStore := session.chatsStore
 	session.chatsMu.Unlock()
 
 	deletedChats, err := chatStore.ListDeletedChats(100)
@@ -124,10 +124,10 @@ func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// RestoreChat handler — PUT /api/chat/restore?sn=XXX
+// RestoreChat handler -PUT /api/chat/restore?sn=XXX
 // ============================================================
 
-// OnRestoreChat handles PUT /api/chat/restore — restores a soft-deleted chat
+// OnRestoreChat handles PUT /api/chat/restore -restores a soft-deleted chat
 // and adds it back to the in-memory chat list.
 func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
@@ -146,7 +146,7 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 
 	// Restore in DB
 	session.chatsMu.Lock()
-	chatStore := session.chatStore
+	chatStore := session.chatsStore
 	session.chatsMu.Unlock()
 
 	if err := chatStore.RestoreChat(sn); err != nil {
@@ -157,7 +157,7 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 
 	// Reload the restored chat from DB and add back to in-memory list
 	session.chatsMu.Lock()
-	chats, err := session.chatStore.ListChats(100)
+	chats, err := session.chatsStore.ListChats(100)
 	if err == nil {
 		session.chats = chats
 	}
@@ -170,10 +170,10 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// PermanentDelete handler — DELETE /api/chat/permanent?sn=XXX
+// PermanentDelete handler -DELETE /api/chat/permanent?sn=XXX
 // ============================================================
 
-// OnPermanentDelete handles DELETE /api/chat/permanent — permanently deletes
+// OnPermanentDelete handles DELETE /api/chat/permanent -permanently deletes
 // a soft-deleted chat (physical delete from DB).
 func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -192,7 +192,7 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Find the chat from DB (regardless of deleted status)
 	session.chatsMu.Lock()
-	chatStore := session.chatStore
+	chatStore := session.chatsStore
 	session.chatsMu.Unlock()
 
 	chat, err := chatStore.FindChatBySN(sn)
@@ -216,10 +216,10 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// EmptyTrash handler — DELETE /api/chat/trash
+// EmptyTrash handler -DELETE /api/chat/trash
 // ============================================================
 
-// OnEmptyTrash handles DELETE /api/chat/empty-trash — permanently deletes
+// OnEmptyTrash handles DELETE /api/chat/empty-trash -permanently deletes
 // all soft-deleted chats (clears the recycle bin).
 func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
@@ -231,7 +231,7 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	session.chatsMu.Lock()
-	chatStore := session.chatStore
+	chatStore := session.chatsStore
 	session.chatsMu.Unlock()
 
 	if err := chatStore.EmptyTrash(); err != nil {
@@ -247,7 +247,7 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// ChatHandler — POST /api/chat handler (core)
+// ChatHandler -POST /api/chat handler (core)
 // ============================================================
 
 // ChatAgent handles chat requests, integrating RAG retrieval + LLM streaming
@@ -341,11 +341,11 @@ func makeAssistantBrokenMessage(lang string, id int64) Message {
 }
 
 // ============================================================
-// SwitchChat handler — GET /api/chat/switch?sn=XXX
-// SwitchChat handler — switches the current active chat to a specified historical chat (topic switch).
+// SwitchChat handler -GET /api/chat/switch?sn=XXX
+// SwitchChat handler -switches the current active chat to a specified historical chat (topic switch).
 // ============================================================
 
-// OnSwitchChat handles GET /api/chat/switch — switches the current
+// OnSwitchChat handles GET /api/chat/switch -switches the current
 // active chat to a historical chat identified by its SN, loading
 // its messages from the database. Returns the chat's
 // messages, title, and title state.
@@ -382,9 +382,9 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 
 	var msgs []Message
 	if dbSessionID > 0 {
-		dbMessages, err := session.chatStore.ListMessages(dbSessionID)
+		dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
 		if err == nil {
-			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatStore, dbSessionID)
+			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, dbSessionID)
 		}
 	}
 	if msgs == nil {
@@ -411,11 +411,11 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// ChatPin handler — PUT /api/chat/pin?sn=XXX&pinned=true|false
-// ChatPin handler — pins/unpins the specified chat.
+// ChatPin handler -PUT /api/chat/pin?sn=XXX&pinned=true|false
+// ChatPin handler -pins/unpins the specified chat.
 // ============================================================
 
-// OnChatPin handles PUT /api/chat/pin — toggles the pinned state of a chat.
+// OnChatPin handles PUT /api/chat/pin -toggles the pinned state of a chat.
 // Uses chatsMu because it operates on session.chats (independent of streaming).
 func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
@@ -451,7 +451,7 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := session.chatStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
+	if err := session.chatsStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
 		log.Printf("failed to update chat pin: %v", err)
 		http.Error(w, "failed to update chat pin", http.StatusInternalServerError)
 		return

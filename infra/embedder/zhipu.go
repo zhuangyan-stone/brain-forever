@@ -14,7 +14,7 @@ import (
 )
 
 // ============================================================
-// ZhipuEmbedder — calls Zhipu GLM Embedding API
+// ZhipuEmbedder -calls Zhipu GLM Embedding API
 // ============================================================
 
 // ZhipuEmbedder converts text to vectors via the Zhipu API
@@ -118,6 +118,6 @@ func (z *ZhipuEmbedder) Embed(ctx context.Context, text string) ([]float32, erro
 		vec[i] = float32(v)
 	}
 
-	fmt.Printf("  → Embedding complete: %d dims, %d tokens used\n", len(vec), apiResp.Usage.TotalTokens)
+	fmt.Printf("  �?Embedding complete: %d dims, %d tokens used\n", len(vec), apiResp.Usage.TotalTokens)
 	return vec, nil
 }

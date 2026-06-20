@@ -8,7 +8,7 @@ import (
 )
 
 // ============================================================
-// Session handler — GET /api/session
+// Session handler -GET /api/session
 // ============================================================
 
 // OnSession handles GET /api/session

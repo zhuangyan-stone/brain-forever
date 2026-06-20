@@ -18,7 +18,7 @@ type ToolIMP interface {
 }
 
 // ============================================================
-// ToolCaller interface — decouples tool execution from the LLM client
+// ToolCaller interface -decouples tool execution from the LLM client
 // ============================================================
 
 // ToolCaller is the interface for executing tool calls made by the LLM.

@@ -30,7 +30,7 @@ func (f *TLFile) MustLocalize(lang, messageID string, templateData ...map[string
 }
 
 // ============================================================
-// TLTools — unified manager for all tool translation files
+// TLTools -unified manager for all tool translation files
 // ============================================================
 
 // TLTools manages TLFile instances for all tool translation files.

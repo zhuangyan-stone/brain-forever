@@ -347,7 +347,7 @@ func (h *customHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	// If the log level is OFF (999), always return false — do not output any logs
+	// If the log level is OFF (999), always return false -do not output any logs
 	slogLevel := logLevelToSlog(h.cfg.Level)
 	if slogLevel == slog.Level(999) {
 		return false

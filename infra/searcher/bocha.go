@@ -28,7 +28,7 @@ const (
 )
 
 // ---------------------------------------------------------------------------
-// Request types (internal — used for JSON serialization to the Bocha API)
+// Request types (internal -used for JSON serialization to the Bocha API)
 // ---------------------------------------------------------------------------
 
 // bochaRequest is the request body sent to the Bocha API.
@@ -42,7 +42,7 @@ type bochaRequest struct {
 }
 
 // ---------------------------------------------------------------------------
-// Response types (internal — used for JSON deserialization from the Bocha API)
+// Response types (internal -used for JSON deserialization from the Bocha API)
 // ---------------------------------------------------------------------------
 
 // bochaResponse is the top-level response from the Bocha Web Search API.

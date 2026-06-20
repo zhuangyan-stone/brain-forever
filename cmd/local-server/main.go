@@ -36,7 +36,7 @@ func main() {
 			Addr:              "[::]:8080",
 			ReadTimeout:       30,
 			ReadHeaderTimeout: 10,
-			WriteTimeout:      0, // 0 = disabled — SSE streaming requires long-lived connections
+			WriteTimeout:      0, // 0 = disabled -SSE streaming requires long-lived connections
 			IdleTimeout:       60,
 		},
 		Frontend: config.FrontendConfig{
@@ -160,7 +160,7 @@ func main() {
 		Charset:           "utf-8",
 	}, theLogger)
 
-	// CORS middleware — support for frontend-backend separated development
+	// CORS middleware -support for frontend-backend separated development
 	srv.Use(httpx.UseCORSMiddleware)
 
 	srv.GET("/api/info/llm/chat", chatHandler.OnGetLLMInfo)
@@ -189,18 +189,18 @@ func main() {
 		})
 	})
 
-	// /api/chat — POST (new message) + DELETE (delete chat)
+	// /api/chat -POST (new message) + DELETE (delete chat)
 	srv.POST("/api/chat", chatHandler.OnNewMessage)
 	srv.DELETE("/api/chat", chatHandler.OnChatDelete)
 
-	// /api/chat/title — GET (propose title) + PUT (save title)
+	// /api/chat/title -GET (propose title) + PUT (save title)
 	srv.GET("/api/chat/title", chatHandler.GetSuggestedChatTitle)
 	srv.PUT("/api/chat/title", chatHandler.OnPutChatTitle)
 
-	// /api/chat/traits — POST (extract personal traits via remote-server)
+	// /api/chat/traits -POST (extract personal traits via remote-server)
 	srv.POST("/api/chat/traits", chatHandler.OnExtractTraits)
 
-	// ── Static file server — frontend pages ──
+	// ── Static file server -frontend pages ──
 	// When CacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
 	// take effect immediately during development.
 	// Production (default) uses http.FileServer's default ETag/Last-Modified caching behavior.

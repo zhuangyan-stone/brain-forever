@@ -24,7 +24,7 @@ type WebSearcher interface {
 }
 
 // ---------------------------------------------------------------------------
-// ClientConfig — Generic Web Search client configuration
+// ClientConfig -Generic Web Search client configuration
 // ---------------------------------------------------------------------------
 
 // WebSearchClientConfig holds the common configuration for creating a

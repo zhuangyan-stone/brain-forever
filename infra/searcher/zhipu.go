@@ -28,7 +28,7 @@ const (
 )
 
 // ---------------------------------------------------------------------------
-// Request types (internal — used for JSON serialization to the ZhiPu API)
+// Request types (internal -used for JSON serialization to the ZhiPu API)
 // ---------------------------------------------------------------------------
 
 // zhipuWebSearchRequest is the request body sent to the ZhiPu Web Search API.
@@ -45,7 +45,7 @@ type zhipuWebSearchRequest struct {
 }
 
 // ---------------------------------------------------------------------------
-// Response types (internal — used for JSON deserialization from the ZhiPu API)
+// Response types (internal -used for JSON deserialization from the ZhiPu API)
 // ---------------------------------------------------------------------------
 
 // zhipuWebSearchResult is the top-level response from the ZhiPu Web Search API.

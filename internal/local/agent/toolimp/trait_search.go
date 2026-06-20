@@ -3,7 +3,7 @@ package toolimp
 import "context"
 
 // ============================================================
-// Personal Trait — RAG retrieval for personal knowledge base
+// Personal Trait -RAG retrieval for personal knowledge base
 // ============================================================
 
 const TraitSearchToolName = "personal_trait_search"

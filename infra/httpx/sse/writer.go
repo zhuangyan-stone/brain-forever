@@ -7,7 +7,7 @@ import (
 )
 
 // ============================================================
-// SSE writer — wraps Server-Sent Events streaming writes
+// SSE writer -wraps Server-Sent Events streaming writes
 // ============================================================
 
 // Writer wraps SSE streaming writes, automatically sets response headers and supports Flush
