@@ -54,18 +54,19 @@ func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embed
 }
 
 // InitVectorStore creates a VectorStore (knowledge base / trait search).
-func InitVectorStore(cfg config.VectorStoreConfig, e embedder.Embedder, logger zylog.Logger) (*store.VectorStore, error) {
+// dimension is passed explicitly since embedding is now done externally.
+func InitVectorStore(cfg config.VectorStoreConfig, dimension int, logger zylog.Logger) (*store.VectorStore, error) {
 	dbPath := cfg.DBPath
 	if dbPath == "" {
 		dbPath = "./localdb/brain.db"
 	}
 
-	vs, err := store.NewVectorStore(dbPath, e, logger)
+	vs, err := store.NewVectorStore(dbPath, dimension, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
 	}
 
-	logger.Infof("✓ VectorStore initialized: %s", dbPath)
+	logger.Infof("✓ VectorStore initialized: %s (dimension=%d)", dbPath, dimension)
 	return vs, nil
 }
 
@@ -165,7 +166,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	embeddingClient := InitEmbedder(cfg.Embedder, logger)
 
 	// 2. Initialize VectorStore
-	vectorStore, err := InitVectorStore(cfg.VectorStore, embeddingClient, logger)
+	vectorStore, err := InitVectorStore(cfg.VectorStore, embeddingClient.Dimension(), logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
 	}
@@ -184,7 +185,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 
 	// 6. Create ChatHandler
 	chatHandler := NewChatHandler(
-		&traitSearchAdapter{store: vectorStore},
+		&traitSearchAdapter{store: vectorStore, embedder: embeddingClient},
 		webSearchClient,
 		chatLLMClient,
 		cookieName,
