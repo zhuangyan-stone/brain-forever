@@ -3,17 +3,19 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>BrainForever - 用户特征提取 Demo</title>
+	<title>BrainForever - 用户特征提取 Demo (JSON API)</title>
 	<style>
 		* { box-sizing: border-box; margin: 0; padding: 0; }
 		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
 		.container { max-width: 1000px; margin: 0 auto; }
 		h1 { font-size: 1.5rem; margin-bottom: 16px; color: #1a1a2e; }
+		h2 { font-size: 1.1rem; margin-bottom: 10px; color: #1a1a2e; }
 		.controls { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
 		.control-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; }
 		.control-group label { font-size: 0.8rem; color: #666; font-weight: 600; }
-		.control-group input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
-		.control-group input:focus { outline: none; border-color: #4a6cf7; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
+		.control-group input, .control-group textarea { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
+		.control-group input:focus, .control-group textarea:focus { outline: none; border-color: #4a6cf7; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
+		.control-group textarea { resize: vertical; min-height: 80px; font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 0.8rem; }
 		.btn { padding: 8px 20px; border: none; border-radius: 4px; font-size: 0.9rem; cursor: pointer; font-weight: 600; transition: all 0.2s; }
 		.btn-primary { background: #4a6cf7; color: #fff; }
 		.btn-primary:hover { background: #3b5de7; }
@@ -24,139 +26,49 @@
 		.status-bar .status-text { color: #4a6cf7; }
 		.status-bar .status-text.error { color: #e74c3c; }
 		.status-bar .status-text.done { color: #27ae60; }
-		.event-log { background: #1a1a2e; color: #e0e0e0; border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.8rem; line-height: 1.6; max-height: 70vh; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-		.event-entry { margin-bottom: 4px; padding: 4px 8px; border-radius: 3px; }
-		.event-entry .event-label { font-weight: bold; margin-right: 8px; }
-		.event-entry.reasoning { background: rgba(255,193,7,0.08); }
-		.event-entry.reasoning .event-label { color: #ffc107; }
-		.event-entry.text { background: rgba(74,108,247,0.08); }
-		.event-entry.text .event-label { color: #4a6cf7; }
-		.event-entry.tool_result { background: rgba(39,174,96,0.1); }
-		.event-entry.tool_result .event-label { color: #27ae60; }
-		.event-entry.error { background: rgba(231,76,60,0.1); }
-		.event-entry.error .event-label { color: #e74c3c; }
-		.event-entry.done { background: rgba(39,174,96,0.15); }
-		.event-entry.done .event-label { color: #27ae60; }
-		.event-entry.connected { background: rgba(74,108,247,0.1); }
-		.event-entry.connected .event-label { color: #4a6cf7; }
-		.event-entry.usage { background: rgba(155,89,182,0.08); }
-		.event-entry.usage .event-label { color: #9b59b6; }
-		.json-data { padding-left: 16px; opacity: 0.9; }
-		.toolbar { display: flex; gap: 8px; align-items: center; }
-		.count-badge { background: #4a6cf7; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+		.result-panel { background: #1a1a2e; color: #e0e0e0; border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.8rem; line-height: 1.6; max-height: 60vh; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
 		.features-summary { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 		.features-summary h3 { font-size: 1rem; margin-bottom: 8px; color: #1a1a2e; display: flex; align-items: center; gap: 8px; }
 		.feature-item { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.85rem; }
 		.feature-item:last-child { border-bottom: none; }
 		.feature-item .cat-badge { display: inline-block; background: #eef; color: #4a6cf7; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; margin-right: 8px; }
 		.feature-item .feature-text { font-weight: 500; }
-		.feature-item .feature-text-empty { color: #999; font-style: italic; }
-		.feature-item .keywords-row { margin-top: 4px; margin-left: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
-		.feature-item .kw-badge { display: inline-flex; align-items: center; gap: 3px; background: #f0f4f8; border: 1px solid #dde4ec; border-radius: 4px; padding: 1px 8px; font-size: 0.75rem; color: #455a64; }
-		.feature-item .kw-badge .kw-type { font-weight: 700; color: #78909c; font-size: 0.65rem; }
-		.feature-item .kw-badge .kw-word { color: #37474f; }
-		.feature-item .kw-empty { font-size: 0.75rem; color: #bbb; margin-left: 4px; }
-		.feature-item .conf-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; }
-		.conf-badge.high { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-		.conf-badge.mid { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
-		.conf-badge.low { background: #fbe9e7; color: #c62828; border: 1px solid #ef9a9a; }
-		.feature-item .hl-badge { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; padding: 1px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; cursor: help; }
-		.hl-badge.short { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
-		.hl-badge.medium { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
-		.hl-badge.long { background: #f3e5f5; color: #7b1fa2; border: 1px solid #ce93d8; }
-		.hl-badge.permanent { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-		.keyword-legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
-		.keyword-legend .legend-item { display: inline-flex; align-items: center; gap: 3px; }
-		.keyword-legend .legend-kw-type { font-weight: 700; color: #78909c; }
-		.half-life-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; }
-		.half-life-legend .legend-title { font-weight: 600; color: #555; margin-right: 4px; }
-		.half-life-legend .legend-item { display: inline-flex; align-items: center; gap: 3px; }
-		.half-life-legend .hl-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
-		.hl-dot.short { background: #e65100; }
-		.hl-dot.medium { background: #1565c0; }
-		.hl-dot.long { background: #7b1fa2; }
-		.hl-dot.permanent { background: #2e7d32; }
-		.chat-list-item { display: flex; align-items: center; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; background: #fff; }
-		.chat-list-item:hover { border-color: #4a6cf7; background: #f8f9ff; }
-		.chat-list-item.selected { border-color: #4a6cf7; background: #eef1ff; box-shadow: 0 0 0 2px rgba(74,108,247,0.15); }
-		.chat-list-item .chat-title { flex: 1; font-weight: 500; font-size: 0.9rem; }
-		.chat-list-item .chat-sn { color: #999; font-size: 0.8rem; font-family: 'JetBrains Mono', 'Consolas', monospace; margin-left: 12px; }
-		.chat-list-area { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: none; }
-		.chat-list-area h3 { font-size: 1rem; margin-bottom: 12px; color: #1a1a2e; display: flex; align-items: center; gap: 8px; }
-		.chat-list-area .empty-msg { color: #999; text-align: center; padding: 24px; font-size: 0.9rem; }
-		.chat-list-area .chats-container { max-height: 400px; overflow-y: auto; }
-		/* ===== Spinner ===== */
+		.count-badge { background: #4a6cf7; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
 		@keyframes spin { to { transform: rotate(360deg); } }
-		.spinner {
-			display: inline-block;
-			width: 16px;
-			height: 16px;
-			border: 2.5px solid #ddd;
-			border-top-color: #4a6cf7;
-			border-radius: 50%;
-			animation: spin 0.7s linear infinite;
-			vertical-align: middle;
-			margin-right: 6px;
-		}
-		.spinner.spinner-sm { width: 14px; height: 14px; border-width: 2px; }
+		.spinner { display: inline-block; width: 16px; height: 16px; border: 2.5px solid #ddd; border-top-color: #4a6cf7; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+		.raw-toggle { font-size: 0.8rem; color: #4a6cf7; cursor: pointer; text-decoration: underline; margin-top: 8px; display: inline-block; }
+		.message-example { color: #999; font-size: 0.75rem; cursor: pointer; text-decoration: underline; margin-left: 8px; }
+		.message-example:hover { color: #4a6cf7; }
 	</style>
 </head>
 <body>
 	<div class="container">
-		<h1>🧠 BrainForever — 用户特征提取验证原型</h1>
+		<h1>🧠 BrainForever — 用户特征提取 Demo (JSON API)</h1>
 
 		<div class="controls" style="flex-direction: column; gap: 12px;">
-			<!-- Row 1: 数据库路径 -->
 			<div style="display:flex; gap:12px; align-items:flex-end; width:100%;">
 				<div class="control-group" style="flex:1;">
-					<label for="dbPath">数据库路径 (.db)</label>
-					<div style="display:flex; gap:8px;">
-						<input type="text" id="dbPath" placeholder="例如: ./localdb/chat.db" value="" style="flex:1;">
-						<button class="btn btn-primary" id="btnListChats" onclick="listChats()">📋 列出对话</button>
-					</div>
+					<label for="chatSn">对话 SN <span style="color:#999;font-weight:400;">（标识符，仅用于日志）</span></label>
+					<input type="text" id="chatSn" placeholder="例如: demo-test-001" value="demo-test-001">
 				</div>
-			</div>
-			<!-- Row 2: 对话 SN + 操作按钮 -->
-			<div style="display:flex; gap:12px; align-items:flex-end; width:100%;">
-				<div class="control-group">
-					<label for="chatSn">对话 SN <span style="color:#999;font-weight:400;">（从下方列表选择后自动填入）</span></label>
-					<input type="text" id="chatSn" placeholder="请先列出对话，然后点击选择" value="" readonly style="background:#f9f9f9; color:#555;">
+				<div class="control-group" style="flex:1;">
+					<label for="chatTitle">对话标题 <span style="color:#999;font-weight:400;">（可选）</span></label>
+					<input type="text" id="chatTitle" placeholder="例如: 关于编程的讨论" value="关于编程的讨论">
 				</div>
-				<div class="toolbar">
+				<div class="toolbar" style="display:flex; gap:8px; align-items:flex-end;">
 					<button class="btn btn-primary" id="btnStart" onclick="startExtraction()">🚀 开始提取</button>
-					<button class="btn btn-danger" id="btnStop" onclick="stopExtraction()" disabled>⏹ 停止</button>
-					<button class="btn" style="background:#eee" onclick="clearLog()">🗑 清除</button>
-					<span id="eventCount" class="count-badge">0 events</span>
+					<button class="btn" style="background:#eee" onclick="clearResult()">🗑 清除</button>
 				</div>
 			</div>
 		</div>
 
-		<!-- Chat list area: appears after clicking 列出对话 -->
-		<div id="chatListArea" class="chat-list-area">
-			<h3>💬 对话列表 <span id="chatCount" class="count-badge">0</span></h3>
-			<div id="chatsContainer" class="chats-container">
-				<div class="empty-msg">正在加载...</div>
+		<div class="controls" style="flex-direction: column;">
+			<div style="display:flex; gap:12px; align-items:center; width:100%;">
+				<div class="control-group" style="flex:1;">
+					<label for="messagesInput">对话消息（JSON 数组，每项含 role/content/create_at）<span class="message-example" onclick="fillExample()">填入示例数据</span></label>
+					<textarea id="messagesInput" rows="12" placeholder='[{"role":"user","content":"...","create_at":"2026-06-20 10:00:00"}]'></textarea>
+				</div>
 			</div>
-		</div>
-
-		<div id="featuresPanel" class="features-summary" style="display:none">
-			<h3>📋 提取结果 <span id="featuresCount" class="count-badge">0</span></h3>
-			<div id="keywordLegend" class="keyword-legend" style="display:none;">
-				<span class="legend-item"><span class="legend-kw-type">A</span>=时间</span>
-				<span class="legend-item"><span class="legend-kw-type">B</span>=地点</span>
-				<span class="legend-item"><span class="legend-kw-type">C</span>=人</span>
-				<span class="legend-item"><span class="legend-kw-type">D</span>=事物</span>
-				<span class="legend-item"><span class="legend-kw-type">E</span>=关系</span>
-				<span class="legend-item"><span class="legend-kw-type">F</span>=行为</span>
-			</div>
-			<div id="halfLifeLegend" class="half-life-legend" style="display:none;">
-				<span class="legend-title">⏳ 半衰期：</span>
-				<span class="legend-item"><span class="hl-dot short"></span> 短期(天~周)</span>
-				<span class="legend-item"><span class="hl-dot medium"></span> 中期(月~年)</span>
-				<span class="legend-item"><span class="hl-dot long"></span> 长期(年+)</span>
-				<span class="legend-item"><span class="hl-dot permanent"></span> 永久(已完成客观事实)</span>
-			</div>
-			<div id="featuresList"></div>
 		</div>
 
 		<div class="status-bar">
@@ -164,15 +76,51 @@
 			<span id="connectionInfo"></span>
 		</div>
 
-		<div id="eventLog" class="event-log">等待用户操作...</div>
+		<!-- Features summary panel -->
+		<div id="featuresPanel" class="features-summary" style="display:none">
+			<h3>📋 提取结果 <span id="featuresCount" class="count-badge">0</span></h3>
+			<div id="featuresList"></div>
+		</div>
+
+		<!-- Raw JSON result -->
+		<div>
+			<h2 style="display:flex; align-items:center; gap:8px;">
+				原始响应
+				<span id="rawCount" class="count-badge" style="font-size:0.7rem;">0</span>
+			</h2>
+			<pre id="resultPanel" class="result-panel">等待操作...</pre>
+		</div>
 	</div>
 
 	<script>
-		let eventSource = null;
-		let eventCount = 0;
-		let selectedSn = '';
+		// ============================================================
+		// Demo data helpers
+		// ============================================================
+		function fillExample() {
+			document.getElementById('messagesInput').value = JSON.stringify([
+				{"role":"user","content":"你好！我是小张，今年25岁，是一名程序员，主要用 Python 和 Go。最近工作压力大，经常失眠。","create_at":"2026-06-20 10:00:00"},
+				{"role":"assistant","content":"你好小张！很高兴认识你。作为一名程序员确实不容易，压力大是常见的问题。Python 和 Go 都是很好的语言。失眠的话建议可以适当运动放松一下。","create_at":"2026-06-20 10:00:30"},
+				{"role":"user","content":"是啊，我最近在学 Go 的并发编程，感觉 goroutine 和 channel 的设计很优雅。不过项目 deadline 快到了，每天加班到很晚。另外我养了一只猫，是我去年捡到的流浪猫，现在胖得不行了。","create_at":"2026-06-20 10:05:00"},
+				{"role":"assistant","content":"goroutine 和 channel 确实是 Go 语言的精华！养猫真不错，流浪猫遇到你也算是有福气了。不过加班太晚确实会影响健康，还是要适当调节工作和生活节奏。","create_at":"2026-06-20 10:06:00"},
+				{"role":"user","content":"哈哈谢谢关心。说到猫，我家那只叫「胖橘」，特别黏人。对了，我平时还喜欢打篮球，虽然水平一般，但周末经常和同事去打。不过最近因为加班已经三周没去打了。","create_at":"2026-06-20 10:10:00"}
+			], null, 2);
+			setStatus('已填入示例数据', 'done');
+		}
 
-		// ---- Spinner controls ----
+		// Auto-fill example on page load
+		document.addEventListener('DOMContentLoaded', function() {
+			fillExample();
+		});
+
+		// ============================================================
+		// JSON API extraction
+		// ============================================================
+		function escapeHtml(str) {
+			var div = document.createElement('div');
+			div.textContent = str;
+			return div.innerHTML;
+		}
+
 		function showSpinner() {
 			document.getElementById('spinnerIcon').style.display = 'inline-block';
 		}
@@ -180,230 +128,67 @@
 			document.getElementById('spinnerIcon').style.display = 'none';
 		}
 
-		// Try to load from localStorage
-		document.addEventListener('DOMContentLoaded', () => {
-			const savedDb = localStorage.getItem('traitDemo_dbPath');
-			const savedSn = localStorage.getItem('traitDemo_chatSn');
-			if (savedDb) document.getElementById('dbPath').value = savedDb;
-			if (savedSn) {
-				document.getElementById('chatSn').value = savedSn;
-				selectedSn = savedSn;
-			}
-		});
-
-		// ============================================================
-		// List chats: call /api/chats?db=<path> and display results
-		// ============================================================
-		function listChats() {
-			const dbPath = document.getElementById('dbPath').value.trim();
-			if (!dbPath) {
-				setStatus('请先输入数据库路径', 'error');
-				return;
-			}
-
-			// Save to localStorage
-			localStorage.setItem('traitDemo_dbPath', dbPath);
-
-			const area = document.getElementById('chatListArea');
-			const container = document.getElementById('chatsContainer');
-			const countBadge = document.getElementById('chatCount');
-
-			area.style.display = 'block';
-			container.innerHTML = '<div class="empty-msg"><span class="spinner spinner-sm"></span>正在加载对话列表...</div>';
-			countBadge.textContent = '0';
-
-			setStatus('正在获取对话列表...', '');
-			showSpinner();
-
-			fetch('/api/chats?db=' + encodeURIComponent(dbPath))
-				.then(function(resp) {
-					if (!resp.ok) {
-						return resp.text().then(function(t) { throw new Error(t); });
-					}
-					return resp.json();
-				})
-				.then(function(data) {
-					const chats = data.chats || [];
-					renderChatList(chats);
-					setStatus('已列出 ' + chats.length + ' 个对话', 'done');
-					hideSpinner();
-				})
-				.catch(function(err) {
-					container.innerHTML = '<div class="empty-msg" style="color:#e74c3c;">❌ 加载失败：' + escapeHtml(err.message) + '</div>';
-					setStatus('加载对话列表失败', 'error');
-					hideSpinner();
-				});
+		function setStatus(text, className) {
+			var el = document.getElementById('statusText');
+			el.textContent = text;
+			el.className = 'status-text' + (className ? ' ' + className : '');
 		}
 
-		function renderChatList(chats) {
-			const container = document.getElementById('chatsContainer');
-			const countBadge = document.getElementById('chatCount');
-
-			if (!chats || chats.length === 0) {
-				container.innerHTML = '<div class="empty-msg">没有找到对话记录</div>';
-				countBadge.textContent = '0';
-				return;
-			}
-
-			countBadge.textContent = chats.length;
-			container.innerHTML = '';
-
-			chats.forEach(function(chat) {
-				const item = document.createElement('div');
-				item.className = 'chat-list-item';
-				item.dataset.sn = chat.sn;
-				item.dataset.title = chat.title;
-
-				// Highlight if this SN was previously selected
-				if (chat.sn === selectedSn) {
-					item.classList.add('selected');
-				}
-
-				const titleSpan = document.createElement('span');
-				titleSpan.className = 'chat-title';
-				titleSpan.textContent = chat.title || '(无标题)';
-
-				const snSpan = document.createElement('span');
-				snSpan.className = 'chat-sn';
-				snSpan.textContent = chat.sn;
-
-				item.appendChild(titleSpan);
-				item.appendChild(snSpan);
-
-				item.addEventListener('click', function() {
-					selectChat(this);
-				});
-
-				container.appendChild(item);
-			});
-		}
-
-		function selectChat(el) {
-			// Remove selected class from all items
-			document.querySelectorAll('.chat-list-item').forEach(function(item) {
-				item.classList.remove('selected');
-			});
-			el.classList.add('selected');
-
-			const sn = el.dataset.sn;
-			const title = el.dataset.title;
-
-			document.getElementById('chatSn').value = sn;
-			selectedSn = sn;
-
-			// Save to localStorage
-			localStorage.setItem('traitDemo_chatSn', sn);
-
-			setStatus('已选择: ' + (title || '无标题') + ' (' + sn + ')', 'done');
-		}
-
-		function escapeHtml(str) {
-			const div = document.createElement('div');
-			div.textContent = str;
-			return div.innerHTML;
+		function clearResult() {
+			document.getElementById('resultPanel').textContent = '等待操作...';
+			document.getElementById('featuresPanel').style.display = 'none';
+			document.getElementById('rawCount').textContent = '0';
+			document.getElementById('connectionInfo').textContent = '';
+			hideSpinner();
+			setStatus('已清除', '');
 		}
 
 		// ============================================================
-		// SSE extraction (unchanged logic)
+		// Features display
 		// ============================================================
-
-		function appendEvent(eventType, data) {
-			const log = document.getElementById('eventLog');
-			eventCount++;
-			document.getElementById('eventCount').textContent = eventCount + ' events';
-
-			const entry = document.createElement('div');
-			entry.className = 'event-entry ' + eventType;
-
-			const label = document.createElement('span');
-			label.className = 'event-label';
-			label.textContent = '[' + eventType + ']';
-			entry.appendChild(label);
-
-			const dataStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-			const dataSpan = document.createElement('span');
-			dataSpan.className = 'json-data';
-			dataSpan.textContent = dataStr;
-			entry.appendChild(dataSpan);
-
-			log.appendChild(entry);
-			log.scrollTop = log.scrollHeight;
-
-			// Auto-show features panel when done
-			if (eventType === 'done' && data && data.features && data.features.length > 0) {
-				showFeatures(data.features);
-			}
-		}
-
-		// Keyword type display helpers
-		const KW_TYPE_NAMES = {A:'时间', B:'地点', C:'人', D:'事物', E:'关系', F:'行为'};
-		const KW_TYPE_SYMBOLS = {A:'A', B:'B', C:'C', D:'D', E:'E', F:'F'};
-
-		// Half-life display helpers
-		const HL_LABELS = {short:'短期', medium:'中期', long:'长期', permanent:'永久'};
-		const HL_TITLES = {short:'短期（天~周级）', medium:'中期（月~年级）', long:'长期（年+）', permanent:'永久（已完成的客观事件永不改变）'};
-		const HL_CLASSES = {short:'short', medium:'medium', long:'long', permanent:'permanent'};
+		var KW_TYPE_NAMES = {A:'时间', B:'地点', C:'人', D:'事物', E:'关系', F:'行为'};
+		var KW_TYPE_SYMBOLS = {A:'A', B:'B', C:'C', D:'D', E:'E', F:'F'};
+		var HL_LABELS = {short:'短期', medium:'中期', long:'长期', permanent:'永久'};
+		var HL_TITLES = {short:'短期（天~周级）', medium:'中期（月~年级）', long:'长期（年+）', permanent:'永久（已完成的客观事件永不改变）'};
+		var HL_CLASSES = {short:'short', medium:'medium', long:'long', permanent:'permanent'};
 
 		function showFeatures(features) {
-			const panel = document.getElementById('featuresPanel');
-			const list = document.getElementById('featuresList');
-			const countBadge = document.getElementById('featuresCount');
-			const legend = document.getElementById('keywordLegend');
-			const hlLegend = document.getElementById('halfLifeLegend');
+			var panel = document.getElementById('featuresPanel');
+			var list = document.getElementById('featuresList');
+			var countBadge = document.getElementById('featuresCount');
 			list.innerHTML = '';
 			panel.style.display = 'block';
 			countBadge.textContent = features.length;
 
-			// Check if any feature has keywords
-			let hasKeywords = features.some(function(f) { return f.keywords && f.keywords.length > 0; });
-			legend.style.display = hasKeywords ? 'flex' : 'none';
-
-			// Check if any feature has half_life
-			let hasHalfLife = features.some(function(f) { return f.half_life; });
-			hlLegend.style.display = hasHalfLife ? 'flex' : 'none';
-
-			features.forEach(function(f, i) {
-				const div = document.createElement('div');
+			features.forEach(function(f) {
+				var div = document.createElement('div');
 				div.className = 'feature-item';
 
-				// Feature text (escape to prevent XSS, fallback to placeholder if empty)
-				const featText = f.feature_text ? escapeHtml(f.feature_text) : '<span class="feature-text-empty">(空)</span>';
-
-				// Confidence level
-				const conf = (typeof f.confidence === 'number') ? f.confidence : 0;
-				let confClass = 'low';
-				let confLabel = '低';
+				var featText = f.feature_text ? escapeHtml(f.feature_text) : '(空)';
+				var conf = (typeof f.confidence === 'number') ? f.confidence : 0;
+				var confClass = 'low', confLabel = '低';
 				if (conf >= 8) { confClass = 'high'; confLabel = '高'; }
 				else if (conf >= 4) { confClass = 'mid'; confLabel = '中'; }
 
-				// Half-life display
-				const hl = f.half_life || '';
-				const hlLabel = HL_LABELS[hl] || '';
-				const hlTitle = HL_TITLES[hl] || '';
-				const hlClass = HL_CLASSES[hl] || '';
+				var hl = f.half_life || '';
+				var hlLabel = HL_LABELS[hl] || '';
+				var hlTitle = HL_TITLES[hl] || '';
+				var hlClass = HL_CLASSES[hl] || '';
 
-				// Build feature header with confidence badge and half-life badge
-				let html = '<span class="cat-badge">#' + f.category_id + ' ' + escapeHtml(f.category_name) + '</span> ';
+				var html = '<span class="cat-badge">#' + f.category_id + ' ' + escapeHtml(f.category_name) + '</span> ';
 				html += '<span class="feature-text">' + featText + '</span>';
-				html += '<span class="conf-badge ' + confClass + '" title="置信度：' + conf + '/10">● ' + confLabel + ' ' + conf + '</span>';
-				if (hl && hlLabel) {
-					html += '<span class="hl-badge ' + hlClass + '" title="半衰期：' + hlTitle + '">⏳ ' + hlLabel + '</span>';
-				}
 
-				// Build keywords row
 				if (f.keywords && f.keywords.length > 0) {
-					html += '<div class="keywords-row">';
+					html += '<div style="margin-top:4px; margin-left:4px; display:flex; gap:4px; flex-wrap:wrap;">';
 					f.keywords.forEach(function(kw) {
-						const typeLabel = KW_TYPE_SYMBOLS[kw.type] || '?' + kw.type;
-						const typeName = KW_TYPE_NAMES[kw.type] || '';
-						html += '<span class="kw-badge" title="' + typeName + '">';
-						html += '<span class="kw-type">' + typeLabel + '</span>';
-						html += '<span class="kw-word">' + escapeHtml(kw.word) + '</span>';
+						var typeLabel = KW_TYPE_SYMBOLS[kw.type] || '?' + kw.type;
+						var typeName = KW_TYPE_NAMES[kw.type] || '';
+						html += '<span style="display:inline-flex; align-items:center; gap:3px; background:#f0f4f8; border:1px solid #dde4ec; border-radius:4px; padding:1px 8px; font-size:0.75rem; color:#455a64;" title="' + typeName + '">';
+						html += '<span style="font-weight:700; color:#78909c; font-size:0.65rem;">' + typeLabel + '</span>';
+						html += '<span style="color:#37474f;">' + escapeHtml(kw.word) + '</span>';
 						html += '</span>';
 					});
 					html += '</div>';
-				} else {
-					html += '<div class="keywords-row"><span class="kw-empty">无关键词</span></div>';
 				}
 
 				div.innerHTML = html;
@@ -411,108 +196,86 @@
 			});
 		}
 
-		function setStatus(text, className) {
-			const el = document.getElementById('statusText');
-			el.textContent = text;
-			el.className = 'status-text' + (className ? ' ' + className : '');
-		}
-
-		function updateButtons(streaming) {
-			document.getElementById('btnStart').disabled = streaming;
-			document.getElementById('btnStop').disabled = !streaming;
-		}
-
-		function clearLog() {
-			document.getElementById('eventLog').innerHTML = '';
-			eventCount = 0;
-			document.getElementById('eventCount').textContent = '0 events';
-			document.getElementById('featuresPanel').style.display = 'none';
-			hideSpinner();
-		}
-
-		function stopExtraction() {
-			if (eventSource) {
-				eventSource.close();
-				eventSource = null;
-			}
-			setStatus('已停止', 'error');
-			hideSpinner();
-			updateButtons(false);
-		}
-
+		// ============================================================
+		// Start extraction — call POST /api/traits
+		// ============================================================
 		function startExtraction() {
-			const dbPath = document.getElementById('dbPath').value.trim();
-			const chatSn = document.getElementById('chatSn').value.trim();
+			var sn = document.getElementById('chatSn').value.trim();
+			var title = document.getElementById('chatTitle').value.trim();
+			var messagesRaw = document.getElementById('messagesInput').value.trim();
 
-			if (!dbPath) {
-				setStatus('请先输入数据库路径', 'error');
+			if (!sn) {
+				setStatus('请输入对话 SN', 'error');
 				return;
 			}
-			if (!chatSn) {
-				setStatus('请先点击"列出对话"，然后从列表中选择一个对话', 'error');
+			if (!messagesRaw) {
+				setStatus('请输入对话消息 JSON', 'error');
 				return;
 			}
 
-			// Clear previous log
-			clearLog();
-			setStatus('正在连接...', '');
+			var messages;
+			try {
+				messages = JSON.parse(messagesRaw);
+				if (!Array.isArray(messages) || messages.length === 0) {
+					throw new Error('messages 必须是非空数组');
+				}
+			} catch (e) {
+				setStatus('消息 JSON 解析失败: ' + e.message, 'error');
+				return;
+			}
+
+			clearResult();
+			setStatus('正在调用特征提取 API...', '');
 			showSpinner();
-			updateButtons(true);
-			document.getElementById('connectionInfo').textContent = 'db: ' + dbPath + ' | sn: ' + chatSn;
 
-			const url = '/api/traits?db=' + encodeURIComponent(dbPath) + '&sn=' + encodeURIComponent(chatSn);
+			var requestBody = JSON.stringify({
+				sn: sn,
+				title: title,
+				messages: messages
+			}, null, 2);
 
-			eventSource = new EventSource(url);
+			document.getElementById('connectionInfo').textContent = 'sn: ' + sn;
 
-			eventSource.onopen = function() {
-				setStatus('已连接，等待数据...', '');
-			};
-
-			eventSource.onmessage = function(event) {
-				try {
-					const msg = JSON.parse(event.data);
-					const eventType = msg.event || 'unknown';
-					const data = msg.data !== undefined ? msg.data : null;
-
-					appendEvent(eventType, data);
-
-					switch (eventType) {
-						case 'connected':
-							setStatus('已连接，正在提取...', '');
-							break;
-						case 'error':
-							setStatus('错误: ' + (typeof data === 'string' ? data : JSON.stringify(data)), 'error');
-							hideSpinner();
-							break;
-						case 'done':
-							setStatus('✅ 提取完成', 'done');
-							hideSpinner();
-							updateButtons(false);
-							eventSource.close();
-							eventSource = null;
-							break;
-					}
-				} catch (e) {
-					appendEvent('raw', event.data);
+			fetch('/api/traits', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: requestBody
+			})
+			.then(function(resp) {
+				if (!resp.ok) {
+					return resp.text().then(function(t) { throw new Error(t); });
 				}
-			};
+				return resp.json();
+			})
+			.then(function(data) {
+				hideSpinner();
 
-			eventSource.onerror = function(e) {
-				if (eventSource && eventSource.readyState === EventSource.CLOSED) {
-					setStatus('连接已关闭', 'error');
-					hideSpinner();
-					updateButtons(false);
-					eventSource = null;
+				// Display raw response
+				var panel = document.getElementById('resultPanel');
+				panel.textContent = JSON.stringify(data, null, 2);
+				document.getElementById('rawCount').textContent = (data.features || []).length;
+
+				if (data.error) {
+					setStatus('API 返回错误: ' + data.error, 'error');
+					return;
 				}
-			};
+
+				var features = data.features || [];
+				if (features.length > 0) {
+					showFeatures(features);
+					setStatus('✅ 提取完成，共 ' + features.length + ' 条特征', 'done');
+				} else {
+					setStatus('⚠️ 未提取到个人特征', '');
+				}
+			})
+			.catch(function(err) {
+				hideSpinner();
+				var panel = document.getElementById('resultPanel');
+				panel.textContent = '❌ 请求失败: ' + err.message;
+				document.getElementById('rawCount').textContent = '0';
+				setStatus('请求失败: ' + err.message, 'error');
+			});
 		}
-
-		// Handle page unload
-		window.addEventListener('beforeunload', function() {
-			if (eventSource) {
-				eventSource.close();
-			}
-		});
 	</script>
 </body>
 </html>
