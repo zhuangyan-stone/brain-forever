@@ -679,6 +679,32 @@ export async function sendChatMessage({ content, createdAt, stream, deepThink, w
     return response;
 }
 
+/**
+ * extractTraits 调用后端 API 提取指定对话的个人特征。
+ * 后端会从本地数据库读取消息，然后调用 remote-server 的 LLM 进行特征提取。
+ * @param {string} sn - 对话 SN
+ * @returns {Promise<{features: Array, usage?: object}|null>}
+ */
+export async function extractTraits(sn) {
+    if (!sn) return null;
+    try {
+        const response = await fetch('/api/chat/traits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ sn: sn }),
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            console.warn('提取特征失败:', response.status, errText);
+            return null;
+        }
+        return await response.json();
+    } catch (e) {
+        console.warn('提取特征出错:', e);
+        return null;
+    }
+}
+
 // ============================================================
 // 注册方法到 Alpine store + window — 供 HTML 模板中 @click 表达式调用
 // chat-api.js 是 ES Module，export 的函数不会进入全局作用域。

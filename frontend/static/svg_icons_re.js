@@ -28,4 +28,5 @@ export const ICON_TRASH_RESTORE = window.ICON_TRASH_RESTORE;
 export const ICON_COPY_MSG  = window.ICON_COPY_MSG;
 export const ICON_LOADING    = window.ICON_LOADING;
 export const ICON_DEEP_THINK = window.ICON_DEEP_THINK;
+export const ICON_USER       = window.ICON_USER;
 export const ICON_TRASH      = window.ICON_TRASH;

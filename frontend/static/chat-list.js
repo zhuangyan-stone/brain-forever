@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE } from './svg_icons_re.js';
@@ -425,7 +425,7 @@ function showContextMenu(e, chat) {
     // 导致菜单定位异常。e.currentTarget 始终指向事件绑定的按钮元素。
     const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 36 * 3 + 4 + 10; // 3 items * 36px + padding + separator
+    const menuHeight = 36 * 4 + 4 + 10; // 4 items * 36px + padding + separator
 
     const isSmallScreen = document.body.classList.contains('small-screen-mode');
     let left, top;
@@ -485,6 +485,16 @@ function showContextMenu(e, chat) {
         handleRename(chat);
     });
     menu.appendChild(renameItem);
+
+    // 提取个人特征
+    const traitItem = document.createElement('div');
+    traitItem.className = 'chat-context-menu-item';
+    traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> 提取个人特征';
+    traitItem.addEventListener('click', () => {
+        closeContextMenu();
+        handleExtractTraits(chat);
+    });
+    menu.appendChild(traitItem);
 
     // 分隔线
     const separator = document.createElement('div');
@@ -548,6 +558,53 @@ function closeContextMenu() {
 // ============================================================
 // 操作处理
 // ============================================================
+
+/**
+ * 提取个人特征 — 调用后端 API 提取指定对话的个人特征。
+ * 结果先打印到浏览器控制台。
+ */
+async function handleExtractTraits(chat) {
+    var sn = chat.sn;
+    if (!sn) {
+        showToast('无法提取特征：对话 SN 为空', 'error');
+        return;
+    }
+
+    showToast('正在提取个人特征...', 'info', 5000);
+
+    try {
+        const result = await extractTraits(sn);
+        if (!result) {
+            showToast('提取个人特征失败', 'error');
+            return;
+        }
+
+        if (result.error) {
+            showToast('提取个人特征出错: ' + result.error, 'error');
+            return;
+        }
+
+        // 打印结果到浏览器控制台
+        console.log('===== 个人特征提取结果 =====');
+        console.log('对话 SN:', sn);
+        console.log('特征数量:', (result.features || []).length);
+        console.log('特征详情:', JSON.stringify(result.features, null, 2));
+        if (result.usage) {
+            console.log('Token 用量:', result.usage);
+        }
+        console.log('=============================');
+
+        var featureCount = (result.features || []).length;
+        if (featureCount > 0) {
+            showToast('提取完成，共 ' + featureCount + ' 条特征', 'success');
+        } else {
+            showToast('未提取到个人特征', 'info');
+        }
+    } catch (e) {
+        console.error('提取个人特征异常:', e);
+        showToast('提取个人特征异常', 'error');
+    }
+}
 
 /**
  * 重命名对话

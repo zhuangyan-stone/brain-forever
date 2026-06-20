@@ -8,26 +8,23 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"BrainForever/infra/httpx"
-	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
-	"BrainForever/internal/local/store"
-	"BrainForever/internal/remote/agent"
 	"BrainForever/internal/remote/agent/toolimp"
 )
 
 // ============================================================
-// main — remote-server trait extraction prototype
+// main — remote-server trait extraction service
 //
 // Listens on :8088 and provides:
-//   - GET /api/health          — health check
-//   - GET /api/chats?db=<path> — list available chat sessions
-//   - GET /api/traits?db=<path>&sn=<sn> — SSE endpoint for trait extraction
-//   - /demo/                   — static files (demo page)
+//   - GET  /api/health       — health check
+//   - POST /api/traits       — trait extraction (JSON in/out)
+//   - /demo/                 — static files (demo page)
 // ============================================================
 
 func main() {
@@ -50,11 +47,8 @@ func main() {
 	// Health check
 	mux.HandleFunc("/api/health", handleHealth)
 
-	// List available chats in a database
-	mux.HandleFunc("/api/chats", handleListChats)
-
-	// SSE endpoint for trait extraction
-	mux.HandleFunc("/api/traits", handleTraitsSSE)
+	// JSON trait extraction endpoint (POST)
+	mux.HandleFunc("/api/traits", handleTraitsJSON)
 
 	// Serve demo static files
 	mux.Handle("/demo/", http.StripPrefix("/demo/", http.FileServer(http.Dir("cmd/remote-server/demo"))))
@@ -119,6 +113,31 @@ func main() {
 }
 
 // ============================================================
+// Request / Response types
+// ============================================================
+
+// traitsRequest is the JSON body for POST /api/traits.
+type traitsRequest struct {
+	SN       string      `json:"sn"`
+	Title    string      `json:"title"`
+	Messages []traitsMsg `json:"messages"`
+}
+
+// traitsMsg represents a single message in the request.
+type traitsMsg struct {
+	Role     string `json:"role"` // "user" or "assistant"
+	Content  string `json:"content"`
+	CreateAt string `json:"create_at"` // RFC3339 or "2006-01-02 15:04:05" format
+}
+
+// traitsResponse is the JSON response for POST /api/traits.
+type traitsResponse struct {
+	Features []toolimp.TripTraitsFeature `json:"features,omitempty"`
+	Usage    *llm.Usage                  `json:"usage,omitempty"`
+	Error    string                      `json:"error,omitempty"`
+}
+
+// ============================================================
 // Handlers
 // ============================================================
 
@@ -132,117 +151,84 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleListChats lists available chat sessions from a database.
+// handleTraitsJSON is the JSON trait extraction endpoint.
 //
-// Query params:
-//   - db: path to the SQLite database file (required)
-func handleListChats(w http.ResponseWriter, r *http.Request) {
-	dbPath := r.URL.Query().Get("db")
-	if dbPath == "" {
-		http.Error(w, `{"error":"missing 'db' query param"}`, http.StatusBadRequest)
-		return
-	}
-
-	chatStore, err := store.CreateLocalChatScheme(dbPath)
-	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"open db failed: %v"}`, err), http.StatusInternalServerError)
-		return
-	}
-	defer chatStore.Close()
-
-	chats, err := chatStore.ListChats(50)
-	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"list chats failed: %v"}`, err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"chats": chats,
-	})
-}
-
-// handleTraitsSSE is the SSE endpoint for user trait extraction.
+// Request: POST /api/traits
+// Body (JSON):
 //
-// Query params:
-//   - db: path to the SQLite database file (required)
-//   - sn: chat session SN to extract traits from (required)
+//	{
+//	  "sn": "chat-sn-xxx",
+//	  "title": "chat title",
+//	  "messages": [
+//	    {"role": "user", "content": "...", "create_at": "2026-06-20 10:00:00"},
+//	    {"role": "assistant", "content": "...", "create_at": "2026-06-20 10:01:00"}
+//	  ]
+//	}
 //
-// Flow:
-//  1. Opens the database, reads the chat session and its messages.
-//  2. Builds an LLM request with the trait extraction system prompt and tools.
-//  3. Calls DeepSeek's ChatWithOptions (non-streaming) with forced tool_choice.
-//  4. Sends progress status events to the frontend via SSE.
-//  5. Parses the tool call response, executes the trip_traits tool,
-//     and sends the result via SSE.
-func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
-	dbPath := r.URL.Query().Get("db")
-	sn := r.URL.Query().Get("sn")
-
-	if dbPath == "" || sn == "" {
-		http.Error(w, `{"error":"missing 'db' or 'sn' query param"}`, http.StatusBadRequest)
+// Response (JSON):
+//
+//	{
+//	  "features": [...],
+//	  "usage": {"prompt_tokens":..., "completion_tokens":..., "total_tokens":...}
+//	}
+func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
+	// Only accept POST
+	if r.Method != http.MethodPost {
+		writeJSONError(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	// ----------------------------------------------------------
-	// 1. Open database and read chat session + messages
+	// 1. Parse request body
 	// ----------------------------------------------------------
-	chatStore, err := store.CreateLocalChatScheme(dbPath)
-	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"open db failed: %v"}`, err), http.StatusInternalServerError)
-		return
-	}
-	defer chatStore.Close()
-
-	chat, err := chatStore.FindChatBySN(sn)
-	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"chat not found (sn=%s): %v"}`, sn, err), http.StatusNotFound)
+	var req traitsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, fmt.Sprintf("invalid JSON body: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	msgs, err := chatStore.ListMessages(chat.ID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
+	if req.SN == "" {
+		writeJSONError(w, "missing 'sn' field", http.StatusBadRequest)
+		return
+	}
+	if len(req.Messages) == 0 {
+		writeJSONError(w, "missing 'messages' field (empty array)", http.StatusBadRequest)
 		return
 	}
 
-	if len(msgs) == 0 {
-		http.Error(w, `{"error":"no messages in this chat"}`, http.StatusBadRequest)
-		return
-	}
+	log.Printf("[traits] processing sn=%s with %d messages", req.SN, len(req.Messages))
 
-	log.Printf("[traits] processing chat id=%d sn=%s with %d messages", chat.ID, sn, len(msgs))
-
+	// ----------------------------------------------------------
+	// 2. Build LLM messages from request data
+	// ----------------------------------------------------------
 	// Determine language for i18n system prompt
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
-		lang = "zh-CN" // Default to Chinese
+		lang = "zh-CN"
 	}
 
-	// ----------------------------------------------------------
-	// 2. Build LLM messages
-	// ----------------------------------------------------------
-	llmMsgs := make([]llm.Message, 0, 1+len(msgs))
+	llmMsgs := make([]llm.Message, 0, 1+len(req.Messages))
 	llmMsgs = append(llmMsgs, llm.Message{
 		Role:    llm.RoleSystem,
-		Content: getTraitSystemPrompt(lang, chat.Title),
+		Content: getTraitSystemPrompt(lang, req.Title),
 	})
 
-	for _, m := range msgs {
-		role := mapRole(m.Role)
-		if role == "" {
+	for _, m := range req.Messages {
+		role := m.Role
+		if role != llm.RoleUser && role != llm.RoleAssistant {
 			continue
 		}
 
 		// Add timestamp prefix [YYYY-MM-DD HH:MM:SS] to help the analyzing LLM
-		// understand when the conversation took place (especially for user messages)
 		content := m.Content
-		if !m.CreateAt.IsZero() {
-			content = "[" + m.CreateAt.In(time.Local).Format("2006-01-02 15:04:05") + "] " + content
+		if m.CreateAt != "" {
+			// Try to parse and reformat the timestamp
+			if t, err := parseCreateTime(m.CreateAt); err == nil {
+				content = "[" + t.Format("2006-01-02 15:04:05") + "] " + content
+			}
 		}
 
 		// For assistant messages: truncate to 1000 runes, skip reasoning
-		// (AI replies are less important than user messages for trait extraction)
 		if role == llm.RoleAssistant {
 			runes := []rune(content)
 			if len(runes) > 1024 {
@@ -250,11 +236,15 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		msg := llm.Message{
+		llmMsgs = append(llmMsgs, llm.Message{
 			Role:    role,
 			Content: content,
-		}
-		llmMsgs = append(llmMsgs, msg)
+		})
+	}
+
+	if len(llmMsgs) <= 1 {
+		writeJSONError(w, "no valid messages after filtering", http.StatusBadRequest)
+		return
 	}
 
 	// ----------------------------------------------------------
@@ -273,108 +263,106 @@ func handleTraitsSSE(w http.ResponseWriter, r *http.Request) {
 	client := llm.NewDeepSeekClient(baseURL, apiKey, "DEEPSEEK_API_KEY", model)
 
 	// ----------------------------------------------------------
-	// 4. Create tool and pipeline
+	// 4. Create tool and request
 	// ----------------------------------------------------------
 	tripTool := toolimp.NewTripTraitsTool(lang)
-	toolsImp := []llm.ToolIMP{tripTool}
 
-	// Set up SSE
-	sw := sse.NewSSEWriter(w)
-	pipeline := agent.NewTraitPipeline(sw, toolsImp)
-
-	// Send initial event to confirm connection
-	pipeline.WriteEvent("connected", map[string]interface{}{
-		"chat_title":    chat.Title,
-		"message_count": len(msgs),
-	})
-
-	// Send status: preparing the LLM request
-	pipeline.WriteEvent("status", "preparing_request")
-
-	// ----------------------------------------------------------
-	// 5. Build the non-streaming request with tools
-	// ----------------------------------------------------------
-	req := llm.ChatCompletionRequest{
+	reqBody := llm.ChatCompletionRequest{
 		Model:    model,
 		Messages: llmMsgs,
-		Tools:    pipeline.GetToolDefines(),
+		Tools:    []llm.ToolDefinition{tripTool.GetDefinition()},
 	}
 
 	// Force tool choice — only allow the LLM to call the trip_traits tool.
-	req.ForceToolChoice(toolimp.TripTraitsToolName)
+	reqBody.ForceToolChoice(toolimp.TripTraitsToolName)
 
-	// Debug: log tool_choice and tool names being sent to the API.
-	log.Printf("[traits] sending request: model=%s, tool_choice=%s, tool_count=%d, message_count=%d",
-		req.Model, string(req.ToolChoice), len(req.Tools), len(req.Messages))
-	for i, td := range req.Tools {
-		if td.Function.Strict != nil {
-			log.Printf("[traits]   tool[%d]: name=%s, strict=%v", i, td.Function.Name, *td.Function.Strict)
-		} else {
-			log.Printf("[traits]   tool[%d]: name=%s, strict=nil", i, td.Function.Name)
-		}
-	}
+	// Disable thinking to reduce latency and cost
+	reqBody.Thinking = &llm.ThinkingConfig{Type: "disabled"}
 
-	// Disable thinking to reduce latency and cost (trait extraction only needs function calling).
-	req.Thinking = &llm.ThinkingConfig{Type: "disabled"}
+	// Debug: log request info
+	log.Printf("[traits] sending LLM request: model=%s, message_count=%d",
+		reqBody.Model, len(reqBody.Messages))
 
 	// ----------------------------------------------------------
-	// 6. Call DeepSeek API (non-streaming) and parse response
+	// 5. Call DeepSeek API (non-streaming)
 	// ----------------------------------------------------------
-	pipeline.WriteEvent("status", "calling_llm")
-
-	resp, err := client.ChatWithOptions(r.Context(), req)
+	resp, err := client.ChatWithOptions(r.Context(), reqBody)
 	if err != nil {
-		pipeline.OnError(fmt.Errorf("LLM call failed: %w", err))
+		log.Printf("[traits] LLM call failed: %v", err)
+		writeJSONError(w, fmt.Sprintf("LLM call failed: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Extract usage info if available
+	// ----------------------------------------------------------
+	// 6. Parse tool calls from the non-streaming response
+	// ----------------------------------------------------------
+	result := traitsResponse{}
+
+	// Store usage info
 	if resp.Usage != nil && resp.Usage.TotalTokens > 0 {
-		pipeline.WriteEvent("usage", resp.Usage)
+		result.Usage = resp.Usage
 	}
 
-	pipeline.WriteEvent("status", "processing_result")
-
-	// ----------------------------------------------------------
-	// 7. Parse tool calls from the non-streaming response
-	// ----------------------------------------------------------
 	if len(resp.Choices) > 0 && resp.Choices[0].FinishReason == "tool_calls" {
 		msg := resp.Choices[0].Message
 		for _, tc := range msg.ToolCalls {
 			log.Printf("[trip_traits] toolCall: name=%q, arguments=%s", tc.Function.Name, tc.Function.Arguments)
-			if err := pipeline.Pending(tc.ID, tc.Function.Name, tc.Function.Arguments); err != nil {
-				pipeline.OnError(fmt.Errorf("set tool arguments failed: %w", err))
+			if err := tripTool.SetArgument(tc.Function.Arguments); err != nil {
+				log.Printf("[trip_traits] set argument failed: %v", err)
 				continue
 			}
-			if _, err := pipeline.Call(tc.ID, tc.Function.Name); err != nil {
-				pipeline.OnError(fmt.Errorf("execute tool failed: %w", err))
+			if _, err := tripTool.Execute(); err != nil {
+				log.Printf("[trip_traits] execute failed: %v", err)
 				continue
 			}
 		}
 
-		result := tripTool.GetTraitsResult()
-		pipeline.WriteEvent("tool_result", result)
+		traitsResult := tripTool.GetTraitsResult()
+		result.Features = traitsResult.Features
 	} else if len(resp.Choices) > 0 && resp.Choices[0].Message.Content != "" {
-		// Fallback: if the LLM returned text instead of a tool call
-		pipeline.WriteEvent("fallback_text", resp.Choices[0].Message.Content)
+		// Fallback: try to parse JSON from the text response
+		log.Printf("[traits] no tool call, got text response instead, length=%d", len(resp.Choices[0].Message.Content))
+		result.Error = "LLM returned text instead of tool call"
 	}
 
-	// Signal completion
-	pipeline.WriteEvent("done", map[string]interface{}{
-		"chat_id":  chat.ID,
-		"chat_sn":  sn,
-		"features": tripTool.GetTraitsResult().Features,
-	})
+	// ----------------------------------------------------------
+	// 7. Write response
+	// ----------------------------------------------------------
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
-// mapRole converts the store's role int (0=user, 1=assistant) to an LLM role string.
-func mapRole(role int8) string {
-	switch role {
-	case 0:
-		return llm.RoleUser
-	case 1:
-		return llm.RoleAssistant
-	default:
-		return ""
+// ============================================================
+// Helpers
+// ============================================================
+
+// writeJSONError writes a JSON error response with the given status code.
+func writeJSONError(w http.ResponseWriter, msg string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(traitsResponse{Error: msg})
+}
+
+// parseCreateTime tries to parse a timestamp string in various formats.
+func parseCreateTime(s string) (time.Time, error) {
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02 15:04:05 -07:00",
 	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			return t, nil
+		}
+	}
+	// If trimming whitespace, try again
+	s = strings.TrimSpace(s)
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("cannot parse time: %s", s)
 }
