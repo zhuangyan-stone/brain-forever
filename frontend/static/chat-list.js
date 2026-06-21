@@ -520,7 +520,7 @@ function showContextMenu(e, chat) {
     traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
    
     if (traitDisabled) {
-    	traitItem.classList.add('chat-context-menu-item-disabled');
+    	traitItem.classList.add('chat-context-menu-item-success');
     } else {
     	traitItem.addEventListener('click', () => {
     		closeContextMenu();

@@ -321,6 +321,15 @@
     background: transparent;
 }
 
+/* 成功态菜单项 — 仅视觉，不可点击（用于“个人特征已提取”等） */
+.chat-context-menu-item-success {
+    color: var(--success-text);
+    cursor: default;
+}
+.chat-context-menu-item-success:hover {
+    background: transparent;
+}
+
 /* 菜单分隔线 */
 .chat-context-menu-separator {
     height: 1px;
