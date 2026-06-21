@@ -27,8 +27,8 @@ import (
 //  6. Local-server returns the result to the frontend
 //
 // Traits DB naming:
-//   - Anonymous: localdb/anonymous.traits.db
-//   - Logged-in: localdb/{userNo}.traits.db
+//   - Anonymous: localdb/anonymous.brain.db
+//   - Logged-in: localdb/{userNo}.brain.db
 // ============================================================
 
 // traitsFrontendRequest is the request from the frontend to local-server.
@@ -110,11 +110,11 @@ func keywordTypeToInt(t string) int {
 }
 
 // userTraitsDBPath returns the traits database path for the given user.
-// Anonymous users get "localdb/anonymous.traits.db".
-// Logged-in users get "localdb/{userNo}.traits.db".
+// Anonymous users get "localdb/anonymous.brain.db".
+// Logged-in users get "localdb/{userNo}.brain.db".
 func userTraitsDBPath(userNo string) string {
 	if userNo == "" {
-		return "localdb/anonymous.traits.db"
+		return "localdb/anonymous.brain.db"
 	}
 	return "localdb/" + userNo + ".traits.db"
 }
