@@ -72,6 +72,11 @@ type traitsRemoteResponse struct {
 	Features []traitsFeature `json:"features,omitempty"`
 	Usage    interface{}     `json:"usage,omitempty"`
 	Error    string          `json:"error,omitempty"`
+
+	// Extraction state — returned to frontend so it can update the
+	// chat list without needing a separate API call or client-side guess.
+	ExtractedAt           *string `json:"extracted_at,omitempty"`
+	ExtractedMessageCount int     `json:"extracted_message_count,omitempty"`
 }
 
 // halfLifeToInt converts the half-life string from the remote-server to an integer.
@@ -216,8 +221,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	if foundChat.ExtractedAt != nil && foundChat.ExtractedMessageCount >= len(dbMessages) {
 		log.Printf("[traits] all %d messages already extracted for sn=%s, skipping LLM call",
 			len(dbMessages), req.SN)
+		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(traitsRemoteResponse{Features: []traitsFeature{}})
+		json.NewEncoder(w).Encode(traitsRemoteResponse{
+			Features:              []traitsFeature{},
+			ExtractedAt:           &extractedAtStr,
+			ExtractedMessageCount: foundChat.ExtractedMessageCount,
+		})
 		return
 	}
 
@@ -377,8 +387,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[traits] extraction progress updated: sn=%s, msg_count=%d", req.SN, len(dbMessages))
 
 	// ----------------------------------------------------------
-	// 9. Return response to frontend
+	// 9. Populate extraction state in response, then return
 	// ----------------------------------------------------------
+	if foundChat.ExtractedAt != nil {
+		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
+		remoteResp.ExtractedAt = &extractedAtStr
+		remoteResp.ExtractedMessageCount = foundChat.ExtractedMessageCount
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(remoteResp)
 

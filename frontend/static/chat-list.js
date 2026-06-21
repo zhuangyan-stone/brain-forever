@@ -627,6 +627,15 @@ async function handleExtractTraits(chat) {
         }
         console.log('=============================');
 
+        // 从后端响应中读取最新的提取状态，更新 chat 对象
+        // 使右键菜单立即反映最新状态，无需猜测或本地计算
+        if (result.extracted_at) {
+            chat.extracted_at = result.extracted_at;
+        }
+        if (typeof result.extracted_message_count === 'number') {
+            chat.extracted_message_count = result.extracted_message_count;
+        }
+
         var featureCount = (result.features || []).length;
         if (featureCount > 0) {
             showToast('提取完成，共 ' + featureCount + ' 条特征', 'success');
