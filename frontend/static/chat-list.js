@@ -620,8 +620,8 @@ async function handleExtractTraits(chat) {
         // 打印结果到浏览器控制台
         console.log('===== 个人特征提取结果 =====');
         console.log('对话 SN:', sn);
-        console.log('特征数量:', (result.features || []).length);
-        console.log('特征详情:', JSON.stringify(result.features, null, 2));
+        console.log('新增特征数量:', (result.features || []).length);
+        console.log('新增特征:', JSON.stringify(result.features, null, 2));
         if (result.usage) {
             console.log('Token 用量:', result.usage);
         }
