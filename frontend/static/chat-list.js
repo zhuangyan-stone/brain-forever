@@ -638,9 +638,9 @@ async function handleExtractTraits(chat) {
 
         var featureCount = (result.features || []).length;
         if (featureCount > 0) {
-            showToast('提取完成，共 ' + featureCount + ' 条特征', 'success');
+            showToast('提取完成，新增 ' + featureCount + ' 条特征', 'success');
         } else {
-            showToast('未提取到个人特征', 'info');
+            showToast('未提取到新的个人特征', 'info');
         }
     } catch (e) {
         console.error('提取个人特征异常:', e);
