@@ -311,6 +311,16 @@
     background: var(--error-bg);
 }
 
+/* 禁用菜单项 — 灰色不可点击 */
+.chat-context-menu-item-disabled {
+    color: var(--text-tertiary, var(--text-secondary));
+    cursor: default;
+    opacity: 0.55;
+}
+.chat-context-menu-item-disabled:hover {
+    background: transparent;
+}
+
 /* 菜单分隔线 */
 .chat-context-menu-separator {
     height: 1px;

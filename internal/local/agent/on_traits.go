@@ -210,6 +210,18 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[traits] read %d messages from DB for sn=%s", len(dbMessages), req.SN)
 
 	// ----------------------------------------------------------
+	// 3.1 Early short-circuit: if all messages have already been
+	//     extracted, return empty result without calling LLM.
+	// ----------------------------------------------------------
+	if foundChat.ExtractedAt != nil && foundChat.ExtractedMessageCount >= len(dbMessages) {
+		log.Printf("[traits] all %d messages already extracted for sn=%s, skipping LLM call",
+			len(dbMessages), req.SN)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(traitsRemoteResponse{Features: []traitsFeature{}})
+		return
+	}
+
+	// ----------------------------------------------------------
 	// 4. Convert messages to traits request format
 	// ----------------------------------------------------------
 	msgs := make([]traitsMsg, 0, len(dbMessages))
@@ -351,6 +363,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, len(dbMessages)); err != nil {
 		log.Printf("[traits] update extraction progress failed (non-fatal): %v", err)
+	} else {
+		// Sync in-memory struct to match DB — this ensures the
+		// early short-circuit check works on subsequent calls
+		// within the same session without needing a reload.
+		now := time.Now()
+		foundChat.ExtractedAt = &now
+		foundChat.ExtractedMessageCount = len(dbMessages)
 	}
 	if err := chatsStore.MarkMessagesExtracted(foundChat.ID, maxGroupIndex); err != nil {
 		log.Printf("[traits] mark messages extracted failed (non-fatal): %v", err)

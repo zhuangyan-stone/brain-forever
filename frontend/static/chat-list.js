@@ -486,14 +486,53 @@ function showContextMenu(e, chat) {
     });
     menu.appendChild(renameItem);
 
-    // 提取个人特征
+    // 提取个人特征 — 根据提取状态决定是否可用
     const traitItem = document.createElement('div');
     traitItem.className = 'chat-context-menu-item';
-    traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> 提取个人特征';
-    traitItem.addEventListener('click', () => {
-        closeContextMenu();
-        handleExtractTraits(chat);
-    });
+   
+    // 判断是否为活跃对话
+    const chatsStore = window.Alpine.store('chats');
+    const isActive = chatsStore && chat.sn === chatsStore.activeChatSN;
+    const hasExtracted = !!chat.extracted_at;
+   
+    let traitDisabled = false;
+    let traitLabel = '提取个人特征';
+   
+    if (hasExtracted) {
+    	if (isActive) {
+    		// 活跃对话：计算实际消息数（user + assistant）
+    		let actualMsgCount = 0;
+    		if (chatsStore.active && chatsStore.active.groups) {
+    			for (const g of chatsStore.active.groups) {
+    				actualMsgCount++; // user message
+    				if (g.assistant && g.assistant.content) {
+    					actualMsgCount++; // assistant message
+    				}
+    			}
+    		}
+    		if (chat.extracted_message_count >= actualMsgCount) {
+    			traitDisabled = true;
+    			traitLabel = '个人特征已提取';
+    		} else {
+    			traitLabel = '继续提取个人特征';
+    		}
+    	} else {
+    		// 非活跃对话：已有提取记录则禁用
+    		traitDisabled = true;
+    		traitLabel = '个人特征已提取';
+    	}
+    }
+   
+    traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
+   
+    if (traitDisabled) {
+    	traitItem.classList.add('chat-context-menu-item-disabled');
+    } else {
+    	traitItem.addEventListener('click', () => {
+    		closeContextMenu();
+    		handleExtractTraits(chat);
+    	});
+    }
     menu.appendChild(traitItem);
 
     // 分隔线
