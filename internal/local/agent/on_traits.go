@@ -272,7 +272,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		// Read existing traits for this chat from the trait DB
 		vs, err := session.ensureTraitsStore(h.embedder.Dimension(), h.logger)
 		if err == nil {
-			existingTraits, listErr := vs.ListTraitsByChat(foundChat.ID)
+			existingTraits, listErr := vs.ListTraitsByChat(foundChat.SN)
 			if listErr == nil && len(existingTraits) > 0 {
 				var sb strings.Builder
 				for i, t := range existingTraits {
@@ -362,7 +362,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// 7. Embed each trait and store into user-specific traits DB
 	// ----------------------------------------------------------
 	if len(remoteResp.Features) > 0 {
-		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.ID); err != nil {
+		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN); err != nil {
 			log.Printf("[traits] store traits failed (non-fatal): %v", err)
 			// Non-fatal: still return features to frontend even if storage fails
 		}
@@ -402,8 +402,8 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 // storeTraitsInSession embeds each trait feature and stores it along with keywords
 // into the session's per-user traits database.
-// chatID is the source chat ID (chat_sessions.id), stored in the trait record for traceability.
-func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatID int64) error {
+// chatSN is the source chat SN (chat_sessions.sn), stored in the trait record for traceability.
+func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) error {
 	emb := h.embedder
 	embedderDim := emb.Dimension()
 
@@ -426,13 +426,13 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 			continue
 		}
 
-		// Store the trait (with source chat_id)
+		// Store the trait (with source chat_sn)
 		trait := &store.PersonalTrait{
 			Trait:      f.FeatureText,
 			Category:   f.CategoryID,
 			Confidence: f.Confidence,
 			HalfLife:   halfLifeToInt(f.HalfLife),
-			ChatID:     chatID,
+			ChatSN:     chatSN,
 		}
 
 		traitID, err := vs.AddTrait(ctx, trait, vector)
