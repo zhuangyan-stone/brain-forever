@@ -291,8 +291,8 @@ func (s *ChatStore) ListDeletedChats(n int) ([]Chat, error) {
 	var chats []Chat
 	err := s.db.Select(&chats,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
-		        trait_time, extracted_message_count,
-		        deleted, pinned, category, create_at, update_at
+		    trait_time, extracted_message_count,
+		    deleted, pinned, category, create_at, update_at
 		 FROM chat_sessions
 		 WHERE deleted = 1
 		 ORDER BY update_at DESC
