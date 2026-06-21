@@ -303,3 +303,12 @@ keyword  : “民俗”
 用户与 AI 的对话标题：{{.ChatTitle}}，对话历史消息附后。请调用 trip_traits 工具输出提取结果。
 ----
 """
+
+[existing_traits_constraint]
+other = """
+[已有特征约束]
+以下特征是本次对话中已经提取过的特征，**不要重复提取**：
+{{.ExistingTraitsSummary}}
+
+请在通读全部对话内容的基础上，重点关注尚未提取过的消息片段，从中提取**新的**个人特征。
+"""

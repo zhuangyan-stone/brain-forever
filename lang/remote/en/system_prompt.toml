@@ -309,3 +309,12 @@ The title of this conversation is: {{.ChatTitle}}. The conversation history is a
 ----
 Please call the trip_traits tool to output the extraction results.
 """
+
+[existing_traits_constraint]
+other = """
+[Existing Traits Constraint]
+The following traits have already been extracted from this conversation. **Do not extract them again**:
+{{.ExistingTraitsSummary}}
+
+Please read through the entire conversation and focus on the messages that have not yet been processed, extracting **new** personal traits from them.
+"""

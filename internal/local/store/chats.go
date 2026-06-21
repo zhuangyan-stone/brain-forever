@@ -423,6 +423,46 @@ func (s *ChatStore) EmptyTrash() error {
 	return nil
 }
 
+// ============================================================
+// Extraction progress management
+// ============================================================
+
+// UpdateExtractionProgress updates the trait extraction progress for a chat.
+// Sets trait_time to now() and updates the extracted message count.
+func (s *ChatStore) UpdateExtractionProgress(chatID int64, extractedCount int) error {
+	result, err := s.db.Exec(
+		`UPDATE chat_sessions
+		 SET trait_time = CURRENT_TIMESTAMP,
+		     extracted_message_count = ?
+		 WHERE id = ?`,
+		extractedCount, chatID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update extraction progress: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("chat not found (id=%d)", chatID)
+	}
+	return nil
+}
+
+// MarkMessagesExtracted marks all messages in a chat up to (and including) the
+// given group_index as extracted (extracted = 1). This is called after a
+// successful trait extraction to record which messages have been processed.
+func (s *ChatStore) MarkMessagesExtracted(chatID int64, upToGroupIndex int) error {
+	_, err := s.db.Exec(
+		`UPDATE chat_messages
+		 SET extracted = 1
+		 WHERE chat_id = ? AND group_index <= ? AND extracted = 0`,
+		chatID, upToGroupIndex,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to mark messages as extracted: %w", err)
+	}
+	return nil
+}
+
 // Close closes the database connection.
 func (s *ChatStore) Close() error {
 	return s.db.Close()

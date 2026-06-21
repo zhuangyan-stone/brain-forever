@@ -25,6 +25,7 @@ type PersonalTrait struct {
 	Category   int       `db:"category"`   // 特征分类 1~14
 	Confidence int       `db:"confidence"` // 置信度（整数）
 	HalfLife   int       `db:"half_life"`  // 半衰期 1-短期,2-中期,3-长期,4-永久
+	ChatID     int64     `db:"chat_id"`    // 来源 chat ID (chat_sessions.id)
 	Score      float64   `db:"-"`          // 相似度分数（仅搜索结果使用，不持久化）
 	CreateAt   time.Time `db:"create_at"`
 	UpdateAt   time.Time `db:"update_at"`
@@ -99,6 +100,7 @@ func (s *VectorStore) initSchema() error {
 			category   INTEGER NOT NULL,
 			confidence INTEGER NOT NULL,
 			half_life  INTEGER NOT NULL,
+			chat_id    INTEGER NOT NULL DEFAULT 0,
 			create_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
@@ -117,6 +119,7 @@ func (s *VectorStore) initSchema() error {
 		CREATE INDEX IF NOT EXISTS idx_traits_category   ON traits(category);
 		CREATE INDEX IF NOT EXISTS idx_traits_half_life  ON traits(half_life);
 		CREATE INDEX IF NOT EXISTS idx_traits_create_at  ON traits(create_at);
+		CREATE INDEX IF NOT EXISTS idx_traits_chat_id    ON traits(chat_id);
 
 		-- Indexes for keywords table
 		CREATE INDEX IF NOT EXISTS idx_keywords_trait_id ON keywords(trait_id);
@@ -141,8 +144,14 @@ func (s *VectorStore) initSchema() error {
 		END;
 	`, s.dimension)
 
-	_, err := s.db.Exec(schema)
-	return err
+	if _, err := s.db.Exec(schema); err != nil {
+		return err
+	}
+
+	// Migration: add chat_id column for existing databases
+	s.db.Exec("ALTER TABLE traits ADD COLUMN chat_id INTEGER NOT NULL DEFAULT 0")
+
+	return nil
 }
 
 // ============================================================
@@ -159,10 +168,10 @@ func (s *VectorStore) AddTrait(ctx context.Context, trait *PersonalTrait, embedd
 	}
 	defer tx.Rollback()
 
-	// Insert trait
+	// Insert trait (including chat_id)
 	result, err := tx.Exec(
-		"INSERT INTO traits(trait, category, confidence, half_life) VALUES(?, ?, ?, ?)",
-		trait.Trait, trait.Category, trait.Confidence, trait.HalfLife,
+		"INSERT INTO traits(trait, category, confidence, half_life, chat_id) VALUES(?, ?, ?, ?, ?)",
+		trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.ChatID,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert trait. %w", err)
@@ -281,8 +290,9 @@ func (s *VectorStore) Search(query []float32, category int, topK int) ([]Persona
 // ============================================================
 
 // SearchByKeyword finds traits by matching keywords.
-// word uses LIKE fuzzy matching; kind uses exact match.
+// word uses exact match; kind uses exact match.
 // Both word and kind are required to be non-zero (guaranteed by caller).
+// Uses idx_keywords_word + idx_keywords_kind indexes for fast lookup.
 // Returns distinct traits matching the criteria, ordered by trait ID descending.
 func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]PersonalTrait, error) {
 	if limit <= 0 {
@@ -294,10 +304,10 @@ func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]Perso
 		                t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
-		 WHERE k.word LIKE ? AND k.kind = ?
+		 WHERE k.word = ? AND k.kind = ?
 		 ORDER BY t.id DESC
 		 LIMIT ?`,
-		"%"+word+"%", kind, limit,
+		word, kind, limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("keyword search failed. %w", err)
@@ -365,6 +375,43 @@ func (s *VectorStore) Delete(id int64) error {
 // ============================================================
 // Close
 // ============================================================
+
+// ============================================================
+// ListTraitsByChat -list all traits for a specific chat
+// ============================================================
+
+// ListTraitsByChat returns all traits that belong to the given chat_id,
+// ordered by create_at descending (newest first).
+func (s *VectorStore) ListTraitsByChat(chatID int64) ([]PersonalTrait, error) {
+	rows, err := s.db.Query(
+		`SELECT id, trait, category, confidence, half_life, chat_id, create_at, update_at
+		 FROM traits
+		 WHERE chat_id = ?
+		 ORDER BY create_at DESC`,
+		chatID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list traits by chat failed: %w", err)
+	}
+	defer rows.Close()
+
+	var results []PersonalTrait
+	for rows.Next() {
+		var pt PersonalTrait
+		var createAtStr, updateAtStr string
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatID, &createAtStr, &updateAtStr); err != nil {
+			return nil, err
+		}
+		pt.CreateAt, _ = time.Parse("2006-01-02 15:04:05", createAtStr)
+		pt.UpdateAt, _ = time.Parse("2006-01-02 15:04:05", updateAtStr)
+		results = append(results, pt)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
 
 // Close closes the database connection.
 func (s *VectorStore) Close() error {
