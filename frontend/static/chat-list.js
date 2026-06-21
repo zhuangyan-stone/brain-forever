@@ -500,16 +500,10 @@ function showContextMenu(e, chat) {
    
     if (hasExtracted) {
     	if (isActive) {
-    		// 活跃对话：计算实际消息数（user + assistant）
-    		let actualMsgCount = 0;
-    		if (chatsStore.active && chatsStore.active.groups) {
-    			for (const g of chatsStore.active.groups) {
-    				actualMsgCount++; // user message
-    				if (g.assistant && g.assistant.content) {
-    					actualMsgCount++; // assistant message
-    				}
-    			}
-    		}
+    		// 活跃对话：按 groups 数量估算消息数（user + assistant）
+    		const actualMsgCount = (chatsStore.active && chatsStore.active.groups)
+    			? chatsStore.active.groups.length * 2
+    			: 0;
     		if (chat.extracted_message_count >= actualMsgCount) {
     			traitDisabled = true;
     			traitLabel = '个人特征已提取';
