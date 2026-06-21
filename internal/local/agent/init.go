@@ -53,23 +53,6 @@ func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embed
 	return e
 }
 
-// InitVectorStore creates a VectorStore (knowledge base / trait search).
-// dimension is passed explicitly since embedding is now done externally.
-func InitVectorStore(cfg config.VectorStoreConfig, dimension int, logger zylog.Logger) (*store.VectorStore, error) {
-	dbPath := cfg.DBPath
-	if dbPath == "" {
-		dbPath = "./localdb/brain.db"
-	}
-
-	vs, err := store.NewVectorStore(dbPath, dimension, logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
-	}
-
-	logger.Infof("✓ VectorStore initialized: %s (dimension=%d)", dbPath, dimension)
-	return vs, nil
-}
-
 // InitLLMClient creates an LLM chat completion client.
 func InitLLMClient(cfg config.ChatLLMConfig, logger zylog.Logger) llm.Client {
 	envKey := cfg.EnvKey
@@ -165,27 +148,21 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// 1. Initialize Embedder
 	embeddingClient := InitEmbedder(cfg.Embedder, logger)
 
-	// 2. Initialize VectorStore
-	vectorStore, err := InitVectorStore(cfg.VectorStore, embeddingClient.Dimension(), logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize vector store: %w", err)
-	}
-
-	// 3. Initialize Chat LLM Client
+	// 2. Initialize Chat LLM Client
 	chatLLMClient := InitLLMClient(cfg.ChatLLM, logger)
 
-	// 4. Initialize Web Search Client
+	// 3. Initialize Web Search Client
 	webSearchClient := InitWebSearchClient(cfg.WebSearch, logger)
 
-	// 5. Initialize anonymous user ChatStore (localdb/anonymous.chats.db)
+	// 4. Initialize anonymous user ChatStore (localdb/anonymous.chats.db)
 	anonymousStore, err := store.CreateLocalChatScheme("localdb/anonymous.chats.db")
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize anonymous chat store: %w", err)
 	}
 
-	// 6. Create ChatHandler
+	// 5. Create ChatHandler
 	chatHandler := NewChatHandler(
-		&traitSearchAdapter{store: vectorStore, embedder: embeddingClient},
+		embeddingClient,
 		webSearchClient,
 		chatLLMClient,
 		cookieName,

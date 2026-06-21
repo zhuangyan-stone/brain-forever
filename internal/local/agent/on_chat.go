@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"BrainForever/infra/embedder"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/infra/zylog"
@@ -256,8 +257,8 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 // The frontend only needs to send the user's latest message each time,
 // and ChatAgent merges messages with new messages before sending to the actual LLM.
 type ChatAgent struct {
-	traitSearcher toolimp.TraitSearcher // Personal knowledge base (RAG) search
-	webSearcher   toolimp.WebSearcher   // Web search interface
+	embedder    embedder.Embedder   // Text embedder for trait extraction and future RAG
+	webSearcher toolimp.WebSearcher // Web search interface
 
 	charLLMClient llm.Client // LLM API client for chat
 
@@ -296,9 +297,8 @@ func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // Close releases underlying resources held by the ChatHandler.
-// Currently closes the VectorStore (knowledge base) database.
 func (h *ChatAgent) Close() error {
-	return h.traitSearcher.Close()
+	return nil // No global VectorStore to close; per-user traits stores are closed per session.
 }
 
 // NewChatHandler creates a ChatHandler
@@ -307,7 +307,7 @@ func (h *ChatAgent) Close() error {
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
 // anonymousStore: the ChatStore for anonymous users (data/anonymous.db), must not be nil.
 func NewChatHandler(
-	traitSearcher toolimp.TraitSearcher,
+	embedder embedder.Embedder,
 	webSearcher toolimp.WebSearcher,
 	chatLLMClient llm.Client,
 	cookieName string,
@@ -319,7 +319,7 @@ func NewChatHandler(
 		defaultLang = "en"
 	}
 	return &ChatAgent{
-		traitSearcher:  traitSearcher,
+		embedder:       embedder,
 		webSearcher:    webSearcher,
 		charLLMClient:  chatLLMClient,
 		sessionManager: NewSessionManager(anonymousStore),

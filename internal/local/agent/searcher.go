@@ -2,56 +2,10 @@
 
 import (
 	"context"
-	"fmt"
 
-	"BrainForever/infra/embedder"
 	"BrainForever/infra/searcher"
 	"BrainForever/internal/local/agent/toolimp"
-	"BrainForever/internal/local/store"
 )
-
-// ============================================================
-// Adapter: converts store.VectorStore's search results to toolimp.TraitSource
-// ============================================================
-
-// traitSearchAdapter adapts VectorStore to implement the toolimp.TraitSearcher interface.
-// embedder is retained here for SearchByText which needs to embed query text before vector search.
-type traitSearchAdapter struct {
-	store    *store.VectorStore
-	embedder embedder.Embedder
-}
-
-// Close closes the underlying VectorStore database.
-func (ps *traitSearchAdapter) Close() error {
-	return ps.store.Close()
-}
-
-// SearchByText performs semantic search: embeds the query text, then does vector search.
-func (ps *traitSearchAdapter) SearchByText(ctx context.Context, queryText string, topK int) ([]toolimp.TraitSource, error) {
-	queryVec, err := ps.embedder.Embed(ctx, queryText)
-	if err != nil {
-		return nil, fmt.Errorf("failed to embed query text. %w", err)
-	}
-
-	// category=0 means no category filter
-	traits, err := ps.store.Search(queryVec, 0, topK)
-	if err != nil {
-		return nil, err
-	}
-
-	sources := make([]toolimp.TraitSource, 0, len(traits))
-	for _, t := range traits {
-		if t.Score <= 0.6 {
-			continue
-		}
-		sources = append(sources, toolimp.TraitSource{
-			Title:   t.Trait,
-			Content: t.Trait,
-			Score:   t.Score,
-		})
-	}
-	return sources, nil
-}
 
 // ============================================================
 // Adapter: converts searcher.WebSearcher to toolimp.WebSearcher

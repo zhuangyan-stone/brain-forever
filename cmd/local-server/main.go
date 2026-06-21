@@ -53,9 +53,6 @@ func main() {
 			Provider:  os.Getenv("EMBEDDER_PROVIDER"),
 			Dimension: 2048,
 		},
-		VectorStore: config.VectorStoreConfig{
-			DBPath: "./localdb/brain.db",
-		},
 		ChatLLM: config.ChatLLMConfig{
 			EnvKey:                "DEEPSEEK_API_KEY",
 			BaseURL:               "https://api.deepseek.com/beta",

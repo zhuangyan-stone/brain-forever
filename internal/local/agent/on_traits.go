@@ -322,13 +322,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 // storeTraitsInSession embeds each trait feature and stores it along with keywords
 // into the session's per-user traits database.
 func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature) error {
-	// Get the embedder from the traitSearcher adapter
-	adapter, ok := h.traitSearcher.(*traitSearchAdapter)
-	if !ok {
-		return fmt.Errorf("traitSearcher is not a *traitSearchAdapter")
-	}
-
-	emb := adapter.embedder
+	emb := h.embedder
 	embedderDim := emb.Dimension()
 
 	// Ensure the session has a traits store (create lazily)

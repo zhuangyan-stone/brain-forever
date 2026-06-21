@@ -3,23 +3,21 @@ package config
 // ============================================================
 // Config -centralized configuration for the BrainForever agent
 //
-// This struct holds the configuration for the four core objects
+// This struct holds the configuration for the core objects
 // that are initialized in agent/init.go:
 //   - Embedder (text embedding)
-//   - VectorStore (knowledge base / trait search)
 //   - LLMClient (chat completion)
 //   - WebSearchClient (online search)
 // ============================================================
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
-	Logger      LoggerConfig
-	Server      ServerConfig
-	Frontend    FrontendConfig
-	Embedder    EmbedderConfig
-	VectorStore VectorStoreConfig
-	ChatLLM     ChatLLMConfig
-	WebSearch   WebSearchConfig
+	Logger    LoggerConfig
+	Server    ServerConfig
+	Frontend  FrontendConfig
+	Embedder  EmbedderConfig
+	ChatLLM   ChatLLMConfig
+	WebSearch WebSearchConfig
 }
 
 // ServerConfig configures the HTTP server.
@@ -78,13 +76,6 @@ type EmbedderConfig struct {
 	// Dimension is the vector dimension output by this Embedder.
 	// Default: 2048.
 	Dimension int
-}
-
-// VectorStoreConfig configures the vector store (knowledge base / trait search).
-type VectorStoreConfig struct {
-	// DBPath is the file path to the SQLite database.
-	// Default: "./brain.db".
-	DBPath string
 }
 
 // ChatLLMConfig configures the LLM chat completion client.
