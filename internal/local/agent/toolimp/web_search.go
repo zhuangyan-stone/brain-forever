@@ -106,6 +106,7 @@ func webSearchToolDefinition(lang string) llm.ToolDefinition {
 	}
 }
 
+// WebSearchToolImp
 type WebSearchToolImp struct {
 	ctx context.Context
 
@@ -118,12 +119,6 @@ type WebSearchToolImp struct {
 
 	// result
 	WebPages []WebSource
-}
-
-// ResetWebPages clears the accumulated web pages.
-// This should be called before a new round of tool calls begins.
-func (imp *WebSearchToolImp) ResetWebPages() {
-	imp.WebPages = nil
 }
 
 var _ llm.ToolIMP = (*WebSearchToolImp)(nil)

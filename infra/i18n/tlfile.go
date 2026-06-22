@@ -92,4 +92,5 @@ var Tools = NewTLTools(
 	"web_search",
 	"traits_extract",
 	"trip_traits",
+	"personal_trait_search",
 )
