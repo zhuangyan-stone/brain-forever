@@ -13,7 +13,7 @@ import (
 // Personal Trait -RAG retrieval for personal knowledge base
 // ============================================================
 
-const TraitSearchToolName = "personal_trait_search"
+const TraitSearchToolName = "trait_search"
 
 // TraitSource represents a personal knowledge source (RAG retrieval).
 // Used for knowledge base references with similarity score.
