@@ -1,6 +1,7 @@
 package toolimp
 
 import (
+	"BrainForever/infra/embedder"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"context"
@@ -37,7 +38,8 @@ type TraitSource struct {
 // TraitSearcher is the interface for searching personal traits
 // from the user's knowledge base (vector search).
 type TraitSearcher interface {
-	SearchByText(ctx context.Context, queryText string, topK int) ([]TraitSource, error)
+	SearchByText(ctx context.Context, queryText string, category int, topK int) ([]TraitSource, error)
+	SearchByKeyword(ctx context.Context, queryKeyword string, queryType int) ([]TraitSource, error)
 
 	// Close releases any underlying resources held by the searcher.
 	Close() error
@@ -162,7 +164,7 @@ func (imp *TraitSearchToolImp) Execute() (result string, err error) {
 
 	// Execute the trait search via RAG vector search
 	var traits []TraitSource
-	traits, err = imp.searcher.SearchByText(imp.ctx, imp.q, 10)
+	traits, err = imp.searcher.SearchByText(imp.ctx, imp.q, imp.category, 10)
 	if err != nil {
 		return "", err
 	}
@@ -170,4 +172,8 @@ func (imp *TraitSearchToolImp) Execute() (result string, err error) {
 	// Accumulate results across multiple tool calls in the same thinking process
 	imp.Traits = append(imp.Traits, traits...)
 	return
+}
+
+type TraitSearcherIMP struct {
+	embedder *embedder.Embedder
 }
