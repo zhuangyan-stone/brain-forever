@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"BrainForever/infra/zylog"
 	"BrainForever/internal/local/store"
 )
 
@@ -126,26 +125,14 @@ func userTraitsDBPath(userNo string) string {
 	return "localdb/" + userNo + ".traits.db"
 }
 
-// ensureTraitsStore ensures that the session has a traitsStore, creating one
-// if necessary. Returns the traits store.
-func (s *session) ensureTraitsStore(embedderDim int, logger zylog.Logger) (*store.VectorStore, error) {
-	// Fast path: already exists
+// ensureTraitsStore returns the session's traitsStore, or an error if it was
+// not created (e.g., due to a failure during eager initialization).
+// The store is now created eagerly at session creation or user switch time.
+func (s *session) ensureTraitsStore() (*store.VectorStore, error) {
 	if s.traitsStore != nil {
 		return s.traitsStore, nil
 	}
-
-	// Determine the DB path based on user
-	dbPath := userTraitsDBPath(s.userNo)
-
-	// Create the VectorStore (this also initializes sqlite-vec tables)
-	vs, err := store.NewVectorStore(dbPath, embedderDim, logger)
-	if err != nil {
-		return nil, fmt.Errorf("create traits store failed (%s): %w", dbPath, err)
-	}
-
-	s.traitsStore = vs
-	log.Printf("[traits] created traits store: %s (dim=%d)", dbPath, embedderDim)
-	return vs, nil
+	return nil, fmt.Errorf("traits store not available (failed during initialization)")
 }
 
 // OnExtractTraits handles POST /api/chat/traits — accepts a chat SN,
@@ -270,7 +257,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	if foundChat.ExtractedAt != nil {
 		// Read existing traits for this chat from the trait DB
-		vs, err := session.ensureTraitsStore(h.embedder.Dimension(), h.logger)
+		vs, err := session.ensureTraitsStore()
 		if err == nil {
 			existingTraits, listErr := vs.ListTraitsByChat(foundChat.SN)
 			if listErr == nil && len(existingTraits) > 0 {
@@ -405,11 +392,9 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 // chatSN is the source chat SN (chat_sessions.sn), stored in the trait record for traceability.
 func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) error {
 	emb := h.embedder
-	embedderDim := emb.Dimension()
 
-	// Ensure the session has a traits store (create lazily)
-	// Use the logger from the ChatAgent
-	vs, err := session.ensureTraitsStore(embedderDim, h.logger)
+	// The traits store was already created eagerly at session creation or user switch time
+	vs, err := session.ensureTraitsStore()
 	if err != nil {
 		return fmt.Errorf("ensure traits store: %w", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"BrainForever/infra/llm"
+	"BrainForever/infra/zylog"
 	"BrainForever/internal/local/agent/toolimp"
 	"BrainForever/internal/local/store"
 )
@@ -149,7 +150,10 @@ type session struct {
 	chats       []store.Chat       // User's chat list from the database
 	userNo      string             // Global unique user serial number; empty string for anonymous users
 	chatsStore  *store.ChatStore   // Chat database store; never nil after Phase A
-	traitsStore *store.VectorStore // Traits database store; created lazily on first trait extraction
+	traitsStore *store.VectorStore // Traits database store; created eagerly on session creation or user switch
+
+	embedderDim int          // Embedding dimension, used to create VectorStore
+	logger      zylog.Logger // Logger, used to create VectorStore
 }
 
 // GetTitle returns the current title and its modification state atomically.
@@ -217,6 +221,15 @@ func (s *session) switchToUser(sn string) {
 	s.currentChat = &chat{}
 	s.userNo = sn
 	s.mu.Unlock()
+
+	// Phase 3: eagerly create the traits store for the (possibly new) user
+	dbPath := userTraitsDBPath(sn)
+	if vs, err := store.NewVectorStore(dbPath, s.embedderDim, s.logger); err == nil {
+		s.traitsStore = vs
+		log.Printf("[traits] created traits store: %s (dim=%d)", dbPath, s.embedderDim)
+	} else {
+		log.Printf("[traits] failed to create traits store: %s: %v", dbPath, err)
+	}
 }
 
 // switchToChat switches the current active chat to a historical session
@@ -257,13 +270,17 @@ type SessionManager struct {
 	mu             sync.RWMutex
 	sessions       map[string]*session
 	anonymousStore *store.ChatStore // ChatStore for anonymous users (localdb/anonymous.chats.db)
+	embedderDim    int              // Embedding dimension for VectorStore creation
+	logger         zylog.Logger     // Logger for VectorStore creation
 }
 
 // NewSessionManager creates a SessionManager
-func NewSessionManager(anonymousStore *store.ChatStore) *SessionManager {
+func NewSessionManager(anonymousStore *store.ChatStore, embedderDim int, logger zylog.Logger) *SessionManager {
 	return &SessionManager{
 		sessions:       make(map[string]*session),
 		anonymousStore: anonymousStore,
+		embedderDim:    embedderDim,
+		logger:         logger,
 	}
 }
 
@@ -297,7 +314,17 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 		userNo:       "",
 		chatsStore:   sm.anonymousStore,
 		currentChat:  &chat{},
+		embedderDim:  sm.embedderDim,
+		logger:       sm.logger,
 	}
+
+	// Eagerly create the anonymous traits store
+	if vs, err := store.NewVectorStore("localdb/anonymous.brain.db", sm.embedderDim, sm.logger); err == nil {
+		s.traitsStore = vs
+	} else {
+		log.Printf("[traits] failed to create anonymous traits store: %v", err)
+	}
+
 	sm.sessions[sessionID] = s
 	return s
 }

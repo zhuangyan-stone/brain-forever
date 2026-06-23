@@ -322,7 +322,7 @@ func NewChatHandler(
 		embedder:       embedder,
 		webSearcher:    webSearcher,
 		charLLMClient:  chatLLMClient,
-		sessionManager: NewSessionManager(anonymousStore),
+		sessionManager: NewSessionManager(anonymousStore, embedder.Dimension(), logger),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
 		logger:         logger,
