@@ -336,7 +336,11 @@ func formatTraitSources(traits []TraitSource) string {
 		b.WriteString(fmt.Sprintf("Category: %s | ", t.Category))
 		b.WriteString(fmt.Sprintf("Confidence: %d | ", t.Confidence))
 		b.WriteString(fmt.Sprintf("HalfLife: %s | ", t.HalfLife))
-		b.WriteString(fmt.Sprintf("Created: %s", t.CreateAt.Format("2006-01-02 15:04:05")))
+		if !t.CreateAt.IsZero() {
+			b.WriteString(fmt.Sprintf("Created: %s", t.CreateAt.Format("2006-01-02 15:04:05")))
+		} else {
+			b.WriteString("Created: N/A")
+		}
 		b.WriteByte('\n')
 	}
 
