@@ -1,39 +1,52 @@
 [description]
-other = "Search personal traits from the user's knowledge base by query text and optional category filter. Call this tool when you need to retrieve relevant user information."
+other = """Search the user's personal trait database (preferences, habits, abilities, states, etc.) by query text for personalized responses.
+
+When to call: you should proactively call this tool when the user's question involves subjective evaluation (delicious/good-looking/fun/like/dislike), asks for recommendations, requests personalized suggestions, or asks about what suits them. Even if the query text does not explicitly contain "I" or "my", as long as the question implies a need for personal judgment (e.g., "recommend a good coffee" — the word "good" implies personal taste), you should call this tool.
+
+Typical scenarios:
+- Food/drink recommendations → Query dietary preferences
+- Movie/music/book recommendations → Query hobbies and interests
+- Product selection → Query usage preferences and habits
+- Health advice → Query health status and habits
+- Travel suggestions → Query hobbies, interests, and current state"""
 
 [param_text_desc]
-other = "Query text. The LLM fills this with the specific question or concept it cares about, used for similarity search against the user's personal trait collection."
+other = """Query text. It is recommended to transform the core need of the user's question into a concrete semantic query phrase, rather than directly copying the user's original text. For example:
+- User asks "Recommend a good coffee to drink" → Pass "coffee taste preference like Americano or latte iced or hot"
+- User asks "Recommend a good movie to watch" → Pass "favorite movie genres viewing preferences"
+- User asks "What's good to eat" → Pass "dietary taste preference favorite cuisine"
+This leverages vector semantic search to find the most relevant user trait records."""
 
 [param_category_desc]
-other = """Feature category ID (0=search all categories). Definitions and typical examples for each category:
+other = """Feature category number (0=search all categories). Category definitions and typical examples:
 
-1=Demographic Attributes: The user's natural or social attributes, such as name, age, gender, height, weight, residence, nationality, ethnicity, education, occupation, income, etc. Must be externally verifiable. Examples: The user is 180cm tall; The user has a bachelor's degree; The user earns 8,000/month
+1=Demographic Attributes: The user's natural or social attributes, such as name, age, gender, height, weight, residence, nationality, ethnicity, education, occupation, income, etc. Must be externally verifiable. Examples: User height 180cm; User holds a bachelor's degree; User monthly salary 8,000
 
-2=External Objective Facts: External entities owned or used by the user, such as item brands/models, property, pets, books read, movies watched (excluding places visited). Examples: Uses iPhone 15; Owns a dog; Lives in a 150sqm house; Drives a Huawei Smart EV
+2=External Objective Facts: External entities owned or used by the user, such as item brands/models, property, pets, books read, movies watched (not including places visited). Examples: Phone is iPhone 15; Owns a dog; Lives in 150sqm house; Car is Huawei Smart Drive
 
-3=Cultural Attainment: Deep knowledge, creative/appreciative ability, or achievements (published books, academic papers, competition rankings) in humanities, science, or engineering that significantly exceed ordinary levels. Examples: Published a programming book; Wrote widely circulated songs
+3=Cultural Attainment: Significantly above-average deep knowledge, creative or appreciation ability and achievements (published books, published papers, formal competition rankings) demonstrated by the user in humanities, science, or engineering fields, including phenomenal works. Examples: Published "Vernacular C++"; Wrote widely circulated lyrics/compositions
 
-4=Hobbies: Self-motivated, non-professional activities pursued voluntarily (non-academic, non-utilitarian). Excludes those with high achievement belonging to category 3. Examples: Enjoys chess; Hiking; Playing guitar (amateur)
+4=Hobbies: Activities the user engages in voluntarily, not for career purposes (non-academic/non-utilitarian). Examples: Loves playing chess; Hiking; Playing guitar (amateur)
 
-5=Abilities/Skills: Practical knowledge or skills beyond categories 3 and 4 (professional, life, sports, crafts, etc.), whether good or bad. Examples: Knows Python programming; Class A driver's license; Poor memory; Excellent at arguing
+5=Abilities/Skills: Practical knowledge or skills beyond categories 3 and 4 (professional, life, sports, crafts, etc.), whether good or bad. Examples: Can program in Python; Class A driver's license; Poor memory; Excellent at arguing
 
-6=Preferences/Idiosyncrasies: Moral-neutral likes and dislikes about external things: food preferences, aesthetic tastes, unconscious habits, etc. Examples: Hates cilantro; Lucky color is purple; Bites lips; Prefers budget hotels when traveling
+6=Preferences/Idiosyncrasies: Likes or dislikes toward external things unrelated to morality: dietary, aesthetic, unconscious behaviors, etc. Examples: Dislikes cilantro; Lucky color purple; Bites lips; Prefers budget hotels when traveling
 
-7=Behavioral Habits: Stable recurring behavior patterns, or habits formed in certain activities, including daily routines, addictions, dependencies. Examples: Ten-year smoker; Must brush teeth before bed; Stays up late and wakes up late
+7=Behavioral Habits: Stable, recurring behavioral patterns, or habits developed in certain activities, including daily routines, addictions, dependencies. Examples: Ten-year smoker; Must brush teeth before bed; Night owl
 
 8=Health & Illness: Diseases, sub-health conditions, surgeries, injuries, allergies, sleep issues, and other health-related traits. Examples: Hay fever; Chronic insomnia; Gains weight easily; Arrhythmia
 
-9=Situational States: Temporary, changeable states (short validity). Examples: Recently stressed at work; Preparing for an exam; Just went through a breakup
+9=Situational States: Temporary, changeable states (short-lived). Examples: Recently under a lot of work pressure; Preparing for civil service exam; Just went through a breakup
 
-10=Personality/Character Traits: Stable personality tendencies, interpersonal style, emotional patterns, thinking habits (excluding values). Examples: Highly responsible; Prone to anxiety; Introverted; Procrastinates
+10=Personality/Character Traits: Stable personality tendencies, interpersonal styles, emotional patterns, thinking habits (excluding values). Examples: Highly responsible; Prone to anxiety; Introverted; Procrastinates
 
-11=Values/Beliefs: Moral views, life outlook, worldview, political/religious leanings, correctness of scientific/social understanding. Examples: Environmentalist; Atheist; Doesn't believe in TCM; Feminist
+11=Values/Beliefs: Moral views, life philosophy, worldview, political/religious inclinations, correctness of understanding of science/society. Examples: Environmentalist; Atheist; Distrusts traditional Chinese medicine; Feminist
 
-12=Social Relationships: Relationships with other people (must be persons) and characteristics of those relations. Examples: Father of two; Boss is very stingy; First love is from Yunnan; Spouse is an elementary school teacher
+12=Social Relationships: Relationships with others (must be people) and characteristics of those people. Examples: Father of two; Boss is very stingy; First love is from Yunnan; Spouse is a primary school teacher
 
-13=Life Experiences: Past non-health-related objective events possessing at least one: ① Significant lasting impact on the user; ② Some uniqueness (not everyday routine); ③ Accidental or unexpected. Examples: Participated in flood relief; Served in the military; Was in a car accident; Taught in rural areas for a year
+13=Life Experiences: Past non-health-related objective events possessing at least one of: ① Significant long-term impact on the user; ② Some uniqueness; ③ Accidental or unexpected occurrence. Examples: Participated in flood relief; Served in the military; Had a car accident; Taught in rural areas for a year in college
 
-14=Goals/Motivations: Past or present goals, ideals, plans, wishes, fantasies (whether achieved, given up, or not). Examples: Wants to lose weight; Plans to visit Japan in the second half of the year"""
+14=Goals/Motivations: Past or present goals, ideals, plans, wishes, fantasies (whether achieved, given up, or not). Examples: Wants to lose weight; Plans to go to Japan in the second half of the year"""
 
 [pending]
 other = "Searching user traits..."
