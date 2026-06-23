@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"log"
-
 	"BrainForever/infra/llm"
 	"BrainForever/internal/local/store"
 	"BrainForever/toolset"
@@ -33,7 +31,6 @@ func ensureSessionDBForChat(session *session) {
 
 	dbChat, err := session.chatsStore.InsertChat(sn, 0, title, 0)
 	if err != nil {
-		log.Printf("failed to insert DB chat for user %s: %v", session.userNo, err)
 		return
 	}
 
@@ -58,7 +55,6 @@ func ensureSessionDBForChat(session *session) {
 // streaming was in progress (session.mu is NOT held during streaming).
 func persistMessageToDB(session *session, msg *Message, chatID int64) {
 	if chatID == 0 {
-		log.Printf("cannot persist message: invalid chatID for user %s", session.userNo)
 		return
 	}
 
@@ -90,7 +86,6 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 		reasoning,
 		msg.Interrupted,
 	); err != nil {
-		log.Printf("failed to persist message to DB for user %s: %v", session.userNo, err)
 		return
 	}
 
@@ -110,16 +105,12 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 				Score:       src.Score,
 			})
 		}
-		if err := session.chatsStore.InsertWebSources(chatID, msg.ID, storeSources); err != nil {
-			log.Printf("failed to persist web sources for user %s: %v", session.userNo, err)
-		}
+		session.chatsStore.InsertWebSources(chatID, msg.ID, storeSources)
 	}
 
 	// Touch the chat session's update_at so it floats to the top
 	// when the list is ordered by update_at DESC.
-	if err := session.chatsStore.TouchChat(chatID); err != nil {
-		log.Printf("failed to touch chat update_at for user %s: %v", session.userNo, err)
-	}
+	session.chatsStore.TouchChat(chatID)
 
 	// Also move the chat to the front of the in-memory list so that
 	// subsequent GET /api/session calls return the correct order.

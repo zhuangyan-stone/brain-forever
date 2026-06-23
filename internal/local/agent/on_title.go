@@ -3,7 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -98,7 +98,6 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		newTitle,
 		int8(titleState),
 	); err != nil {
-		log.Printf("failed to update session title in DB: %v", err)
 		http.Error(w, "failed to update session title", http.StatusInternalServerError)
 		return
 	}
@@ -254,9 +253,16 @@ func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request
 	var msgs []Message
 	if dbSessionID > 0 {
 		dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
-		if err == nil {
-			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, dbSessionID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to list messages: %v", err), http.StatusInternalServerError)
+			return
 		}
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, dbSessionID)
+		if convErr != nil {
+			http.Error(w, fmt.Sprintf("failed to load web sources: %v", convErr), http.StatusInternalServerError)
+			return
+		}
+		msgs = agentMsgs
 	}
 	if msgs == nil {
 		msgs = []Message{}
@@ -294,9 +300,7 @@ func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request
 	defer titleCancel()
 	resp, err := h.charLLMClient.Chat(titleCtx, messages)
 
-	if err != nil {
-		log.Printf("Make char-llm client fail. %v", err)
-	} else if len(resp.Choices) > 0 {
+	if err == nil && len(resp.Choices) > 0 {
 		// Extract the reply content
 		newTitle = resp.Choices[0].Message.Content
 	}

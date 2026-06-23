@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
 // ============================================================
@@ -60,7 +59,6 @@ func executeWebSearch(ctx context.Context, searcher WebSearcher, query string) (
 	}
 	searchResultText, webPages, err = searcher.SearchForLLM(ctx, query, "", 10)
 	if err != nil {
-		log.Printf("Web search failed: %v", err)
 		return "", nil, err
 	}
 	return

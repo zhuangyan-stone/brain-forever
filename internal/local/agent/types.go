@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -200,14 +199,12 @@ func (s *session) switchToUser(sn string) {
 	}
 	chatStore, err := store.CreateLocalChatScheme(dbFile)
 	if err != nil {
-		log.Printf("failed to create local chat scheme for user %s: %v", sn, err)
 		return
 	}
 
 	// Load the user's chat list (latest 100)
 	chats, err := chatStore.ListChats(100)
 	if err != nil {
-		log.Printf("failed to list sessions for user %s: %v", sn, err)
 		return
 	}
 
@@ -226,9 +223,6 @@ func (s *session) switchToUser(sn string) {
 	dbPath := userTraitsDBPath(sn)
 	if vs, err := store.NewVectorStore(dbPath, s.embedderDim, s.logger); err == nil {
 		s.traitsStore = vs
-		log.Printf("[traits] created traits store: %s (dim=%d)", dbPath, s.embedderDim)
-	} else {
-		log.Printf("[traits] failed to create traits store: %s: %v", dbPath, err)
 	}
 }
 
@@ -321,8 +315,6 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	// Eagerly create the anonymous traits store
 	if vs, err := store.NewVectorStore("localdb/anonymous.brain.db", sm.embedderDim, sm.logger); err == nil {
 		s.traitsStore = vs
-	} else {
-		log.Printf("[traits] failed to create anonymous traits store: %v", err)
 	}
 
 	sm.sessions[sessionID] = s
@@ -447,14 +439,15 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 //
 // chatStore and chatID are used to query the web_sources table; if chatStore is nil or
 // chatID is 0, Sources remain empty (compatible with anonymous users and other no-DB scenarios).
-func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatID int64) []Message {
+// Returns an error if loading web sources fails.
+func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatID int64) ([]Message, error) {
 	// Load web sources for this chat (if available)
 	var sourcesByMsgID map[int64][]store.WebSource
 	if chatStore != nil && chatID > 0 {
 		var err error
 		sourcesByMsgID, err = chatStore.ListWebSourcesByChat(chatID)
 		if err != nil {
-			log.Printf("failed to list web sources for chat %d: %v", chatID, err)
+			return nil, fmt.Errorf("failed to list web sources for chat %d: %w", chatID, err)
 		}
 	}
 
@@ -495,7 +488,7 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 
 		msgs = append(msgs, agentMsg)
 	}
-	return msgs
+	return msgs, nil
 }
 
 // loadMessagesAsLLMMessages loads messages from DB and converts to llm.Message slice.

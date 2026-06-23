@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -95,7 +94,6 @@ func main() {
 		defer cancel()
 
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			log.Printf("server shutdown timed out or errored: %v", err)
 			server.Close()
 		}
 	}()
@@ -196,8 +194,6 @@ func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[traits] processing sn=%s with %d messages", req.SN, len(req.Messages))
-
 	// ----------------------------------------------------------
 	// 2. Build LLM messages from request data
 	// ----------------------------------------------------------
@@ -281,16 +277,11 @@ func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
 	// Disable thinking to reduce latency and cost
 	reqBody.Thinking = &llm.ThinkingConfig{Type: "disabled"}
 
-	// Debug: log request info
-	log.Printf("[traits] sending LLM request: model=%s, message_count=%d",
-		reqBody.Model, len(reqBody.Messages))
-
 	// ----------------------------------------------------------
 	// 5. Call DeepSeek API (non-streaming)
 	// ----------------------------------------------------------
 	resp, err := client.ChatWithOptions(r.Context(), reqBody)
 	if err != nil {
-		log.Printf("[traits] LLM call failed: %v", err)
 		writeJSONError(w, fmt.Sprintf("LLM call failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -308,13 +299,10 @@ func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
 	if len(resp.Choices) > 0 && resp.Choices[0].FinishReason == "tool_calls" {
 		msg := resp.Choices[0].Message
 		for _, tc := range msg.ToolCalls {
-			log.Printf("[trip_traits] toolCall: name=%q, arguments=%s", tc.Function.Name, tc.Function.Arguments)
 			if err := tripTool.SetArgument(tc.Function.Arguments); err != nil {
-				log.Printf("[trip_traits] set argument failed: %v", err)
 				continue
 			}
 			if _, err := tripTool.Execute(); err != nil {
-				log.Printf("[trip_traits] execute failed: %v", err)
 				continue
 			}
 		}
@@ -323,7 +311,6 @@ func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
 		result.Features = traitsResult.Features
 	} else if len(resp.Choices) > 0 && resp.Choices[0].Message.Content != "" {
 		// Fallback: try to parse JSON from the text response
-		log.Printf("[traits] no tool call, got text response instead, length=%d", len(resp.Choices[0].Message.Content))
 		result.Error = "LLM returned text instead of tool call"
 	}
 

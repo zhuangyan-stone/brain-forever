@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -159,8 +158,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[traits] frontend request: sn=%s", req.SN)
-
 	// ----------------------------------------------------------
 	// 2. Resolve session and find the chat
 	// ----------------------------------------------------------
@@ -192,13 +189,11 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	dbMessages, err := chatsStore.ListUnExtractMessages(foundChat.ID)
 	if err != nil {
-		log.Printf("[traits] list un-extracted messages failed: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
 	if len(dbMessages) == 0 {
-		log.Printf("[traits] all messages already extracted for sn=%s, skipping LLM call", req.SN)
 		resp := traitsRemoteResponse{
 			Features: []traitsFeature{},
 		}
@@ -214,8 +209,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-
-	log.Printf("[traits] read %d un-extracted messages from DB for sn=%s", len(dbMessages), req.SN)
 
 	// ----------------------------------------------------------
 	// 4. Convert un-extracted messages to traits request format.
@@ -254,8 +247,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// Last message in sorted order has the highest id
 	lastMsgID := dbMessages[len(dbMessages)-1].ID
 
-	log.Printf("[traits] extract sn=%s, messages=%d", req.SN, len(msgs))
-
 	// ----------------------------------------------------------
 	// 5. Call remote-server API
 	// ----------------------------------------------------------
@@ -276,8 +267,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("[traits] calling remote-server: %s/api/traits with %d messages", remoteURL, len(msgs))
-
 	httpReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, remoteURL+"/api/traits", bytes.NewReader(reqBody))
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"create request failed: %v"}`, err), http.StatusInternalServerError)
@@ -293,7 +282,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Timeout: 120 * time.Second}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
-		log.Printf("[traits] remote-server call failed: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"remote-server call failed: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
@@ -324,7 +312,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	if len(remoteResp.Features) > 0 {
 		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN); err != nil {
-			log.Printf("[traits] store traits failed (non-fatal): %v", err)
 			// Non-fatal: still return features to frontend even if storage fails
 		}
 	}
@@ -337,18 +324,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	if count, err := chatsStore.CountMessages(foundChat.ID); err == nil {
 		totalCount = count
 	}
-	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err != nil {
-		log.Printf("[traits] update extraction progress failed (non-fatal): %v", err)
-	} else {
+	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err == nil {
 		// Sync in-memory struct to match DB
 		now := time.Now()
 		foundChat.ExtractedAt = &now
 		foundChat.ExtractedMessageCount = totalCount
 	}
-	if err := chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID); err != nil {
-		log.Printf("[traits] mark messages extracted failed (non-fatal): %v", err)
-	}
-	log.Printf("[traits] extraction progress updated: sn=%s, msg_count=%d", req.SN, totalCount)
+	chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
 
 	// ----------------------------------------------------------
 	// 9. Populate extraction state in response, then return
@@ -360,8 +342,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(remoteResp)
-
-	log.Printf("[traits] completed for sn=%s, features=%d", req.SN, len(remoteResp.Features))
 }
 
 // storeTraitsInSession embeds each trait feature and stores it along with keywords
@@ -384,7 +364,6 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 		// Embed the feature text
 		vector, err := emb.Embed(ctx, f.FeatureText)
 		if err != nil {
-			log.Printf("[traits] embed failed for '%s': %v", f.FeatureText, err)
 			continue
 		}
 
@@ -399,13 +378,8 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 
 		traitID, err := vs.AddTrait(ctx, trait, vector)
 		if err != nil {
-			log.Printf("[traits] add trait failed for '%s': %v", f.FeatureText, err)
 			continue
 		}
-
-		log.Printf("[traits] stored trait id=%d: '%s' (cat=%d, conf=%d, half=%s) in %s",
-			traitID, f.FeatureText, f.CategoryID, f.Confidence, f.HalfLife,
-			userTraitsDBPath(session.userNo))
 
 		// Store keywords
 		for _, kw := range f.Keywords {
@@ -417,10 +391,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 				Kind:    keywordTypeToInt(kw.Type),
 				TraitID: traitID,
 			}
-			if _, err := vs.AddKeyword(keyword); err != nil {
-				log.Printf("[traits] add keyword failed (trait_id=%d, word='%s'): %v",
-					traitID, kw.Word, err)
-			}
+			vs.AddKeyword(keyword)
 		}
 	}
 

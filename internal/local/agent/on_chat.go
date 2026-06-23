@@ -2,7 +2,7 @@ package agent
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -77,7 +77,6 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Phase 3: Soft-delete (logic delete) -move to trash
 	if err := session.chatsStore.LogicDelete(sn); err != nil {
-		log.Printf("failed to logic-delete session (sn=%s): %v", sn, err)
 		http.Error(w, "failed to delete session", http.StatusInternalServerError)
 		return
 	}
@@ -109,7 +108,6 @@ func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 
 	deletedChats, err := chatStore.ListDeletedChats(100)
 	if err != nil {
-		log.Printf("failed to list deleted chats: %v", err)
 		http.Error(w, "failed to list deleted chats", http.StatusInternalServerError)
 		return
 	}
@@ -151,7 +149,6 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 	session.chatsMu.Unlock()
 
 	if err := chatStore.RestoreChat(sn); err != nil {
-		log.Printf("failed to restore chat (sn=%s): %v", sn, err)
 		http.Error(w, "failed to restore chat", http.StatusInternalServerError)
 		return
 	}
@@ -205,7 +202,6 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	chatID := chat.ID
 
 	if err := chatStore.PhysicalDelete(int(chatID), sn); err != nil {
-		log.Printf("failed to permanently delete session (sn=%s): %v", sn, err)
 		http.Error(w, "failed to delete session", http.StatusInternalServerError)
 		return
 	}
@@ -236,7 +232,6 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	session.chatsMu.Unlock()
 
 	if err := chatStore.EmptyTrash(); err != nil {
-		log.Printf("failed to empty trash: %v", err)
 		http.Error(w, "failed to empty trash", http.StatusInternalServerError)
 		return
 	}
@@ -383,9 +378,16 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	var msgs []Message
 	if dbSessionID > 0 {
 		dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
-		if err == nil {
-			msgs = convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, dbSessionID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to list messages: %v", err), http.StatusInternalServerError)
+			return
 		}
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, dbSessionID)
+		if convErr != nil {
+			http.Error(w, fmt.Sprintf("failed to load web sources: %v", convErr), http.StatusInternalServerError)
+			return
+		}
+		msgs = agentMsgs
 	}
 	if msgs == nil {
 		msgs = []Message{}
@@ -452,7 +454,6 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := session.chatsStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
-		log.Printf("failed to update chat pin: %v", err)
 		http.Error(w, "failed to update chat pin", http.StatusInternalServerError)
 		return
 	}
