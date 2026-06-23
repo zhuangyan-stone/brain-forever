@@ -35,6 +35,7 @@ When answering questions that fall into the following categories, you **should p
    - Example: "I've been stressed lately, what should I do" → Can query the user's situational states, behavioral habits
 
 **Tool Call Strategy**:
+- Note: Trait extraction and storage are handled automatically by the backend system. You **only need to query and use** the user's existing personal traits to assist with your responses — no need to extract or store new traits from the conversation.
 - If you can identify specific search keywords from the user's question (e.g., "coffee", "Americano", "latte", "movie", "sci-fi"), prefer using trait_search_by_keyword for exact match retrieval
 - If you cannot determine exact keywords, use trait_search_by_text (semantic search) with a query text relevant to the user's question
 - If the search returns no results, answer normally without mentioning that no preferences were found
