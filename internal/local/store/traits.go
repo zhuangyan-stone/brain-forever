@@ -224,7 +224,7 @@ func (s *VectorStore) Search(query []float32, category int, topK int) ([]Persona
 	// Build query -category filter is pushed into SQL WHERE for efficiency
 	sqlQuery := "SELECT v.rowid, v.distance, " +
 		"t.id, t.trait, t.category, t.confidence, t.half_life, " +
-		"t.create_at, t.update_at\n" +
+		"t.chat_sn, t.create_at, t.update_at\n" +
 		"FROM trait_vectors v " +
 		"JOIN traits t ON t.id = v.rowid " +
 		"WHERE v.embedding MATCH ? AND k=?"
@@ -246,17 +246,18 @@ func (s *VectorStore) Search(query []float32, category int, topK int) ([]Persona
 	var results []PersonalTrait
 	for rows.Next() {
 		var (
-			rowid       int64
-			distance    float64
-			traitID     int64
-			traitText   string
-			traitCat    int64
-			confidence  int64
-			halfLife    int64
-			createAtStr string
-			updateAtStr string
+			rowid      int64
+			distance   float64
+			traitID    int64
+			traitText  string
+			traitCat   int64
+			confidence int64
+			halfLife   int64
+			chatSN     string
+			createAt   time.Time
+			updateAt   time.Time
 		)
-		if err := rows.Scan(&rowid, &distance, &traitID, &traitText, &traitCat, &confidence, &halfLife, &createAtStr, &updateAtStr); err != nil {
+		if err := rows.Scan(&rowid, &distance, &traitID, &traitText, &traitCat, &confidence, &halfLife, &chatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 
@@ -269,12 +270,11 @@ func (s *VectorStore) Search(query []float32, category int, topK int) ([]Persona
 			Category:   int(traitCat),
 			Confidence: int(confidence),
 			HalfLife:   int(halfLife),
+			ChatSN:     chatSN,
 			Score:      score,
+			CreateAt:   createAt,
+			UpdateAt:   updateAt,
 		}
-
-		// Parse timestamps
-		pt.CreateAt, _ = time.Parse("2006-01-02 15:04:05", createAtStr)
-		pt.UpdateAt, _ = time.Parse("2006-01-02 15:04:05", updateAtStr)
 
 		results = append(results, pt)
 	}
@@ -301,7 +301,7 @@ func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]Perso
 
 	rows, err := s.db.Query(
 		`SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.create_at, t.update_at
+		                t.chat_sn, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE k.word = ? AND k.kind = ?
@@ -317,12 +317,12 @@ func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]Perso
 	var results []PersonalTrait
 	for rows.Next() {
 		var pt PersonalTrait
-		var createAtStr, updateAtStr string
-		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &createAtStr, &updateAtStr); err != nil {
+		var createAt, updateAt time.Time
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
-		pt.CreateAt, _ = time.Parse("2006-01-02 15:04:05", createAtStr)
-		pt.UpdateAt, _ = time.Parse("2006-01-02 15:04:05", updateAtStr)
+		pt.CreateAt = createAt
+		pt.UpdateAt = updateAt
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
@@ -398,12 +398,12 @@ func (s *VectorStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 	var results []PersonalTrait
 	for rows.Next() {
 		var pt PersonalTrait
-		var createAtStr, updateAtStr string
-		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAtStr, &updateAtStr); err != nil {
+		var createAt, updateAt time.Time
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
-		pt.CreateAt, _ = time.Parse("2006-01-02 15:04:05", createAtStr)
-		pt.UpdateAt, _ = time.Parse("2006-01-02 15:04:05", updateAtStr)
+		pt.CreateAt = createAt
+		pt.UpdateAt = updateAt
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
