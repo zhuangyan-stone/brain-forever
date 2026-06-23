@@ -83,10 +83,10 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 		return nil, fmt.Errorf("failed to search traits: %w", err)
 	}
 
-	// 3. During []store.PersonalTrait -> []toolimp.TraitSource conversion, filter out traits with similarity < 6
+	// 3. During []store.PersonalTrait -> []toolimp.TraitSource conversion, filter out traits with similarity < 0.58
 	var result []toolimp.TraitSource
 	for _, pt := range traits {
-		if pt.Score < 6 {
+		if pt.Score < 0.58 {
 			continue
 		}
 		result = append(result, toolimp.TraitSource{
