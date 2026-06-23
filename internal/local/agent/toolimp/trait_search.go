@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -34,9 +35,6 @@ type TraitSource struct {
 	Confidence int `json:"confidence"`
 
 	HalfLife string `json:"half_life"`
-
-	ChatSN    string  `json:"chat_sn"`
-	ChatTitle *string `json:"chat_title"`
 
 	CreateAt time.Time `json:"create_at"`
 	UpdateAt time.Time `json:"update_at"`
@@ -108,7 +106,7 @@ func traitSearchByTextToolDefinition(lang string) llm.ToolDefinition {
 				"description": i18n.Tools.TL(lang, TraitSearchByTextToolName, "param_category_desc"),
 			},
 		},
-		"required":             []string{"text"},
+		"required":             []string{"text", "category"},
 		"additionalProperties": false,
 	}
 
@@ -273,6 +271,8 @@ func (imp *TraitSearchByTextToolImp) Execute() (result string, err error) {
 
 	// Accumulate results across multiple tool calls in the same reasoning cycle.
 	imp.Traits = append(imp.Traits, traits...)
+
+	result = formatTraitSources(traits)
 	return
 }
 
@@ -315,5 +315,30 @@ func (imp *TraitSearchByKeywordToolImp) Execute() (result string, err error) {
 
 	// Accumulate results across multiple tool calls in the same reasoning cycle.
 	imp.Traits = append(imp.Traits, traits...)
+
+	result = formatTraitSources(traits)
 	return
+}
+
+// formatTraitSources formats a slice of TraitSource into a human-readable string
+// that can be returned to the LLM as the tool call result.
+func formatTraitSources(traits []TraitSource) string {
+	if len(traits) == 0 {
+		return "No matching trait records found."
+	}
+
+	var b strings.Builder
+	b.Grow(len(traits) * 256) // Pre-allocate approximate capacity
+
+	for i, t := range traits {
+		b.WriteString(fmt.Sprintf("%d. ", i+1))
+		b.WriteString(fmt.Sprintf("Trait: %s | ", t.Trait))
+		b.WriteString(fmt.Sprintf("Category: %s | ", t.Category))
+		b.WriteString(fmt.Sprintf("Confidence: %d | ", t.Confidence))
+		b.WriteString(fmt.Sprintf("HalfLife: %s | ", t.HalfLife))
+		b.WriteString(fmt.Sprintf("Created: %s", t.CreateAt.Format("2006-01-02 15:04:05")))
+		b.WriteByte('\n')
+	}
+
+	return b.String()
 }

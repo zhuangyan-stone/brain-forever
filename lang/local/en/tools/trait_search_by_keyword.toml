@@ -5,7 +5,19 @@ other = "Search personal traits by keyword and keyword kind (A-F) from the user'
 other = "Keyword text, exact match against the word field in the keywords table."
 
 [param_kind_desc]
-other = "Keyword kind letter (A=Time, B=Location, C=Person, D=Thing, E=Relationship, F=Action). Used to narrow the search scope."
+other = """Keyword kind letter with definitions (A-F). Used to narrow the search scope:
+
+A=Time: Time points or periods mentioned in the trait. Be as specific as possible. Examples: 2026-11-20, middle school years
+
+B=Place: Geographic locations mentioned in the trait. Be as specific as possible. Examples: Kunming, Xi'an, Beijing Chaoyang District Wangjing Garden, Cape Town South Africa
+
+C=Person: People other than the user themselves mentioned by the user. Prioritize specific, clear names or roles. Examples: Li Bai, older brother, Taylor Swift, John Milton
+
+D=Thing/Entity: Concrete or abstract entities mentioned in the trait. Concrete: objects (phone, fridge, poetry collection), animals, plants, user's own attributes, buildings, etc. Abstract: fields/disciplines (work, medicine, programming), states/emotions (stress, anxiety), qualities (credit, freedom). Note: Specific people belong to type C, not D. Examples: basketball, work, stress, traditional Chinese medicine
+
+E=Relationship: Relationships between a person or thing and the user, with the user as the origin point. Examples: ex-girlfriend, celebrity crush, pet, friend
+
+F=Behavior: Actions, behaviors, or events performed by or mentioned by the user. Verbs or verb-object phrases. Examples: damage, flood relief, play basketball, pass away"""
 
 [pending]
 other = "Searching user traits by keyword..."
