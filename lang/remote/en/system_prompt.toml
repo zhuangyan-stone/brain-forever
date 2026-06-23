@@ -315,9 +315,21 @@ Please call the trip_traits tool to output the extraction results.
 
 [existing_traits_constraint]
 other = """
-[Existing Traits Constraint]
-The following traits have already been extracted from this conversation. **Do not extract them again**:
+## ⚠️ Mandatory Constraint: Do NOT Re-extract Existing Traits
+
+The following traits have already been extracted from this conversation in a **previous extraction** and stored. You **must absolutely avoid** outputting these traits again (or any semantically equivalent variant).
+
+Existing traits list:
 {{.ExistingTraitsSummary}}
 
-Please read through the entire conversation and focus on the messages that have not yet been processed, extracting **new** personal traits from them.
+### Rules You MUST Follow:
+1. **Check each output**: Before outputting each trait, you must compare it against every trait in the list above. If the content is essentially the same (including different wording with the same meaning, merging multiple existing traits, splitting one existing trait into parts, or any other form), you **must skip that trait entirely — do not output it**.
+2. **Absolutely prohibit synonyms/variants** of traits already in the list. For example:
+   - Existing trait "The user likes programming" → Even if the conversation mentions programming again, do NOT output "The user loves coding" or any similar variant
+   - Existing trait "The user is 180cm tall" → Even if the conversation confirms height again, do NOT output "The user is 180 centimeters tall"
+3. **Focus on genuinely new traits**: Analyze the conversation segments that have **not yet been processed** (especially newly added messages), and look for completely new personal traits not present in the list above.
+4. **Better empty than duplicate**: If you cannot extract enough genuinely new traits from the new content, outputting an empty array is **acceptable**. Outputting duplicate traits is **worse** than outputting nothing.
+
+### Consequences
+Outputting duplicate traits is a **serious error** — it pollutes the user profile database and degrades the accuracy of subsequent analyses. Please take this constraint seriously.
 """

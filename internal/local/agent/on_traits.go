@@ -266,7 +266,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 					if i > 0 {
 						sb.WriteString("\n")
 					}
-					sb.WriteString("- ")
+					// Format: "- [category] feature_text"
+					// Include category info to help the LLM better identify
+					// and distinguish existing traits, reducing re-extraction.
+					catName := categoryNameByID(t.Category)
+					sb.WriteString("- [")
+					sb.WriteString(catName)
+					sb.WriteString("] ")
 					sb.WriteString(t.Trait)
 				}
 				existingTraitsSummary = sb.String()
@@ -448,4 +454,42 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 	}
 
 	return nil
+}
+
+// categoryNameByID maps category_id (1-14) to its English name
+// This is used when building the existing_traits_summary so the LLM
+// can better identify and distinguish already-extracted traits.
+func categoryNameByID(id int) string {
+	switch id {
+	case 1:
+		return "Demographic Attributes"
+	case 2:
+		return "External Objective Facts"
+	case 3:
+		return "Cultural Attainment"
+	case 4:
+		return "Hobbies"
+	case 5:
+		return "Abilities/Skills"
+	case 6:
+		return "Preferences/Idiosyncrasies"
+	case 7:
+		return "Behavioral Habits"
+	case 8:
+		return "Health & Illness"
+	case 9:
+		return "Situational States"
+	case 10:
+		return "Personality/Character Traits"
+	case 11:
+		return "Values/Beliefs"
+	case 12:
+		return "Social Relationships"
+	case 13:
+		return "Life Experiences"
+	case 14:
+		return "Goals/Motivations"
+	default:
+		return "Other"
+	}
 }
