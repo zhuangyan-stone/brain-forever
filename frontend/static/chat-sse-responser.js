@@ -30,7 +30,7 @@ const SSE_RENDER_INTERVAL = 150;
 const TOOL_ICONS = {
     web_search: '🔍',
     current_time: '🕐',
-    trait_search: '🧑',
+    trait_search_by_text: '🧑',
 };
 
 /**

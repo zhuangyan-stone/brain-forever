@@ -40,7 +40,7 @@ type PersonalTrait struct {
 type TraitKeyword struct {
 	ID       int64     `db:"id"`
 	Word     string    `db:"word"`     // 关键词文期
-	Kind     int       `db:"kind"`     // 字母分类: 1=A,2=B,3=C,4=D,5=E,6=F（原 category，建议改为kind）
+	Kind     int       `db:"kind"`     // 字母分类: 1=A,2=B,3=C,4=D,5=E,6=F
 	TraitID  int64     `db:"trait_id"` // 关联 traits.id（无外键约束）
 	CreateAt time.Time `db:"create_at"`
 	UpdateAt time.Time `db:"update_at"`

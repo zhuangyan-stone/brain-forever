@@ -1,7 +1,6 @@
 package toolimp
 
 import (
-	"BrainForever/infra/embedder"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"context"
@@ -14,7 +13,7 @@ import (
 // Personal Trait -RAG retrieval for personal knowledge base
 // ============================================================
 
-const TraitSearchToolName = "trait_search"
+const TraitSearchByTextToolName = "trait_search_by_text"
 
 // TraitSource represents a personal knowledge source (RAG retrieval).
 // Used for knowledge base references with similarity score.
@@ -62,11 +61,11 @@ func traitSearchToolDefinition(lang string) llm.ToolDefinition {
 		"properties": map[string]any{
 			"text": map[string]any{
 				"type":        "string",
-				"description": i18n.Tools.TL(lang, TraitSearchToolName, "param_text_desc"),
+				"description": i18n.Tools.TL(lang, TraitSearchByTextToolName, "param_text_desc"),
 			},
 			"category": map[string]any{
 				"type":        "integer",
-				"description": i18n.Tools.TL(lang, TraitSearchToolName, "param_category_desc"),
+				"description": i18n.Tools.TL(lang, TraitSearchByTextToolName, "param_category_desc"),
 			},
 		},
 		"required":             []string{"text"},
@@ -87,8 +86,8 @@ func traitSearchToolDefinition(lang string) llm.ToolDefinition {
 	return llm.ToolDefinition{
 		Type: "function",
 		Function: llm.ToolFunctionDef{
-			Name:        TraitSearchToolName,
-			Description: i18n.Tools.TL(lang, TraitSearchToolName, "description"),
+			Name:        TraitSearchByTextToolName,
+			Description: i18n.Tools.TL(lang, TraitSearchByTextToolName, "description"),
 			Parameters:  paramsMap,
 			Strict:      &strict,
 		},
@@ -141,7 +140,7 @@ func MakeTraitSearchTool(ctx context.Context, searcher TraitSearcher, lang strin
 }
 
 func (imp *TraitSearchToolImp) GetName() string {
-	return TraitSearchToolName
+	return TraitSearchByTextToolName
 }
 
 func (imp *TraitSearchToolImp) GetDefinition() llm.ToolDefinition {
@@ -149,7 +148,7 @@ func (imp *TraitSearchToolImp) GetDefinition() llm.ToolDefinition {
 }
 
 func (imp *TraitSearchToolImp) GetPendingText() string {
-	return fmt.Sprintf("%s %s", i18n.Tools.TL(imp.lang, TraitSearchToolName, "pending"), imp.q)
+	return fmt.Sprintf("%s %s", i18n.Tools.TL(imp.lang, TraitSearchByTextToolName, "pending"), imp.q)
 }
 
 func (imp *TraitSearchToolImp) SetArgument(arguments string) (err error) {
@@ -159,7 +158,7 @@ func (imp *TraitSearchToolImp) SetArgument(arguments string) (err error) {
 
 func (imp *TraitSearchToolImp) Execute() (result string, err error) {
 	if imp.q == "" {
-		return "", fmt.Errorf("call %s with empty query", TraitSearchToolName)
+		return "", fmt.Errorf("call %s with empty query", TraitSearchByTextToolName)
 	}
 
 	// Execute the trait search via RAG vector search
@@ -172,8 +171,4 @@ func (imp *TraitSearchToolImp) Execute() (result string, err error) {
 	// Accumulate results across multiple tool calls in the same thinking process
 	imp.Traits = append(imp.Traits, traits...)
 	return
-}
-
-type TraitSearcherIMP struct {
-	embedder *embedder.Embedder
 }
