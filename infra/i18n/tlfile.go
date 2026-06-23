@@ -93,4 +93,5 @@ var Tools = NewTLTools(
 	"traits_extract",
 	"trip_traits",
 	"trait_search_by_text",
+	"trait_search_by_keyword",
 )

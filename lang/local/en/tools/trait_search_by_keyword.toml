@@ -1,0 +1,11 @@
+[description]
+other = "Search personal traits by keyword and keyword kind (A-F) from the user's knowledge base. When the LLM already knows specific keywords, use this tool for exact match retrieval."
+
+[param_keyword_desc]
+other = "Keyword text, exact match against the word field in the keywords table."
+
+[param_kind_desc]
+other = "Keyword kind letter (A=Time, B=Location, C=Person, D=Thing, E=Relationship, F=Action). Used to narrow the search scope."
+
+[pending]
+other = "Searching user traits by keyword..."

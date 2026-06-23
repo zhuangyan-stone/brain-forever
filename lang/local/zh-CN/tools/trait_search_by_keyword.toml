@@ -1,0 +1,11 @@
+[description]
+other = "根据关键词和关键词类型（A-F），从用户个人知识库中检索相关的个人特征。当LLM已经知道具体的关键词时，可直接调用此工具进行精确匹配检索。"
+
+[param_keyword_desc]
+other = "关键词文本，必须与 keywords 表中的 word 字段进行精确匹配。"
+
+[param_kind_desc]
+other = "关键词类型字母（A=时间, B=地点, C=人, D=事物, E=关系, F=行为）。用于限定搜索范围。"
+
+[pending]
+other = "正在通过关键词查询用户特征..."
