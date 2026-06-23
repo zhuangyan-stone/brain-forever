@@ -35,6 +35,38 @@ func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	return msgs, nil
 }
 
+// ListUnExtractMessages queries only un-extracted messages (extracted = 0) of a given chat,
+// sorted by group_index and id. This is used by the trait extraction handler to avoid
+// fetching already-extracted messages from the database layer.
+func (s *ChatStore) ListUnExtractMessages(chatID int64) ([]Message, error) {
+	var msgs []Message
+	err := s.db.Select(&msgs,
+		`SELECT id, chat_id, group_index, role, reasoning, content,
+		        extracted, interrupted, create_at, update_at
+		 FROM chat_messages
+		 WHERE chat_id = ? AND extracted = 0
+		 ORDER BY group_index ASC, id ASC`,
+		chatID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list un-extracted messages: %w", err)
+	}
+	return msgs, nil
+}
+
+// CountMessages returns the total number of messages in a chat.
+func (s *ChatStore) CountMessages(chatID int64) (int, error) {
+	var count int
+	err := s.db.Get(&count,
+		`SELECT COUNT(1) FROM chat_messages WHERE chat_id = ?`,
+		chatID,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count messages: %w", err)
+	}
+	return count, nil
+}
+
 // DeleteMessageGroup physically deletes messages and their associated web sources
 // for the given chat ID and group index (transaction-safe).
 func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {

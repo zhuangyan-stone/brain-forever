@@ -184,41 +184,44 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 3. Read messages from database
+	// 3. Read un-extracted messages from database.
+	//     Using per-message extracted field (SQL-level filter), we
+	//     unify full and incremental extraction into a single code
+	//     path: only messages where extracted=0 are fetched.
 	// ----------------------------------------------------------
-	dbMessages, err := chatsStore.ListMessages(foundChat.ID)
+	dbMessages, err := chatsStore.ListUnExtractMessages(foundChat.ID)
 	if err != nil {
-		log.Printf("[traits] list messages failed: %v", err)
+		log.Printf("[traits] list un-extracted messages failed: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
 	if len(dbMessages) == 0 {
-		http.Error(w, `{"error":"no messages in this chat"}`, http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("[traits] read %d messages from DB for sn=%s", len(dbMessages), req.SN)
-
-	// ----------------------------------------------------------
-	// 3.1 Early short-circuit: if all messages have already been
-	//     extracted, return empty result without calling LLM.
-	// ----------------------------------------------------------
-	if foundChat.ExtractedAt != nil && foundChat.ExtractedMessageCount >= len(dbMessages) {
-		log.Printf("[traits] all %d messages already extracted for sn=%s, skipping LLM call",
-			len(dbMessages), req.SN)
-		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
+		log.Printf("[traits] all messages already extracted for sn=%s, skipping LLM call", req.SN)
+		resp := traitsRemoteResponse{
+			Features: []traitsFeature{},
+		}
+		if foundChat.ExtractedAt != nil {
+			extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
+			resp.ExtractedAt = &extractedAtStr
+		}
+		// Get total message count for the response
+		if totalCount, err := chatsStore.CountMessages(foundChat.ID); err == nil {
+			resp.ExtractedMessageCount = totalCount
+		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(traitsRemoteResponse{
-			Features:              []traitsFeature{},
-			ExtractedAt:           &extractedAtStr,
-			ExtractedMessageCount: foundChat.ExtractedMessageCount,
-		})
+		json.NewEncoder(w).Encode(resp)
 		return
 	}
 
+	log.Printf("[traits] read %d un-extracted messages from DB for sn=%s", len(dbMessages), req.SN)
+
 	// ----------------------------------------------------------
-	// 4. Convert messages to traits request format
+	// 4. Convert un-extracted messages to traits request format.
+	//     All messages returned by ListUnExtractMessages are
+	//     un-extracted (DB already filtered), so no Go-level check needed.
+	//     Since sorted by group_index ASC, id ASC, the last message
+	//     has the highest id — used as the cutoff for MarkMessagesExtracted.
 	// ----------------------------------------------------------
 	msgs := make([]traitsMsg, 0, len(dbMessages))
 	for _, m := range dbMessages {
@@ -247,15 +250,8 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// ----------------------------------------------------------
-	// 4.1 Incremental extraction: only send new (un-extracted) messages
-	// ----------------------------------------------------------
-	maxGroupIndex := dbMessages[len(dbMessages)-1].GroupIndex
-	if foundChat.ExtractedAt != nil && foundChat.ExtractedMessageCount < len(dbMessages) {
-		msgs = msgs[foundChat.ExtractedMessageCount:]
-		log.Printf("[traits] incremental extraction: skipping %d already-extracted messages, sending %d new messages",
-			foundChat.ExtractedMessageCount, len(msgs))
-	}
+	// Last message in sorted order has the highest id
+	lastMsgID := dbMessages[len(dbMessages)-1].ID
 
 	log.Printf("[traits] extract sn=%s, messages=%d", req.SN, len(msgs))
 
@@ -335,20 +331,23 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 8. Update extraction progress
 	// ----------------------------------------------------------
-	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, len(dbMessages)); err != nil {
+	// Get total message count (used for chat-level progress tracking)
+	totalCount := len(dbMessages) // fallback: at least the unextracted count
+	if count, err := chatsStore.CountMessages(foundChat.ID); err == nil {
+		totalCount = count
+	}
+	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err != nil {
 		log.Printf("[traits] update extraction progress failed (non-fatal): %v", err)
 	} else {
-		// Sync in-memory struct to match DB — this ensures the
-		// early short-circuit check works on subsequent calls
-		// within the same session without needing a reload.
+		// Sync in-memory struct to match DB
 		now := time.Now()
 		foundChat.ExtractedAt = &now
-		foundChat.ExtractedMessageCount = len(dbMessages)
+		foundChat.ExtractedMessageCount = totalCount
 	}
-	if err := chatsStore.MarkMessagesExtracted(foundChat.ID, maxGroupIndex); err != nil {
+	if err := chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID); err != nil {
 		log.Printf("[traits] mark messages extracted failed (non-fatal): %v", err)
 	}
-	log.Printf("[traits] extraction progress updated: sn=%s, msg_count=%d", req.SN, len(dbMessages))
+	log.Printf("[traits] extraction progress updated: sn=%s, msg_count=%d", req.SN, totalCount)
 
 	// ----------------------------------------------------------
 	// 9. Populate extraction state in response, then return

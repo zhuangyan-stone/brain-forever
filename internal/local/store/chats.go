@@ -448,14 +448,16 @@ func (s *ChatStore) UpdateExtractionProgress(chatID int64, extractedCount int) e
 }
 
 // MarkMessagesExtracted marks all messages in a chat up to (and including) the
-// given group_index as extracted (extracted = 1). This is called after a
+// given message id as extracted (extracted = 1). This is called after a
 // successful trait extraction to record which messages have been processed.
-func (s *ChatStore) MarkMessagesExtracted(chatID int64, upToGroupIndex int) error {
+// Using message id (auto-increment PK) as the cutoff ensures that even if
+// group_index is non-contiguous, all messages up to the given point are marked.
+func (s *ChatStore) MarkMessagesExtracted(chatID int64, upToID int64) error {
 	_, err := s.db.Exec(
 		`UPDATE chat_messages
 		 SET extracted = 1
-		 WHERE chat_id = ? AND group_index <= ? AND extracted = 0`,
-		chatID, upToGroupIndex,
+		 WHERE chat_id = ? AND id <= ? AND extracted = 0`,
+		chatID, upToID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to mark messages as extracted: %w", err)
