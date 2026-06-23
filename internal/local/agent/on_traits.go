@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"BrainForever/internal/local/store"
@@ -249,43 +248,16 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 4.1 Check if this is an incremental extraction
-	//     (chat has been extracted before: ExtractedAt is non-null)
+	// 4.1 Incremental extraction: only send new (un-extracted) messages
 	// ----------------------------------------------------------
 	maxGroupIndex := dbMessages[len(dbMessages)-1].GroupIndex
-	var existingTraitsSummary string
-
-	if foundChat.ExtractedAt != nil {
-		// Read existing traits for this chat from the trait DB
-		vs, err := session.ensureTraitsStore()
-		if err == nil {
-			existingTraits, listErr := vs.ListTraitsByChat(foundChat.SN)
-			if listErr == nil && len(existingTraits) > 0 {
-				var sb strings.Builder
-				for i, t := range existingTraits {
-					if i > 0 {
-						sb.WriteString("\n")
-					}
-					// Format: "- [category] feature_text"
-					// Include category info to help the LLM better identify
-					// and distinguish existing traits, reducing re-extraction.
-					catName := categoryNameByID(t.Category)
-					sb.WriteString("- [")
-					sb.WriteString(catName)
-					sb.WriteString("] ")
-					sb.WriteString(t.Trait)
-				}
-				existingTraitsSummary = sb.String()
-				log.Printf("[traits] incremental extraction: %d existing traits for sn=%s",
-					len(existingTraits), req.SN)
-			}
-		} else {
-			log.Printf("[traits] ensure traits store failed (non-fatal): %v", err)
-		}
+	if foundChat.ExtractedAt != nil && foundChat.ExtractedMessageCount < len(dbMessages) {
+		msgs = msgs[foundChat.ExtractedMessageCount:]
+		log.Printf("[traits] incremental extraction: skipping %d already-extracted messages, sending %d new messages",
+			foundChat.ExtractedMessageCount, len(msgs))
 	}
 
-	log.Printf("[traits] extract sn=%s, messages=%d, existing_traits=%v",
-		req.SN, len(dbMessages), existingTraitsSummary != "")
+	log.Printf("[traits] extract sn=%s, messages=%d", req.SN, len(msgs))
 
 	// ----------------------------------------------------------
 	// 5. Call remote-server API
@@ -296,10 +268,9 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	remoteReq := traitsRemoteRequest{
-		SN:                    req.SN,
-		Title:                 foundChat.Title,
-		Messages:              msgs,
-		ExistingTraitsSummary: existingTraitsSummary,
+		SN:       req.SN,
+		Title:    foundChat.Title,
+		Messages: msgs,
 	}
 
 	reqBody, err := json.Marshal(remoteReq)
@@ -454,42 +425,4 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 	}
 
 	return nil
-}
-
-// categoryNameByID maps category_id (1-14) to its English name
-// This is used when building the existing_traits_summary so the LLM
-// can better identify and distinguish already-extracted traits.
-func categoryNameByID(id int) string {
-	switch id {
-	case 1:
-		return "Demographic Attributes"
-	case 2:
-		return "External Objective Facts"
-	case 3:
-		return "Cultural Attainment"
-	case 4:
-		return "Hobbies"
-	case 5:
-		return "Abilities/Skills"
-	case 6:
-		return "Preferences/Idiosyncrasies"
-	case 7:
-		return "Behavioral Habits"
-	case 8:
-		return "Health & Illness"
-	case 9:
-		return "Situational States"
-	case 10:
-		return "Personality/Character Traits"
-	case 11:
-		return "Values/Beliefs"
-	case 12:
-		return "Social Relationships"
-	case 13:
-		return "Life Experiences"
-	case 14:
-		return "Goals/Motivations"
-	default:
-		return "Other"
-	}
 }

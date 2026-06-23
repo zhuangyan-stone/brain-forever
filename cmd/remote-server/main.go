@@ -118,10 +118,9 @@ func main() {
 
 // traitsRequest is the JSON body for POST /api/traits.
 type traitsRequest struct {
-	SN                    string      `json:"sn"`
-	Title                 string      `json:"title"`
-	Messages              []traitsMsg `json:"messages"`
-	ExistingTraitsSummary string      `json:"existing_traits_summary,omitempty"` // Traits already extracted, injected into system prompt
+	SN       string      `json:"sn"`
+	Title    string      `json:"title"`
+	Messages []traitsMsg `json:"messages"`
 }
 
 // traitsMsg represents a single message in the request.
@@ -209,15 +208,6 @@ func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	systemContent := getTraitSystemPrompt(lang, req.Title)
-
-	// If there are existing traits from a previous extraction, append them
-	// as a constraint to prevent the LLM from re-extracting them.
-	if req.ExistingTraitsSummary != "" {
-		constraint := i18n.SystemPrompt.TL(lang, "existing_traits_constraint", map[string]interface{}{
-			"ExistingTraitsSummary": req.ExistingTraitsSummary,
-		})
-		systemContent += "\n\n" + constraint
-	}
 
 	llmMsgs := make([]llm.Message, 0, 1+len(req.Messages))
 	llmMsgs = append(llmMsgs, llm.Message{
