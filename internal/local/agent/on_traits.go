@@ -111,7 +111,7 @@ func keywordTypeToInt(t string) int {
 	case "F":
 		return 6
 	default:
-		return 4 // default to D (事物)
+		return 4 // default to D
 	}
 }
 

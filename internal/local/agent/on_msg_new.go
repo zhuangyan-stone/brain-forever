@@ -181,8 +181,9 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		lang)
 
 	// 10. Persist the assistant message to DB
-	//  使用流式开始时捕获的chatID，而非 session.currentChat）
-	//    避免 flow 完成前用户切换Chat 导致 persist 到错误的对话。
+	//  Use the chatID captured when streaming started, not session.currentChat,
+	//  to avoid persisting to the wrong conversation if the user switches chats
+	//  before the flow completes.
 	if assistantMsg != nil {
 		session.mu.Lock()
 		persistMessageToDB(session, assistantMsg, msgChatID)

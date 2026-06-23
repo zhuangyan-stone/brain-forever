@@ -31,6 +31,7 @@ const TOOL_ICONS = {
     web_search: '🔍',
     current_time: '🕐',
     trait_search_by_text: '🧑',
+    trait_search_by_keyword: '🧑',
 };
 
 /**
