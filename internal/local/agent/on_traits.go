@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"BrainForever/infra/llm"
 	"BrainForever/internal/local/store"
 )
 
@@ -225,13 +226,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	msgs := make([]traitsMsg, 0, len(dbMessages))
 	for _, m := range dbMessages {
-		role := "user"
+		role := llm.RoleUser
 		if m.Role == 1 {
-			role = "assistant"
+			role = llm.RoleAssistant
 		}
 
 		content := m.Content
-		if role == "assistant" {
+		if role == llm.RoleAssistant {
 			runes := []rune(content)
 			if len(runes) > 1024 {
 				content = string(runes[:500]) + "\n...\n" + string(runes[len(runes)-500:])
