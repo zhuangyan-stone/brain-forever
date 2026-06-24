@@ -21,9 +21,10 @@ func generateSessionSN() string {
 // in the chat_sessions table. If dbChat.ID is 0, it creates a new session
 // record and sets dbChat.
 // Must be called with session.mu held.
-func ensureSessionDBForChat(session *session) {
+// Returns true if a new DB session was created, false if one already existed.
+func ensureSessionDBForChat(session *session) bool {
 	if session.currentChat.dbChat != nil && session.currentChat.dbChat.ID != 0 {
-		return // Already has a DB session
+		return false // Already has a DB session
 	}
 
 	sn := generateSessionSN()
@@ -31,7 +32,7 @@ func ensureSessionDBForChat(session *session) {
 
 	dbChat, err := session.chatsStore.InsertChat(sn, 0, title, 0)
 	if err != nil {
-		return
+		return false
 	}
 
 	session.currentChat.dbChat = dbChat
@@ -41,6 +42,7 @@ func ensureSessionDBForChat(session *session) {
 	// NOTE: addChatToList locks chatsMu internally and is safe to call
 	// while session.mu is held (no reverse lock ordering exists in the codebase).
 	session.addChatToList(*dbChat)
+	return true
 }
 
 // persistMessageToDB inserts a single message into the chat_messages table.
