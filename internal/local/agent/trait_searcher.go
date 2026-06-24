@@ -63,7 +63,7 @@ func categoryDisplay(cat int) string {
 	case 13:
 		return "Life Experiences (13)"
 	case 14:
-		return "Goals/Motivations (14)"
+		return "Goals/Plans (14)"
 	default:
 		return "Unspecified (0)"
 	}

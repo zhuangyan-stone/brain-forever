@@ -58,7 +58,7 @@ LLM 特征提取（trip_traits）  →  SSE 推送结果  →  消费/存储
 | 11 价值观与信仰 | long | 基本稳定 | "环保主义"→long |
 | 12 社交关系 | medium-long | 有差异 | "两个孩子的爸"→long, "老板很抠门"→medium(换工作) |
 | 13 人生事件 | permanent | 基本稳定 | "参加过抗洪"→permanent |
-| 14 目标与动机 | medium | 有差异 | "想减肥"→medium, "计划下周去日本"→short |
+| 14 目标与计划 | medium | 有差异 | "想减肥"→medium, "计划下周去日本"→short |
 
 结论：**仅靠 category 推断半衰期，在 Category 9 内部确实存在粒度不足的问题。**
 

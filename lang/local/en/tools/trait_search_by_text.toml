@@ -46,7 +46,7 @@ other = """Feature category number (0=search all categories). Category definitio
 
 13=Life Experiences: Past non-health-related objective events possessing at least one of: ① Significant long-term impact on the user; ② Some uniqueness; ③ Accidental or unexpected occurrence. Examples: Participated in flood relief; Served in the military; Had a car accident; Taught in rural areas for a year in college
 
-14=Goals/Motivations: Past or present goals, ideals, plans, wishes, fantasies (whether achieved, given up, or not). Examples: Wants to lose weight; Plans to go to Japan in the second half of the year"""
+14=Goals/Plans: Past or present goals, ideals, plans, wishes, fantasies (whether achieved, given up, or not). Examples: Wants to lose weight; Plans to go to Japan in the second half of the year"""
 
 [pending]
 other = "Searching user traits..."
