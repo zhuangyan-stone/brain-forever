@@ -146,10 +146,15 @@ func traitSearchByKeywordArguments(arguments string) (keyword string, kind strin
 	return result.Keyword, result.Kind, nil
 }
 
-// kindLetterToInt converts a keyword kind letter (A-F, case-insensitive) to its integer representation (1-6).
-// Returns 0 if the letter is invalid.
+// kindLetterToInt converts a keyword kind letter (A-F, case-insensitive, or '*') to its integer representation.
+// A=1, B=2, C=3, D=4, E=5, F=6.
+// Returns 0 for '*' (match all kinds) or if the letter is invalid.
 func kindLetterToInt(kind string) int {
 	if len(kind) == 0 {
+		return 0
+	}
+	// '*' means match all kinds (no kind filter)
+	if kind[0] == '*' {
 		return 0
 	}
 	// Normalize to uppercase

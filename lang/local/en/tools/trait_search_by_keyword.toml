@@ -1,11 +1,11 @@
 [description]
-other = "Search personal traits by keyword and keyword kind (A-F) from the user's knowledge base. When the LLM already knows specific keywords, use this tool for exact match retrieval."
+other = "Search personal traits by keyword and keyword kind (A-F/*) from the user's knowledge base. When the LLM already knows specific keywords, use this tool for exact match retrieval."
 
 [param_keyword_desc]
 other = "Keyword text, exact match against the word field in the keywords table."
 
 [param_kind_desc]
-other = """Keyword kind letter with definitions (A-F). Used to narrow the search scope:
+other = """Keyword kind letter or '*' with definitions (A-F or *). Used to narrow the search scope:
 
 A=Time: Time points or periods mentioned in the trait. Be as specific as possible. Examples: 2026-11-20, middle school years
 
@@ -17,7 +17,9 @@ D=Thing/Entity: Concrete or abstract entities mentioned in the trait. Concrete: 
 
 E=Relationship: Relationships between a person or thing and the user, with the user as the origin point. Examples: ex-girlfriend, celebrity crush, pet, friend
 
-F=Behavior: Actions, behaviors, or events performed by or mentioned by the user. Verbs or verb-object phrases. Examples: damage, flood relief, play basketball, pass away"""
+F=Behavior: Actions, behaviors, or events performed by or mentioned by the user. Verbs or verb-object phrases. Examples: damage, flood relief, play basketball, pass away
+
+*=Any: Match all keyword kinds. Use when unsure about the keyword's type."""
 
 [pending]
 other = "Searching user traits by keyword..."
