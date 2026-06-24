@@ -640,7 +640,7 @@ async function handleExtractTraits(chat) {
         if (featureCount > 0) {
             showToast('提取完成，新增 ' + featureCount + ' 条特征', 'success');
         } else {
-            showToast('未提取到新的个人特征', 'info');
+            showToast('未提取到新的个人特征', 'success');
         }
     } catch (e) {
         console.error('提取个人特征异常:', e);
