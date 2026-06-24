@@ -231,18 +231,8 @@ func (s *session) switchToUser(sn string) {
 // messages into memory. Messages are loaded from DB on demand.
 // Returns an error if the session is not found.
 func (s *session) switchToChat(sn string) error {
-	// Phase 1: Find the chat by SN under chatsMu lock
-	s.chatsMu.Lock()
-
-	var foundChat *store.Chat
-	for i := range s.chats {
-		if s.chats[i].SN == sn {
-			foundChat = &s.chats[i]
-			break
-		}
-	}
-	s.chatsMu.Unlock()
-
+	// Phase 1: Find the chat by SN (internally locks chatsMu)
+	foundChat, _ := s.findChatBySN(sn)
 	if foundChat == nil {
 		return fmt.Errorf("session not found: %s", sn)
 	}
@@ -257,6 +247,22 @@ func (s *session) switchToChat(sn string) error {
 	s.mu.Unlock()
 
 	return nil
+}
+
+// findChatBySN finds a chat by its serial number (SN) in the session's chat list.
+// It locks chatsMu internally, so the caller does not need to hold it.
+// Returns the chat pointer and the chatsStore reference.
+// Returns nil for the chat pointer if not found.
+func (s *session) findChatBySN(sn string) (*store.Chat, *store.ChatStore) {
+	s.chatsMu.Lock()
+	defer s.chatsMu.Unlock()
+
+	for i := range s.chats {
+		if s.chats[i].SN == sn {
+			return &s.chats[i], s.chatsStore
+		}
+	}
+	return nil, s.chatsStore
 }
 
 // SessionManager manages all user sessions

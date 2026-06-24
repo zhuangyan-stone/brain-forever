@@ -38,3 +38,24 @@ func TryParseTimeString(s, layout string) (*time.Time, error) {
 
 	return nil, fmt.Errorf("bad time format. %s", s)
 }
+
+// FormatTimeWithLocation formats a time.Time in "2006-01-02 15:04:05 (Location)" format.
+// Uses the local timezone's IANA name (e.g., "Asia/Shanghai").
+// Falls back to numeric UTC offset (e.g., "UTC+08:00") if the location name is "Local".
+func FormatTimeWithLocation(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	t = t.In(time.Local)
+	locName := t.Location().String()
+	if locName == "Local" {
+		_, offset := t.Zone()
+		sign := "+"
+		if offset < 0 {
+			sign = "-"
+			offset = -offset
+		}
+		locName = fmt.Sprintf("UTC%s%02d:%02d", sign, offset/3600, (offset%3600)/60)
+	}
+	return t.Format("2006-01-02 15:04:05") + " (" + locName + ")"
+}

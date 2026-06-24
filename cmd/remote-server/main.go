@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -220,10 +219,7 @@ func handleTraitsJSON(w http.ResponseWriter, r *http.Request) {
 		// Add timestamp prefix [YYYY-MM-DD HH:MM:SS] to help the analyzing LLM
 		content := m.Content
 		if m.CreateAt != "" {
-			// Try to parse and reformat the timestamp
-			if t, err := parseCreateTime(m.CreateAt); err == nil {
-				content = "[" + t.Format("2006-01-02 15:04:05") + "] " + content
-			}
+			content = "[" + m.CreateAt + "] " + content
 		}
 
 		// For assistant messages: truncate to 1000 runes, skip reasoning
@@ -330,28 +326,4 @@ func writeJSONError(w http.ResponseWriter, msg string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(traitsResponse{Error: msg})
-}
-
-// parseCreateTime tries to parse a timestamp string in various formats.
-func parseCreateTime(s string) (time.Time, error) {
-	formats := []string{
-		time.RFC3339,
-		"2006-01-02 15:04:05",
-		"2006-01-02T15:04:05",
-		"2006-01-02T15:04:05Z07:00",
-		"2006-01-02 15:04:05 -07:00",
-	}
-	for _, f := range formats {
-		if t, err := time.Parse(f, s); err == nil {
-			return t, nil
-		}
-	}
-	// If trimming whitespace, try again
-	s = strings.TrimSpace(s)
-	for _, f := range formats {
-		if t, err := time.Parse(f, s); err == nil {
-			return t, nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("cannot parse time: %s", s)
 }

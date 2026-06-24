@@ -11,6 +11,7 @@ import (
 
 	"BrainForever/infra/llm"
 	"BrainForever/internal/local/store"
+	"BrainForever/toolset"
 )
 
 // ============================================================
@@ -164,17 +165,8 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Find the chat by SN in the session's chat list
-	var foundChat *store.Chat
-	session.chatsMu.Lock()
-	for i := range session.chats {
-		if session.chats[i].SN == req.SN {
-			foundChat = &session.chats[i]
-			break
-		}
-	}
-	chatsStore := session.chatsStore
-	session.chatsMu.Unlock()
+	// Find the chat by SN in the session's chat list (internally locks chatsMu)
+	foundChat, chatsStore := session.findChatBySN(req.SN)
 
 	if foundChat == nil {
 		http.Error(w, fmt.Sprintf(`{"error":"chat not found (sn=%s)"}`, req.SN), http.StatusNotFound)
@@ -194,40 +186,68 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(dbMessages) == 0 {
-		resp := traitsRemoteResponse{
-			Features: []traitsFeature{},
-		}
-		if foundChat.ExtractedAt != nil {
-			extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
-			resp.ExtractedAt = &extractedAtStr
-		}
-		// Get total message count for the response
-		if totalCount, err := chatsStore.CountMessages(foundChat.ID); err == nil {
-			resp.ExtractedMessageCount = totalCount
-			// Fix DB inconsistency: if DB's extracted_message_count is stale
-			// (e.g., 0) but all messages are already extracted, sync it now
-			// so the next page load doesn't show a false "继续提取" state.
-			if foundChat.ExtractedMessageCount != totalCount {
-				if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err == nil {
-					now := time.Now()
-					foundChat.ExtractedAt = &now
-					foundChat.ExtractedMessageCount = totalCount
-				}
-			}
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		handleNoNewMessages(w, foundChat, chatsStore)
 		return
 	}
 
 	// ----------------------------------------------------------
-	// 4. Convert un-extracted messages to traits request format.
-	//     All messages returned by ListUnExtractMessages are
-	//     un-extracted (DB already filtered), so no Go-level check needed.
-	//     Since sorted by group_index ASC, id ASC, the last message
-	//     has the highest id — used as the cutoff for MarkMessagesExtracted.
+	// 4. Convert un-extracted messages to traits request format,
+	//    then call remote-server API.
 	// ----------------------------------------------------------
-	msgs := make([]traitsMsg, 0, len(dbMessages))
+	msgs, lastMsgID := dbMessagesToTraitsMsgs(dbMessages)
+
+	acceptLang := r.Header.Get("Accept-Language")
+	remoteResp, err := callTraitsRemote(r.Context(), &traitsRemoteRequest{
+		SN:       req.SN,
+		Title:    foundChat.Title,
+		Messages: msgs,
+	}, acceptLang)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	// ----------------------------------------------------------
+	// 5. Embed each trait and store into user-specific traits DB
+	// ----------------------------------------------------------
+	if len(remoteResp.Features) > 0 {
+		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN); err != nil {
+			// Non-fatal: still return features to frontend even if storage fails
+		}
+	}
+
+	// ----------------------------------------------------------
+	// 6. Update extraction progress
+	// ----------------------------------------------------------
+	totalCount := len(dbMessages) // fallback: at least the unextracted count
+	if count, err := chatsStore.CountMessages(foundChat.ID); err == nil {
+		totalCount = count
+	}
+	updateExtractionProgress(foundChat, chatsStore, totalCount)
+	chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
+
+	// ----------------------------------------------------------
+	// 7. Populate extraction state in response, then return
+	// ----------------------------------------------------------
+	if foundChat.ExtractedAt != nil {
+		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
+		remoteResp.ExtractedAt = &extractedAtStr
+		remoteResp.ExtractedMessageCount = foundChat.ExtractedMessageCount
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(remoteResp)
+}
+
+// ============================================================
+// Helper: message conversion
+// ============================================================
+
+// dbMessagesToTraitsMsgs converts DB messages to the traits API request format.
+// Returns the converted messages and the ID of the last message (for MarkMessagesExtracted).
+func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastMsgID int64) {
+	count := len(dbMessages)
+	msgs = make([]traitsMsg, 0, count)
+
 	for _, m := range dbMessages {
 		role := llm.RoleUser
 		if m.Role == 1 {
@@ -242,116 +262,64 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		createAt := ""
-		if !m.CreateAt.IsZero() {
-			createAt = m.CreateAt.In(time.Local).Format("2006-01-02 15:04:05 (MST)")
-		}
-
 		msgs = append(msgs, traitsMsg{
 			Role:     role,
 			Content:  content,
-			CreateAt: createAt,
+			CreateAt: toolset.FormatTimeWithLocation(m.CreateAt),
 		})
 	}
 
-	// Last message in sorted order has the highest id
-	lastMsgID := dbMessages[len(dbMessages)-1].ID
+	lastMsgID = dbMessages[count-1].ID
+	return
+}
 
-	// ----------------------------------------------------------
-	// 5. Call remote-server API
-	// ----------------------------------------------------------
+// ============================================================
+// Helper: call remote-server API
+// ============================================================
+
+// callTraitsRemote sends the traits request to the remote-server and returns the response.
+func callTraitsRemote(ctx context.Context, req *traitsRemoteRequest, acceptLang string) (*traitsRemoteResponse, error) {
 	remoteURL := os.Getenv("REMOTE_SERVER_URL")
 	if remoteURL == "" {
 		remoteURL = "http://localhost:8088"
 	}
 
-	remoteReq := traitsRemoteRequest{
-		SN:       req.SN,
-		Title:    foundChat.Title,
-		Messages: msgs,
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request failed: %w", err)
 	}
 
-	reqBody, err := json.Marshal(remoteReq)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, remoteURL+"/api/traits", bytes.NewReader(reqBody))
 	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"marshal request failed: %v"}`, err), http.StatusInternalServerError)
-		return
-	}
-
-	httpReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, remoteURL+"/api/traits", bytes.NewReader(reqBody))
-	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"create request failed: %v"}`, err), http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("create request failed: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	// Forward Accept-Language header for i18n
-	if lang := r.Header.Get("Accept-Language"); lang != "" {
-		httpReq.Header.Set("Accept-Language", lang)
+	if acceptLang != "" {
+		httpReq.Header.Set("Accept-Language", acceptLang)
 	}
 
 	client := &http.Client{Timeout: 120 * time.Second}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"remote-server call failed: %v"}`, err), http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("remote-server call failed: %w", err)
 	}
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode != http.StatusOK {
-		// Try to read error response body
 		var errResp traitsRemoteResponse
 		if decodeErr := json.NewDecoder(httpResp.Body).Decode(&errResp); decodeErr == nil && errResp.Error != "" {
-			http.Error(w, fmt.Sprintf(`{"error":"remote-server error: %s"}`, errResp.Error), http.StatusInternalServerError)
-			return
+			return nil, fmt.Errorf("remote-server error: %s", errResp.Error)
 		}
-		http.Error(w, fmt.Sprintf(`{"error":"remote-server returned status %d"}`, httpResp.StatusCode), http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("remote-server returned status %d", httpResp.StatusCode)
 	}
 
-	// ----------------------------------------------------------
-	// 6. Decode remote-server response
-	// ----------------------------------------------------------
 	var remoteResp traitsRemoteResponse
 	if err := json.NewDecoder(httpResp.Body).Decode(&remoteResp); err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"decode remote-server response failed: %v"}`, err), http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("decode remote-server response failed: %w", err)
 	}
 
-	// ----------------------------------------------------------
-	// 7. Embed each trait and store into user-specific traits DB
-	// ----------------------------------------------------------
-	if len(remoteResp.Features) > 0 {
-		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN); err != nil {
-			// Non-fatal: still return features to frontend even if storage fails
-		}
-	}
-
-	// ----------------------------------------------------------
-	// 8. Update extraction progress
-	// ----------------------------------------------------------
-	// Get total message count (used for chat-level progress tracking)
-	totalCount := len(dbMessages) // fallback: at least the unextracted count
-	if count, err := chatsStore.CountMessages(foundChat.ID); err == nil {
-		totalCount = count
-	}
-	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err == nil {
-		// Sync in-memory struct to match DB
-		now := time.Now()
-		foundChat.ExtractedAt = &now
-		foundChat.ExtractedMessageCount = totalCount
-	}
-	chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
-
-	// ----------------------------------------------------------
-	// 9. Populate extraction state in response, then return
-	// ----------------------------------------------------------
-	if foundChat.ExtractedAt != nil {
-		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
-		remoteResp.ExtractedAt = &extractedAtStr
-		remoteResp.ExtractedMessageCount = foundChat.ExtractedMessageCount
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(remoteResp)
+	return &remoteResp, nil
 }
 
 // storeTraitsInSession embeds each trait feature and stores it along with keywords
@@ -406,4 +374,39 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 	}
 
 	return nil
+}
+
+// handleNoNewMessages builds and writes the response when there are no
+// un-extracted messages for the given chat. It also fixes any inconsistency
+// between the DB's extracted_message_count and the actual message count.
+func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {
+	resp := traitsRemoteResponse{
+		Features: []traitsFeature{},
+	}
+	if foundChat.ExtractedAt != nil {
+		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
+		resp.ExtractedAt = &extractedAtStr
+	}
+	// Get total message count for the response
+	if totalCount, err := chatsStore.CountMessages(foundChat.ID); err == nil {
+		resp.ExtractedMessageCount = totalCount
+		// Fix DB inconsistency: if DB's extracted_message_count is stale
+		// (e.g., 0) but all messages are already extracted, sync it now
+		// so the next page load doesn't show a false "continue extraction" state.
+		if foundChat.ExtractedMessageCount != totalCount {
+			updateExtractionProgress(foundChat, chatsStore, totalCount)
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// updateExtractionProgress updates the extraction progress in the database
+// and synchronizes the in-memory foundChat fields on success.
+func updateExtractionProgress(foundChat *store.Chat, chatsStore *store.ChatStore, totalCount int) {
+	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err == nil {
+		now := time.Now()
+		foundChat.ExtractedAt = &now
+		foundChat.ExtractedMessageCount = totalCount
+	}
 }
