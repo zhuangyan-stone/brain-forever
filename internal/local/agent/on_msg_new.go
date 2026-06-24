@@ -170,15 +170,15 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	toolsImp = append(toolsImp, traitSearchByTextToolImp, traitSearchByKeywordToolImp)
 
 	// 10. Only send chat_created event if a new DB chat was actually created by this request.
-	//     ★ 修复：使用 isNewChat 标志位判断，而非在无锁状态下重新读取 currentChat。
-	//     旧代码在流式开始后再次加锁读取 currentChat，此时 currentChat 可能已被其他
-	//     handler（如 OnSwitchChat、OnNewChat）修改，导致：
-	//       a) 对已有 chat 的每一条消息都错误发送 chat_created 事件（浪费但无害）
-	//       b) 更严重地，如果 currentChat 已被重置为空白（&chat{}），则不会发送
-	//          chat_created 事件，而前端仍在使用临时 SN，导致后续 SSE 事件无法
-	//          通过 getOrCreate(sn) 找到正确的 ChatData。
-	//     新方案：在 session.mu 保护下捕获 isNewChat 和 chat SN，在流式开始前
-	//     就确定是否需要发送 chat_created 事件，消除竞态窗口。
+	//     ★ Fix: Use the isNewChat flag to decide, instead of re-reading currentChat without holding the lock.
+	//     The old code re-read currentChat under lock after streaming had started, at which point
+	//     currentChat might have been modified by other handlers (e.g., OnSwitchChat, OnNewChat), causing:
+	//       a) Every message in an existing chat erroneously sends a chat_created event (wasteful but harmless)
+	//       b) More critically, if currentChat has been reset to an empty chat (&chat{}), the
+	//          chat_created event is never sent, while the frontend still uses a temporary SN,
+	//          preventing subsequent SSE events from finding the correct ChatData via getOrCreate(sn).
+	//     New approach: Capture isNewChat and the chat SN under session.mu protection, and determine
+	//     whether a chat_created event needs to be sent before streaming begins, eliminating the race window.
 	if chatCreatedSN != "" {
 		sseWriter.WriteEvent(ChatCreatedEvent{
 			Type:    "chat_created",
