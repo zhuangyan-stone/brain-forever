@@ -238,13 +238,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		if role == llm.RoleAssistant {
 			runes := []rune(content)
 			if len(runes) > 1024 {
-				content = string(runes[:500]) + "\n...\n" + string(runes[len(runes)-500:])
+				content = string(runes[:500]) + "...\n...\n..." + string(runes[len(runes)-500:])
 			}
 		}
 
 		createAt := ""
 		if !m.CreateAt.IsZero() {
-			createAt = m.CreateAt.Format("2006-01-02 15:04:05")
+			createAt = m.CreateAt.In(time.Local).Format("2006-01-02 15:04:05 (MST)")
 		}
 
 		msgs = append(msgs, traitsMsg{
