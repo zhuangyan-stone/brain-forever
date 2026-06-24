@@ -104,9 +104,18 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 }
 
 func (a *traitSearchAdapter) SearchByKeyword(ctx context.Context, queryKeyword string, queryType int) ([]toolimp.TraitSource, error) {
+	// 1. Try exact match first
 	traits, err := a.store.SearchByKeyword(queryKeyword, queryType, 20)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search traits by keyword: %w", err)
+	}
+
+	// 2. If exact match returns no results, fall back to fuzzy LIKE %keyword% search
+	if len(traits) == 0 {
+		traits, err = a.store.SearchByKeywordFuzzy(queryKeyword, queryType, 20)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fuzzy search traits by keyword: %w", err)
+		}
 	}
 
 	var result []toolimp.TraitSource

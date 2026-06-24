@@ -291,7 +291,7 @@ func (s *VectorStore) Search(query []float32, category int, topK int) ([]Persona
 
 // SearchByKeyword finds traits by matching keywords.
 // word uses exact match; kind uses exact match.
-// Both word and kind are required to be non-zero (guaranteed by caller).
+// If kind is 0, no kind filtering is applied (match keyword only).
 // Uses idx_keywords_word + idx_keywords_kind indexes for fast lookup.
 // Returns distinct traits matching the criteria, ordered by trait ID descending.
 func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]PersonalTrait, error) {
@@ -299,18 +299,91 @@ func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]Perso
 		limit = 20
 	}
 
-	rows, err := s.db.Query(
-		`SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
+	var query string
+	var args []interface{}
+	if kind > 0 {
+		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
 		                t.chat_sn, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE k.word = ? AND k.kind = ?
 		 ORDER BY t.id DESC
-		 LIMIT ?`,
-		word, kind, limit,
-	)
+		 LIMIT ?`
+		args = []interface{}{word, kind, limit}
+	} else {
+		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
+		                t.chat_sn, t.create_at, t.update_at
+		 FROM traits t
+		 INNER JOIN keywords k ON k.trait_id = t.id
+		 WHERE k.word = ?
+		 ORDER BY t.id DESC
+		 LIMIT ?`
+		args = []interface{}{word, limit}
+	}
+
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("keyword search failed. %w", err)
+	}
+	defer rows.Close()
+
+	var results []PersonalTrait
+	for rows.Next() {
+		var pt PersonalTrait
+		var createAt, updateAt time.Time
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
+			return nil, err
+		}
+		pt.CreateAt = createAt
+		pt.UpdateAt = updateAt
+		results = append(results, pt)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// ============================================================
+// SearchByKeywordFuzzy -fuzzy keyword-based trait search (LIKE %word%)
+// ============================================================
+
+// SearchByKeywordFuzzy finds traits by fuzzy matching keywords using LIKE '%word%'.
+// kind uses exact match. This is a fallback when exact SearchByKeyword returns no results.
+// If kind is 0, no kind filtering is applied (match keyword only).
+// Uses idx_keywords_word + idx_keywords_kind indexes for fast lookup.
+// Returns distinct traits matching the criteria, ordered by trait ID descending.
+func (s *VectorStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]PersonalTrait, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+
+	var query string
+	var args []interface{}
+	if kind > 0 {
+		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
+		                t.chat_sn, t.create_at, t.update_at
+		 FROM traits t
+		 INNER JOIN keywords k ON k.trait_id = t.id
+		 WHERE k.word LIKE ? AND k.kind = ?
+		 ORDER BY t.id DESC
+		 LIMIT ?`
+		args = []interface{}{"%" + word + "%", kind, limit}
+	} else {
+		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
+		                t.chat_sn, t.create_at, t.update_at
+		 FROM traits t
+		 INNER JOIN keywords k ON k.trait_id = t.id
+		 WHERE k.word LIKE ?
+		 ORDER BY t.id DESC
+		 LIMIT ?`
+		args = []interface{}{"%" + word + "%", limit}
+	}
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("fuzzy keyword search failed. %w", err)
 	}
 	defer rows.Close()
 
