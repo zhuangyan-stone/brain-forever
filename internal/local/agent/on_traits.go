@@ -204,6 +204,16 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		// Get total message count for the response
 		if totalCount, err := chatsStore.CountMessages(foundChat.ID); err == nil {
 			resp.ExtractedMessageCount = totalCount
+			// Fix DB inconsistency: if DB's extracted_message_count is stale
+			// (e.g., 0) but all messages are already extracted, sync it now
+			// so the next page load doesn't show a false "继续提取" state.
+			if foundChat.ExtractedMessageCount != totalCount {
+				if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err == nil {
+					now := time.Now()
+					foundChat.ExtractedAt = &now
+					foundChat.ExtractedMessageCount = totalCount
+				}
+			}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
