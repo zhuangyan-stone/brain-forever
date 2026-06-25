@@ -273,7 +273,7 @@ document.addEventListener('alpine:init', function() {
 
                 // ---- 3. 重点摘要 ----
                 if (meta && meta.key_highlights && meta.key_highlights.length) {
-                    parts.push('## 📌 重点摘要');
+                    parts.push('## 🔖 重点摘要');
                     meta.key_highlights.forEach(function(item) {
                         parts.push('> ' + item);
                     });
@@ -467,6 +467,19 @@ document.addEventListener('alpine:init', function() {
                     clearTimeout(this._renderTimer);
                     this._renderTimer = null;
                 }
+            },
+
+            /**
+             * 渲染高亮内容为 Markdown HTML
+             * @param {string} text
+             * @returns {string}
+             */
+            renderHighlightMD: function(text) {
+                if (!text) return '';
+                if (typeof window._alpineRenderMarkdown === 'function') {
+                    return window._alpineRenderMarkdown(text);
+                }
+                return String(text).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
             },
 
             /**
