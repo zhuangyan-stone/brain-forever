@@ -100,7 +100,7 @@ func OnPortrait(w http.ResponseWriter, r *http.Request) {
 	apiKey := os.Getenv("DEEPSEEK_API_KEY")
 	baseURL := os.Getenv("DEEPSEEK_BASE_URL")
 	if baseURL == "" {
-		baseURL = "https://api.deepseek.com/"
+		baseURL = "https://api.deepseek.com/beta"
 	}
 	model := os.Getenv("DEEPSEEK_MODEL")
 	if model == "" {

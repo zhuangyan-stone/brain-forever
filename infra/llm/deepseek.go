@@ -86,7 +86,7 @@ func NewDeepSeekClientFromConfig(cfg DeepseekClientConfig) *DeepSeekClient {
 	}
 
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://api.deepseek.com/"
+		cfg.BaseURL = "https://api.deepseek.com/beta"
 	}
 
 	httpClient := cfg.HTTPClient

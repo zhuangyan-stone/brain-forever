@@ -95,7 +95,7 @@ type Client interface {
 // ClientConfig contains common configuration for creating an LLM client.
 type ClientConfig struct {
 	APIKey                string       // API key, if empty reads from EnvKey env var
-	BaseURL               string       // API base URL (e.g., "https://api.deepseek.com")
+	BaseURL               string       // API base URL (e.g., "https://api.deepseek.com/beta")
 	Model                 string       // Model name (e.g., "deepseek-chat")
 	EnvKey                string       // Environment variable name to read API key from
 	HTTPClient            *http.Client // Optional custom HTTP client; nil uses default timeout
