@@ -136,7 +136,7 @@ document.addEventListener('alpine:init', function() {
 
             // ---- 计算属性 ----
             get title() {
-                return '用户画像 - 「 ' + (this.userName || '匿名用户') + ' 」';
+                return '用户画像';
             },
 
             get showCancel() {

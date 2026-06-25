@@ -603,8 +603,12 @@
         border-radius: 14px 14px 0 0;
     }
 
+    /* 竖向布局：portrait-body 作为唯一滚动容器，
+       内部子元素不再各自独立滚动 */
     .portrait-body {
         flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .portrait-essence {
@@ -612,13 +616,15 @@
         min-width: auto;
         border-right: none;
         border-bottom: 1px solid var(--border);
-        max-height: 40vh;
+        max-height: none;
+        overflow: visible;
         padding: 12px 12px 8px;
     }
 
     .portrait-content {
-        padding: 12px 14px;
-        max-height: 45vh;
+        padding: 0 14px 12px;
+        max-height: none;
+        overflow: visible;
     }
 
     .portrait-essence-avatar {

@@ -745,7 +745,10 @@
                 <!-- ================================================
                      精华区（左栏/上栏）
                      ================================================ -->
-                <div class="portrait-essence" x-show="!hasError">
+                <!-- ★ 修复闪烁：初始加载时（isStreaming && !portrait）隐藏 essence，
+                     避免 loading (flex:1) 与 essence (width:36%) 同时显示，
+                     导致头像先出现在右侧，待数据到达后再跳回左侧。 -->
+                <div class="portrait-essence" x-show="!hasError && !(isStreaming && !portrait)">
                     <!-- 头像 + 昵称 -->
                     <div class="portrait-essence-avatar-wrap">
                         <img class="portrait-essence-avatar"
