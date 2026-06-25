@@ -111,10 +111,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 4. Call remote-server portrait API (SSE streaming)
 	// ----------------------------------------------------------
-	acceptLang := r.Header.Get("Accept-Language")
-	if acceptLang == "" {
-		acceptLang = "zh-CN"
-	}
+	acceptLang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
 	remoteResp, err := callPortraitRemote(r.Context(), &portraitRemoteRequest{
 		Lang:    acceptLang,
@@ -276,6 +273,7 @@ func callPortraitRemote(_ interface{}, req *portraitRemoteRequest) (*http.Respon
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("Accept-Language", req.Lang)
 
 	// Use a streaming-friendly HTTP client with a long timeout
 	client := &http.Client{Timeout: 5 * time.Minute}
