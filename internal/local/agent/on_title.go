@@ -179,7 +179,7 @@ func extractMessagesForTitle(msgs []Message) []Message {
 	return samples
 }
 
-// GetSuggestedChatTitle handles GET /api/session/title requests.
+// OnGetSuggestedChatTitle handles GET /api/session/title requests.
 // It reads the "title" query parameter as the original title,
 // and optionally a "sn" parameter specifying which chat to generate a title for.
 // If "sn" is provided, messages are loaded from that specific chat.
@@ -193,7 +193,7 @@ func extractMessagesForTitle(msgs []Message) []Message {
 // NOTE: This handler does NOT save the generated title to the session.
 // The title is only saved when the user explicitly accepts it via PUT /api/session/title.
 // This ensures the backend does not modify session state before user confirmation.
-func (h *ChatAgent) GetSuggestedChatTitle(w http.ResponseWriter, r *http.Request) {
+func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Request) {
 	// Only accept GET
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

@@ -191,7 +191,7 @@ func main() {
 	srv.DELETE("/api/chat", chatHandler.OnChatDelete)
 
 	// /api/chat/title -GET (propose title) + PUT (save title)
-	srv.GET("/api/chat/title", chatHandler.GetSuggestedChatTitle)
+	srv.GET("/api/chat/title", chatHandler.OnGetSuggestedChatTitle)
 	srv.PUT("/api/chat/title", chatHandler.OnPutChatTitle)
 
 	// /api/chat/traits -POST (extract personal traits via remote-server)
