@@ -412,6 +412,12 @@ export async function onChatLogout() {
 				chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
 			}
 
+			// 清空刻度导航（避免退出登录后残留之前对话的刻度）
+			const tickNav = document.getElementById('tickNav');
+			if (tickNav) {
+				tickNav.innerHTML = '';
+			}
+
 			// 获取匿名用户的对话列表
 			const listResp = await fetch('/api/chat/list');
 			if (listResp.ok) {
