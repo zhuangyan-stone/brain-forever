@@ -349,6 +349,9 @@ other = """You are a **User Personal Portrait Generation Assistant**. Based on a
 Please generate the user's personal portrait based on the above traits.
 """
 
+[portrait_user_prompt]
+other = "Based on the following {{.TraitCount}} personal traits, generate my user personal portrait. Retouch level: {{.Retouch}}."
+
 [highlights]
 other = """You are a portrait metadata extraction assistant. Your task is to extract structured metadata from a completed user personal portrait text.
 

@@ -1,0 +1,33 @@
+# ============================================================
+# API error messages -returned as JSON {"error": msg} by WriteJSONError
+# ============================================================
+
+[api_error_invalid_json_body]
+other = "Invalid JSON body: {{.Error}}"
+
+[api_error_no_traits_provided]
+other = "No traits provided"
+
+[api_error_failed_to_marshal_traits]
+other = "Failed to marshal traits: {{.Error}}"
+
+[api_error_llm_stream_failed]
+other = "LLM stream failed: {{.Error}}"
+
+[api_error_streaming_not_supported]
+other = "Streaming not supported"
+
+[api_error_method_not_allowed]
+other = "Method not allowed"
+
+[api_error_missing_sn_field]
+other = "Missing 'sn' field"
+
+[api_error_missing_messages_field]
+other = "Missing 'messages' field (empty array)"
+
+[api_error_no_valid_messages]
+other = "No valid messages after filtering"
+
+[api_error_llm_call_failed]
+other = "LLM call failed: {{.Error}}"

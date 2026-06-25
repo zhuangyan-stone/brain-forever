@@ -1,0 +1,33 @@
+# ============================================================
+# API error messages -returned as JSON {"error": msg} by WriteJSONError
+# ============================================================
+
+[api_error_invalid_json_body]
+other = "请求体 JSON 格式错误：{{.Error}}"
+
+[api_error_no_traits_provided]
+other = "未提供个人特征数据"
+
+[api_error_failed_to_marshal_traits]
+other = "处理个人特征数据失败：{{.Error}}"
+
+[api_error_llm_stream_failed]
+other = "AI 模型流式调用失败：{{.Error}}"
+
+[api_error_streaming_not_supported]
+other = "当前环境不支持流式传输"
+
+[api_error_method_not_allowed]
+other = "不支持的请求方法"
+
+[api_error_missing_sn_field]
+other = "缺少 'sn' 字段"
+
+[api_error_missing_messages_field]
+other = "缺少 'messages' 字段（数组为空）"
+
+[api_error_no_valid_messages]
+other = "过滤后无有效消息"
+
+[api_error_llm_call_failed]
+other = "AI 模型请求失败：{{.Error}}"

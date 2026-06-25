@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/remote/agent/toolimp"
+	"BrainForever/toolset"
 )
 
 // ============================================================
@@ -60,9 +60,15 @@ type traitsResponse struct {
 //
 // ============================================================
 func OnTripTraits(w http.ResponseWriter, r *http.Request) {
+	// Determine user language from request
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+	if lang == "" {
+		lang = "zh-CN"
+	}
+
 	// Only accept POST
 	if r.Method != http.MethodPost {
-		writeJSONError(w, "method not allowed", http.StatusMethodNotAllowed)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_method_not_allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -71,27 +77,22 @@ func OnTripTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	var req traitsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONError(w, fmt.Sprintf("invalid JSON body: %v", err), http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_invalid_json_body", map[string]interface{}{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	if req.SN == "" {
-		writeJSONError(w, "missing 'sn' field", http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_missing_sn_field"), http.StatusBadRequest)
 		return
 	}
 	if len(req.Messages) == 0 {
-		writeJSONError(w, "missing 'messages' field (empty array)", http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_missing_messages_field"), http.StatusBadRequest)
 		return
 	}
 
 	// ----------------------------------------------------------
 	// 2. Build LLM messages from request data
 	// ----------------------------------------------------------
-	// Determine language for i18n system prompt
-	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
-	if lang == "" {
-		lang = "zh-CN"
-	}
 
 	systemContent := getTraitSystemPrompt(lang, req.Title)
 
@@ -128,7 +129,7 @@ func OnTripTraits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(llmMsgs) <= 1 {
-		writeJSONError(w, "no valid messages after filtering", http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_no_valid_messages"), http.StatusBadRequest)
 		return
 	}
 
@@ -169,7 +170,7 @@ func OnTripTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	resp, err := client.ChatWithOptions(r.Context(), reqBody)
 	if err != nil {
-		writeJSONError(w, fmt.Sprintf("LLM call failed: %v", err), http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_llm_call_failed", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
@@ -221,11 +222,4 @@ func getTraitSystemPrompt(lang string, chatTitle string) string {
 		"CurrentLocalTime": time.Now().In(time.Local).Format("2006-01-02 15:04:05 (MST)"),
 		"ChatTitle":        chatTitle,
 	})
-}
-
-// writeJSONError writes a JSON error response with the given status code.
-func writeJSONError(w http.ResponseWriter, msg string, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(traitsResponse{Error: msg})
 }

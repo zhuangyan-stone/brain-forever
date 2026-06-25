@@ -9,3 +9,19 @@ other = "Oops! Server error!\n{{.Error}}"
 
 [welcome_message]
 other = "Hello! Chat with me more, and I will become your second brain."
+
+# ============================================================
+# API error messages -returned as JSON {"error": msg} by WriteJSONError
+# ============================================================
+
+[api_error_traits_store_unavailable]
+other = "Traits store not available"
+
+[api_error_failed_to_read_traits]
+other = "Failed to read traits: {{.Error}}"
+
+[api_error_no_traits_data]
+other = "No personal traits data available. Please start a conversation first"
+
+[api_error_portrait_service_unavailable]
+other = "Portrait service temporarily unavailable: {{.Error}}"

@@ -11,6 +11,7 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/remote/agent/toolimp"
+	"BrainForever/toolset"
 )
 
 // ============================================================
@@ -60,17 +61,20 @@ func OnPortrait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Determine user language from request
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+
 	// ----------------------------------------------------------
 	// 1. Parse request body
 	// ----------------------------------------------------------
 	var req portraitRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writePortraitJSONError(w, fmt.Sprintf("invalid JSON body: %v", err), http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_invalid_json_body", map[string]interface{}{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	if len(req.Traits) == 0 {
-		writePortraitJSONError(w, "no traits provided", http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_no_traits_provided"), http.StatusBadRequest)
 		return
 	}
 
@@ -87,7 +91,7 @@ func OnPortrait(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	traitsJSON, err := json.Marshal(req.Traits)
 	if err != nil {
-		writePortraitJSONError(w, fmt.Sprintf("failed to marshal traits: %v", err), http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_marshal_traits", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
@@ -114,9 +118,13 @@ func OnPortrait(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 4. Build LLM messages and start streaming
 	// ----------------------------------------------------------
+	userContent := i18n.SystemPrompt.TL(lang, "portrait_user_prompt", map[string]interface{}{
+		"TraitCount": len(req.Traits),
+		"Retouch":    req.Retouch,
+	})
 	llmMsgs := []llm.Message{
 		{Role: llm.RoleSystem, Content: systemContent},
-		{Role: llm.RoleUser, Content: fmt.Sprintf("请基于以下 %d 条个人特征，生成我的用户个人画像。润色级别：%d。", len(req.Traits), req.Retouch)},
+		{Role: llm.RoleUser, Content: userContent},
 	}
 
 	// Create a streaming request with thinking disabled (portrait generation
@@ -130,7 +138,7 @@ func OnPortrait(w http.ResponseWriter, r *http.Request) {
 
 	stream := client.ChatStreamWithOptions(r.Context(), streamReq)
 	if err := stream.Err(); err != nil {
-		writePortraitJSONError(w, fmt.Sprintf("LLM stream failed: %v", err), http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_llm_stream_failed", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 	defer stream.Close()
@@ -144,7 +152,7 @@ func OnPortrait(w http.ResponseWriter, r *http.Request) {
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		writePortraitJSONError(w, "streaming not supported", http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_streaming_not_supported"), http.StatusInternalServerError)
 		return
 	}
 
@@ -278,11 +286,4 @@ func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, por
 	}
 
 	return nil
-}
-
-// writePortraitJSONError writes a JSON error response with the given status code.
-func writePortraitJSONError(w http.ResponseWriter, msg string, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }

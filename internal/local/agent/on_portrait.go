@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"BrainForever/infra/httpx/sse"
+	"BrainForever/infra/i18n"
+	"BrainForever/toolset"
 )
 
 // ============================================================
@@ -70,21 +72,24 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
+	// Determine user language from request
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+
 	vs, err := session.ensureTraitsStore()
 	if err != nil {
-		writePortraitLocalError(w, "traits store not available", http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_traits_store_unavailable"), http.StatusInternalServerError)
 		return
 	}
 
 	// Read all traits from the user's traits database
 	allTraits, err := vs.ListAllTraits()
 	if err != nil {
-		writePortraitLocalError(w, fmt.Sprintf("failed to read traits: %v", err), http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
 	if len(allTraits) == 0 {
-		writePortraitLocalError(w, "暂无个人特征数据，请先进行对话和特征提取", http.StatusNotFound)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_no_traits_data"), http.StatusNotFound)
 		return
 	}
 
@@ -116,7 +121,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		Traits:  traitItems,
 	})
 	if err != nil {
-		writePortraitLocalError(w, fmt.Sprintf("画像服务暂时不可用: %v", err), http.StatusBadGateway)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_portrait_service_unavailable", map[string]interface{}{"Error": err.Error()}), http.StatusBadGateway)
 		return
 	}
 	defer remoteResp.Body.Close()
@@ -208,11 +213,4 @@ func callPortraitRemote(_ interface{}, req *portraitRemoteRequest) (*http.Respon
 	}
 
 	return httpResp, nil
-}
-
-// writePortraitLocalError writes a JSON error response for the portrait endpoint.
-func writePortraitLocalError(w http.ResponseWriter, msg string, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
