@@ -212,13 +212,6 @@
     margin: 12px 0;
 }
 
-.portrait-content table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 8px 0;
-    font-size: 0.85rem;
-}
-
 /* 引用块（blockquote）— 与 message.css 中消息气泡的引用块风格保持一致 */
 .portrait-content blockquote {
     border-left: 3px solid var(--accent);
@@ -233,6 +226,144 @@
     background: rgba(25, 118, 210, 0.04);
 }
 
+/* 粗体 / 斜体 */
+.portrait-content strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.portrait-content em {
+    font-style: italic;
+}
+
+/* 行内代码 */
+.portrait-content code {
+    background: rgba(79, 195, 247, 0.12);
+    color: #80cbc4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+    font-size: 0.85em;
+}
+
+[data-theme="light"] .portrait-content code {
+    background: rgba(25, 118, 210, 0.08);
+    color: #c7254e;
+}
+
+/* 代码块 */
+.portrait-content pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 16px 12px;
+    margin: 8px 0;
+    overflow-x: auto;
+    position: relative;
+    max-width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.portrait-content pre::-webkit-scrollbar {
+    width: 6px;
+}
+
+.portrait-content pre::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.portrait-content pre::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+}
+
+.portrait-content pre code {
+    background: none !important;
+    color: var(--text-primary);
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+/* 覆盖 highlight.js 的 .hljs 背景色，让代码块背景统一由 <pre> 控制 */
+.portrait-content pre code.hljs {
+    background: none !important;
+}
+
+/* 代码块语言标签（由 highlight.js 的 data-lang 属性提供） */
+.portrait-content pre[data-lang]::before {
+    content: attr(data-lang);
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-radius: 8px 0 8px 0;
+    letter-spacing: 0.5px;
+    text-transform: lowercase;
+}
+
+[data-theme="light"] .portrait-content pre[data-lang]::before {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+/* 代码块复制按钮（hover 时显示） */
+.portrait-content pre .copy-btn.code-copy-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    left: auto;
+    width: auto;
+    height: auto;
+    padding: 2px 8px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.2;
+}
+
+.portrait-content pre:hover .copy-btn.code-copy-btn {
+    opacity: 1;
+}
+
+.portrait-content pre .copy-btn.code-copy-btn:hover {
+    background: color-mix(in srgb, var(--accent-hover) 20%, transparent);
+    color: var(--accent-hover);
+}
+
+.portrait-content pre .copy-btn.code-copy-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3 !important;
+}
+
+.portrait-content pre .copy-btn.code-copy-btn:disabled:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    color: var(--text-muted);
+}
+
+/* 表格（已在上面定义 th/td） */
+.portrait-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 0.85rem;
+}
+
 .portrait-content th, .portrait-content td {
     border: 1px solid var(--border);
     padding: 6px 10px;
@@ -242,6 +373,27 @@
 .portrait-content th {
     background: var(--bg-input);
     font-weight: 600;
+}
+
+.portrait-content tr:nth-child(even) {
+    background: rgba(128, 128, 128, 0.04);
+}
+
+/* 链接 */
+.portrait-content a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.portrait-content a:hover {
+    text-decoration: underline;
+}
+
+/* 图片 */
+.portrait-content img {
+    max-width: 100%;
+    border-radius: 6px;
+    margin: 8px 0;
 }
 
 /* ============================================================
