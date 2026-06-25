@@ -23,12 +23,12 @@
 }
 
 /* ---- 对话框容器 — 比普通对话框更大 ---- */
-/* 大屏（≥1200px）：80% 宽度，最小 960px（为 40/60 分栏留空间） */
+/* 大屏（≥1200px）：85% 宽度，最小 960px（为 40/60 分栏留空间） */
 .portrait-box {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 14px;
-    width: 80%;
+    width: 85%;
     min-width: 960px;
     max-width: 92vw;
     max-height: 85vh;
@@ -39,10 +39,10 @@
     position: relative;
 }
 
-/* 中屏（921px ~ 1199px）：90% 宽度 */
+/* 中屏（921px ~ 1199px）：95% 宽度 */
 @media (max-width: 1199px) {
     .portrait-box {
-        width: 90%;
+        width: 95%;
         min-width: auto;
     }
 }
@@ -534,22 +534,22 @@
 /* 书签大小变体 — 不同高度实现"长短不一"效果 */
 .portrait-bookmark-lg {
     padding: 8px 14px 8px 16px;
-    font-size: 0.88rem;
+    font-size: 0.95rem;
 }
 
 .portrait-bookmark-md {
     padding: 6px 12px 6px 14px;
-    font-size: 0.82rem;
+    font-size: 0.9rem;
 }
 
 .portrait-bookmark-sm {
     padding: 4px 10px 4px 12px;
-    font-size: 0.76rem;
+    font-size: 0.85rem;
 }
 
 .portrait-bookmark-xs {
     padding: 3px 8px 3px 10px;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
 }
 
 /* 统一 margin — 所有书签左右间距一致 */
@@ -578,7 +578,7 @@
     position: relative;
     padding: 8px 10px 8px 18px;
     border-radius: 6px;
-    font-size: 0.82rem;
+    font-size: 1rem;
     line-height: 1.55;
     font-family: 'FreeSerif', '仿宋', 'FangSong', 'Noto Serif SC', serif;
     color: var(--text-primary);
