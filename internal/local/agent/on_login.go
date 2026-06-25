@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // ============================================================
@@ -48,17 +50,17 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	chats := session.chats
 	session.chatsMu.Unlock()
 
-	//  确保 chats 不为 nil：Go 的 nil slice 序列化为 JSON 的 null）
-	//   前端 if (data.chats) 在 null 时为 false，导致 setSidebarChats 不执行，
-	//   侧边栏保留着匿名用户的列表（未清除）。
-	//   与 OnGetChats 中的做法保持一致。
+	// Ensure chats is not nil: Go's nil slice serializes to JSON null.
+	//   The frontend's `if (data.chats)` evaluates to false when null,
+	//   causing setSidebarChats not to execute and leaving the anonymous
+	//   user's chat list in the sidebar (never cleared).
+	//   This is consistent with the approach in OnGetChats.
 	if chats == nil {
 		chats = []store.Chat{}
 	}
 
 	// Randomly pick an avatar from the avatar directory
-	avatarIndex := rand.Intn(8) + 1 // 1~8
-	avatar := fmt.Sprintf("/static/img/avatar/avatar%d.png", avatarIndex)
+	avatar := pickRandomAvatar(h.avatarDir)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -67,4 +69,33 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 		"avatar":  avatar,
 		"chats":   chats,
 	})
+}
+
+// pickRandomAvatar reads the avatar directory, filters files matching avatar*.png,
+// and returns a random avatar URL. Falls back to the anonymous avatar if no
+// avatar files are found or the directory cannot be read.
+func pickRandomAvatar(avatarDir string) string {
+	const avatarURLPrefix = "/static/img/avatar/"
+	entries, err := os.ReadDir(avatarDir)
+	if err != nil {
+		return avatarURLPrefix + "anonymous.png"
+	}
+
+	// Filter files matching "avatar*.png" (exclude "anonymous.png" and any non-avatar files)
+	var avatarFiles []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, "avatar") && strings.HasSuffix(name, ".png") {
+			avatarFiles = append(avatarFiles, name)
+		}
+	}
+
+	if len(avatarFiles) == 0 {
+		return avatarURLPrefix + "anonymous.png"
+	}
+
+	return avatarURLPrefix + avatarFiles[rand.Intn(len(avatarFiles))]
 }

@@ -345,12 +345,7 @@
                                 stroke-linecap="round" stroke-linejoin="round" x-html="ICON_SUN"></svg>
                         </template>
                     </button>
-                    <!-- 未登录时显示登录按钮 -->
-                    <button id="loginBtn" class="text-btn"
-                        x-data="textBtn({ disabled: () => $store.chats.active?.isStreaming })" :disabled="disabled"
-                        data-tooltip="登录"
-                        x-show="!$store.chats.currentUserNo">登录</button>
-                    <!-- 已登录时显示用户头像 + 下拉菜单 -->
+                    <!-- 用户头像 + 下拉菜单（同时适用于已登录和未登录） -->
                     <!-- ★ 修复：将 x-show 和 x-data 分离到不同层级。
                          x-data 放在外层 div，x-show 放在内层包装 div。
                          避免 Alpine 在同一元素上同时处理 x-show 和 x-data 时，
@@ -358,25 +353,48 @@
                          使 open 错误地变为 true 而自动显示下拉菜单。 -->
                     <div x-data="{ open: false }"
                         @click.outside="open = false">
-                        <div class="user-avatar-dropdown"
-                            x-show="$store.chats.currentUserNo">
+                        <div class="user-avatar-dropdown">
                             <button class="user-avatar-btn" @click="open = !open"
-                                :data-tooltip="$store.chats.currentUserNo">
-                                <img class="user-avatar-img" :src="$store.chats.currentUserAvatar || '/static/img/avatar/avatar1.png'"
+                                :data-tooltip="$store.chats.currentUserNo || '匿名用户'">
+                                <img class="user-avatar-img"
+                                    :src="$store.chats.currentUserAvatar || '/static/img/avatar/anonymous.png'"
                                     alt="头像" width="32" height="32">
                             </button>
                             <!-- x-if：open=false 时 DOM 完全不存在，彻底杜绝显示问题 -->
                             <template x-if="open">
                                 <div class="user-dropdown-menu"
                                     @click="open = false">
-                                    <div class="dropdown-item dropdown-item--disabled"
-                                        x-text="$store.chats.currentUserNo"></div>
+                                    <!-- 用户名（不可点击） -->
+                                    <div class="dropdown-item dropdown-item--disabled dropdown-item--username"
+                                        x-text="$store.chats.currentUserNo || '匿名用户'"></div>
+                                    <!-- 个人画像 -->
+                                    <button class="dropdown-item" id="traitBtn"
+                                        @click="onOpenUserTraits">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                            x-html="ICON_USER"></svg>
+                                        个人画像
+                                    </button>
+                                    <!-- 分隔线 -->
+                                    <div class="dropdown-divider"></div>
+                                    <!-- 已登录：退出登录 -->
                                     <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
+                                        x-show="$store.chats.currentUserNo"
                                         @click="onChatLogout">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                             x-html="ICON_LOGOUT"></svg>
                                         退出登录
+                                    </button>
+                                    <!-- 未登录：登录 -->
+                                    <button class="dropdown-item" id="loginBtn"
+                                        x-show="!$store.chats.currentUserNo"
+                                        @click="onChatLoginClick"
+                                        :disabled="$store.chats.active?.isStreaming">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                            x-html="ICON_LOGIN"></svg>
+                                        登录
                                     </button>
                                 </div>
                             </template>

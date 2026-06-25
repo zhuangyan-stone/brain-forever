@@ -42,7 +42,7 @@ other = """Feature category number (0=search all categories). Category definitio
 
 11=Values/Beliefs: Moral views, life philosophy, worldview, political/religious inclinations, correctness of understanding of science/society. Examples: Environmentalist; Atheist; Distrusts traditional Chinese medicine; Feminist
 
-12=Social Relationships: Relationships with others (must be people) and characteristics of those people. Examples: Father of two; Boss is very stingy; First love is from Yunnan; Spouse is a primary school teacher
+12=Related Persons: People who have common interpersonal relationships with the user (relatives, colleagues, friends, business partners, romantic partners, etc.), including the personal characteristics of those related persons. Examples: Child; Boss is very stingy; First love is from Yunnan; Spouse is a primary school teacher; Childhood friend works as a programmer
 
 13=Life Experiences: Past non-health-related objective events possessing at least one of: ① Significant long-term impact on the user; ② Some uniqueness; ③ Accidental or unexpected occurrence. Examples: Participated in flood relief; Served in the military; Had a car accident; Taught in rural areas for a year in college
 

@@ -59,7 +59,7 @@ func categoryDisplay(cat int) string {
 	case 11:
 		return "Values/Beliefs (11)"
 	case 12:
-		return "Social Relationships (12)"
+		return "Related Persons (12)"
 	case 13:
 		return "Life Experiences (13)"
 	case 14:

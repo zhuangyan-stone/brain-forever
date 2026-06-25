@@ -785,45 +785,24 @@ initCopyHandlers();
 initDeleteModal();
 
 // ============================================================
-// 登录按钮 — 点击后调用后端登录接口，切换用户
+// 登录按钮 — 供 Alpine 模板 @click 调用
+// 点击后调用后端登录接口，切换用户
 // ============================================================
-(function initLoginBtn() {
-    const loginBtn = document.getElementById('loginBtn');
-    if (!loginBtn) return;
+window.onChatLoginClick = async function() {
+    // 流式输出时，登录按钮直接短路返回，不做任何操作
+    if (Alpine.store('chats').active?.isStreaming) {
+        return;
+    }
 
-    loginBtn.addEventListener('click', async () => {
-        // 流式输出时，登录按钮直接短路返回，不做任何操作
-        if (Alpine.store('chats').active?.isStreaming) {
-            return;
-        }
-
-        // 简单模拟登录：使用固定 userNo 或生成一个测试号
-        // 后续可改为弹出对话框让用户输入
-        const userNo = 'test_user_001';
-        const success = await onChatLogin(userNo);
-        if (success) {
-        } else {
-            console.error('登录失败');
-        }
-    });
-})();
-
-// ============================================================
-// 退出登录按钮 — 点击后调用后端登出接口，回到匿名状态
-// ============================================================
-(function initLogoutBtn() {
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (!logoutBtn) return;
-
-    logoutBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        // 流式输出时，退出按钮直接短路返回
-        if (Alpine.store('chats').active?.isStreaming) {
-            return;
-        }
-        await onChatLogout();
-    });
-})();
+    // 简单模拟登录：使用固定 userNo 或生成一个测试号
+    // 后续可改为弹出对话框让用户输入
+    const userNo = 'test_user_001';
+    const success = await onChatLogin(userNo);
+    if (success) {
+    } else {
+        console.error('登录失败');
+    }
+};
 
 // 页面加载后初始化：创建 HTTP session、获取对话列表、显示欢迎消息
 window.addEventListener('DOMContentLoaded', async () => {

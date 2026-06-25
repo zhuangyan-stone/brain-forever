@@ -160,7 +160,10 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		return nil, fmt.Errorf("failed to initialize anonymous chat store: %w", err)
 	}
 
-	// 5. Create ChatHandler
+	// 5. Determine the avatar directory path (relative to the frontend directory)
+	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
+
+	// 6. Create ChatHandler
 	chatHandler := NewChatHandler(
 		embeddingClient,
 		webSearchClient,
@@ -168,6 +171,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		cookieName,
 		defaultLang,
 		anonymousStore,
+		avatarDir,
 		logger,
 	)
 

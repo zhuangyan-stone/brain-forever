@@ -310,6 +310,11 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     background-color: var(--bg-secondary, #f0f0f0);
 }
 
+.dropdown-item--username {
+    justify-content: center;
+    padding: 10px 14px;
+}
+
 .dropdown-item--danger {
     color: var(--danger-color, #e74c3c);
 }

@@ -265,6 +265,10 @@ type ChatAgent struct {
 	// content sent to the AI API and frontend.
 	defaultLang string
 
+	// avatarDir is the filesystem path to the avatar image directory.
+	// Used by OnLogin to dynamically discover available avatar files.
+	avatarDir string
+
 	logger zylog.Logger // Structured logger for the agent
 }
 
@@ -308,6 +312,7 @@ func NewChatHandler(
 	cookieName string,
 	defaultLang string,
 	anonymousStore *store.ChatStore,
+	avatarDir string,
 	logger zylog.Logger,
 ) *ChatAgent {
 	if defaultLang == "" {
@@ -320,6 +325,7 @@ func NewChatHandler(
 		sessionManager: NewSessionManager(anonymousStore, embedder.Dimension(), logger),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
+		avatarDir:      avatarDir,
 		logger:         logger,
 	}
 }

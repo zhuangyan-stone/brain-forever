@@ -12,7 +12,7 @@ The system maintains a database of the user's personal traits, including but not
 - Situational States
 - Health & Illness
 - Values/Beliefs
-- Social Relationships
+- Related Persons
 - Demographic Attributes (age, occupation, location, etc.)
 
 When knowing the user's traits helps you better answer the current question, you **should proactively call trait_search_by_keyword or trait_search_by_text** to query relevant traits.

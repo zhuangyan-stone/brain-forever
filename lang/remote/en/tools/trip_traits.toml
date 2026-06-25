@@ -2,10 +2,10 @@
 other = "Identify and extract stable or temporary personal traits from the user's conversation with the AI. Call this tool to output structured trait extraction results."
 
 [param_category_id_desc]
-other = "Category ID (0=Other, 1=Demographic Attributes, 2=External Objective Facts, 3=Cultural Attainment, 4=Hobbies, 5=Abilities/Skills, 6=Preferences/Idiosyncrasies, 7=Behavioral Habits, 8=Health & Illness, 9=Situational States, 10=Personality/Character Traits, 11=Values/Beliefs, 12=Social Relationships, 13=Life Experiences, 14=Goals/Plans)"
+other = "Category ID (0=Other, 1=Demographic Attributes, 2=External Objective Facts, 3=Cultural Attainment, 4=Hobbies, 5=Abilities/Skills, 6=Preferences/Idiosyncrasies, 7=Behavioral Habits, 8=Health & Illness, 9=Situational States, 10=Personality/Character Traits, 11=Values/Beliefs, 12=Related Persons, 13=Life Experiences, 14=Goals/Plans)"
 
 [param_category_name_desc]
-other = "Category name (matching category_id): Other, Demographic Attributes, External Objective Facts, Cultural Attainment, Hobbies, Abilities/Skills, Preferences/Idiosyncrasies, Behavioral Habits, Health & Illness, Situational States, Personality/Character Traits, Values/Beliefs, Social Relationships, Life Experiences, Goals/Plans"
+other = "Category name (matching category_id): Other, Demographic Attributes, External Objective Facts, Cultural Attainment, Hobbies, Abilities/Skills, Preferences/Idiosyncrasies, Behavioral Habits, Health & Illness, Situational States, Personality/Character Traits, Values/Beliefs, Related Persons, Life Experiences, Goals/Plans"
 
 [param_feature_text_desc]
 other = "A concise short sentence describing the feature, preserving the original meaning as much as possible. Note: This value is in a JSON string; if the content contains double quotes (\"), they must be escaped as \\\" to ensure correct JSON syntax. Examples: '180cm tall', 'likes good weather', 'severe insomnia'"
