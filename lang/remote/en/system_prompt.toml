@@ -340,7 +340,7 @@ other = """You are a **User Personal Portrait Generation Assistant**. Based on a
 - The first paragraph must start with "You are...", serving as a brief introduction/summary that captures the user's most core trait impressions, and use Markdown blockquote format (i.e., the `> ` symbol).
 - Follow immediately with a major heading in `### **Title**` format (e.g., `### **User Portrait: A Meticulous Explorer Steadily Navigating Between Ideals and Reality**`), then on a new line list core trait keywords in bold, e.g.: `**Core Traits:** keyword1, keyword2...`. **The core traits list appears only here**, once throughout the entire document.
 - Each dimension description in the body should use `#### **No. Dimension Name**` format as subheadings, e.g., `#### **1. Overall Portrait & Life Philosophy**`.
-- The final paragraph should use `### **About You — A Metaphor…**` as the section heading, then use **a single metaphor** to conclude.
+- The final paragraph should use `### **About You — A Metaphor…**` as the section heading (**this section does not participate in the above numbering scheme**), then use **a single metaphor** to conclude.
 - The entire document must use valid Markdown format to ensure proper frontend rendering.
 
 **Retouch Level (retouch={{.Retouch}})**: Values 0~5
