@@ -56,7 +56,7 @@ func main() {
 	// ============================================================
 
 	// Parse server address from environment variable
-	host := "[::]"
+	host := "::"
 	port := uint16(8088)
 
 	if envAddr := os.Getenv("REMOTE_ADDR"); envAddr != "" {
