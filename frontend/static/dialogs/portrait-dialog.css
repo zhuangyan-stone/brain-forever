@@ -141,12 +141,26 @@
 /* ---- 右栏/下栏：原始画像内容区 ---- */
 .portrait-content {
     flex: 1;
-    padding: 16px 20px;
+    padding: 0 20px 16px;
     overflow-y: auto;
     line-height: 1.7;
     color: var(--text-primary);
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
+}
+
+/* 画像内容区固定主标题 — "AI 眼中的你 ……" */
+.portrait-content-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding: 16px 0 10px;
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 1;
 }
 
 .portrait-content::-webkit-scrollbar {
@@ -230,8 +244,8 @@
 }
 
 .portrait-essence-avatar {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--border);
@@ -280,6 +294,8 @@
     font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
 }
 
 /* 书签容器 — 使用 masonry 错落布局 */
@@ -300,9 +316,9 @@
     align-items: center;
     padding: 5px 12px 5px 14px;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 700;
     font-family: 'FreeSerif', '仿宋', 'FangSong', 'Noto Serif SC', serif;
-    color: #fff;
+    color: #000;
     text-align: left;
     cursor: default;
     position: relative;
@@ -310,7 +326,6 @@
     line-height: 1.35;
     word-break: break-word;
     border-radius: 0 6px 6px 0;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.18);
     box-shadow: 0 2px 6px rgba(0,0,0,0.12);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 
@@ -355,7 +370,6 @@
 .portrait-bookmark-lg {
     padding: 8px 14px 8px 16px;
     font-size: 0.88rem;
-    font-weight: 600;
 }
 
 .portrait-bookmark-md {
@@ -373,23 +387,14 @@
     font-size: 0.7rem;
 }
 
-/* 递进式的左侧缩进 — 让书签错落有致 */
-.portrait-bookmark:nth-child(3n+1) {
-    margin-left: 2px;
-}
-.portrait-bookmark:nth-child(3n+2) {
-    margin-left: 10px;
-}
-.portrait-bookmark:nth-child(3n+3) {
-    margin-left: 6px;
-}
+/* 统一 margin — 所有书签左右间距一致 */
 
 /* 书签颜色方案 — 更鲜艳的色彩搭配 */
 .portrait-bookmark-c1 { background: linear-gradient(135deg, #FF6B6B, #ee5a5a); }  /* 珊瑚红 */
 .portrait-bookmark-c2 { background: linear-gradient(135deg, #4ECDC4, #3dbdb5); }  /* 青绿 */
 .portrait-bookmark-c3 { background: linear-gradient(135deg, #45B7D1, #36a7c1); }  /* 天蓝 */
 .portrait-bookmark-c4 { background: linear-gradient(135deg, #96CEB4, #7ebda2); }  /* 薄荷 */
-.portrait-bookmark-c5 { background: linear-gradient(135deg, #FFD93D, #f5c92a); color: #555; text-shadow: none; }  /* 金黄 */
+.portrait-bookmark-c5 { background: linear-gradient(135deg, #FFD93D, #f5c92a); }  /* 金黄 */
 .portrait-bookmark-c6 { background: linear-gradient(135deg, #DDA0DD, #cc8fcc); }  /* 梅红 */
 .portrait-bookmark-c7 { background: linear-gradient(135deg, #6BCB77, #5aba66); }  /* 翠绿 */
 .portrait-bookmark-c8 { background: linear-gradient(135deg, #FF8C42, #f07d32); }  /* 橙 */
@@ -416,7 +421,7 @@
     border-left: 3px solid #45B7D1;
 }
 
-/* 重点摘要颜色 — 通过 JS idx % 4 循环分配 */
+/* 重点摘要颜色 — 通过 JS idx % 10 循环分配 */
 .portrait-highlight-c0 {
     background: rgba(69, 183, 209, 0.08);
     border-left-color: #45B7D1;
@@ -430,6 +435,30 @@
     border-left-color: #4ECDC4;
 }
 .portrait-highlight-c3 {
+    background: rgba(92, 107, 192, 0.07);
+    border-left-color: #5C6BC0;
+}
+.portrait-highlight-c4 {
+    background: rgba(255, 217, 61, 0.08);
+    border-left-color: #FFD93D;
+}
+.portrait-highlight-c5 {
+    background: rgba(107, 203, 119, 0.07);
+    border-left-color: #6BCB77;
+}
+.portrait-highlight-c6 {
+    background: rgba(255, 140, 66, 0.07);
+    border-left-color: #FF8C42;
+}
+.portrait-highlight-c7 {
+    background: rgba(187, 143, 206, 0.07);
+    border-left-color: #BB8FCE;
+}
+.portrait-highlight-c8 {
+    background: rgba(116, 185, 255, 0.07);
+    border-left-color: #74B9FF;
+}
+.portrait-highlight-c9 {
     background: rgba(221, 160, 221, 0.07);
     border-left-color: #DDA0DD;
 }

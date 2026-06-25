@@ -140,7 +140,7 @@ document.addEventListener('alpine:init', function() {
 
             // ---- 计算属性 ----
             get title() {
-                return 'AI 眼中的你……';
+                return (this.userName || '匿名用户') + ' 的用户画像';
             },
 
             get showCancel() {
