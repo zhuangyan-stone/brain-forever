@@ -447,6 +447,10 @@ document.addEventListener('alpine:init', function() {
             _onStreamError: function(message) {
                 this.isStreaming = false;
                 this.hasError = true;
+                // 检测余额不足（402 / Insufficient Balance），附加欠费提示
+                if (/402|insufficient\s*balance/i.test(message)) {
+                    message += '（你可能欠费了 💸）';
+                }
                 this.errorMessage = message;
                 this.portraitHTML = renderMarkdown(this.portrait);
                 if (this._renderTimer) {
