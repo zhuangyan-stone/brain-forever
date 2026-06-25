@@ -22,7 +22,7 @@ other = """Feature category number (0=search all categories). Category definitio
 
 1=Demographic Attributes: The user's natural or social attributes, such as name, age, gender, height, weight, residence, nationality, ethnicity, education, occupation, income, etc. Must be externally verifiable. Examples: User height 180cm; User holds a bachelor's degree; User monthly salary 8,000
 
-2=External Objective Facts: External entities owned or used by the user, such as item brands/models, property, pets, books read, movies watched (not including places visited). Examples: Phone is iPhone 15; Owns a dog; Lives in 150sqm house; Car is Huawei Smart Drive
+2=Associated Entities: Information about external entities closely associated with the user, typically entities owned by the user. Entities must be concrete objects (including animals, plants, etc.), but cannot be time, cannot be locations, and cannot be humans. Examples: Phone is iPhone 15; Owns a dog; Lives in 150sqm house; Car is Huawei Smart Drive
 
 3=Achievements & Attainment: Significantly above-average deep knowledge, creative or appreciation ability and achievements (published books, published papers, formal competition rankings) demonstrated by the user in humanities, science, or engineering fields, including phenomenal works. Examples: Published "Vernacular C++"; Wrote widely circulated lyrics/compositions
 

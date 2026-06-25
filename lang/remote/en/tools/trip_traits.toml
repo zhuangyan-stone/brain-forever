@@ -2,10 +2,10 @@
 other = "Identify and extract stable or temporary personal traits from the user's conversation with the AI. Call this tool to output structured trait extraction results."
 
 [param_category_id_desc]
-other = "Category ID (0=Other, 1=Demographic Attributes, 2=External Objective Facts, 3=Achievements & Attainment, 4=Hobbies, 5=Abilities/Skills, 6=Preferences/Idiosyncrasies, 7=Behavioral Habits, 8=Health & Illness, 9=Situational States, 10=Personality/Character Traits, 11=Values/Beliefs, 12=Related Persons, 13=Life Experiences, 14=Goals/Plans)"
+other = "Category ID (0=Other, 1=Demographic Attributes, 2=Associated Entities, 3=Achievements & Attainment, 4=Hobbies, 5=Abilities/Skills, 6=Preferences/Idiosyncrasies, 7=Behavioral Habits, 8=Health & Illness, 9=Situational States, 10=Personality/Character Traits, 11=Values/Beliefs, 12=Related Persons, 13=Life Experiences, 14=Goals/Plans)"
 
 [param_category_name_desc]
-other = "Category name (matching category_id): Other, Demographic Attributes, External Objective Facts, Achievements & Attainment, Hobbies, Abilities/Skills, Preferences/Idiosyncrasies, Behavioral Habits, Health & Illness, Situational States, Personality/Character Traits, Values/Beliefs, Related Persons, Life Experiences, Goals/Plans"
+other = "Category name (matching category_id): Other, Demographic Attributes, Associated Entities, Achievements & Attainment, Hobbies, Abilities/Skills, Preferences/Idiosyncrasies, Behavioral Habits, Health & Illness, Situational States, Personality/Character Traits, Values/Beliefs, Related Persons, Life Experiences, Goals/Plans"
 
 [param_feature_text_desc]
 other = "A concise short sentence describing the feature, preserving the original meaning as much as possible. Note: This value is in a JSON string; if the content contains double quotes (\"), they must be escaped as \\\" to ensure correct JSON syntax. Examples: '180cm tall', 'likes good weather', 'severe insomnia'"
@@ -20,7 +20,7 @@ other = "Keyword type: A=Time, B=Place, C=Person, D=Thing/Entity, E=Relationship
 other = "Keyword text, should be as specific and semantic as possible, does not need to appear verbatim in the original text"
 
 [param_confidence_desc]
-other = "Confidence level (integer 1-10): higher values indicate greater certainty about the feature. For objective factual features (e.g., demographics, external facts) assign high confidence (8-10); for subjective inference features (e.g., personality, values) assign conservative scores (3-7); for features extracted from a single joke or emotional expression, assign low confidence (1-3)."
+other = "Confidence level (integer 1-10): higher values indicate greater certainty about the feature. For objective factual features (e.g., demographics, associated entities) assign high confidence (8-10); for subjective inference features (e.g., personality, values) assign conservative scores (3-7); for features extracted from a single joke or emotional expression, assign low confidence (1-3)."
 
 [param_half_life_desc]
 other = "The validity period / half-life of this feature. Values: short (days~weeks), medium (months~year), long (year+), permanent (completed objective events that never change). Should be determined based on the actual nature of the feature, not by mechanically mapping from category_id."

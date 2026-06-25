@@ -39,7 +39,7 @@ func categoryDisplay(cat int) string {
 	case 1:
 		return "Demographic Attributes (1)"
 	case 2:
-		return "External Objective Facts (2)"
+		return "Associated Entities (2)"
 	case 3:
 		return "Achievements & Attainment (3)"
 	case 4:

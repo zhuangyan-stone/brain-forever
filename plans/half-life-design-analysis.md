@@ -46,7 +46,7 @@ LLM 特征提取（trip_traits）  →  SSE 推送结果  →  消费/存储
 | Category | 默认半衰期 | 同一 Category 内是否有差异？ | 示例 |
 |----------|-----------|---------------------------|------|
 | 1 人口学特征 | long | 有时有 | "25岁"→long, "月薪八千"→medium |
-| 2 外部客观事实 | long | 有时有 | "养一条狗"→long, "手机是iPhone15"→medium(换机) |
+| 2 关联实体 | long | 有时有 | "养一条狗"→long, "手机是iPhone15"→medium(换机) |
 | 3 成就与修为 | long | 基本稳定 | "出版过诗集"→long/permanent |
 | 4 兴趣爱好 | medium-long | 有差异 | "爱打篮球"→long, "最近迷上健身"→medium |
 | 5 能力技能 | long | 基本稳定 | "会Python"→long |
