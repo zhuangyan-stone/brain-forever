@@ -295,7 +295,6 @@
     color: var(--text-secondary);
     margin-bottom: 8px;
     padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
 }
 
 /* 书签容器 — 使用 masonry 错落布局 */
