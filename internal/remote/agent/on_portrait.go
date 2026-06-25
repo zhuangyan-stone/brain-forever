@@ -35,7 +35,7 @@ type portraitRequest struct {
 }
 
 // ============================================================
-// OnPortrait — POST /api/portrait handler (streaming)
+// OnTripPortrait — POST /api/portrait handler (streaming)
 //
 // Request (JSON):
 //
@@ -55,7 +55,7 @@ type portraitRequest struct {
 //   - {"event":"done", "data":{}}          — stream complete
 //
 // ============================================================
-func OnPortrait(w http.ResponseWriter, r *http.Request) {
+func OnTripPortrait(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return

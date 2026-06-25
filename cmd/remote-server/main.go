@@ -91,7 +91,7 @@ func main() {
 	srv.POST("/api/traits", agent.OnTripTraits)
 
 	// Portrait generation endpoint (POST, streaming SSE)
-	srv.POST("/api/portrait", agent.OnPortrait)
+	srv.POST("/api/portrait", agent.OnTripPortrait)
 
 	// Serve demo static files
 	srv.Handle("/demo/", func(w http.ResponseWriter, r *http.Request) {
