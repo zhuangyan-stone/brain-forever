@@ -1,5 +1,5 @@
 // ============================================================
-// dialogs/portrait-dialog.js — 用户"个人画像"生成对话框
+// dialogs/portrait-dialog.js — 用户"个人画像"生成对话框 (v2)
 // ============================================================
 //
 // 功能：
@@ -8,6 +8,14 @@
 //   3. 复制按钮（纯文本/Markdown/HTML 三种格式）
 //   4. 分享按钮（占位）
 //   5. 取消（流式中）/ 关闭（完成后）按钮
+//   6. 精华区：头像、信息区、核心特质气泡、重点摘要引文
+//
+// SSE 事件类型：
+//   - info:  精华区元数据（生成时间、对话数、特征数、时间跨度、润色度）
+//   - text:  画像内容文本块
+//   - meta:  结构化元数据（core_traits, key_highlights）
+//   - error: 错误信息
+//   - done:  流完成
 //
 // 使用方式：
 //   <div class="portrait-overlay" id="portraitDialog"
@@ -28,7 +36,6 @@ document.addEventListener('alpine:init', function() {
 
     /**
      * 渲染 Markdown 为 HTML
-     * 使用 chat-markdown.js 中注册的全局渲染器
      * @param {string} text
      * @returns {string}
      */
@@ -78,6 +85,40 @@ document.addEventListener('alpine:init', function() {
         }
     }
 
+    /**
+     * 气泡颜色类数组 — 循环使用
+     */
+    var BUBBLE_COLORS = [
+        'portrait-bubble-c1',  'portrait-bubble-c2',
+        'portrait-bubble-c3',  'portrait-bubble-c4',
+        'portrait-bubble-c5',  'portrait-bubble-c6',
+        'portrait-bubble-c7',  'portrait-bubble-c8',
+        'portrait-bubble-c9',  'portrait-bubble-c10',
+    ];
+
+    /**
+     * 根据文本长度确定气泡大小
+     * @param {string} text
+     * @returns {string} CSS class
+     */
+    function bubbleSizeClass(text) {
+        var len = text.length;
+        if (len <= 2) return 'portrait-bubble-xs';
+        if (len <= 4) return 'portrait-bubble-sm';
+        if (len <= 8) return 'portrait-bubble-md';
+        return 'portrait-bubble-lg';
+    }
+
+    /**
+     * 生成随机浮动参数
+     * @returns {{ duration: string, delay: string }}
+     */
+    function randomFloatParams() {
+        var duration = (3 + Math.random() * 3).toFixed(1) + 's';  // 3~6s
+        var delay = (Math.random() * 2).toFixed(1) + 's';         // 0~2s
+        return { duration: duration, delay: delay };
+    }
+
     // ============================================================
     // userPortraitDialog — Alpine 组件
     // ============================================================
@@ -88,6 +129,7 @@ document.addEventListener('alpine:init', function() {
             portrait: '',           // 完整画像 Markdown 原文
             portraitHTML: '',       // 渲染后的 HTML
             portraitMeta: null,     // 结构化元数据 {core_traits, key_highlights}
+            portraitInfo: null,     // 精华区元数据 {generated_at, chat_count, ...}
             isStreaming: false,     // 是否正在流式接收
             isDone: false,          // 是否已完成
             hasError: false,
@@ -106,9 +148,12 @@ document.addEventListener('alpine:init', function() {
             _copyMenuEl: null,
             _copyMenuAnchor: null,
 
+            // 气泡浮动动画定时器
+            _bubbleFloatTimer: null,
+
             // ---- 计算属性 ----
             get title() {
-                return (this.userName || '匿名用户') + ' 个人画像';
+                return 'AI 眼中的你……';
             },
 
             get showCancel() {
@@ -131,6 +176,7 @@ document.addEventListener('alpine:init', function() {
                 this.portrait = '';
                 this.portraitHTML = '';
                 this.portraitMeta = null;
+                this.portraitInfo = null;
                 this.isStreaming = true;
                 this.isDone = false;
                 this.hasError = false;
@@ -161,10 +207,12 @@ document.addEventListener('alpine:init', function() {
             close: function() {
                 this._abortSSE();
                 this._closeCopyMenu();
+                this._stopBubbleFloat();
                 this.show = false;
                 this.portrait = '';
                 this.portraitHTML = '';
                 this.portraitMeta = null;
+                this.portraitInfo = null;
                 this.isStreaming = false;
                 this.isDone = false;
                 this.hasError = false;
@@ -394,6 +442,18 @@ document.addEventListener('alpine:init', function() {
                 var data = event.data;
 
                 switch (eventType) {
+                    case 'info':
+                        // 精华区元数据（由 local-server 在流开始前发送）
+                        if (data && typeof data === 'object') {
+                            this.portraitInfo = data;
+                            // 数据就绪后，在 $nextTick 中启动气泡浮动动画
+                            var self = this;
+                            this.$nextTick(function() {
+                                self._startBubbleFloat();
+                            });
+                        }
+                        break;
+
                     case 'text':
                         // 累加文本内容
                         this.portrait += (typeof data === 'string' ? data : '');
@@ -414,6 +474,38 @@ document.addEventListener('alpine:init', function() {
                     case 'done':
                         this._onStreamDone();
                         break;
+                }
+            },
+
+            /**
+             * 启动气泡浮动动画
+             * 在每个气泡元素上设置随机的 CSS 自定义属性
+             */
+            _startBubbleFloat: function() {
+                // 先停止之前的动画
+                this._stopBubbleFloat();
+
+                var self = this;
+                this._bubbleFloatTimer = setTimeout(function() {
+                    var container = self._el && self._el.querySelector('.portrait-bubble-container');
+                    if (!container) return;
+                    var bubbles = container.querySelectorAll('.portrait-bubble');
+                    bubbles.forEach(function(el) {
+                        var params = randomFloatParams();
+                        el.style.setProperty('--float-duration', params.duration);
+                        el.style.setProperty('--float-delay', params.delay);
+                        el.classList.add('portrait-bubble-float');
+                    });
+                }, 100);
+            },
+
+            /**
+             * 停止气泡浮动动画
+             */
+            _stopBubbleFloat: function() {
+                if (this._bubbleFloatTimer) {
+                    clearTimeout(this._bubbleFloatTimer);
+                    this._bubbleFloatTimer = null;
                 }
             },
 

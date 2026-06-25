@@ -695,18 +695,15 @@
     </div>
 
     <!-- ============================================================
-         用户"个人画像"对话框
+         用户"个人画像"对话框（v2 精华区布局）
          依赖 portrait-dialog.css + portrait-dialog.js (Alpine data)
          ============================================================ -->
     <div class="portrait-overlay" id="portraitDialog"
         x-data="userPortraitDialog()"
         :class="{ show: show }">
         <div class="portrait-box">
-            <!-- 头部：用户头像 + 标题 + 右上按钮组 -->
+            <!-- 头部：纯文本标题（无头像）+ 右上按钮组 -->
             <div class="portrait-header">
-                <img class="portrait-avatar"
-                    :src="userAvatar"
-                    alt="用户头像" width="48" height="48">
                 <h3 class="portrait-title" x-text="title"></h3>
                 <div class="portrait-header-actions">
                     <!-- 复制按钮 -->
@@ -733,39 +730,85 @@
                 </div>
             </div>
 
-            <!-- 内容区：滚动 + 自动换行 -->
+            <!-- 主体：左右两栏（宽屏）/ 上下两栏（中小屏） -->
             <div class="portrait-body">
-                <!-- 加载中 -->
-                <div class="portrait-loading" x-show="isStreaming && !portrait && !hasError">
+                <!-- 加载中（整体居中显示） -->
+                <div class="portrait-loading" x-show="isStreaming && !portrait && !hasError"
+                    style="flex:1;display:flex">
                     <div class="loading-spinner"></div>
                     <span>正在生成「<span x-text="userName || '匿名用户'"></span>」的个人画像…</span>
                 </div>
                 <!-- 错误 -->
-                <div class="portrait-error" x-show="hasError" x-text="errorMessage"></div>
-                <!-- 画像内容 -->
-                <div x-show="portraitHTML" x-html="portraitHTML"></div>
-                <!-- 结构化元数据：核心特质 + 重点摘要 -->
-                <div class="portrait-meta" x-show="portraitMeta" x-cloak>
-                    <div class="portrait-meta-divider"></div>
-                    <!-- 核心特质标签 -->
-                    <div class="portrait-meta-section" x-show="portraitMeta.core_traits && portraitMeta.core_traits.length">
-                        <div class="portrait-meta-label">✨ 核心特质</div>
-                        <div class="portrait-traits-tags">
-                            <template x-for="trait in portraitMeta.core_traits" :key="trait">
-                                <span class="portrait-trait-tag" x-text="trait"></span>
+                <div class="portrait-error" x-show="hasError" x-text="errorMessage"
+                    style="flex:1"></div>
+
+                <!-- ================================================
+                     精华区（左栏/上栏）
+                     ================================================ -->
+                <div class="portrait-essence" x-show="!hasError && (portraitInfo || portraitMeta)"
+                    x-cloak>
+                    <!-- 头像 + 昵称 -->
+                    <div class="portrait-essence-avatar-wrap">
+                        <img class="portrait-essence-avatar"
+                            :src="userAvatar"
+                            alt="用户头像" width="64" height="64">
+                        <div class="portrait-essence-nickname" x-text="userName || '匿名用户'"></div>
+                    </div>
+
+                    <!-- 信息区 -->
+                    <div class="portrait-essence-info" x-show="portraitInfo">
+                        <span class="portrait-essence-info-item">
+                            <span class="portrait-essence-info-label">生成于</span>
+                            <span class="portrait-essence-info-value" x-text="portraitInfo.generated_at"></span>
+                        </span>
+                        <span class="portrait-essence-info-item">
+                            <span class="portrait-essence-info-label" x-text="portraitInfo.chat_count + ' 个对话'"></span>
+                        </span>
+                        <span class="portrait-essence-info-item">
+                            <span class="portrait-essence-info-label" x-text="portraitInfo.trait_count + ' 条特征'"></span>
+                        </span>
+                        <span class="portrait-essence-info-item" x-show="portraitInfo.earliest_date && portraitInfo.latest_date">
+                            <span class="portrait-essence-info-label">时间跨度</span>
+                            <span class="portrait-essence-info-value">
+                                <span x-text="portraitInfo.earliest_date"></span> ~ <span x-text="portraitInfo.latest_date"></span>
+                                （<span x-text="portraitInfo.span_days"></span> 天）
+                            </span>
+                        </span>
+                        <span class="portrait-essence-info-item">
+                            <span class="portrait-essence-info-label">润色度</span>
+                            <span class="portrait-essence-info-value" x-text="portraitInfo.retouch"></span>
+                        </span>
+                    </div>
+
+                    <!-- 核心特质 — 气泡图 -->
+                    <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.core_traits && portraitMeta.core_traits.length">
+                        <div class="portrait-essence-section-label">✨ 核心特质</div>
+                        <div class="portrait-bubble-container">
+                            <template x-for="(trait, idx) in portraitMeta.core_traits" :key="idx">
+                                <span class="portrait-bubble"
+                                    :class="bubbleSizeClass(trait) + ' ' + ('portrait-bubble-c' + ((idx % 10) + 1))"
+                                    x-text="trait"
+                                    :title="trait">
+                                </span>
                             </template>
                         </div>
                     </div>
-                    <!-- 重点摘要 -->
-                    <div class="portrait-meta-section" x-show="portraitMeta.key_highlights && portraitMeta.key_highlights.length">
-                        <div class="portrait-meta-label">📌 重点摘要</div>
-                        <ul class="portrait-highlights-list">
+
+                    <!-- 重点摘要 — 引文风格 -->
+                    <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.key_highlights && portraitMeta.key_highlights.length">
+                        <div class="portrait-essence-section-label">📌 重点摘要</div>
+                        <div class="portrait-essence-highlights">
                             <template x-for="(item, idx) in portraitMeta.key_highlights" :key="idx">
-                                <li x-text="item"></li>
+                                <div class="portrait-highlight-block" x-text="item"></div>
                             </template>
-                        </ul>
+                        </div>
                     </div>
                 </div>
+
+                <!-- ================================================
+                     画像内容区（右栏/下栏）
+                     ================================================ -->
+                <div class="portrait-content" x-show="portraitHTML" x-html="portraitHTML"></div>
             </div>
 
             <!-- 底部按钮 -->

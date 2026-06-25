@@ -1,5 +1,5 @@
 /* ============================================================
-    第2大脑 AI 助手 — 用户画像对话框样式
+    第2大脑 AI 助手 — 用户画像对话框样式（v2 精华区布局）
     ============================================================
     依赖：dialog.css（基本遮罩层样式）
     ============================================================ */
@@ -23,13 +23,13 @@
 }
 
 /* ---- 对话框容器 — 比普通对话框更大 ---- */
-/* 大屏（≥1200px）：80% 宽度，最小 640px */
+/* 大屏（≥1200px）：80% 宽度，最小 960px（为 40/60 分栏留空间） */
 .portrait-box {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 14px;
     width: 80%;
-    min-width: 640px;
+    min-width: 960px;
     max-width: 92vw;
     max-height: 85vh;
     box-shadow: 0 10px 40px var(--shadow);
@@ -47,27 +47,18 @@
     }
 }
 
-/* ---- 头部 — 用户头像 + 标题 ---- */
+/* ---- 头部 — 纯文本标题（无头像），右上按钮组 ---- */
 .portrait-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px 20px 10px;
+    padding: 14px 20px 10px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
-.portrait-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--border);
-    flex-shrink: 0;
-}
-
 .portrait-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
@@ -77,7 +68,6 @@
     white-space: nowrap;
 }
 
-/* ---- 头部右上角按钮组 ---- */
 .portrait-header-actions {
     display: flex;
     align-items: center;
@@ -111,88 +101,327 @@
     flex-shrink: 0;
 }
 
-/* ---- 内容区 — 可滚动，自动换行 ---- */
+/* ============================================================
+   主体：左右两栏布局（宽屏） / 上下布局（中小屏）
+   ============================================================ */
 .portrait-body {
-    padding: 16px 20px;
-    overflow-y: auto;
+    display: flex;
     flex: 1;
     min-height: 120px;
-    max-height: 55vh;
+    overflow: hidden;
+}
+
+/* ---- 左栏/上栏：精华区（40% 宽屏） ---- */
+.portrait-essence {
+    width: 40%;
+    min-width: 320px;
+    padding: 16px 16px 12px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.portrait-essence::-webkit-scrollbar {
+    width: 5px;
+}
+
+.portrait-essence::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.portrait-essence::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+}
+
+/* ---- 右栏/下栏：原始画像内容区 ---- */
+.portrait-content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
     line-height: 1.7;
     color: var(--text-primary);
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
 }
 
-.portrait-body::-webkit-scrollbar {
+.portrait-content::-webkit-scrollbar {
     width: 6px;
 }
 
-.portrait-body::-webkit-scrollbar-track {
+.portrait-content::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.portrait-body::-webkit-scrollbar-thumb {
+.portrait-content::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 6px;
 }
 
-/* 内容区的 Markdown 渲染样式 */
-.portrait-body p {
+/* 画像内容的 Markdown 渲染样式 */
+.portrait-content p {
     margin: 0 0 10px;
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
 
-.portrait-body p:last-child {
+.portrait-content p:last-child {
     margin-bottom: 0;
 }
 
-.portrait-body ul, .portrait-body ol {
+.portrait-content ul, .portrait-content ol {
     margin: 6px 0;
     padding-left: 24px;
 }
 
-.portrait-body li {
+.portrait-content li {
     margin-bottom: 4px;
 }
 
-.portrait-body h1, .portrait-body h2, .portrait-body h3,
-.portrait-body h4, .portrait-body h5, .portrait-body h6 {
+.portrait-content h1, .portrait-content h2, .portrait-content h3,
+.portrait-content h4, .portrait-content h5, .portrait-content h6 {
     margin: 14px 0 8px;
     color: var(--text-primary);
 }
 
-.portrait-body h1 { font-size: 1.15rem; }
-.portrait-body h2 { font-size: 1.08rem; }
-.portrait-body h3 { font-size: 1.02rem; }
+.portrait-content h1 { font-size: 1.15rem; }
+.portrait-content h2 { font-size: 1.08rem; }
+.portrait-content h3 { font-size: 1.02rem; }
 
-.portrait-body hr {
+.portrait-content hr {
     border: none;
     border-top: 1px solid var(--border);
     margin: 12px 0;
 }
 
-.portrait-body table {
+.portrait-content table {
     border-collapse: collapse;
     width: 100%;
     margin: 8px 0;
     font-size: 0.85rem;
 }
 
-.portrait-body th, .portrait-body td {
+.portrait-content th, .portrait-content td {
     border: 1px solid var(--border);
     padding: 6px 10px;
     text-align: left;
 }
 
-.portrait-body th {
+.portrait-content th {
     background: var(--bg-input);
     font-weight: 600;
 }
 
-/* 加载/空状态 */
-.portrait-body .portrait-loading {
+/* ============================================================
+   精华区内部组件
+   ============================================================ */
+
+/* ---- 头像 + 昵称 ---- */
+.portrait-essence-avatar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+.portrait-essence-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+}
+
+.portrait-essence-nickname {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+/* ---- 信息区 ---- */
+.portrait-essence-info {
+    background: var(--bg-input);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 12px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.portrait-essence-info-item {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.portrait-essence-info-label {
+    color: var(--text-muted);
+}
+
+.portrait-essence-info-value {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* ---- 核心特质 — 气泡图 ---- */
+.portrait-essence-section {
+    margin: 0;
+}
+
+.portrait-essence-section-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+/* 气泡容器 */
+.portrait-bubble-container {
+    position: relative;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 4px;
+}
+
+/* 单个气泡 */
+.portrait-bubble {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #fff;
+    text-align: center;
+    padding: 0 4px;
+    cursor: default;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    /* 柔和的文字阴影提高可读性 */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    /* 初始定位，浮动动画通过 JS 添加 */
+    position: relative;
+    flex-shrink: 0;
+    line-height: 1.2;
+    word-break: break-all;
+}
+
+.portrait-bubble:hover {
+    transform: scale(1.15);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    z-index: 2;
+}
+
+/* 气泡大小变体 */
+.portrait-bubble-lg {
+    width: 80px;
+    height: 80px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+}
+
+.portrait-bubble-md {
+    width: 60px;
+    height: 60px;
+    font-size: 0.74rem;
+}
+
+.portrait-bubble-sm {
+    width: 46px;
+    height: 46px;
+    font-size: 0.68rem;
+}
+
+.portrait-bubble-xs {
+    width: 36px;
+    height: 36px;
+    font-size: 0.6rem;
+}
+
+/* 气泡颜色方案 */
+.portrait-bubble-c1 { background: #FF6B6B; }  /* 珊瑚红 */
+.portrait-bubble-c2 { background: #4ECDC4; }  /* 青绿 */
+.portrait-bubble-c3 { background: #45B7D1; }  /* 天蓝 */
+.portrait-bubble-c4 { background: #96CEB4; }  /* 薄荷 */
+.portrait-bubble-c5 { background: #FFEAA7; color: #555; text-shadow: none; }  /* 淡黄 */
+.portrait-bubble-c6 { background: #DDA0DD; }  /* 梅红 */
+.portrait-bubble-c7 { background: #98D8C8; }  /* 浅海绿 */
+.portrait-bubble-c8 { background: #F7DC6F; color: #555; text-shadow: none; }  /* 香槟黄 */
+.portrait-bubble-c9 { background: #BB8FCE; }  /* 紫罗兰 */
+.portrait-bubble-c10 { background: #85C1E9; } /* 淡蓝 */
+
+/* 浮动动画 */
+@keyframes bubbleFloat {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(3px, -4px); }
+    50% { transform: translate(-2px, 2px); }
+    75% { transform: translate(4px, 3px); }
+}
+
+.portrait-bubble-float {
+    animation: bubbleFloat var(--float-duration, 4s) ease-in-out var(--float-delay, 0s) infinite;
+}
+
+/* ---- 重点摘要 — 引文风格 ---- */
+.portrait-essence-highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.portrait-highlight-block {
+    position: relative;
+    padding: 8px 10px 8px 18px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text-primary);
+    background: rgba(69, 183, 209, 0.08);
+    border-left: 3px solid #45B7D1;
+}
+
+.portrait-highlight-block:nth-child(2n) {
+    background: rgba(255, 107, 107, 0.07);
+    border-left-color: #FF6B6B;
+}
+
+.portrait-highlight-block:nth-child(3n) {
+    background: rgba(78, 205, 196, 0.07);
+    border-left-color: #4ECDC4;
+}
+
+.portrait-highlight-block:nth-child(4n) {
+    background: rgba(221, 160, 221, 0.07);
+    border-left-color: #DDA0DD;
+}
+
+.portrait-highlight-block::before {
+    content: '"';
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    font-family: Georgia, serif;
+}
+
+/* ---- 加载/错误/空状态 ---- */
+.portrait-loading {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -203,7 +432,7 @@
     gap: 12px;
 }
 
-.portrait-body .portrait-loading .loading-spinner {
+.portrait-loading .loading-spinner {
     width: 28px;
     height: 28px;
     border: 3px solid var(--border);
@@ -212,7 +441,7 @@
     animation: portraitSpin 0.8s linear infinite;
 }
 
-.portrait-body .portrait-error {
+.portrait-error {
     color: var(--danger, #e74c3c);
     text-align: center;
     padding: 24px;
@@ -264,7 +493,7 @@
     color: var(--text-primary);
 }
 
-/* ---- 复制下拉菜单（复用 chat-copy.js 的样式） ---- */
+/* ---- 复制下拉菜单 ---- */
 .portrait-copy-dropdown {
     position: fixed;
     background: var(--bg-secondary);
@@ -290,66 +519,62 @@
     background: var(--border);
 }
 
-/* 小屏（≤920px）：固定 100% */
-@media (max-width: 920px) {
+/* ============================================================
+   中屏（921~1199px）：保持左右结构，但缩小 min-width
+   ============================================================ */
+@media (max-width: 1199px) and (min-width: 769px) {
+    .portrait-essence {
+        width: 40%;
+        min-width: 240px;
+    }
+    .portrait-essence-avatar {
+        width: 54px;
+        height: 54px;
+    }
+}
+
+/* ============================================================
+   小屏（≤768px）：改为上下结构
+   ============================================================ */
+@media (max-width: 768px) {
+    .portrait-overlay.show {
+        align-items: flex-end; /* 底部弹出 */
+    }
+
     .portrait-box {
         width: 100%;
         min-width: auto;
         max-width: 100%;
+        max-height: 92vh;
+        border-radius: 14px 14px 0 0;
     }
-}
 
-/* ---- 结构化元数据：核心特质 + 重点摘要 ---- */
-.portrait-meta {
-    margin-top: 16px;
-}
+    .portrait-body {
+        flex-direction: column;
+    }
 
-.portrait-meta-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 12px 0;
-}
+    .portrait-essence {
+        width: 100%;
+        min-width: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 40vh;
+        padding: 12px 12px 8px;
+    }
 
-.portrait-meta-section {
-    margin-bottom: 14px;
-}
+    .portrait-content {
+        padding: 12px 14px;
+        max-height: 45vh;
+    }
 
-.portrait-meta-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-}
+    .portrait-essence-avatar {
+        width: 48px;
+        height: 48px;
+    }
 
-/* 核心特质标签 */
-.portrait-traits-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.portrait-trait-tag {
-    display: inline-block;
-    padding: 3px 10px;
-    font-size: 0.8rem;
-    border-radius: 12px;
-    background: var(--accent);
-    color: #fff;
-    white-space: nowrap;
-    font-weight: 500;
-}
-
-/* 重点摘要列表 */
-.portrait-highlights-list {
-    margin: 0;
-    padding-left: 18px;
-}
-
-.portrait-highlights-list li {
-    margin-bottom: 6px;
-    font-size: 0.88rem;
-    line-height: 1.6;
-    color: var(--text-primary);
+    .portrait-bubble-container {
+        min-height: 100px;
+    }
 }
 
 /* ---- 淡入动画 ---- */

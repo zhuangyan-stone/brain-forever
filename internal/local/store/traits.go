@@ -487,14 +487,14 @@ func (s *VectorStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 }
 
 // ============================================================
-// ListAllTraits -list all traits for the current user
+// ListAllTraitsByCreateTime -list all traits ordered by create_at
 // ============================================================
 
-// ListAllTraits returns all personal traits for the current user,
+// ListAllTraitsByCreateTime returns all personal traits for the current user,
 // ordered by create_at descending (newest first).
 // This is used for portrait generation where all traits need to be
 // sent to the LLM for higher-level abstraction.
-func (s *VectorStore) ListAllTraits() ([]PersonalTrait, error) {
+func (s *VectorStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
 	rows, err := s.db.Query(
 		`SELECT id, trait, category, confidence, half_life, chat_sn, create_at, update_at
 		 FROM traits

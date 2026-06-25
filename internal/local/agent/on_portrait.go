@@ -12,6 +12,7 @@ import (
 
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
+	"BrainForever/internal/local/store"
 	"BrainForever/toolset"
 )
 
@@ -81,8 +82,8 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read all traits from the user's traits database
-	allTraits, err := vs.ListAllTraits()
+	// Read all traits from the user's traits database (ordered by create_at DESC)
+	allTraits, err := vs.ListAllTraitsByCreateTime()
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
 		return
@@ -140,7 +141,17 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 6. Proxy SSE stream from remote-server to frontend
+	// 6. Compute portrait info (essence area metadata) and send
+	//    as 'info' SSE event before proxying the remote stream.
+	// ----------------------------------------------------------
+	info := computePortraitInfo(allTraits, retouch)
+	if infoJSON, err := json.Marshal(info); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", infoJSON)
+		flusher.Flush()
+	}
+
+	// ----------------------------------------------------------
+	// 7. Proxy SSE stream from remote-server to frontend
 	//
 	// Use sse.Reader to read each "data: ..." line from the
 	// remote-server's SSE response and forward it verbatim
@@ -172,6 +183,71 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 	// Drain any remaining body
 	io.Copy(io.Discard, remoteResp.Body)
+}
+
+// ============================================================
+// portraitInfo — extra metadata sent as 'info' SSE event
+// ============================================================
+
+// portraitInfo is the SSE event wrapper for essence area metadata.
+type portraitInfo struct {
+	Event string           `json:"event"`
+	Data  portraitInfoData `json:"data"`
+}
+
+// portraitInfoData carries additional metadata for the essence area display.
+type portraitInfoData struct {
+	GeneratedAt  string `json:"generated_at"`  // Generation timestamp
+	ChatCount    int    `json:"chat_count"`    // Number of unique conversations
+	TraitCount   int    `json:"trait_count"`   // Number of personal traits
+	SpanDays     int    `json:"span_days"`     // Time span in days
+	EarliestDate string `json:"earliest_date"` // Earliest message date (YYYY-MM-DD)
+	LatestDate   string `json:"latest_date"`   // Latest message date (YYYY-MM-DD)
+	Retouch      int    `json:"retouch"`       // Polish level
+}
+
+// computePortraitInfo computes the essence-area metadata from traits.
+// allTraits is ordered by create_at DESC (newest first per ListAllTraitsByCreateTime),
+// so the first element is the latest and the last is the earliest.
+func computePortraitInfo(allTraits []store.PersonalTrait, retouch int) portraitInfo {
+	// Count unique conversations
+	chatSNSet := make(map[string]struct{})
+	for _, t := range allTraits {
+		if t.ChatSN != "" {
+			chatSNSet[t.ChatSN] = struct{}{}
+		}
+	}
+	chatCount := len(chatSNSet)
+
+	// Time span: allTraits[0] = newest (latest), allTraits[n-1] = oldest (earliest)
+	earliestStr := ""
+	latestStr := ""
+	spanDays := 0
+
+	n := len(allTraits)
+	if n > 0 {
+		latest := allTraits[0].CreateAt     // newest first
+		earliest := allTraits[n-1].CreateAt // oldest last
+		earliestStr = earliest.Format("2006-01-02")
+		latestStr = latest.Format("2006-01-02")
+		spanDays = int(latest.Sub(earliest).Hours() / 24)
+		if spanDays < 1 {
+			spanDays = 1
+		}
+	}
+
+	return portraitInfo{
+		Event: "info",
+		Data: portraitInfoData{
+			GeneratedAt:  time.Now().Format("2006-01-02 15:04:05"),
+			ChatCount:    chatCount,
+			TraitCount:   n,
+			SpanDays:     spanDays,
+			EarliestDate: earliestStr,
+			LatestDate:   latestStr,
+			Retouch:      retouch,
+		},
+	}
 }
 
 // ============================================================
