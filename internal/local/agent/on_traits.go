@@ -122,7 +122,7 @@ func userTraitsDBPath(userNo string) string {
 	if userNo == "" {
 		return "localdb/anonymous.brain.db"
 	}
-	return "localdb/" + userNo + ".traits.db"
+	return "localdb/" + userNo + ".brain.db"
 }
 
 // ensureTraitsStore returns the session's traitsStore, or an error if it was

@@ -28,7 +28,7 @@ import (
 //
 // Traits DB naming (same as trait extraction):
 //   - Anonymous: localdb/anonymous.brain.db
-//   - Logged-in: localdb/{userNo}.traits.db
+//   - Logged-in: localdb/{userNo}.brain.db
 // ============================================================
 
 // portraitTraitItem represents a single trait sent to remote-server.
