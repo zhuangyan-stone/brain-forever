@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -276,10 +277,24 @@ type ssePortraitEvent struct {
 }
 
 // sendPortraitSSE marshals and writes a portrait SSE event.
+// Uses json.Encoder with SetEscapeHTML(false) to prevent Go's default JSON
+// encoder from escaping '>', '<', '&' to \u003e, \u003c, \u0026.
+// SSE data is not embedded in HTML, so HTML escaping is unnecessary.
 func sendPortraitSSE(sw *sse.Writer, eventType string, data interface{}) {
 	msg := ssePortraitEvent{Event: eventType, Data: data}
-	b, _ := json.Marshal(msg)
-	_ = sw.WriteRaw(string(b))
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(msg); err != nil {
+		return
+	}
+	// json.Encoder.Encode appends a trailing '\n'; strip it for consistency
+	// with the previous json.Marshal behavior (no trailing newline).
+	raw := buf.Bytes()
+	if len(raw) > 0 && raw[len(raw)-1] == '\n' {
+		raw = raw[:len(raw)-1]
+	}
+	_ = sw.WriteRaw(string(raw))
 }
 
 // PortraitHighlights holds the structured metadata extracted from a user portrait.

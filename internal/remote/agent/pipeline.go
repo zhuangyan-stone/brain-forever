@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -42,12 +43,26 @@ func NewTraitSSEResponser(sw *sse.Writer) *TraitSSEResponser {
 
 // WriteEvent marshals and writes a structured SSE event.
 // Exported so callers can send custom event types (e.g., tool_call, done).
+//
+// Uses json.Encoder with SetEscapeHTML(false) to prevent Go's default JSON
+// encoder from escaping '>', '<', '&' to \u003e, \u003c, \u0026.
+// SSE data is not embedded in HTML, so HTML escaping is unnecessary.
 func (r *TraitSSEResponser) WriteEvent(eventType string, data any) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	msg := sseEvent{Event: eventType, Data: data}
-	b, _ := json.Marshal(msg)
-	_ = r.sseWriter.WriteRaw(string(b))
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(msg); err != nil {
+		return
+	}
+	// json.Encoder.Encode appends a trailing '\n'; strip it for consistency.
+	raw := buf.Bytes()
+	if len(raw) > 0 && raw[len(raw)-1] == '\n' {
+		raw = raw[:len(raw)-1]
+	}
+	_ = r.sseWriter.WriteRaw(string(raw))
 }
 
 // OnReasoning forwards reasoning content to the frontend.

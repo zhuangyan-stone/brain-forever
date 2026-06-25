@@ -750,12 +750,12 @@
 
                     <!-- 信息区 — 固定两行 -->
                     <div class="portrait-essence-info" x-show="portraitInfo">
-                        <div class="portrait-info-line">基于 <strong x-text="portraitInfo.chat_count"></strong> 个对话
-                            <strong x-text="portraitInfo.trait_count"></strong> 条个人特征生成</div>
-                        <div class="portrait-info-line">润色度：<strong x-text="portraitInfo.retouch"></strong> ，
-                            跨度 <strong x-text="portraitInfo.span_days"></strong> 天
-                            （<span x-text="portraitInfo.earliest_date ? portraitInfo.earliest_date.replace(/-/g,'/') : ''"></span>
-                            - <span x-text="portraitInfo.latest_date ? portraitInfo.latest_date.replace(/-/g,'/') : ''"></span>）</div>
+                        <div class="portrait-info-line">基于 <strong x-text="(portraitInfo || {}).chat_count"></strong> 个对话
+                            <strong x-text="(portraitInfo || {}).trait_count"></strong> 条个人特征生成</div>
+                        <div class="portrait-info-line">润色度：<strong x-text="(portraitInfo || {}).retouch"></strong> ，
+                            跨度 <strong x-text="(portraitInfo || {}).span_days"></strong> 天
+                            （<span x-text="(portraitInfo || {}).earliest_date ? (portraitInfo || {}).earliest_date.replace(/-/g,'/') : ''"></span>
+                            - <span x-text="(portraitInfo || {}).latest_date ? (portraitInfo || {}).latest_date.replace(/-/g,'/') : ''"></span>）</div>
                     </div>
 
                     <!-- 全过程旋转进度：从打开到 done 在精华区正中显示 -->
@@ -768,7 +768,7 @@
                     <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.core_traits && portraitMeta.core_traits.length">
                         <div class="portrait-essence-section-label">✨ 核心特质</div>
                         <div class="portrait-bookmark-container">
-                            <template x-for="(trait, idx) in portraitMeta.core_traits" :key="idx">
+                            <template x-for="(trait, idx) in ((portraitMeta || {}).core_traits || [])" :key="idx">
                                 <span class="portrait-bookmark"
                                     :class="bookmarkSizeClass(trait) + ' ' + ('portrait-bookmark-c' + ((idx % 10) + 1))"
                                     x-text="trait"
@@ -782,7 +782,7 @@
                     <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.key_highlights && portraitMeta.key_highlights.length">
                         <div class="portrait-essence-section-label">🔖 重点摘要</div>
                         <div class="portrait-essence-highlights">
-                            <template x-for="(item, idx) in portraitMeta.key_highlights" :key="idx">
+                            <template x-for="(item, idx) in ((portraitMeta || {}).key_highlights || [])" :key="idx">
                                 <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 10)" x-html="renderHighlightMD(item)"></div>
                             </template>
                         </div>
