@@ -5,7 +5,7 @@
 // 功能：
 //   1. 遮罩层 + 大对话框（不点击遮罩自动关闭）
 //   2. 流式 SSE 接收画像内容，实时渲染 Markdown
-//   3. 复制按钮（纯文本/Markdown/HTML 三种格式）
+//   3. 复制按钮（Markdown 格式，内容包含左侧精华区 + 文档内容）
 //   4. 分享按钮（占位）
 //   5. 取消（流式中）/ 关闭（完成后）按钮
 //   6. 精华区：头像、信息区、核心特质书签、重点摘要引文
@@ -134,13 +134,9 @@ document.addEventListener('alpine:init', function() {
             // 安全地引用 $el（通过 init 钩子设置）
             _el: null,
 
-            // 复制下拉菜单状态
-            _copyMenuEl: null,
-            _copyMenuAnchor: null,
-
             // ---- 计算属性 ----
             get title() {
-                return (this.userName || '匿名用户') + ' 的用户画像';
+                return '用户画像 - 「 ' + (this.userName || '匿名用户') + ' 」';
             },
 
             get showCancel() {
@@ -202,7 +198,6 @@ document.addEventListener('alpine:init', function() {
              */
             close: function() {
                 this._abortSSE();
-                this._closeCopyMenu();
                 this.show = false;
                 this.portrait = '';
                 this.portraitHTML = '';
@@ -224,127 +219,80 @@ document.addEventListener('alpine:init', function() {
             // ---- 复制功能 ----
 
             /**
-             * 显示复制下拉菜单
-             * @param {Event} event
+             * 执行复制操作 — 复制内容包含左侧精华区（信息、核心特质、重点摘要）+ 文档内容
+             * 统一输出 Markdown 格式。
              */
-            showCopyMenu: function(event) {
-                var self = this;
-                var anchor = event.currentTarget;
-
-                // 关闭已有的菜单
-                this._closeCopyMenu();
-
-                this._copyMenuAnchor = anchor;
-                var rect = anchor.getBoundingClientRect();
-                var menu = document.createElement('div');
-                menu.className = 'portrait-copy-dropdown';
-                menu.style.top = (rect.bottom + 4) + 'px';
-                menu.style.left = rect.left + 'px';
-
-                var items = [
-                    { label: '复制为纯文本', format: 'plain' },
-                    { label: '复制为 Markdown', format: 'markdown' },
-                    { label: '复制为 HTML', format: 'html' },
-                ];
-
-                items.forEach(function(item) {
-                    var option = document.createElement('div');
-                    option.className = 'portrait-copy-dropdown-item';
-                    option.textContent = item.label;
-                    option.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        self._copyContent(item.format);
-                        self._closeCopyMenu();
-                    });
-                    menu.appendChild(option);
-                });
-
-                document.body.appendChild(menu);
-                this._copyMenuEl = menu;
-
-                // 点击外部关闭菜单
-                setTimeout(function() {
-                    var closeHandler = function(e) {
-                        if (!menu.contains(e.target) && e.target !== anchor) {
-                            self._closeCopyMenu();
-                            document.removeEventListener('click', closeHandler, true);
-                        }
-                    };
-                    document.addEventListener('click', closeHandler, true);
-                }, 0);
-            },
-
-            /**
-             * 关闭复制下拉菜单
-             */
-            _closeCopyMenu: function() {
-                if (this._copyMenuEl) {
-                    this._copyMenuEl.remove();
-                    this._copyMenuEl = null;
-                }
-                this._copyMenuAnchor = null;
-            },
-
-            /**
-             * 执行复制操作
-             * @param {'plain'|'markdown'|'html'} format
-             */
-            _copyContent: function(format) {
+            copyAll: function() {
                 if (!this.portrait) return;
 
                 var self = this;
-                var formatName = { plain: '纯文本', markdown: 'Markdown', html: 'HTML' }[format] || 'Markdown';
-                var text = this.portrait;
+                var md = this._buildCopyMarkdown();
+                if (!md) return;
 
-                if (format === 'plain') {
-                    // 从 HTML 提取纯文本
-                    var tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = this.portraitHTML;
-                    text = tempDiv.textContent || tempDiv.innerText || this.portrait;
-                    copyPlainText(text).then(function(ok) {
-                        self._showToast(ok ? '✓ 已复制（纯文本）' : '复制失败（纯文本）', ok);
-                    });
-                } else if (format === 'html') {
-                    this._copyHtml(this.portraitHTML).then(function(ok) {
-                        self._showToast(ok ? '✓ 已复制（HTML）' : '复制失败（HTML）', ok);
-                    });
-                } else {
-                    // markdown - 复制原文
-                    copyPlainText(this.portrait).then(function(ok) {
-                        self._showToast(ok ? '✓ 已复制（Markdown）' : '复制失败（Markdown）', ok);
-                    });
-                }
+                copyPlainText(md).then(function(ok) {
+                    self._showToast(ok ? '✓ 已复制' : '复制失败', ok);
+                });
             },
 
             /**
-             * 复制 HTML 富文本
-             * @param {string} html
-             * @returns {Promise<boolean>}
+             * 构建包含左侧精华区 + 文档内容的完整 Markdown 文本
+             * @returns {string}
              */
-            _copyHtml: function(html) {
-                if (!html) return Promise.resolve(false);
-                var plainText = '';
-                var tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                plainText = tempDiv.textContent || '';
+            _buildCopyMarkdown: function() {
+                var info = this.portraitInfo;
+                var meta = this.portraitMeta;
+                var userName = this.userName || '匿名用户';
+                var docText = this.portrait || '';
 
-                var wrapped = '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n</head>\n<body>\n' + html + '\n</body>\n</html>';
+                var parts = [];
 
-                if (!navigator.clipboard || !navigator.clipboard.write) {
-                    return Promise.resolve(fallbackCopyText(plainText));
+                // ---- 标题 ----
+                parts.push('# 用户画像 - 「' + userName + '」');
+                parts.push('');
+
+                // ---- 1. 信息区 ----
+                if (info) {
+                    parts.push('## 基本信息');
+                    parts.push('- 基于 ' + (info.chat_count || 0) + ' 个对话 '
+                        + (info.trait_count || 0) + ' 条个人特征生成');
+                    parts.push('- 润色度：' + (info.retouch || 0) + '，跨度 '
+                        + (info.span_days || 0) + ' 天'
+                        + (info.earliest_date ? '（' + info.earliest_date.replace(/-/g, '/') : '')
+                        + (info.latest_date ? ' - ' + info.latest_date.replace(/-/g, '/') + '）' : ''));
+                    parts.push('');
                 }
 
-                try {
-                    return navigator.clipboard.write([
-                        new ClipboardItem({
-                            'text/plain': new Blob([plainText], { type: 'text/plain' }),
-                            'text/html': new Blob([wrapped], { type: 'text/html' }),
-                        })
-                    ]).then(function() { return true; })
-                    .catch(function() { return fallbackCopyText(plainText); });
-                } catch(e) {
-                    return Promise.resolve(fallbackCopyText(plainText));
+                // ---- 2. 核心特质 ----
+                if (meta && meta.core_traits && meta.core_traits.length) {
+                    parts.push('## ✨ 核心特质');
+                    meta.core_traits.forEach(function(trait) {
+                        parts.push('- ' + trait);
+                    });
+                    parts.push('');
                 }
+
+                // ---- 3. 重点摘要 ----
+                if (meta && meta.key_highlights && meta.key_highlights.length) {
+                    parts.push('## 📌 重点摘要');
+                    meta.key_highlights.forEach(function(item) {
+                        parts.push('> ' + item);
+                    });
+                    parts.push('');
+                }
+
+                // ---- 分割线 ----
+                var hasEssence = (info || (meta && (meta.core_traits || []).length > 0) || (meta && (meta.key_highlights || []).length > 0));
+                if (hasEssence) {
+                    parts.push('---');
+                    parts.push('');
+                }
+
+                // ---- 4. 文档内容 ----
+                parts.push('## AI 眼中的你 ……');
+                parts.push('');
+                parts.push(docText);
+
+                return parts.join('\n');
             },
 
             /**

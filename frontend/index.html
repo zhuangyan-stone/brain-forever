@@ -706,8 +706,8 @@
             <div class="portrait-header">
                 <h3 class="portrait-title" x-text="title"></h3>
                 <div class="portrait-header-actions">
-                    <!-- 复制按钮 -->
-                    <button class="portrait-header-btn" @click="showCopyMenu" data-tooltip="复制画像内容">
+                    <!-- 复制按钮：直接复制，内容包含左侧精华区 + 文档内容 (Markdown) -->
+                    <button class="portrait-header-btn" @click="copyAll" data-tooltip="复制画像内容（含基本信息和文档）">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
