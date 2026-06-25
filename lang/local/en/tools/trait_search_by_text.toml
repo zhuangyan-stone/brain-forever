@@ -24,7 +24,7 @@ other = """Feature category number (0=search all categories). Category definitio
 
 2=External Objective Facts: External entities owned or used by the user, such as item brands/models, property, pets, books read, movies watched (not including places visited). Examples: Phone is iPhone 15; Owns a dog; Lives in 150sqm house; Car is Huawei Smart Drive
 
-3=Cultural Attainment: Significantly above-average deep knowledge, creative or appreciation ability and achievements (published books, published papers, formal competition rankings) demonstrated by the user in humanities, science, or engineering fields, including phenomenal works. Examples: Published "Vernacular C++"; Wrote widely circulated lyrics/compositions
+3=Achievements & Attainment: Significantly above-average deep knowledge, creative or appreciation ability and achievements (published books, published papers, formal competition rankings) demonstrated by the user in humanities, science, or engineering fields, including phenomenal works. Examples: Published "Vernacular C++"; Wrote widely circulated lyrics/compositions
 
 4=Hobbies: Activities the user engages in voluntarily, not for career purposes (non-academic/non-utilitarian). Examples: Loves playing chess; Hiking; Playing guitar (amateur)
 

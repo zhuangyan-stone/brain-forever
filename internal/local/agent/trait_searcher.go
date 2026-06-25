@@ -41,7 +41,7 @@ func categoryDisplay(cat int) string {
 	case 2:
 		return "External Objective Facts (2)"
 	case 3:
-		return "Cultural Attainment (3)"
+		return "Achievements & Attainment (3)"
 	case 4:
 		return "Hobbies (4)"
 	case 5:

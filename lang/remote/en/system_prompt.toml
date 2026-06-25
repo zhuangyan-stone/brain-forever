@@ -38,7 +38,7 @@ You can use this timestamp to gain deeper understanding and help extract the use
 |-----|---------------|-----------|----------|
 | 1 | Demographic Attributes | The user's natural or social attributes. E.g., name, age, gender, height, weight, measurements, residence, nationality, ethnicity, education, occupation, income, etc. Note: must be externally verifiable — e.g., "monthly salary of $5,000" can be verified by pay stub, whereas "loves peace" or "deep knowledge of history" cannot be independently verified externally. **Important: Each independent demographic attribute (age, gender, occupation, height, education, income, etc.) must be output as a separate feature_text. Do not combine multiple attributes into a single feature. For example, if the user says "I'm 50, male, a programmer," output three features: "The user is 50 years old", "The user is male", "The user is a programmer" — NOT "50-year-old male programmer".** | The user is 6'0" tall; The user has a Bachelor's degree; The user earns $5,000 a month |
 | 2 | External Objective Facts | External entities owned or used by the user: item brands/models, property, pets, etc.; also includes books read, movies watched; but does NOT include places visited (as one cannot "own" a location) | Read "Jane Eyre" multiple times; uses iPhone 15; owns a dog; lives in a 1,500 sq ft house; drives a Tesla |
-| 3 | Cultural Attainment | Deep knowledge, creative or appreciative ability, and achievements (published books, academic papers, official competition rankings) in humanities, science, or engineering fields that significantly exceed the average person, stemming from the user's profession (category 5), interest (category 4), or other reasons. Includes notable creative works. | Champion of state-level table tennis competition (senior amateur division); published "C++ for Everyone" through Penguin Random House; wrote widely circulated songs |
+| 3 | Achievements & Attainment | Deep knowledge, creative or appreciative ability, and achievements (published books, academic papers, official competition rankings) in humanities, science, or engineering fields that significantly exceed the average person, stemming from the user's profession (category 5), interest (category 4), or other reasons. Includes notable creative works. | Champion of state-level table tennis competition (senior amateur division); published "C++ for Everyone" through Penguin Random House; wrote widely circulated songs |
 | 4 | Hobbies | Self-motivated activities pursued not as a profession (non-academic, non-utilitarian). Excludes those with high achievement that should be classified under (3) | Enjoys chess; hiking; playing guitar (amateur) |
 | 5 | Abilities/Skills | Practical knowledge or skills beyond (3) and (4) (professional, life skills, sports, crafts, etc.), whether good or bad | Knows Python programming; Class A driver's license; poor memory; excellent at arguing |
 | 6 | Preferences/Idiosyncrasies | Moral-neutral likes and dislikes about external things: food preferences, aesthetic tastes, unconscious habits, etc. | Hates cilantro; lucky color is purple; bites lips; prefers budget hotels when traveling |
@@ -55,7 +55,7 @@ You can use this timestamp to gain deeper understanding and help extract the use
 
 1. Strictly follow the definitions and inter-category relationships in the table above to determine trait classification.
 2. The same content may yield multiple traits of the same or different categories. For example, "recently failed in a startup" involves both "recent" (Situational State (9)) and "Life Experience (13)".
-3. Distinguishing Cultural Attainment (3), Hobbies (4), and Abilities/Skills (5): If an interest or skill has received recognized achievement, prioritize Cultural Attainment (3); if it is not a common work skill, or the user explicitly expresses enjoyment, prioritize Hobbies (4); otherwise classify as Abilities/Skills (5).
+3. Distinguishing Achievements & Attainment (3), Hobbies (4), and Abilities/Skills (5): If an interest or skill has received recognized achievement, prioritize Achievements & Attainment (3); if it is not a common work skill, or the user explicitly expresses enjoyment, prioritize Hobbies (4); otherwise classify as Abilities/Skills (5).
 4. Health & Illness (8) vs. Demographic Attributes (1): Normal body measurements go to (1); diseases/sub-health go to (8).
 5. Related Persons (12) vs. External Objective Facts (2): Related Persons (12) records people who have a relationship with the user (relatives, colleagues, friends, etc.) and their characteristics; External Objective Facts (2) records non-human entities such as items, property, pets, etc.
 6. Related Persons (12) vs. Demographic Attributes (1): Related Persons (12) records people who have a relationship with the user (must be persons) and their personal characteristics; Demographic Attributes (1) records the user's own natural or social attributes (such as age, occupation, residence, etc.). **Note: Do not classify an attribute as Related Persons (12) simply because it involves a place name or location.** For example:
@@ -162,7 +162,7 @@ The overall output is a JSON object containing a `features` array, where each el
   "features": [
     {
       "category_id": 3,
-      "category_name": "Cultural Attainment",
+      "category_name": "Achievements & Attainment",
       "feature_text": "The user published a poetry collection through Penguin Random House",
       "confidence": 9,
       "half_life": "permanent",
@@ -216,7 +216,7 @@ Output:
 ```json
 {
   "features": [
-    { "category_id": 3, "category_name": "Cultural Attainment", "feature_text": "The user published a poetry collection through Penguin Random House", "confidence": 9, "half_life": "permanent", "keywords": [{ "type":"D", "word":"poetry collection" }] },
+    { "category_id": 3, "category_name": "Achievements & Attainment", "feature_text": "The user published a poetry collection through Penguin Random House", "confidence": 9, "half_life": "permanent", "keywords": [{ "type":"D", "word":"poetry collection" }] },
     { "category_id": 4, "category_name": "Hobbies", "feature_text": "The user loves playing basketball", "confidence": 8, "half_life": "long", "keywords": [{ "type":"D", "word":"basketball" }] },
     { "category_id": 9, "category_name": "Situational States", "feature_text": "The user no longer writes poetry", "confidence": 8, "half_life": "medium", "keywords": [] },
     { "category_id": 9, "category_name": "Situational States", "feature_text": "The user is busy with work now", "confidence": 7, "half_life": "short", "keywords": [] },
