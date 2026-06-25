@@ -159,6 +159,15 @@ func (w *charsetResponseWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
+// Flush implements http.Flusher so that SSE streaming handlers
+// (e.g. OnPortrait) can flush chunks to the client through this wrapper.
+// It delegates to the underlying ResponseWriter's Flush method if available.
+func (w *charsetResponseWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // registerMethod registers a handler restricted to the given HTTP method
 // using Go 1.22+ enhanced routing (e.g. "GET /api/chat/title").
 func (s *Server) registerMethod(method, pattern string, fn http.HandlerFunc) {
