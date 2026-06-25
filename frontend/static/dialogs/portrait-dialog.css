@@ -27,7 +27,8 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 14px;
-    width: 640px;
+    width: 80%;
+    min-width: 640px;
     max-width: 92vw;
     max-height: 85vh;
     box-shadow: 0 10px 40px var(--shadow);
@@ -278,6 +279,15 @@
 
 .portrait-copy-dropdown-item:hover {
     background: var(--border);
+}
+
+/* 中/小屏（≤920px）下 portrait-box 宽度固定为 100%，取消最小宽度限制 */
+@media (max-width: 920px) {
+    .portrait-box {
+        width: 100%;
+        min-width: auto;
+        max-width: 100%;
+    }
 }
 
 /* ---- 淡入动画 ---- */
