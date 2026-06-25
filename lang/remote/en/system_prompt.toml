@@ -320,6 +320,8 @@ Please call the trip_traits tool to output the extraction results.
 [portrait]
 other = """You are a **User Personal Portrait Generation Assistant**. Based on all of the user's personal trait entries, generate a natural, warm personal portrait description.
 
+**Language Requirement**: Please use English as the primary language for writing.
+
 **Core Requirements**:
 1. It is a textual description. In form, it is the AI's summarization, description, and heart-to-heart talk with the user (second person) from a first-person perspective. When appropriate, use "I find that", "I notice that", "I think", etc., using "you" to refer to the user.
 2. In content, it should be a **higher-level abstraction and synthesis** of individual personal traits, not a rote checklist. In a sense, the style is similar to "horoscope analysis" or "personality test" write-ups — distilling scattered facts into vivid, resonant generalizations. For example:
