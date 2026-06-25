@@ -783,7 +783,7 @@
                         <div class="portrait-essence-section-label">📌 重点摘要</div>
                         <div class="portrait-essence-highlights">
                             <template x-for="(item, idx) in portraitMeta.key_highlights" :key="idx">
-                                <div class="portrait-highlight-block" x-text="item"></div>
+                                <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 4)" x-text="item"></div>
                             </template>
                         </div>
                     </div>

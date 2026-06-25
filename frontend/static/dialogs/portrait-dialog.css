@@ -301,6 +301,7 @@
     padding: 5px 12px 5px 14px;
     font-size: 0.8rem;
     font-weight: 500;
+    font-family: 'FreeSerif', '仿宋', 'FangSong', 'Noto Serif SC', serif;
     color: #fff;
     text-align: left;
     cursor: default;
@@ -317,15 +318,15 @@
     margin-left: 6px;
 }
 
-/* 左侧凸起的书签标签（小矩形块） */
+/* 左侧凸起的书签标签（小矩形块）— 现在与主体等高 */
 .portrait-bookmark::before {
     content: '';
     position: absolute;
     left: -6px;
-    top: 4px;
-    bottom: 4px;
+    top: 0;
+    bottom: 0;
     width: 6px;
-    border-radius: 3px 0 0 3px;
+    border-radius: 4px 0 0 4px;
     background: inherit;
     filter: brightness(0.75);
     box-shadow: -1px 0 3px rgba(0,0,0,0.1);
@@ -409,22 +410,26 @@
     border-radius: 6px;
     font-size: 0.82rem;
     line-height: 1.55;
+    font-family: 'FreeSerif', '仿宋', 'FangSong', 'Noto Serif SC', serif;
     color: var(--text-primary);
     background: rgba(69, 183, 209, 0.08);
     border-left: 3px solid #45B7D1;
 }
 
-.portrait-highlight-block:nth-child(2n) {
+/* 重点摘要颜色 — 通过 JS idx % 4 循环分配 */
+.portrait-highlight-c0 {
+    background: rgba(69, 183, 209, 0.08);
+    border-left-color: #45B7D1;
+}
+.portrait-highlight-c1 {
     background: rgba(255, 107, 107, 0.07);
     border-left-color: #FF6B6B;
 }
-
-.portrait-highlight-block:nth-child(3n) {
+.portrait-highlight-c2 {
     background: rgba(78, 205, 196, 0.07);
     border-left-color: #4ECDC4;
 }
-
-.portrait-highlight-block:nth-child(4n) {
+.portrait-highlight-c3 {
     background: rgba(221, 160, 221, 0.07);
     border-left-color: #DDA0DD;
 }
