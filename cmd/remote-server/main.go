@@ -90,6 +90,9 @@ func main() {
 	// JSON trait extraction endpoint (POST)
 	srv.POST("/api/traits", agent.OnTripTraits)
 
+	// Portrait generation endpoint (POST, streaming SSE)
+	srv.POST("/api/portrait", agent.OnPortrait)
+
 	// Serve demo static files
 	srv.Handle("/demo/", func(w http.ResponseWriter, r *http.Request) {
 		http.StripPrefix("/demo/", http.FileServer(http.Dir("cmd/remote-server/demo"))).ServeHTTP(w, r)

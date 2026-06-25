@@ -197,6 +197,9 @@ func main() {
 	// /api/chat/traits -POST (extract personal traits via remote-server)
 	srv.POST("/api/chat/traits", chatHandler.OnExtractTraits)
 
+	// /api/user/portrait -GET (generate user portrait via remote-server, streaming SSE)
+	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
+
 	// ── Static file server -frontend pages ──
 	// When CacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
 	// take effect immediately during development.

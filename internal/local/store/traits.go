@@ -486,6 +486,42 @@ func (s *VectorStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 	return results, nil
 }
 
+// ============================================================
+// ListAllTraits -list all traits for the current user
+// ============================================================
+
+// ListAllTraits returns all personal traits for the current user,
+// ordered by create_at descending (newest first).
+// This is used for portrait generation where all traits need to be
+// sent to the LLM for higher-level abstraction.
+func (s *VectorStore) ListAllTraits() ([]PersonalTrait, error) {
+	rows, err := s.db.Query(
+		`SELECT id, trait, category, confidence, half_life, chat_sn, create_at, update_at
+		 FROM traits
+		 ORDER BY create_at DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("list all traits failed: %w", err)
+	}
+	defer rows.Close()
+
+	var results []PersonalTrait
+	for rows.Next() {
+		var pt PersonalTrait
+		var createAt, updateAt time.Time
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
+			return nil, err
+		}
+		pt.CreateAt = createAt
+		pt.UpdateAt = updateAt
+		results = append(results, pt)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 // Close closes the database connection.
 func (s *VectorStore) Close() error {
 	return s.db.Close()

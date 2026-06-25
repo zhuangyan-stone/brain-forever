@@ -708,11 +708,23 @@ export async function extractTraits(sn) {
 // ============================================================
 // 打开用户画像 — 展示当前用户的个人特征/画像
 // 已登录用户展示其存储的特征，匿名用户展示匿名特征
+//
+// 通过 Alpine $data 调用 portrait-dialog.js 中注册的 userPortraitDialog 组件
 // ============================================================
 window.onOpenUserTraits = function() {
-    // TODO: 实现用户画像展示页面/对话框
-    // 当前为占位实现，后续可打开一个模态框展示用户的个人特征
-    console.log('打开用户画像');
+    try {
+        var dialogEl = document.getElementById('portraitDialog');
+        if (dialogEl) {
+            var data = Alpine.$data(dialogEl);
+            if (data && typeof data.open === 'function') {
+                data.open();
+                return;
+            }
+        }
+        console.warn('用户画像对话框组件未找到或未初始化');
+    } catch (e) {
+        console.error('打开用户画像对话框失败:', e);
+    }
 };
 
 // ============================================================

@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="/static/dialogs/dialog.css">
     <link rel="stylesheet" href="/static/dialogs/msg-delete-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/title-edit-dialog.css">
+    <link rel="stylesheet" href="/static/dialogs/portrait-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
     <link rel="stylesheet" href="/static/responsive.css">
     <link rel="stylesheet" href="/static/components/toast.css">
@@ -80,6 +81,7 @@
     <script src="/static/components/buttons.js"></script>
     <script src="/static/components/chat-container.js"></script>
     <script src="/static/components/dialogs/dialogs.js"></script>
+    <script src="/static/components/dialogs/portrait-dialog.js"></script>
     <script src="/static/components/sources-panel.js"></script>
     <script src="/static/components/format.js"></script>
 
@@ -688,6 +690,76 @@
                 <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>
                 <button class="dialog-btn dialog-btn-confirm" @click="confirm"
                     :disabled="!editingTitle.trim() || submitting" x-text="submitting ? '提交中…' : '确认'">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         用户"个人画像"对话框
+         依赖 portrait-dialog.css + portrait-dialog.js (Alpine data)
+         ============================================================ -->
+    <div class="portrait-overlay" id="portraitDialog"
+        x-data="userPortraitDialog()"
+        :class="{ show: show }">
+        <div class="portrait-box">
+            <!-- 头部：用户头像 + 标题 + 右上按钮组 -->
+            <div class="portrait-header">
+                <img class="portrait-avatar"
+                    :src="userAvatar"
+                    alt="用户头像" width="48" height="48">
+                <h3 class="portrait-title" x-text="title"></h3>
+                <div class="portrait-header-actions">
+                    <!-- 复制按钮 -->
+                    <button class="portrait-header-btn" @click="showCopyMenu" data-tooltip="复制画像内容">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        复制
+                    </button>
+                    <!-- 分享按钮（占位） -->
+                    <button class="portrait-header-btn" @click="share" data-tooltip="分享画像">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                        分享
+                    </button>
+                </div>
+            </div>
+
+            <!-- 内容区：滚动 + 自动换行 -->
+            <div class="portrait-body">
+                <!-- 加载中 -->
+                <div class="portrait-loading" x-show="isStreaming && !portrait && !hasError">
+                    <div class="loading-spinner"></div>
+                    <span>正在生成「<span x-text="userName || '匿名用户'"></span>」的个人画像…</span>
+                </div>
+                <!-- 错误 -->
+                <div class="portrait-error" x-show="hasError" x-text="errorMessage"></div>
+                <!-- 画像内容 -->
+                <div x-show="portraitHTML" x-html="portraitHTML"></div>
+            </div>
+
+            <!-- 底部按钮 -->
+            <div class="portrait-footer">
+                <!-- 流式中：红色"取消"按钮 -->
+                <button class="portrait-footer-btn portrait-footer-btn-cancel"
+                    x-show="showCancel"
+                    @click="cancel">
+                    取消
+                </button>
+                <!-- 完成后："关闭"按钮 -->
+                <button class="portrait-footer-btn portrait-footer-btn-close"
+                    x-show="showClose"
+                    @click="close">
+                    关闭
+                </button>
             </div>
         </div>
     </div>

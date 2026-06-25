@@ -1,0 +1,287 @@
+/* ============================================================
+    第2大脑 AI 助手 — 用户画像对话框样式
+    ============================================================
+    依赖：dialog.css（基本遮罩层样式）
+    ============================================================ */
+
+/* ---- 遮罩层 — 覆盖原有 dialog-overlay 的部分属性 ---- */
+.portrait-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1080; /* 高于普通对话框的 1070 */
+    align-items: center;
+    justify-content: center;
+}
+
+.portrait-overlay.show {
+    display: flex;
+}
+
+/* ---- 对话框容器 — 比普通对话框更大 ---- */
+.portrait-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 640px;
+    max-width: 92vw;
+    max-height: 85vh;
+    box-shadow: 0 10px 40px var(--shadow);
+    animation: portraitFadeIn 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* ---- 头部 — 用户头像 + 标题 ---- */
+.portrait-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.portrait-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+}
+
+.portrait-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---- 头部右上角按钮组 ---- */
+.portrait-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.portrait-header-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.portrait-header-btn:hover {
+    background: var(--border);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.portrait-header-btn svg {
+    flex-shrink: 0;
+}
+
+/* ---- 内容区 — 可滚动，自动换行 ---- */
+.portrait-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 120px;
+    max-height: 55vh;
+    line-height: 1.7;
+    color: var(--text-primary);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.portrait-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.portrait-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.portrait-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+}
+
+/* 内容区的 Markdown 渲染样式 */
+.portrait-body p {
+    margin: 0 0 10px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.portrait-body p:last-child {
+    margin-bottom: 0;
+}
+
+.portrait-body ul, .portrait-body ol {
+    margin: 6px 0;
+    padding-left: 24px;
+}
+
+.portrait-body li {
+    margin-bottom: 4px;
+}
+
+.portrait-body h1, .portrait-body h2, .portrait-body h3,
+.portrait-body h4, .portrait-body h5, .portrait-body h6 {
+    margin: 14px 0 8px;
+    color: var(--text-primary);
+}
+
+.portrait-body h1 { font-size: 1.15rem; }
+.portrait-body h2 { font-size: 1.08rem; }
+.portrait-body h3 { font-size: 1.02rem; }
+
+.portrait-body hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0;
+}
+
+.portrait-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 0.85rem;
+}
+
+.portrait-body th, .portrait-body td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.portrait-body th {
+    background: var(--bg-input);
+    font-weight: 600;
+}
+
+/* 加载/空状态 */
+.portrait-body .portrait-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    gap: 12px;
+}
+
+.portrait-body .portrait-loading .loading-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: portraitSpin 0.8s linear infinite;
+}
+
+.portrait-body .portrait-error {
+    color: var(--danger, #e74c3c);
+    text-align: center;
+    padding: 24px;
+    font-size: 0.95rem;
+}
+
+@keyframes portraitSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---- 底部按钮 ---- */
+.portrait-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 20px 14px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.portrait-footer-btn {
+    padding: 8px 24px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+    font-family: inherit;
+    font-weight: 500;
+}
+
+.portrait-footer-btn-cancel {
+    background: #e74c3c;
+    color: #fff;
+    border-color: #e74c3c;
+}
+
+.portrait-footer-btn-cancel:hover {
+    background: #c0392b;
+    border-color: #c0392b;
+}
+
+.portrait-footer-btn-close {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+}
+
+.portrait-footer-btn-close:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+/* ---- 复制下拉菜单（复用 chat-copy.js 的样式） ---- */
+.portrait-copy-dropdown {
+    position: fixed;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px var(--shadow);
+    z-index: 9999;
+    min-width: 140px;
+    padding: 4px;
+}
+
+.portrait-copy-dropdown-item {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.portrait-copy-dropdown-item:hover {
+    background: var(--border);
+}
+
+/* ---- 淡入动画 ---- */
+@keyframes portraitFadeIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
