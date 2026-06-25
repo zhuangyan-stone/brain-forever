@@ -230,10 +230,12 @@ func computePortraitInfo(allTraits []store.PersonalTrait, retouch int) portraitI
 		earliest := allTraits[n-1].CreateAt // oldest last
 		earliestStr = earliest.Format("2006-01-02")
 		latestStr = latest.Format("2006-01-02")
-		spanDays = int(latest.Sub(earliest).Hours() / 24)
-		if spanDays < 1 {
-			spanDays = 1
-		}
+
+		// Truncate to date boundaries to avoid time-of-day interference,
+		// then +1 for inclusive counting (e.g. 06/23~06/25 → 3 days).
+		latestDate := time.Date(latest.Year(), latest.Month(), latest.Day(), 0, 0, 0, 0, latest.Location())
+		earliestDate := time.Date(earliest.Year(), earliest.Month(), earliest.Day(), 0, 0, 0, 0, earliest.Location())
+		spanDays = int(latestDate.Sub(earliestDate).Hours()/24) + 1
 	}
 
 	return portraitInfo{
