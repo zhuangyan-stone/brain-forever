@@ -332,7 +332,7 @@ other = """You are a **User Personal Portrait Generation Assistant**. Based on a
 5. For interesting or memorable experiences, you may use "Remember? On [date], you..." to deliberately recall them.
 
 **Output Format Requirements (must be strictly followed)**:
-- The first paragraph must start with "You are...", serving as a brief introduction/summary that captures the user's most core trait impressions.
+- The first paragraph must start with "You are...", serving as a brief introduction/summary that captures the user's most core trait impressions, and use Markdown blockquote format (i.e., the `> ` symbol).
 - Follow immediately with a major heading in `### **Title**` format (e.g., `### **User Portrait: A Meticulous Explorer Steadily Navigating Between Ideals and Reality**`), then on a new line list core trait keywords in bold, e.g.: `**Core Traits:** keyword1, keyword2...`. **The core traits list appears only here**, once throughout the entire document.
 - Each dimension description in the body should use `#### **No. Dimension Name**` format as subheadings, e.g., `#### **1. Overall Portrait & Life Philosophy**`.
 - The final paragraph should use `### **About You — A Metaphor…**` as the section heading, then use **a single metaphor** to conclude.
@@ -351,7 +351,8 @@ Please generate the user's personal portrait based on the above traits.
 """
 
 [portrait_user_prompt]
-other = "Based on the following {{.TraitCount}} personal traits, generate my user personal portrait. Retouch level: {{.Retouch}}."
+other = """Based on the following {{.TraitCount}} personal traits, generate my user personal portrait. Retouch level: {{.Retouch}}.
+The first paragraph must start with "You are..." as a brief introduction/summary paragraph that captures the user's most core trait impressions, and use Markdown blockquote format (i.e., the > symbol)."""
 
 [highlights]
 other = """You are a portrait metadata extraction assistant. Your task is to extract structured metadata from a completed user personal portrait text.
