@@ -219,6 +219,20 @@
     font-size: 0.85rem;
 }
 
+/* 引用块（blockquote）— 与 message.css 中消息气泡的引用块风格保持一致 */
+.portrait-content blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 6px 12px;
+    margin: 8px 0;
+    color: var(--text-secondary);
+    background: rgba(79, 195, 247, 0.05);
+    border-radius: 0 6px 6px 0;
+}
+
+[data-theme="light"] .portrait-content blockquote {
+    background: rgba(25, 118, 210, 0.04);
+}
+
 .portrait-content th, .portrait-content td {
     border: 1px solid var(--border);
     padding: 6px 10px;
