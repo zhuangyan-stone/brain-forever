@@ -299,6 +299,59 @@
     }
 }
 
+/* ---- 结构化元数据：核心特质 + 重点摘要 ---- */
+.portrait-meta {
+    margin-top: 16px;
+}
+
+.portrait-meta-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0;
+}
+
+.portrait-meta-section {
+    margin-bottom: 14px;
+}
+
+.portrait-meta-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+/* 核心特质标签 */
+.portrait-traits-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.portrait-trait-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+/* 重点摘要列表 */
+.portrait-highlights-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.portrait-highlights-list li {
+    margin-bottom: 6px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
 /* ---- 淡入动画 ---- */
 @keyframes portraitFadeIn {
     from { opacity: 0; transform: scale(0.95) translateY(-10px); }

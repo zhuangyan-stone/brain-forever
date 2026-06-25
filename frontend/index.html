@@ -744,6 +744,28 @@
                 <div class="portrait-error" x-show="hasError" x-text="errorMessage"></div>
                 <!-- 画像内容 -->
                 <div x-show="portraitHTML" x-html="portraitHTML"></div>
+                <!-- 结构化元数据：核心特质 + 重点摘要 -->
+                <div class="portrait-meta" x-show="portraitMeta" x-cloak>
+                    <div class="portrait-meta-divider"></div>
+                    <!-- 核心特质标签 -->
+                    <div class="portrait-meta-section" x-show="portraitMeta.core_traits && portraitMeta.core_traits.length">
+                        <div class="portrait-meta-label">✨ 核心特质</div>
+                        <div class="portrait-traits-tags">
+                            <template x-for="trait in portraitMeta.core_traits" :key="trait">
+                                <span class="portrait-trait-tag" x-text="trait"></span>
+                            </template>
+                        </div>
+                    </div>
+                    <!-- 重点摘要 -->
+                    <div class="portrait-meta-section" x-show="portraitMeta.key_highlights && portraitMeta.key_highlights.length">
+                        <div class="portrait-meta-label">📌 重点摘要</div>
+                        <ul class="portrait-highlights-list">
+                            <template x-for="(item, idx) in portraitMeta.key_highlights" :key="idx">
+                                <li x-text="item"></li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <!-- 底部按钮 -->

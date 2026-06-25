@@ -87,6 +87,7 @@ document.addEventListener('alpine:init', function() {
             show: false,
             portrait: '',           // 完整画像 Markdown 原文
             portraitHTML: '',       // 渲染后的 HTML
+            portraitMeta: null,     // 结构化元数据 {core_traits, key_highlights}
             isStreaming: false,     // 是否正在流式接收
             isDone: false,          // 是否已完成
             hasError: false,
@@ -129,6 +130,7 @@ document.addEventListener('alpine:init', function() {
                 // 重置状态
                 this.portrait = '';
                 this.portraitHTML = '';
+                this.portraitMeta = null;
                 this.isStreaming = true;
                 this.isDone = false;
                 this.hasError = false;
@@ -162,6 +164,7 @@ document.addEventListener('alpine:init', function() {
                 this.show = false;
                 this.portrait = '';
                 this.portraitHTML = '';
+                this.portraitMeta = null;
                 this.isStreaming = false;
                 this.isDone = false;
                 this.hasError = false;
@@ -395,6 +398,13 @@ document.addEventListener('alpine:init', function() {
                         // 累加文本内容
                         this.portrait += (typeof data === 'string' ? data : '');
                         this._throttleRender();
+                        break;
+
+                    case 'meta':
+                        // 结构化元数据：核心特质 + 重点摘要
+                        if (data && typeof data === 'object') {
+                            this.portraitMeta = data;
+                        }
                         break;
 
                     case 'error':

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
+	"BrainForever/internal/remote/agent/toolimp"
 )
 
 // ============================================================
@@ -183,7 +185,21 @@ func OnPortrait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send done signal
+	// ----------------------------------------------------------
+	// 6. Step 2: Extract structured metadata (core traits + key highlights)
+	//    from the completed portrait text.
+	// ----------------------------------------------------------
+	if totalContent != "" {
+		meta := extractPortraitHighlights(r.Context(), client, req.Lang, totalContent)
+		if meta != nil {
+			sendPortraitSSE(sw, "meta", meta)
+			flusher.Flush()
+		}
+	}
+
+	// ----------------------------------------------------------
+	// 7. Send done signal
+	// ----------------------------------------------------------
 	sendPortraitSSE(sw, "done", map[string]interface{}{})
 	flusher.Flush()
 }
@@ -203,6 +219,65 @@ func sendPortraitSSE(sw *sse.Writer, eventType string, data interface{}) {
 	msg := ssePortraitEvent{Event: eventType, Data: data}
 	b, _ := json.Marshal(msg)
 	_ = sw.WriteRaw(string(b))
+}
+
+// PortraitHighlights holds the structured metadata extracted from a user portrait.
+type PortraitHighlights struct {
+	CoreTraits    []string `json:"core_traits"`
+	KeyHighlights []string `json:"key_highlights"`
+}
+
+// extractPortraitHighlights makes a non-streaming LLM call with the completed portrait
+// text as input, using ForceToolChoice to invoke the trip_highlights tool.
+// Returns nil if extraction fails (the error is non-fatal — the portrait text
+// has already been streamed to the frontend).
+func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, portraitText string) *PortraitHighlights {
+	// 1. Build system prompt from i18n template (single message, no user message needed)
+	systemContent := i18n.SystemPrompt.TL(lang, "highlights", map[string]interface{}{
+		"PortraitText": portraitText,
+	})
+
+	// 2. Create the trip_highlights tool
+	extractTool := toolimp.NewTripHighlightsTool(lang)
+
+	// 3. Build request with ForceToolChoice (single system message)
+	req := llm.ChatCompletionRequest{
+		Model: client.Model(),
+		Messages: []llm.Message{
+			{Role: llm.RoleSystem, Content: systemContent},
+		},
+		Tools:    []llm.ToolDefinition{extractTool.GetDefinition()},
+		Thinking: &llm.ThinkingConfig{Type: "disabled"},
+	}
+	req.ForceToolChoice(toolimp.TripHighlightsToolName)
+
+	// 4. Call LLM (non-streaming)
+	resp, err := client.ChatWithOptions(ctx, req)
+	if err != nil {
+		// Non-fatal: portrait text has already been sent
+		return nil
+	}
+
+	// 5. Parse tool call from response
+	if len(resp.Choices) == 0 {
+		return nil
+	}
+
+	msg := resp.Choices[0].Message
+	for _, tc := range msg.ToolCalls {
+		if tc.Function.Name == toolimp.TripHighlightsToolName {
+			if err := extractTool.SetArgument(tc.Function.Arguments); err != nil {
+				continue
+			}
+			result := extractTool.GetResult()
+			return &PortraitHighlights{
+				CoreTraits:    result.CoreTraits,
+				KeyHighlights: result.KeyHighlights,
+			}
+		}
+	}
+
+	return nil
 }
 
 // writePortraitJSONError writes a JSON error response with the given status code.

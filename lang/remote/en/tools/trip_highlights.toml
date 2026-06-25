@@ -1,0 +1,11 @@
+[description]
+other = "Extract core trait keywords and key highlights from a user portrait text. Call this tool to output structured extraction results."
+
+[param_core_traits_desc]
+other = "Array of core trait keywords, 5~10 concise phrases (e.g. ['rational', 'sincere', 'independent', 'perfectionist', 'dry humor']), summarizing the user's most essential characteristics"
+
+[param_key_highlights_desc]
+other = "Array of key highlights, 3~5 most representative sentences extracted from the portrait text, preserving original wording"
+
+[pending]
+other = "Extracting core traits and key highlights..."
