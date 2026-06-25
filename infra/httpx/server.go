@@ -148,8 +148,8 @@ func (w *charsetResponseWriter) WriteHeader(statusCode int) {
 		if ct != "" && !strings.Contains(strings.ToLower(ct), "charset=") && hasTextContentType(ct) {
 			w.Header().Set("Content-Type", ct+"; charset="+w.charset)
 		}
+		w.ResponseWriter.WriteHeader(statusCode)
 	}
-	w.ResponseWriter.WriteHeader(statusCode)
 }
 
 func (w *charsetResponseWriter) Write(b []byte) (int, error) {
