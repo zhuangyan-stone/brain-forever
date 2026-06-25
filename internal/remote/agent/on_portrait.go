@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
@@ -13,6 +14,19 @@ import (
 	"BrainForever/internal/remote/agent/toolimp"
 	"BrainForever/toolset"
 )
+
+// confidenceLevel returns a human-readable confidence level description key suffix
+// for the given confidence value (1-10).
+func confidenceLevelKey(confidence int) string {
+	switch {
+	case confidence >= 8:
+		return "high"
+	case confidence >= 4:
+		return "medium"
+	default:
+		return "low"
+	}
+}
 
 // ============================================================
 // Request / Response types
@@ -25,6 +39,49 @@ type portraitTraitItem struct {
 	Confidence int    `json:"confidence"`
 	HalfLife   int    `json:"half_life"`
 	CreateAt   string `json:"create_at"`
+}
+
+// ToString returns a human-readable natural language representation of this trait item,
+// with explanations for each field (category, confidence, half-life, creation time).
+// The lang parameter controls the language of field labels and descriptions.
+func (t portraitTraitItem) ToString(lang string, index int) string {
+	// Category name and description
+	catName := i18n.TL(lang, fmt.Sprintf("trait_cat_%d", t.Category))
+	catDesc := i18n.TL(lang, fmt.Sprintf("trait_cat_desc_%d", t.Category))
+
+	// Half-life name and description
+	hlName := i18n.TL(lang, fmt.Sprintf("trait_halflife_%d", t.HalfLife))
+	hlDesc := i18n.TL(lang, fmt.Sprintf("trait_halflife_desc_%d", t.HalfLife))
+
+	// Confidence level description
+	confLevel := i18n.TL(lang, "trait_confidence_"+confidenceLevelKey(t.Confidence))
+
+	return i18n.TL(lang, "trait_item_format", map[string]interface{}{
+		"Index":         index,
+		"Text":          t.Text,
+		"CatID":         t.Category,
+		"CatName":       catName,
+		"CatDesc":       catDesc,
+		"ConfValue":     t.Confidence,
+		"ConfLevel":     confLevel,
+		"HalfLifeName":  hlName,
+		"HalfLifeValue": t.HalfLife,
+		"HalfLifeDesc":  hlDesc,
+		"CreateAt":      t.CreateAt,
+	})
+}
+
+// formatTraitItems converts a slice of portraitTraitItem into a natural language
+// string that explains each trait with field descriptions, separated by blank lines.
+func formatTraitItems(items []portraitTraitItem, lang string) string {
+	var sb strings.Builder
+	for i, item := range items {
+		if i > 0 {
+			sb.WriteString("\n\n")
+		}
+		sb.WriteString(item.ToString(lang, i+1))
+	}
+	return sb.String()
 }
 
 // portraitRequest is the JSON body for POST /api/portrait.
@@ -89,15 +146,11 @@ func OnTripPortrait(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 2. Build system prompt with i18n
 	// ----------------------------------------------------------
-	traitsJSON, err := json.Marshal(req.Traits)
-	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_marshal_traits", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
-		return
-	}
+	traitsDesc := formatTraitItems(req.Traits, req.Lang)
 
 	systemContent := i18n.SystemPrompt.TL(req.Lang, "portrait", map[string]interface{}{
 		"Retouch":    req.Retouch,
-		"TraitsJSON": string(traitsJSON),
+		"TraitsJSON": traitsDesc,
 	})
 
 	// ----------------------------------------------------------

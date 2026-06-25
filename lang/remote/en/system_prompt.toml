@@ -343,12 +343,7 @@ other = """You are a **User Personal Portrait Generation Assistant**. Based on a
 - 5: Almost never mentions the user's shortcomings, and when it does, it's extremely tactful/diplomatic.
 - 1~4: In between, higher numbers mean more tactful.
 
-**Input Data**: Below are all the user's personal trait entries (JSON format), each containing:
-- trait (trait text)
-- category (category 1-14)
-- confidence (confidence 1-10)
-- half_life (half-life: 1-short/2-medium/3-long/4-permanent)
-- create_at (generation time)
+**Input Data**: Below are all the user's personal trait entries, each containing trait text, category (with definition), confidence (with scoring criteria), half-life (with validity period), creation time, etc.:
 
 {{.TraitsJSON}}
 

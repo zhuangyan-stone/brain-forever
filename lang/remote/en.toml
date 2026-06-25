@@ -31,3 +31,103 @@ other = "No valid messages after filtering"
 
 [api_error_llm_call_failed]
 other = "LLM call failed: {{.Error}}"
+
+# ============================================================
+# Trait item formatting keys — used by portraitTraitItem.ToString()
+# ============================================================
+
+[trait_item_format]
+other = """📋 Trait #{{.Index}}:
+   • Trait Text: "{{.Text}}"
+   • Category: [{{.CatID}}] {{.CatName}} — {{.CatDesc}}
+   • Confidence: {{.ConfValue}}/10 ({{.ConfLevel}})
+   • Half-Life: {{.HalfLifeName}} ({{.HalfLifeValue}}/4) — {{.HalfLifeDesc}}
+   • Created At: {{.CreateAt}}"""
+
+# Category names (1-14)
+[trait_cat_1]
+other = "Demographic Attributes"
+[trait_cat_2]
+other = "Associated Entities"
+[trait_cat_3]
+other = "Achievements & Attainment"
+[trait_cat_4]
+other = "Hobbies"
+[trait_cat_5]
+other = "Abilities/Skills"
+[trait_cat_6]
+other = "Preferences/Idiosyncrasies"
+[trait_cat_7]
+other = "Behavioral Habits"
+[trait_cat_8]
+other = "Health & Illness"
+[trait_cat_9]
+other = "Situational States"
+[trait_cat_10]
+other = "Personality/Character Traits"
+[trait_cat_11]
+other = "Values/Beliefs"
+[trait_cat_12]
+other = "Related Persons"
+[trait_cat_13]
+other = "Life Experiences"
+[trait_cat_14]
+other = "Goals/Plans"
+
+# Category descriptions (1-14)
+[trait_cat_desc_1]
+other = "The user's natural or social attributes, e.g., name, age, gender, height, weight, occupation, income, etc."
+[trait_cat_desc_2]
+other = "Information about external entities closely associated with the user, such as owned items, pets, property, etc."
+[trait_cat_desc_3]
+other = "Deep knowledge, creative or appreciative ability and achievements in humanities, science, or engineering"
+[trait_cat_desc_4]
+other = "Self-motivated activities pursued not as a profession"
+[trait_cat_desc_5]
+other = "Practical knowledge or skills beyond categories 3 and 4 (professional, life skills, sports, crafts, etc.)"
+[trait_cat_desc_6]
+other = "Moral-neutral likes and dislikes about external things: food preferences, aesthetic tastes, unconscious habits"
+[trait_cat_desc_7]
+other = "Stable recurring behavioral patterns or habits, including routines, addictions, dependencies"
+[trait_cat_desc_8]
+other = "Diseases, sub-health conditions, surgeries, injuries, allergies, sleep issues, etc."
+[trait_cat_desc_9]
+other = "Temporary, changeable states with short validity"
+[trait_cat_desc_10]
+other = "Stable personality tendencies, interpersonal style, emotional patterns, thinking habits"
+[trait_cat_desc_11]
+other = "Moral views, outlook on life, worldview, political/religious leanings, correctness of scientific/social understanding"
+[trait_cat_desc_12]
+other = "People with common interpersonal relationships with the user (relatives, colleagues, friends, partners, etc.)"
+[trait_cat_desc_13]
+other = "Past non-health-related objective life events with significant long-term impact on the user"
+[trait_cat_desc_14]
+other = "Past or present goals, ideals, plans, wishes, fantasies"
+
+# Confidence level descriptions
+[trait_confidence_high]
+other = "High confidence — objective factual traits explicitly, directly, or repeatedly mentioned by the user"
+[trait_confidence_medium]
+other = "Medium confidence — traits mentioned but requiring some inference, such as hobbies, abilities, habits"
+[trait_confidence_low]
+other = "Low confidence — traits from a single joke, exaggeration, or emotional expression; or subjective traits requiring substantial inference"
+
+# Half-life names (1=short-term, 2=medium-term, 3=long-term, 4=permanent)
+[trait_halflife_1]
+other = "Short-term"
+[trait_halflife_2]
+other = "Medium-term"
+[trait_halflife_3]
+other = "Long-term"
+[trait_halflife_4]
+other = "Permanent"
+
+# Half-life descriptions
+[trait_halflife_desc_1]
+other = "Days to weeks — applies to clearly foreseeable short-term changes"
+[trait_halflife_desc_2]
+other = "Months to a year — applies to phased matters that take months to complete"
+[trait_halflife_desc_3]
+other = "Years+ — applies to traits stable for a year or more (stable preferences, skills, personality, habits)"
+[trait_halflife_desc_4]
+other = "Never changes — applies only to completed objective historical events (these facts will not change)"
