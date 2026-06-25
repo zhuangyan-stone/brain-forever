@@ -748,14 +748,14 @@
                         <div class="portrait-essence-nickname" x-text="userName || '匿名用户'"></div>
                     </div>
 
-                    <!-- 信息区 — 固定两行 -->
+                    <!-- 信息区 — 固定三行 -->
                     <div class="portrait-essence-info" x-show="portraitInfo">
                         <div class="portrait-info-line">基于 <strong x-text="(portraitInfo || {}).chat_count"></strong> 个对话
-                            <strong x-text="(portraitInfo || {}).trait_count"></strong> 条个人特征生成</div>
-                        <div class="portrait-info-line">润色度：<strong x-text="(portraitInfo || {}).retouch"></strong> ，
-                            跨度 <strong x-text="(portraitInfo || {}).span_days"></strong> 天
+                            <strong x-text="(portraitInfo || {}).trait_count"></strong> 条个人特征生成，润色度：<strong x-text="(portraitInfo || {}).retouch"></strong></div>
+                        <div class="portrait-info-line">跨度 <strong x-text="(portraitInfo || {}).span_days"></strong> 天
                             （<span x-text="(portraitInfo || {}).earliest_date ? (portraitInfo || {}).earliest_date.replace(/-/g,'/') : ''"></span>
                             - <span x-text="(portraitInfo || {}).latest_date ? (portraitInfo || {}).latest_date.replace(/-/g,'/') : ''"></span>）</div>
+                        <div class="portrait-info-line">生成于：<span x-text="(portraitInfo || {}).generated_at"></span></div>
                     </div>
 
                     <!-- 全过程旋转进度：从打开到 done 在精华区正中显示 -->

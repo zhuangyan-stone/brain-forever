@@ -104,7 +104,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 			Category:   t.Category,
 			Confidence: t.Confidence,
 			HalfLife:   t.HalfLife,
-			CreateAt:   t.CreateAt.Format(time.RFC3339),
+			CreateAt:   t.CreateAt.Local().Format(time.RFC3339),
 		})
 	}
 

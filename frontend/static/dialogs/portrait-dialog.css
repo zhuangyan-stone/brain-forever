@@ -425,7 +425,7 @@
     text-align: center;
 }
 
-/* ---- 信息区 — 固定两行 ---- */
+/* ---- 信息区 — 固定三行 ---- */
 .portrait-essence-info {
     background: var(--bg-input);
     border-radius: 8px;

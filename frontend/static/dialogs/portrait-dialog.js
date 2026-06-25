@@ -254,11 +254,12 @@ document.addEventListener('alpine:init', function() {
                 if (info) {
                     parts.push('## 基本信息');
                     parts.push('- 基于 ' + (info.chat_count || 0) + ' 个对话 '
-                        + (info.trait_count || 0) + ' 条个人特征生成');
-                    parts.push('- 润色度：' + (info.retouch || 0) + '，跨度 '
-                        + (info.span_days || 0) + ' 天'
+                        + (info.trait_count || 0) + ' 条个人特征生成'
+                        + '，润色度：' + (info.retouch || 0));
+                    parts.push('- 跨度 ' + (info.span_days || 0) + ' 天'
                         + (info.earliest_date ? '（' + info.earliest_date.replace(/-/g, '/') : '')
                         + (info.latest_date ? ' - ' + info.latest_date.replace(/-/g, '/') + '）' : ''));
+                    parts.push('- 生成于：' + (info.generated_at || ''));
                     parts.push('');
                 }
 
