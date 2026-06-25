@@ -162,7 +162,17 @@ func (w *charsetResponseWriter) Write(b []byte) (int, error) {
 // Flush implements http.Flusher so that SSE streaming handlers
 // (e.g. OnPortrait) can flush chunks to the client through this wrapper.
 // It delegates to the underlying ResponseWriter's Flush method if available.
+//
+// Important: we must call w.WriteHeader() before delegating to the underlying
+// Flush(), because Go's default http.ResponseWriter.Flush() implicitly calls
+// WriteHeader(http.StatusOK) if headers haven't been written yet. Without this,
+// the wrapper's wroteHeader flag would remain false, and a subsequent call to
+// Write() or WriteHeader() on the wrapper would trigger Go's
+// "superfluous response.WriteHeader call" warning.
 func (w *charsetResponseWriter) Flush() {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
