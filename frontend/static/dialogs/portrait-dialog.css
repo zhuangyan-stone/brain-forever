@@ -111,9 +111,9 @@
     overflow: hidden;
 }
 
-/* ---- 左栏/上栏：精华区（40% 宽屏） ---- */
+/* ---- 左栏/上栏：精华区（36% 宽屏） ---- */
 .portrait-essence {
-    width: 40%;
+    width: 36%;
     min-width: 320px;
     padding: 16px 16px 12px;
     overflow-y: auto;
@@ -245,34 +245,32 @@
     text-align: center;
 }
 
-/* ---- 信息区 ---- */
+/* ---- 信息区 — 固定两行 ---- */
 .portrait-essence-info {
     background: var(--bg-input);
     border-radius: 8px;
     padding: 8px 12px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 3px 12px;
+    flex-direction: column;
+    gap: 4px;
     font-size: 0.78rem;
     color: var(--text-muted);
-    line-height: 1.6;
+    line-height: 1.55;
 }
 
-.portrait-essence-info-item {
-    display: inline-flex;
-    gap: 3px;
-}
-
-.portrait-essence-info-label {
+.portrait-info-line {
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.portrait-essence-info-value {
+.portrait-info-line strong {
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: 600;
 }
 
-/* ---- 核心特质 — 气泡图 ---- */
+/* ---- 核心特质 — 书签图 ---- */
 .portrait-essence-section {
     margin: 0;
 }
@@ -281,105 +279,127 @@
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
-/* 气泡容器 */
-.portrait-bubble-container {
+/* 书签容器 — 使用 masonry 错落布局 */
+.portrait-bookmark-container {
     position: relative;
-    min-height: 140px;
     display: flex;
-    align-items: center;
-    justify-content: center;
     flex-wrap: wrap;
-    gap: 6px;
-    padding: 8px 4px;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 10px 8px;
+    padding: 8px 4px 8px 10px;
+    min-height: 100px;
 }
 
-/* 单个气泡 */
-.portrait-bubble {
+/* 单个书签 */
+.portrait-bookmark {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-size: 0.78rem;
+    padding: 5px 12px 5px 14px;
+    font-size: 0.8rem;
     font-weight: 500;
     color: #fff;
-    text-align: center;
-    padding: 0 4px;
+    text-align: left;
     cursor: default;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    /* 柔和的文字阴影提高可读性 */
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    /* 初始定位，浮动动画通过 JS 添加 */
     position: relative;
     flex-shrink: 0;
-    line-height: 1.2;
-    word-break: break-all;
+    line-height: 1.35;
+    word-break: break-word;
+    border-radius: 0 6px 6px 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.18);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    /* 左侧书签标签凸起 */
+    margin-left: 6px;
 }
 
-.portrait-bubble:hover {
-    transform: scale(1.15);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+/* 左侧凸起的书签标签（小矩形块） */
+.portrait-bookmark::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 4px;
+    bottom: 4px;
+    width: 6px;
+    border-radius: 3px 0 0 3px;
+    background: inherit;
+    filter: brightness(0.75);
+    box-shadow: -1px 0 3px rgba(0,0,0,0.1);
+}
+
+/* V 形底部 — 真正的书签切口 */
+.portrait-bookmark::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 2px;
+    right: 2px;
+    height: 8px;
+    background: inherit;
+    clip-path: polygon(2px 0, calc(100% - 2px) 0, 50% 100%);
+    filter: brightness(0.9);
+}
+
+.portrait-bookmark:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 14px rgba(0,0,0,0.2);
     z-index: 2;
 }
 
-/* 气泡大小变体 */
-.portrait-bubble-lg {
-    width: 80px;
-    height: 80px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+/* 书签大小变体 — 不同高度实现"长短不一"效果 */
+.portrait-bookmark-lg {
+    padding: 8px 14px 8px 16px;
+    font-size: 0.88rem;
+    font-weight: 600;
 }
 
-.portrait-bubble-md {
-    width: 60px;
-    height: 60px;
-    font-size: 0.74rem;
+.portrait-bookmark-md {
+    padding: 6px 12px 6px 14px;
+    font-size: 0.82rem;
 }
 
-.portrait-bubble-sm {
-    width: 46px;
-    height: 46px;
-    font-size: 0.68rem;
+.portrait-bookmark-sm {
+    padding: 4px 10px 4px 12px;
+    font-size: 0.76rem;
 }
 
-.portrait-bubble-xs {
-    width: 36px;
-    height: 36px;
-    font-size: 0.6rem;
+.portrait-bookmark-xs {
+    padding: 3px 8px 3px 10px;
+    font-size: 0.7rem;
 }
 
-/* 气泡颜色方案 */
-.portrait-bubble-c1 { background: #FF6B6B; }  /* 珊瑚红 */
-.portrait-bubble-c2 { background: #4ECDC4; }  /* 青绿 */
-.portrait-bubble-c3 { background: #45B7D1; }  /* 天蓝 */
-.portrait-bubble-c4 { background: #96CEB4; }  /* 薄荷 */
-.portrait-bubble-c5 { background: #FFEAA7; color: #555; text-shadow: none; }  /* 淡黄 */
-.portrait-bubble-c6 { background: #DDA0DD; }  /* 梅红 */
-.portrait-bubble-c7 { background: #98D8C8; }  /* 浅海绿 */
-.portrait-bubble-c8 { background: #F7DC6F; color: #555; text-shadow: none; }  /* 香槟黄 */
-.portrait-bubble-c9 { background: #BB8FCE; }  /* 紫罗兰 */
-.portrait-bubble-c10 { background: #85C1E9; } /* 淡蓝 */
-
-/* 浮动动画 */
-@keyframes bubbleFloat {
-    0%, 100% { transform: translate(0, 0); }
-    25% { transform: translate(3px, -4px); }
-    50% { transform: translate(-2px, 2px); }
-    75% { transform: translate(4px, 3px); }
+/* 递进式的左侧缩进 — 让书签错落有致 */
+.portrait-bookmark:nth-child(3n+1) {
+    margin-left: 2px;
+}
+.portrait-bookmark:nth-child(3n+2) {
+    margin-left: 10px;
+}
+.portrait-bookmark:nth-child(3n+3) {
+    margin-left: 6px;
 }
 
-.portrait-bubble-float {
-    animation: bubbleFloat var(--float-duration, 4s) ease-in-out var(--float-delay, 0s) infinite;
-}
+/* 书签颜色方案 — 更鲜艳的色彩搭配 */
+.portrait-bookmark-c1 { background: linear-gradient(135deg, #FF6B6B, #ee5a5a); }  /* 珊瑚红 */
+.portrait-bookmark-c2 { background: linear-gradient(135deg, #4ECDC4, #3dbdb5); }  /* 青绿 */
+.portrait-bookmark-c3 { background: linear-gradient(135deg, #45B7D1, #36a7c1); }  /* 天蓝 */
+.portrait-bookmark-c4 { background: linear-gradient(135deg, #96CEB4, #7ebda2); }  /* 薄荷 */
+.portrait-bookmark-c5 { background: linear-gradient(135deg, #FFD93D, #f5c92a); color: #555; text-shadow: none; }  /* 金黄 */
+.portrait-bookmark-c6 { background: linear-gradient(135deg, #DDA0DD, #cc8fcc); }  /* 梅红 */
+.portrait-bookmark-c7 { background: linear-gradient(135deg, #6BCB77, #5aba66); }  /* 翠绿 */
+.portrait-bookmark-c8 { background: linear-gradient(135deg, #FF8C42, #f07d32); }  /* 橙 */
+.portrait-bookmark-c9 { background: linear-gradient(135deg, #BB8FCE, #aa7ebd); }  /* 紫罗兰 */
+.portrait-bookmark-c10 { background: linear-gradient(135deg, #74B9FF, #63a9ee); } /* 淡蓝 */
 
 /* ---- 重点摘要 — 引文风格 ---- */
 .portrait-essence-highlights {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 12px;
     margin-bottom: 4px;
 }
 
@@ -524,7 +544,7 @@
    ============================================================ */
 @media (max-width: 1199px) and (min-width: 769px) {
     .portrait-essence {
-        width: 40%;
+        width: 36%;
         min-width: 240px;
     }
     .portrait-essence-avatar {
@@ -572,8 +592,10 @@
         height: 48px;
     }
 
-    .portrait-bubble-container {
-        min-height: 100px;
+    .portrait-bookmark-container {
+        min-height: 80px;
+        padding: 6px 4px 6px 10px;
+        gap: 8px 6px;
     }
 }
 

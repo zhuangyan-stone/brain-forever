@@ -8,7 +8,7 @@
 //   3. 复制按钮（纯文本/Markdown/HTML 三种格式）
 //   4. 分享按钮（占位）
 //   5. 取消（流式中）/ 关闭（完成后）按钮
-//   6. 精华区：头像、信息区、核心特质气泡、重点摘要引文
+//   6. 精华区：头像、信息区、核心特质书签、重点摘要引文
 //
 // SSE 事件类型：
 //   - info:  精华区元数据（生成时间、对话数、特征数、时间跨度、润色度）
@@ -86,37 +86,27 @@ document.addEventListener('alpine:init', function() {
     }
 
     /**
-     * 气泡颜色类数组 — 循环使用
+     * 书签颜色类数组 — 循环使用
      */
-    var BUBBLE_COLORS = [
-        'portrait-bubble-c1',  'portrait-bubble-c2',
-        'portrait-bubble-c3',  'portrait-bubble-c4',
-        'portrait-bubble-c5',  'portrait-bubble-c6',
-        'portrait-bubble-c7',  'portrait-bubble-c8',
-        'portrait-bubble-c9',  'portrait-bubble-c10',
+    var BOOKMARK_COLORS = [
+        'portrait-bookmark-c1',  'portrait-bookmark-c2',
+        'portrait-bookmark-c3',  'portrait-bookmark-c4',
+        'portrait-bookmark-c5',  'portrait-bookmark-c6',
+        'portrait-bookmark-c7',  'portrait-bookmark-c8',
+        'portrait-bookmark-c9',  'portrait-bookmark-c10',
     ];
 
     /**
-     * 根据文本长度确定气泡大小
+     * 根据文本长度确定书签大小（长短不一的效果）
      * @param {string} text
      * @returns {string} CSS class
      */
-    function bubbleSizeClass(text) {
+    function bookmarkSizeClass(text) {
         var len = text.length;
-        if (len <= 2) return 'portrait-bubble-xs';
-        if (len <= 4) return 'portrait-bubble-sm';
-        if (len <= 8) return 'portrait-bubble-md';
-        return 'portrait-bubble-lg';
-    }
-
-    /**
-     * 生成随机浮动参数
-     * @returns {{ duration: string, delay: string }}
-     */
-    function randomFloatParams() {
-        var duration = (3 + Math.random() * 3).toFixed(1) + 's';  // 3~6s
-        var delay = (Math.random() * 2).toFixed(1) + 's';         // 0~2s
-        return { duration: duration, delay: delay };
+        if (len <= 2) return 'portrait-bookmark-xs';
+        if (len <= 4) return 'portrait-bookmark-sm';
+        if (len <= 8) return 'portrait-bookmark-md';
+        return 'portrait-bookmark-lg';
     }
 
     // ============================================================
@@ -148,9 +138,6 @@ document.addEventListener('alpine:init', function() {
             _copyMenuEl: null,
             _copyMenuAnchor: null,
 
-            // 气泡浮动动画定时器
-            _bubbleFloatTimer: null,
-
             // ---- 计算属性 ----
             get title() {
                 return 'AI 眼中的你……';
@@ -162,6 +149,15 @@ document.addEventListener('alpine:init', function() {
 
             get showClose() {
                 return !this.isStreaming || this.isDone;
+            },
+
+            // 书签大小计算 — 给模板中 :class 使用
+            bookmarkSizeClass: function(text) {
+                var len = (text || '').length;
+                if (len <= 2) return 'portrait-bookmark-xs';
+                if (len <= 4) return 'portrait-bookmark-sm';
+                if (len <= 8) return 'portrait-bookmark-md';
+                return 'portrait-bookmark-lg';
             },
 
             // ---- 方法 ----
@@ -207,7 +203,6 @@ document.addEventListener('alpine:init', function() {
             close: function() {
                 this._abortSSE();
                 this._closeCopyMenu();
-                this._stopBubbleFloat();
                 this.show = false;
                 this.portrait = '';
                 this.portraitHTML = '';
@@ -446,11 +441,6 @@ document.addEventListener('alpine:init', function() {
                         // 精华区元数据（由 local-server 在流开始前发送）
                         if (data && typeof data === 'object') {
                             this.portraitInfo = data;
-                            // 数据就绪后，在 $nextTick 中启动气泡浮动动画
-                            var self = this;
-                            this.$nextTick(function() {
-                                self._startBubbleFloat();
-                            });
                         }
                         break;
 
@@ -474,38 +464,6 @@ document.addEventListener('alpine:init', function() {
                     case 'done':
                         this._onStreamDone();
                         break;
-                }
-            },
-
-            /**
-             * 启动气泡浮动动画
-             * 在每个气泡元素上设置随机的 CSS 自定义属性
-             */
-            _startBubbleFloat: function() {
-                // 先停止之前的动画
-                this._stopBubbleFloat();
-
-                var self = this;
-                this._bubbleFloatTimer = setTimeout(function() {
-                    var container = self._el && self._el.querySelector('.portrait-bubble-container');
-                    if (!container) return;
-                    var bubbles = container.querySelectorAll('.portrait-bubble');
-                    bubbles.forEach(function(el) {
-                        var params = randomFloatParams();
-                        el.style.setProperty('--float-duration', params.duration);
-                        el.style.setProperty('--float-delay', params.delay);
-                        el.classList.add('portrait-bubble-float');
-                    });
-                }, 100);
-            },
-
-            /**
-             * 停止气泡浮动动画
-             */
-            _stopBubbleFloat: function() {
-                if (this._bubbleFloatTimer) {
-                    clearTimeout(this._bubbleFloatTimer);
-                    this._bubbleFloatTimer = null;
                 }
             },
 
