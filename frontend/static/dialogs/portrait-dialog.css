@@ -176,9 +176,30 @@
     border-radius: 6px;
 }
 
-/* 画像内容的 Markdown 渲染样式 */
+/* ============================================================
+   画像内容的 Markdown 渲染样式 — 印刷品风格（Print Style）
+   ============================================================
+   设计理念：仿纸质出版物排版，提升阅读沉浸感
+   — 衬线字体与舒适字距
+   — 段落首行缩进（中文传统排版）
+   — 装饰性标题与分隔线
+   — 杂志风引文块
+   — 暖色纸张底色
+   ============================================================ */
+
+/* ---- 印刷品基础排版 ---- */
+.portrait-content {
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', 'STSong', 'SimSun', '宋体',
+                 Georgia, 'Times New Roman', serif;
+    color: var(--text-primary);
+    line-height: 1.9;
+    letter-spacing: 0.02em;
+    word-spacing: 0.05em;
+}
+
+/* ---- 段落 ---- */
 .portrait-content p {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
@@ -187,81 +208,247 @@
     margin-bottom: 0;
 }
 
-.portrait-content ul, .portrait-content ol {
-    margin: 6px 0;
-    padding-left: 24px;
+/* ---- 标题 — 优雅的印刷装饰风格 ---- */
+.portrait-content h1,
+.portrait-content h2,
+.portrait-content h3,
+.portrait-content h4,
+.portrait-content h5,
+.portrait-content h6 {
+    margin: 22px 0 10px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+    text-indent: 0;
+    clear: both;
+}
+
+.portrait-content h1 {
+    font-size: 1.25rem;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 18px;
+    position: relative;
+}
+
+/* h2 — 仅保留左侧强调色竖线（用于极少出现的 h2） */
+.portrait-content h2 {
+    font-size: 1.15rem;
+    padding: 0 0 4px 14px;
+    border-left: 4px solid var(--accent);
+    margin-top: 26px;
+}
+
+/* h3 — 主要章节标题：左侧淡入背景色 */
+.portrait-content h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 28px;
+    margin-bottom: 14px;
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--accent) 20%, transparent) 0%,
+        color-mix(in srgb, var(--accent) 8%, transparent) 40%,
+        transparent 70%
+    );
+    border-radius: 2px;
+}
+
+/* h4 — 论文子节标题：保留内容自带编号，加粗强调 */
+.portrait-content h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 20px;
+    margin-bottom: 8px;
+    padding-left: 0;
+}
+
+/* ---- 粗体 — 印刷中强调用深色 ---- */
+.portrait-content strong {
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.03em;
+}
+
+/* 标题内的粗体保持标题色 */
+.portrait-content h1 strong,
+.portrait-content h2 strong,
+.portrait-content h3 strong,
+.portrait-content h4 strong {
+    color: inherit;
+}
+
+/* ---- 斜体 ---- */
+.portrait-content em {
+    font-style: italic;
+    letter-spacing: 0.01em;
+}
+
+/* ---- 水平分隔线 — 装饰性花符 ---- */
+.portrait-content hr {
+    border: none;
+    margin: 28px 0 24px;
+    text-align: center;
+    overflow: visible;
+    position: relative;
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        transparent 0%,
+        var(--border) 20%,
+        var(--border) 80%,
+        transparent 100%
+    );
+}
+
+/* 花符装饰（❦ / ⁂） */
+.portrait-content hr::after {
+    content: '❦';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-secondary);
+    padding: 0 14px;
+    font-size: 1rem;
+    color: var(--text-muted);
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1;
+}
+
+/* ---- 引用块 — 杂志风 Pull Quote ---- */
+.portrait-content blockquote {
+    margin: 18px 0;
+    padding: 14px 20px 14px 32px;
+    color: var(--text-secondary);
+    position: relative;
+    border: none;
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--accent) 6%, transparent) 0%,
+        color-mix(in srgb, var(--accent) 2%, transparent) 100%
+    );
+    border-radius: 0;
+    letter-spacing: 0.01em;
+    line-height: 1.85;
+}
+
+/* 开合大引号装饰 */
+.portrait-content blockquote::before {
+    content: '"';
+    position: absolute;
+    left: 10px;
+    top: -4px;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--accent);
+    opacity: 0.45;
+    font-family: Georgia, serif;
+    font-style: normal;
+}
+
+.portrait-content blockquote::after {
+    content: '"';
+    position: absolute;
+    right: 10px;
+    bottom: -10px;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--accent);
+    opacity: 0.45;
+    font-family: Georgia, serif;
+    font-style: normal;
+}
+
+[data-theme="light"] .portrait-content blockquote {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--accent) 5%, transparent) 0%,
+        color-mix(in srgb, var(--accent) 1%, transparent) 100%
+    );
+}
+
+/* 引用块内的段落不缩进 */
+.portrait-content blockquote p {
+    text-indent: 0;
+    margin-bottom: 4px;
+}
+
+.portrait-content blockquote p:last-of-type {
+    margin-bottom: 0;
+}
+
+/* ---- 列表 — 印刷风格排版 ---- */
+.portrait-content ul,
+.portrait-content ol {
+    margin: 10px 0;
+    padding-left: 2.2em;
+    line-height: 1.85;
 }
 
 .portrait-content li {
     margin-bottom: 4px;
+    text-indent: 0;
 }
 
-.portrait-content h1, .portrait-content h2, .portrait-content h3,
-.portrait-content h4, .portrait-content h5, .portrait-content h6 {
-    margin: 14px 0 8px;
-    color: var(--text-primary);
+.portrait-content li p {
+    text-indent: 0;
+    margin: 0;
 }
 
-.portrait-content h1 { font-size: 1.15rem; }
-.portrait-content h2 { font-size: 1.08rem; }
-.portrait-content h3 { font-size: 1.02rem; }
-
-.portrait-content hr {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 12px 0;
+/* 无序列表使用 • 装饰符号 */
+.portrait-content ul {
+    list-style: none;
+    padding-left: 1.6em;
 }
 
-/* 引用块（blockquote）— 与 message.css 中消息气泡的引用块风格保持一致 */
-.portrait-content blockquote {
-    border-left: 3px solid var(--accent);
-    padding: 6px 12px;
-    margin: 8px 0;
-    color: var(--text-secondary);
-    background: rgba(79, 195, 247, 0.05);
-    border-radius: 0 6px 6px 0;
+.portrait-content ul > li {
+    position: relative;
+    padding-left: 0.8em;
 }
 
-[data-theme="light"] .portrait-content blockquote {
-    background: rgba(25, 118, 210, 0.04);
+.portrait-content ul > li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 1.1em;
 }
 
-/* 粗体 / 斜体 */
-.portrait-content strong {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-.portrait-content em {
-    font-style: italic;
-}
-
-/* 行内代码 */
+/* ---- 行内代码 ---- */
 .portrait-content code {
-    background: rgba(79, 195, 247, 0.12);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
     color: #80cbc4;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 1px 6px;
+    border-radius: 3px;
     font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-    font-size: 0.85em;
+    font-size: 0.82em;
+    letter-spacing: 0;
 }
 
 [data-theme="light"] .portrait-content code {
-    background: rgba(25, 118, 210, 0.08);
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
     color: #c7254e;
 }
 
-/* 代码块 */
+/* ---- 代码块（保持原有风格不变） ---- */
 .portrait-content pre {
     background: var(--bg-code);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 24px 16px 12px;
-    margin: 8px 0;
+    margin: 14px 0;
     overflow-x: auto;
     position: relative;
     max-width: 100%;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
 }
 
 .portrait-content pre::-webkit-scrollbar {
@@ -282,19 +469,19 @@
     color: var(--text-primary);
     padding: 0;
     border-radius: 0;
-    font-size: 0.85rem;
-    line-height: 1.5;
+    font-size: inherit;
+    line-height: inherit;
     white-space: pre;
     word-break: normal;
     overflow-wrap: normal;
 }
 
-/* 覆盖 highlight.js 的 .hljs 背景色，让代码块背景统一由 <pre> 控制 */
+/* 覆盖 highlight.js 的 .hljs 背景色 */
 .portrait-content pre code.hljs {
     background: none !important;
 }
 
-/* 代码块语言标签（由 highlight.js 的 data-lang 属性提供） */
+/* 代码块语言标签 */
 .portrait-content pre[data-lang]::before {
     content: attr(data-lang);
     position: absolute;
@@ -314,7 +501,7 @@
     background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
-/* 代码块复制按钮（hover 时显示） */
+/* 代码块复制按钮 */
 .portrait-content pre .copy-btn.code-copy-btn {
     position: absolute;
     top: 6px;
@@ -356,44 +543,52 @@
     color: var(--text-muted);
 }
 
-/* 表格（已在上面定义 th/td） */
+/* ---- 表格 ---- */
 .portrait-content table {
     border-collapse: collapse;
     width: 100%;
-    margin: 8px 0;
+    margin: 12px 0;
     font-size: 0.85rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
 }
 
-.portrait-content th, .portrait-content td {
+.portrait-content th,
+.portrait-content td {
     border: 1px solid var(--border);
-    padding: 6px 10px;
+    padding: 7px 12px;
     text-align: left;
 }
 
 .portrait-content th {
     background: var(--bg-input);
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }
 
 .portrait-content tr:nth-child(even) {
     background: rgba(128, 128, 128, 0.04);
 }
 
-/* 链接 */
+/* ---- 链接 ---- */
 .portrait-content a {
     color: var(--accent);
     text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    transition: border-color 0.2s;
 }
 
 .portrait-content a:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    border-bottom-color: var(--accent);
 }
 
-/* 图片 */
+/* ---- 图片 ---- */
 .portrait-content img {
     max-width: 100%;
     border-radius: 6px;
-    margin: 8px 0;
+    margin: 12px 0;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: block;
 }
 
 /* ============================================================
