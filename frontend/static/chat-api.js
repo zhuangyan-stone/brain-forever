@@ -115,6 +115,17 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
         }
 
         if (data.title && data.changed === true) {
+            // ★ 边缘情况：异步调用期间用户可能已删除该对话
+            //   如果 targetSN 在 chats.items（或 chats.chats）中已不存在，
+            //   说明对话已被删除，直接跳过不再显示标题建议。
+            if (targetSN && chats) {
+                var existsInItems = chats.items && chats.items.some(function(c) { return c.sn === targetSN; });
+                var existsInChats = chats.chats && chats.chats.some(function(c) { return c.sn === targetSN; });
+                if (!existsInItems && !existsInChats) {
+                    return; // 对话已被删除，不再显示标题建议
+                }
+            }
+
             // 异步调用期间用户可能已手动修改标题，再次检查防止覆盖
             // 但 force=true 时（用户手动点击按钮）忽略此守卫，强制显示推荐
             //
