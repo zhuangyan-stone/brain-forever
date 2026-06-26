@@ -586,6 +586,15 @@
                                 x-html="ICON_DEEP_THINK"></svg>
                             <span>深度思考</span>
                         </button>
+                        <button id="traitSearchBtn" class="toggle-btn"
+                            x-data="toggleBtn({ active: () => $store.settings.traitSearch, onToggle: () => $store.settings.toggleTraitSearch() })"
+                            :data-active="active ? 'true' : 'false'" @click="onToggle"
+                            :data-tooltip="active ? '已开启个人特征检索，单击关闭' : '已关闭个人特征检索，单击开启'">
+                            <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                                x-html="ICON_USER"></svg>
+                            <span>个人特征</span>
+                        </button>
                         <button id="webSearchBtn" class="toggle-btn"
                             x-data="toggleBtn({ active: () => $store.settings.webSearch, onToggle: () => $store.settings.toggleWebSearch() })"
                             :data-active="active ? 'true' : 'false'" @click="onToggle"
@@ -593,7 +602,7 @@
                             <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
                                 x-html="ICON_GLOBE"></svg>
-                            <span>智能搜索</span>
+                            <span>联网搜索</span>
                         </button>
                     </div>
                     <div class="input-footer-right">

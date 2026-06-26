@@ -288,6 +288,7 @@ async function fetchStream(stream, content, createdAt) {
         createdAt,
         stream: true,
         deepThink: settings ? settings.deepThink : false,
+        traitSearch: settings ? settings.traitSearch : false,
         webSearch: settings ? settings.webSearch : false,
         frontSn: stream.sn,
         signal: stream.abortController.signal,

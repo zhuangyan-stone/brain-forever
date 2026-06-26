@@ -159,7 +159,7 @@ buttons.css — 所有按钮样式
 3. Toggle Button — 开关型按钮
 ============================================================
 使用：toggleBtn Alpine 组件
-适用：deepThinkBtn、webSearchBtn
+适用：deepThinkBtn、traitSearchBtn、webSearchBtn
 ============================================================ */
 
 .toggle-btn {

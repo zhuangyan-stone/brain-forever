@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
@@ -139,7 +140,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 
 	startSystemMsg := llm.Message{
 		Role:    llm.RoleSystem,
-		Content: makeFixSystemPromptContent(lang),
+		Content: makeSystemPromptContent(lang, req.TraitSearchEnabled),
 	}
 	messages := make([]llm.Message, 0, 1+len(llmMsgs))
 	messages = append(messages, startSystemMsg)
@@ -151,7 +152,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// 9. Build tool definitions with translated descriptions.
 	// time_query tool is always available.
 	// web_search tool is only provided when WebSearchEnabled is true.
-	// trait_search tools are always available for personal knowledge retrieval.
+	// trait_search tools are only provided when TraitSearchEnabled is true.
 	timeQueryToolImp := toolimp.MakeTimeQueryTool(lang)
 	toolsImp := []llm.ToolIMP{timeQueryToolImp}
 
@@ -160,14 +161,15 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		toolsImp = append(toolsImp, webSearchToolImp)
 	}
 
-	// Trait search tools are always available for retrieving personal knowledge.
-	traitSearcher := &traitSearchAdapter{
-		client: h.embedder,
-		store:  session.traitsStore,
+	if req.TraitSearchEnabled {
+		traitSearcher := &traitSearchAdapter{
+			client: h.embedder,
+			store:  session.traitsStore,
+		}
+		traitSearchByTextToolImp := toolimp.MakeTraitSearchByTextTool(r.Context(), traitSearcher, lang)
+		traitSearchByKeywordToolImp := toolimp.MakeTraitSearchByKeywordTool(r.Context(), traitSearcher, lang)
+		toolsImp = append(toolsImp, traitSearchByTextToolImp, traitSearchByKeywordToolImp)
 	}
-	traitSearchByTextToolImp := toolimp.MakeTraitSearchByTextTool(r.Context(), traitSearcher, lang)
-	traitSearchByKeywordToolImp := toolimp.MakeTraitSearchByKeywordTool(r.Context(), traitSearcher, lang)
-	toolsImp = append(toolsImp, traitSearchByTextToolImp, traitSearchByKeywordToolImp)
 
 	// 10. Only send chat_created event if a new DB chat was actually created by this request.
 	//     ★ Fix: Use the isNewChat flag to decide, instead of re-reading currentChat without holding the lock.
@@ -210,8 +212,15 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// makeFixSystemPromptContent returns the system prompt content string,
+// makeSystemPromptContent returns the system prompt content string,
 // translated according to the given language.
-func makeFixSystemPromptContent(lang string) string {
-	return i18n.SystemPrompt.TL(lang, "chat")
+// When traitSearchEnabled is true, the trait retrieval guide section is appended
+// to the base chat prompt; otherwise only the base prompt is returned.
+func makeSystemPromptContent(lang string, traitSearchEnabled bool) string {
+	var sb strings.Builder
+	sb.WriteString(i18n.SystemPrompt.TL(lang, "chat"))
+	if traitSearchEnabled {
+		sb.WriteString(i18n.SystemPrompt.TL(lang, "chat_trait_section"))
+	}
+	return sb.String()
 }

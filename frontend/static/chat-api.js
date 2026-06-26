@@ -660,12 +660,13 @@ export async function deleteMessage(msgId) {
  * @param {string} params.createdAt - 消息创建时间
  * @param {boolean} params.stream - 是否启用流式响应
  * @param {boolean} params.deepThink - 是否启用深度思考
+ * @param {boolean} params.traitSearch - 是否启用个人特征检索
  * @param {boolean} params.webSearch - 是否启用联网搜索
  * @param {string} params.frontSn - 前端临时 SN
  * @param {AbortSignal} [params.signal] - 可选的 AbortSignal
  * @returns {Promise<Response>} fetch Response 对象
  */
-export async function sendChatMessage({ content, createdAt, stream, deepThink, webSearch, frontSn, signal }) {
+export async function sendChatMessage({ content, createdAt, stream, deepThink, traitSearch, webSearch, frontSn, signal }) {
     const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -673,6 +674,7 @@ export async function sendChatMessage({ content, createdAt, stream, deepThink, w
             message: { id: 0, role: 'user', content, created_at: createdAt },
             stream: !!stream,
             deep_think: !!deepThink,
+            trait_search_enabled: !!traitSearch,
             web_search_enabled: !!webSearch,
             front_sn: frontSn,
         }),

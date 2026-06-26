@@ -45,11 +45,12 @@ type Message struct {
 
 // ChatRequest is the chat request sent from the frontend
 type ChatRequest struct {
-	Message          Message `json:"message"`
-	Stream           bool    `json:"stream"` // Always true
-	DeepThink        bool    `json:"deep_think"`
-	WebSearchEnabled bool    `json:"web_search_enabled"`
-	FrontSN          string  `json:"front_sn"` // Frontend-generated temporary SN for new chats
+	Message            Message `json:"message"`
+	Stream             bool    `json:"stream"` // Always true
+	DeepThink          bool    `json:"deep_think"`
+	WebSearchEnabled   bool    `json:"web_search_enabled"`
+	TraitSearchEnabled bool    `json:"trait_search_enabled"`
+	FrontSN            string  `json:"front_sn"` // Frontend-generated temporary SN for new chats
 }
 
 // ============================================================

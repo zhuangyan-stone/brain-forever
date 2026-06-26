@@ -46,6 +46,7 @@ document.addEventListener('alpine:init', function() {
     // ============================================================
     Alpine.store('settings', {
         deepThink: typeof _bfSettings.deepThink === 'boolean' ? _bfSettings.deepThink : false,
+        traitSearch: typeof _bfSettings.traitSearch === 'boolean' ? _bfSettings.traitSearch : true,
         webSearch: typeof _bfSettings.webSearch === 'boolean' ? _bfSettings.webSearch : true,
         sendMode: typeof _bfSettings.sendMode === 'number' ? _bfSettings.sendMode : 0,
         theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 0,
@@ -55,6 +56,7 @@ document.addEventListener('alpine:init', function() {
             localStorage.setItem('brainforever_settings', JSON.stringify({
                 sendMode: this.sendMode,
                 deepThink: this.deepThink,
+                traitSearch: this.traitSearch,
                 webSearch: this.webSearch,
                 theme: this.theme,
             }));
@@ -70,6 +72,7 @@ document.addEventListener('alpine:init', function() {
                     var parsed = JSON.parse(raw);
                     if (typeof parsed.sendMode === 'number') this.sendMode = parsed.sendMode;
                     if (typeof parsed.deepThink === 'boolean') this.deepThink = parsed.deepThink;
+                    if (typeof parsed.traitSearch === 'boolean') this.traitSearch = parsed.traitSearch;
                     if (typeof parsed.webSearch === 'boolean') this.webSearch = parsed.webSearch;
                     if (typeof parsed.theme === 'number') this.theme = parsed.theme;
                 }
@@ -87,6 +90,11 @@ document.addEventListener('alpine:init', function() {
 
         toggleDeepThink: function() {
             this.deepThink = !this.deepThink;
+            this._save();
+        },
+
+        toggleTraitSearch: function() {
+            this.traitSearch = !this.traitSearch;
             this._save();
         },
 
