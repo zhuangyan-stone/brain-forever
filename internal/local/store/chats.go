@@ -321,7 +321,7 @@ func (s *ChatStore) RestoreChat(sn string) error {
 	return nil
 }
 
-// ListChats lists the most recent N non-deleted chat records, ordered by pinned first, then update_at descending.
+// ListChats lists the most recent N non-deleted chat records, ordered by pinned first, then create_at descending.
 func (s *ChatStore) ListChats(n int) ([]Chat, error) {
 	var chats []Chat
 	err := s.db.Select(&chats,
@@ -330,7 +330,7 @@ func (s *ChatStore) ListChats(n int) ([]Chat, error) {
 		        deleted, pinned, category, create_at, update_at
 		 FROM chat_sessions
 		 WHERE deleted = 0
-		 ORDER BY pinned DESC, update_at DESC
+		 ORDER BY pinned DESC, create_at DESC
 		 LIMIT ?`,
 		n,
 	)

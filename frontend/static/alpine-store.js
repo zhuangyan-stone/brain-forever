@@ -287,7 +287,7 @@ document.addEventListener('alpine:init', function() {
          * 分组规则（与 chat-list.js 的 groupChats 一致）：
          *   - 已分类（category > 0）→ categorized 分组
          *   - 置顶（pinned）→ pinned 分组
-         *   - 按 update_at 时间 → today / yesterday / within7Days / within30Days / earlier
+         *   - 按 create_at 时间 → today / yesterday / within7Days / within30Days / earlier
          *
          * @param {Array} chats - 原始对话数组
          * @param {string} [activeSN] - 当前选中的对话 SN
@@ -404,18 +404,18 @@ document.addEventListener('alpine:init', function() {
                     pinned.push(chat);
                     continue;
                 }
-                // 按时间
-                var updateDate = new Date(chat.update_at);
-                if (updateDate >= todayStart) {
+                // 按 create_at 时间分组，避免 update_at 变化导致列表跳动
+                var createDate = new Date(chat.create_at);
+                if (createDate >= todayStart) {
                     today.push(chat);
-                } else if (updateDate >= yesterdayStart) {
+                } else if (createDate >= yesterdayStart) {
                     yesterday.push(chat);
-                } else if (updateDate >= weekAgoStart) {
+                } else if (createDate >= weekAgoStart) {
                     within7Days.push(chat);
-                } else if (updateDate >= monthAgoStart) {
+                } else if (createDate >= monthAgoStart) {
                     within30Days.push(chat);
                 } else {
-                    var dateKey = this._getDateStr(chat.update_at);
+                    var dateKey = this._getDateStr(chat.create_at);
                     if (!earlier[dateKey]) {
                         earlier[dateKey] = [];
                     }
