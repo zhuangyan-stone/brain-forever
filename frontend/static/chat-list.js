@@ -835,6 +835,21 @@ async function handleDelete(chat) {
     // 0. 通过 chatStreamMgr 移除 ChatStream（abort 正在进行的 SSE 流）
     chatStreamMgr.remove(chat.sn);
 
+    // ★ 如果有该 chat 的 AI 标题推荐便利贴，一并清理（可能有多张）
+    var titleStickies = document.querySelectorAll('.sticky-note[data-sn="' + chat.sn + '"]');
+    if (titleStickies.length > 0) {
+        titleStickies.forEach(function(note) {
+            note.classList.add('leaving');
+            note.addEventListener('animationend', function() {
+                note.remove();
+                var ctn = document.querySelector('.sticky-note-container');
+                if (ctn && ctn.children.length === 0) {
+                    ctn.remove();
+                }
+            }, { once: true });
+        });
+    }
+
     // 从 Alpine store 统一移除数据
     var chatsStore = window.Alpine.store('chats');
 

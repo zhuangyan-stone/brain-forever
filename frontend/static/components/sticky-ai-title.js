@@ -26,16 +26,20 @@ const TIMER_DURATION = 15000;
  * @param {object} [options] - 可选配置
  * @param {function} [options.onApply] - 应用标题的回调（定时到点或用户点击"采纳"时调用），参数为 title
  * @param {function} [options.onDismiss] - 用户取消时的回调，参数为 title
+ * @param {string} [options.sn] - 目标对话 SN，用于删除时定位清理
  * @returns {HTMLElement} 创建的便利贴 DOM 元素
  */
 export function showAiTitleSuggestion(message, title, options = {}) {
-    const { onApply, onDismiss } = options;
+    const { onApply, onDismiss, sn } = options;
 
     const ctn = getContainer();
 
     // ---- 创建便利贴 DOM ----
     const note = document.createElement('div');
     note.className = 'sticky-note';
+    if (sn) {
+        note.setAttribute('data-sn', sn);
+    }
 
     // ---- 右上角关闭按钮 ----
     const closeBtn = document.createElement('button');

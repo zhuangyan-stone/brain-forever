@@ -146,6 +146,7 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
 
             // ---- 显示便利贴让用户选择 ----
             const stickyOptions = {
+                sn: targetSN,  // 携带 SN 供便利贴组件在删除时清理自身
                 onApply: async (newTitle) => {
                     // 严格依据返回的 sn 找到对应的 chat 来更新标题
                     // 即使 chat 已被删除（不存在于 store.chats），前端也能正确处理
@@ -191,6 +192,17 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
  */
 export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 	if (!title || !sn) return false;
+
+	// ★ 本地先检查该 chat 是否还存在（可能已被用户删除），避免无效的 API 调用
+	var chats = window.Alpine.store('chats');
+	if (chats) {
+		var existsInItems = chats.items && chats.items.some(function(c) { return c.sn === sn; });
+		var existsInChats = chats.chats && chats.chats.some(function(c) { return c.sn === sn; });
+		if (!existsInItems && !existsInChats) {
+			return false; // 对话已被删除，跳过 API 调用
+		}
+	}
+
 	try {
 		const url = '/api/chat/title?title=' + encodeURIComponent(title) +
 			'&state=' + encodeURIComponent(titleState) +
