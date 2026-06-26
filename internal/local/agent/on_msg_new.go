@@ -140,7 +140,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 
 	startSystemMsg := llm.Message{
 		Role:    llm.RoleSystem,
-		Content: makeSystemPromptContent(lang, req.TraitSearchEnabled),
+		Content: makeSystemPromptContent(lang, req.TraitSearchEnabled, req.WebSearchEnabled),
 	}
 	messages := make([]llm.Message, 0, 1+len(llmMsgs))
 	messages = append(messages, startSystemMsg)
@@ -214,13 +214,15 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 
 // makeSystemPromptContent returns the system prompt content string,
 // translated according to the given language.
-// When traitSearchEnabled is true, the trait retrieval guide section is appended
-// to the base chat prompt; otherwise only the base prompt is returned.
-func makeSystemPromptContent(lang string, traitSearchEnabled bool) string {
+// Sections are composable: base prompt + optional trait section + optional web search section.
+func makeSystemPromptContent(lang string, traitSearchEnabled bool, webSearchEnabled bool) string {
 	var sb strings.Builder
 	sb.WriteString(i18n.SystemPrompt.TL(lang, "chat"))
 	if traitSearchEnabled {
 		sb.WriteString(i18n.SystemPrompt.TL(lang, "chat_trait_section"))
+	}
+	if webSearchEnabled {
+		sb.WriteString(i18n.SystemPrompt.TL(lang, "chat_web_section"))
 	}
 	return sb.String()
 }

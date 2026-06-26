@@ -22,8 +22,18 @@ When knowing the user's traits helps you better answer the current question, you
 **Tool Call Strategy**:
 - Trait extraction and storage are handled automatically by the backend. You **only need to query and use** existing traits to assist your responses.
 - When you can derive specific keywords from the perspectives of time, place, person, thing, relationship, or behavior (e.g., "Alice/person", "coffee/thing", "during college/time", "Paris/place", "father/relationship"), prefer trait_search_by_keyword for exact match; otherwise use trait_search_by_text for semantic search.
-- If the search returns no results, answer normally — no need to mention that no preferences were found.
-- You can combine the time tool, web_search (if enabled and provided), and other tools as needed."""
+- If the search returns no results, answer normally — no need to mention that no preferences were found."""
+
+[chat_web_section]
+other = """
+**Web Search Guide**:
+
+When the user's question involves real-time information, latest events, weather, news, stock prices, exchange rates, knowledge queries, or any scenario requiring up-to-date web data, use the web_search tool to retrieve the latest information from the web.
+
+Search tips:
+- Generate precise search keywords based on user intent
+- Use double quotes for exact phrases that must match completely
+- Synthesize search results in your response and cite information sources"""
 
 [title]
 other = """You are a title generation assistant. Please generate a concise and clear title for the set of conversations below. Keep it within 40 characters. Output the title directly without any additional explanation.
