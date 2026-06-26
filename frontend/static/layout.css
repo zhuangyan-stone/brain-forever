@@ -5,16 +5,6 @@
     作用域：全局布局
     ============================================================ */
 
-/* FreeSerif 字体 — 用于对话标题前的装饰引号 & 书签标签等衬线场景 */
-@font-face {
-    font-family: 'FreeSerif';
-    src: local('FreeSerif'),
-         url('./fonts/FreeSerif.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
 /* ============================================================
     全局重置 — 禁用 body 滚动，由内部容器控制
     ============================================================ */
@@ -202,17 +192,18 @@ body {
     animation: titleSlideBounce 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* 宽屏模式下，对话标题前加一个大大的左双引号（使用 FreeSerif 字体） */
+/* 宽屏模式下，对话标题前加一个大大的左双引号（SVG 装饰） */
 body:not(.small-screen-mode) .main-title:not(:empty)::before {
-    content: '\275D';
-    font-family: 'FreeSerif', serif;
+    content: '';
+    display: inline-block;
+    width: 1rem;
+    height: 0.75rem;
+    background: url('./img/quote-left.svg') no-repeat center / contain;
     font-size: 1.8rem;
-    font-weight: lighter;
-    color: var(--text-primary);
     margin-right: 4px;
     vertical-align: middle;
-    line-height: 1;
     position: relative;
+    top: -0.1em;
     opacity: 0.80;
 }
 

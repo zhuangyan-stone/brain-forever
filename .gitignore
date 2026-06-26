@@ -33,3 +33,6 @@ Thumbs.db
 
 # img-source
 *.xcf
+
+# --- Font files (no longer served, kept for extract-glyph tool) ---
+/frontend/static/fonts/FreeSerif.ttf

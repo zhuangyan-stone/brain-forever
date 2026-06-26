@@ -217,18 +217,18 @@ body.small-screen-mode .main-title {
     text-overflow: ellipsis;
 }
 
-/* 小屏下标题前的装饰引号（适配小字号） */
+/* 小屏下标题前的装饰引号（SVG 装饰，适配小字号） */
 body.small-screen-mode .main-title:not(:empty)::before {
-    content: '\275D';
-    font-family: 'FreeSerif', serif;
+    content: '';
+    display: inline-block;
+    width: 0.85rem;
+    height: 0.63rem;
+    background: url('./img/quote-left.svg') no-repeat center / contain;
     font-size: 1.4rem;
-    font-weight: lighter;
-    color: var(--text-primary);
     margin-right: 3px;
     vertical-align: middle;
-    line-height: 1;
     position: relative;
-    top: -0.05em;
+    top: -0.1em;
     opacity: 0.80;
 }
 

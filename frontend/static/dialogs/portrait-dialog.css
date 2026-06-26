@@ -677,7 +677,7 @@
     padding: 5px 12px 5px 14px;
     font-size: 0.8rem;
     font-weight: 700;
-    font-family: 'FreeSerif', '仿宋', 'FangSong', 'Noto Serif SC', serif;
+    font-family: '仿宋', 'FangSong', 'Noto Serif SC', serif;
     color: #000;
     text-align: left;
     cursor: default;
@@ -775,7 +775,7 @@
     border-radius: 6px;
     font-size: 1rem;
     line-height: 1.55;
-    font-family: 'FreeSerif', '仿宋', 'FangSong', 'Noto Serif SC', serif;
+    font-family: '仿宋', 'FangSong', 'Noto Serif SC', serif;
     color: var(--text-primary);
     background: rgba(69, 183, 209, 0.08);
     border-left: 3px solid #45B7D1;
