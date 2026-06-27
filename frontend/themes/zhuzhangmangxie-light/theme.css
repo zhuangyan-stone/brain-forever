@@ -1,0 +1,57 @@
+/* ============================================================
+   竹杖芒鞋·也无风雨 (亮色) — 外源主题
+   文件夹名 zhuzhangmangxie-light → -light 后缀表示亮色。
+   灵感源自苏东坡《定风波》：
+   "莫听穿林打叶声，何妨吟啸且徐行。
+    竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生。"
+   意境：竹林听雨，阳光穿叶泻下。竹叶之翠绿交织阳光之白亮。
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 基底 — 阳光透竹叶的白亮 */
+    --bg-primary:       #F2F6EC;
+    --bg-secondary:     #E9EFDE;
+    --bg-user:          #DDE6D0;
+    --bg-assistant:     #F2F6EC;
+    --bg-input:         #EDF3E4;
+    --switch-track-bg:  #C5D5AD;
+
+    /* 文字 — 竹林深处的墨绿 */
+    --text-primary:     #2A3C28;
+    --text-secondary:   #4D6A48;
+    --text-muted:       #7E9A74;
+
+    /* 点缀 — 雨洗竹叶的鲜绿 */
+    --accent:           #5C9E5C;
+    --accent-hover:     #70B070;
+
+    /* 边框/阴影 — 竹影婆娑 */
+    --border:           #CDD9BD;
+    --shadow:           rgba(42, 60, 40, 0.08);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(42, 60, 40, 0.12);
+
+    /* 代码块 */
+    --bg-code:          #E9EFDE;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 翠竹 */
+    --success-text:     #4E8C4E;
+
+    /* 错误 — 竹棕 */
+    --error-bg:         rgba(180, 100, 60, 0.08);
+    --error-border:     rgba(180, 100, 60, 0.25);
+    --error-text:       #B4643C;
+
+    /* 警告 — 阳光暖黄 */
+    --warning-bg:       #FFF4E0;
+    --warning-border:   #C4A860;
+    --warning-text:     #7A6830;
+
+    /* Tooltip */
+    --tooltip-bg:       #DDE6D0;
+    --tooltip-text:     #2A3C28;
+}

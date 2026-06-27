@@ -1,0 +1,56 @@
+/* ============================================================
+   竹杖芒鞋·也无晴 (暗色) — 外源主题
+   文件夹名 zhuzhangmangxie-dark → -dark 后缀表示暗色。
+   灵感源自苏东坡《定风波》：
+   "回首向来萧瑟处，归去，也无风雨也无晴。"
+   意境：暮色竹林，风雨初歇。深绿竹林中透出橙色的残阳余晖。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 基底 — 竹林暮色，深绿浓郁 */
+    --bg-primary:       #162416;
+    --bg-secondary:     #1E301E;
+    --bg-user:          #263A26;
+    --bg-assistant:     #162416;
+    --bg-input:         #121E12;
+    --switch-track-bg:  #0C160C;
+
+    /* 文字 — 竹叶反射微光 */
+    --text-primary:     #CDE0BD;
+    --text-secondary:   #95AE85;
+    --text-muted:       #658055;
+
+    /* 点缀 — 橙色残阳，穿林而过 */
+    --accent:           #D4903A;
+    --accent-hover:     #E0A450;
+
+    /* 边框/阴影 */
+    --border:           #2E442C;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(212, 144, 58, 0.12);
+
+    /* 代码块 */
+    --bg-code:          #1E301E;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 暗夜竹青 */
+    --success-text:     #5CA85C;
+
+    /* 错误 — 枯竹棕 */
+    --error-bg:         rgba(191, 115, 75, 0.15);
+    --error-border:     rgba(191, 115, 75, 0.35);
+    --error-text:       #C08050;
+
+    /* 警告 — 残阳暖金 */
+    --warning-bg:       #2A2410;
+    --warning-border:   #C4A85C;
+    --warning-text:     #E0C070;
+
+    /* Tooltip */
+    --tooltip-bg:       #263A26;
+    --tooltip-text:     #CDE0BD;
+}

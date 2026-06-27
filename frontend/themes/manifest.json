@@ -30,21 +30,35 @@
       "name_zh": "北欧·极夜"
     },
     {
-      "description": "国风山水主题亮色，仿宣纸墨色，灰度为主",
+      "description": "国风山水主题亮色，仿宣纸墨",
       "id": "shanshui-light",
       "mode": "light",
       "name": "Shanshui · Sunny Mist",
       "name_zh": "水墨·晴岚"
     },
     {
-      "description": "国风山水主题暗色，浓墨夜色，灰度为主",
+      "description": "国风山水主题暗色，夜如泼墨",
       "id": "shanshui-dark",
       "mode": "dark",
       "name": "Shanshui · Night Mountain",
       "name_zh": "水墨·夜山"
     },
     {
-      "description": "高对比度亮色主题，暗橙语义，专为色弱人士优化",
+      "description": "竹林听雨，阳光穿叶泻下。竹叶翠绿交织阳光白亮",
+      "id": "zhuzhangmangxie-light",
+      "mode": "light",
+      "name": "Bamboo Staff · No Wind Nor Rain",
+      "name_zh": "竹杖芒鞋·也无风雨"
+    },
+    {
+      "description": "暮色竹林，风雨初歇。深绿竹林中橙色残阳余晖",
+      "id": "zhuzhangmangxie-dark",
+      "mode": "dark",
+      "name": "Straw Sandals · No Sunshine Either",
+      "name_zh": "竹杖芒鞋·也无晴"
+    },
+    {
+      "description": "明几亮橙，简洁亮色",
       "id": "highcontrast-light",
       "mode": "light",
       "highContrast": true,
@@ -52,7 +66,7 @@
       "name_zh": "明眸·昼"
     },
     {
-      "description": "高对比度暗色主题，亮橙语义，专为色弱人士优化",
+      "description": "月夜亮橙，简洁暗色",
       "id": "highcontrast-dark",
       "mode": "dark",
       "highContrast": true,
