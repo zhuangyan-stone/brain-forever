@@ -389,14 +389,6 @@
                                     <!-- 用户名（不可点击） -->
                                     <div class="dropdown-item dropdown-item--disabled dropdown-item--username"
                                         x-text="$store.chats.currentUserNo || '匿名用户'"></div>
-                                    <!-- 个人画像 -->
-                                    <button class="dropdown-item" id="traitBtn"
-                                        @click="onOpenUserTraits">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                            x-html="ICON_USER"></svg>
-                                        生成个人画像
-                                    </button>
                                     <!-- 选择颜色主题 -->
                                     <button class="dropdown-item" id="themeSelectBtn"
                                         @click="onOpenThemeDialog">
@@ -404,6 +396,14 @@
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                             x-html="ICON_PALETTE"></svg>
                                         选择颜色主题
+                                    </button>
+                                    <!-- 个人画像 -->
+                                    <button class="dropdown-item" id="traitBtn"
+                                        @click="onOpenUserTraits">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                            x-html="ICON_USER"></svg>
+                                        生成个人画像
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
