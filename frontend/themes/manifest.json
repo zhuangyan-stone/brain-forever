@@ -58,7 +58,7 @@
       "name_zh": "竹杖芒鞋·也无晴"
     },
     {
-      "description": "明几亮橙，简洁亮色",
+      "description": "明窗亮几，亮色",
       "id": "highcontrast-light",
       "mode": "light",
       "highContrast": true,
@@ -66,7 +66,7 @@
       "name_zh": "明眸·昼"
     },
     {
-      "description": "月夜亮橙，简洁暗色",
+      "description": "明窗亮几，暗色",
       "id": "highcontrast-dark",
       "mode": "dark",
       "highContrast": true,
