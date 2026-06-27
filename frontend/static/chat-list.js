@@ -497,17 +497,34 @@ function showContextMenu(e, chat) {
    
     let traitDisabled = false;
     let traitLabel = '提取个人特征';
-   
+    
     if (hasExtracted) {
     	if (isActive) {
-    		// 活跃对话：按 groups 数量估算消息数（user + assistant）
-    		const actualMsgCount = (chatsStore.active && chatsStore.active.groups)
-    			? chatsStore.active.groups.length * 2
-    			: 0;
-    		if (chat.extracted_message_count >= actualMsgCount) {
-    			traitDisabled = true;
-    			traitLabel = '个人特征已提取';
+    		// 活跃对话：比较 extracted_at 与最后一条消息的 create_at
+    		// 如果最后一条消息比 extracted_at 新 → 可以继续提取
+    		const groups = chatsStore.active && chatsStore.active.groups;
+    		let lastMsgCreatedAt = null;
+    		if (groups && groups.length > 0) {
+    			const lastGroup = groups[groups.length - 1];
+    			// 取组内最后一条非空消息的时间（user 或 assistant）
+    			if (lastGroup.assistant && lastGroup.assistant.createdAt) {
+    				lastMsgCreatedAt = lastGroup.assistant.createdAt;
+    			} else if (lastGroup.user && lastGroup.user.createdAt) {
+    				lastMsgCreatedAt = lastGroup.user.createdAt;
+    			}
+    		}
+    		if (lastMsgCreatedAt && chat.extracted_at) {
+    			// 解析时间字符串比较（ISO 格式或后端返回的 RFC3339）
+    			const extractedTime = new Date(chat.extracted_at).getTime();
+    			const lastMsgTime = new Date(lastMsgCreatedAt).getTime();
+    			if (!isNaN(extractedTime) && !isNaN(lastMsgTime) && lastMsgTime > extractedTime) {
+    				traitLabel = '继续提取个人特征';
+    			} else {
+    				traitDisabled = true;
+    				traitLabel = '个人特征已提取';
+    			}
     		} else {
+    			// 没有最后消息时间或提取时间异常，允许提取
     			traitLabel = '继续提取个人特征';
     		}
     	} else {
@@ -632,8 +649,8 @@ async function handleExtractTraits(chat) {
         if (result.extracted_at) {
             chat.extracted_at = result.extracted_at;
         }
-        if (typeof result.extracted_message_count === 'number') {
-            chat.extracted_message_count = result.extracted_message_count;
+        if (typeof result.extracted_count === 'number') {
+            chat.extracted_count = result.extracted_count;
         }
 
         var featureCount = (result.features || []).length;

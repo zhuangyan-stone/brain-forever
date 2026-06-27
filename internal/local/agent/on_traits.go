@@ -74,8 +74,8 @@ type traitsRemoteResponse struct {
 
 	// Extraction state — returned to frontend so it can update the
 	// chat list without needing a separate API call or client-side guess.
-	ExtractedAt           *string `json:"extracted_at,omitempty"`
-	ExtractedMessageCount int     `json:"extracted_message_count,omitempty"`
+	ExtractedAt    *string `json:"extracted_at,omitempty"`
+	ExtractedCount int     `json:"extracted_count,omitempty"`
 }
 
 // halfLifeToInt converts the half-life string from the remote-server to an integer.
@@ -210,21 +210,29 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 5. Embed each trait and store into user-specific traits DB
 	// ----------------------------------------------------------
-	if len(remoteResp.Features) > 0 {
+	newTraitCount := len(remoteResp.Features)
+	if newTraitCount > 0 {
 		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN); err != nil {
 			// Non-fatal: still return features to frontend even if storage fails
 		}
-	}
 
-	// ----------------------------------------------------------
-	// 6. Update extraction progress
-	// ----------------------------------------------------------
-	totalCount := len(dbMessages) // fallback: at least the unextracted count
-	if count, err := chatsStore.CountMessages(foundChat.ID); err == nil {
-		totalCount = count
+		// ----------------------------------------------------------
+		// 6a. At least one new trait extracted → mark all messages
+		//     that participated in this extraction as extracted,
+		//     and update the cumulative trait count.
+		// ----------------------------------------------------------
+		chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
+		updateExtractionProgress(foundChat, chatsStore, newTraitCount)
+	} else {
+		// ----------------------------------------------------------
+		// 6b. No new traits extracted → do NOT mark messages as
+		//     extracted, do NOT update trait count.
+		//
+		//     Next time extraction is triggered, these unextracted
+		//     messages will still be included, providing the LLM
+		//     with more continuous context at the tail.
+		// ----------------------------------------------------------
 	}
-	updateExtractionProgress(foundChat, chatsStore, totalCount)
-	chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
 
 	// ----------------------------------------------------------
 	// 7. Populate extraction state in response, then return
@@ -232,7 +240,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	if foundChat.ExtractedAt != nil {
 		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
 		remoteResp.ExtractedAt = &extractedAtStr
-		remoteResp.ExtractedMessageCount = foundChat.ExtractedMessageCount
+		remoteResp.ExtractedCount = foundChat.ExtractedCount
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(remoteResp)
@@ -377,8 +385,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 }
 
 // handleNoNewMessages builds and writes the response when there are no
-// un-extracted messages for the given chat. It also fixes any inconsistency
-// between the DB's extracted_message_count and the actual message count.
+// un-extracted messages for the given chat.
 func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {
 	resp := traitsRemoteResponse{
 		Features: []traitsFeature{},
@@ -388,14 +395,8 @@ func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStor
 		resp.ExtractedAt = &extractedAtStr
 	}
 	// Get total message count for the response
-	if totalCount, err := chatsStore.CountMessages(foundChat.ID); err == nil {
-		resp.ExtractedMessageCount = totalCount
-		// Fix DB inconsistency: if DB's extracted_message_count is stale
-		// (e.g., 0) but all messages are already extracted, sync it now
-		// so the next page load doesn't show a false "continue extraction" state.
-		if foundChat.ExtractedMessageCount != totalCount {
-			updateExtractionProgress(foundChat, chatsStore, totalCount)
-		}
+	if _, err := chatsStore.CountMessages(foundChat.ID); err == nil {
+		resp.ExtractedCount = foundChat.ExtractedCount
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
@@ -403,10 +404,11 @@ func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStor
 
 // updateExtractionProgress updates the extraction progress in the database
 // and synchronizes the in-memory foundChat fields on success.
-func updateExtractionProgress(foundChat *store.Chat, chatsStore *store.ChatStore, totalCount int) {
-	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, totalCount); err == nil {
+// newTraitCount is the number of newly extracted traits in this round.
+func updateExtractionProgress(foundChat *store.Chat, chatsStore *store.ChatStore, newTraitCount int) {
+	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, newTraitCount); err == nil {
 		now := time.Now()
 		foundChat.ExtractedAt = &now
-		foundChat.ExtractedMessageCount = totalCount
+		foundChat.ExtractedCount += newTraitCount
 	}
 }

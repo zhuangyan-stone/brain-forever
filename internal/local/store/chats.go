@@ -30,10 +30,10 @@ type Chat struct {
 	ExtractMode int8       `db:"extract_mode" json:"extract_mode"` // 0=manual, 1=auto, default 0
 	ExtractedAt *time.Time `db:"trait_time" json:"extracted_at"`   // Last extraction time, default null
 
-	ExtractedMessageCount int  `db:"extracted_message_count" json:"extracted_message_count"` // Number of extracted messages, default 0
-	Deleted               bool `db:"deleted" json:"-"`                                       // Soft delete flag (excluded from JSON)
-	Pinned                bool `db:"pinned" json:"pinned"`                                   // Whether pinned
-	Category              int  `db:"category" json:"category"`                               // Category ID, 0=uncategorized
+	ExtractedCount int  `db:"extracted_count" json:"extracted_count"` // Number of traits extracted for this chat, default 0
+	Deleted        bool `db:"deleted" json:"-"`                       // Soft delete flag (excluded from JSON)
+	Pinned         bool `db:"pinned" json:"pinned"`                   // Whether pinned
+	Category       int  `db:"category" json:"category"`               // Category ID, 0=uncategorized
 
 	CreateAt time.Time `db:"create_at" json:"create_at"`
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
@@ -113,7 +113,7 @@ func (s *ChatStore) initSchema() error {
 			title_state INTEGER NOT NULL DEFAULT 0,
 			extract_mode       INTEGER NOT NULL DEFAULT 0,
 			trait_time         DATETIME,
-			extracted_message_count INTEGER NOT NULL DEFAULT 0,
+			extracted_count    INTEGER NOT NULL DEFAULT 0,
 			deleted   INTEGER NOT NULL DEFAULT 0,
 			pinned    INTEGER NOT NULL DEFAULT 0,
 			category  INTEGER NOT NULL DEFAULT 0,
@@ -169,6 +169,22 @@ func (s *ChatStore) initSchema() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize chat tables. %w", err)
 	}
+
+	// Migration: rename extracted_message_count to extracted_count for existing databases
+	// (SQLite 3.25.0+ supports RENAME COLUMN; the mattn/go-sqlite3 driver bundles a recent version)
+	var colName string
+	err = s.db.QueryRow(
+		`SELECT name FROM pragma_table_info('chat_sessions') WHERE name = 'extracted_message_count'`,
+	).Scan(&colName)
+	if err == nil {
+		// Old column exists, rename it
+		if _, err := s.db.Exec(`ALTER TABLE chat_sessions RENAME COLUMN extracted_message_count TO extracted_count`); err != nil {
+			// Fallback: add new column if rename fails
+			s.db.Exec(`ALTER TABLE chat_sessions ADD COLUMN extracted_count INTEGER NOT NULL DEFAULT 0`)
+			s.db.Exec(`UPDATE chat_sessions SET extracted_count = extracted_message_count`)
+		}
+	}
+
 	return nil
 }
 
@@ -190,7 +206,7 @@ func (s *ChatStore) InsertChat(sn string, roleNO int,
 	var chat Chat
 	err = s.db.Get(&chat,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
-		        trait_time, extracted_message_count,
+		        trait_time, extracted_count,
 		        deleted, pinned, category, create_at, update_at
 		 FROM chat_sessions WHERE id = ?`, id,
 	)
@@ -276,7 +292,7 @@ func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
 	var chat Chat
 	err := s.db.Get(&chat,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
-		        trait_time, extracted_message_count,
+		        trait_time, extracted_count,
 		        deleted, pinned, category, create_at, update_at
 		 FROM chat_sessions WHERE sn = ?`, sn,
 	)
@@ -291,7 +307,7 @@ func (s *ChatStore) ListDeletedChats(n int) ([]Chat, error) {
 	var chats []Chat
 	err := s.db.Select(&chats,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
-		    trait_time, extracted_message_count,
+		    trait_time, extracted_count,
 		    deleted, pinned, category, create_at, update_at
 		 FROM chat_sessions
 		 WHERE deleted = 1
@@ -326,7 +342,7 @@ func (s *ChatStore) ListChats(n int) ([]Chat, error) {
 	var chats []Chat
 	err := s.db.Select(&chats,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
-		        trait_time, extracted_message_count,
+		        trait_time, extracted_count,
 		        deleted, pinned, category, create_at, update_at
 		 FROM chat_sessions
 		 WHERE deleted = 0
@@ -428,14 +444,15 @@ func (s *ChatStore) EmptyTrash() error {
 // ============================================================
 
 // UpdateExtractionProgress updates the trait extraction progress for a chat.
-// Sets trait_time to now() and updates the extracted message count.
-func (s *ChatStore) UpdateExtractionProgress(chatID int64, extractedCount int) error {
+// Sets trait_time to now() and adds to the extracted trait count.
+// The increment parameter is the number of newly extracted traits in this round.
+func (s *ChatStore) UpdateExtractionProgress(chatID int64, increment int) error {
 	result, err := s.db.Exec(
 		`UPDATE chat_sessions
 		 SET trait_time = CURRENT_TIMESTAMP,
-		     extracted_message_count = ?
+		     extracted_count = extracted_count + ?
 		 WHERE id = ?`,
-		extractedCount, chatID,
+		increment, chatID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update extraction progress: %w", err)
