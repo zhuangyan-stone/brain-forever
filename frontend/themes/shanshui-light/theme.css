@@ -1,0 +1,54 @@
+/* ============================================================
+   水墨·晴岚 (亮色) — 外源主题
+   文件夹名 shanshui-light → -light 后缀表示亮色。
+   灵感源自国画山水：宣纸底色 + 墨色渐变，灰度为主色调。
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 宣纸基调 — 仿古宣纸暖白 */
+    --bg-primary:       #F5F0E8;
+    --bg-secondary:     #EDE7DC;
+    --bg-user:          #E3DBD0;
+    --bg-assistant:     #F5F0E8;
+    --bg-input:         #F0EBE0;
+    --switch-track-bg:  #D4CBBF;
+
+    /* 墨色文字 — 从浓墨到淡墨 */
+    --text-primary:     #2C2925;
+    --text-secondary:   #5A5550;
+    --text-muted:       #8A857E;
+
+    /* 点缀 — 仿青绿山水的石青石绿淡雅调 */
+    --accent:           #7A8B7A;
+    --accent-hover:     #8F9F8F;
+
+    /* 边框/阴影 — 淡墨勾边 */
+    --border:           #D4CBBF;
+    --shadow:           rgba(44, 41, 37, 0.08);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(44, 41, 37, 0.15);
+
+    /* 代码块 */
+    --bg-code:          #EDE7DC;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 竹青 */
+    --success-text:     #5A8A5A;
+
+    /* 错误 — 赭石 */
+    --error-bg:         rgba(153, 85, 51, 0.08);
+    --error-border:     rgba(153, 85, 51, 0.25);
+    --error-text:       #995533;
+
+    /* 警告 — 藤黄 */
+    --warning-bg:       #FFF3E0;
+    --warning-border:   #C4A35A;
+    --warning-text:     #7A6330;
+
+    /* Tooltip */
+    --tooltip-bg:       #E3DBD0;
+    --tooltip-text:     #2C2925;
+}

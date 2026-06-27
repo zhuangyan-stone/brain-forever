@@ -1,0 +1,57 @@
+/* ============================================================
+   明眸·昼 (亮色·高对比) — 外源主题
+   文件夹名 highcontrast-light → -light 后缀表示亮色。
+   专为色弱人士优化的高对比度亮色主题。
+   - 使用蓝/橙替代红/绿作为语义区分
+   - 对比度 ≥7:1（AAA级）
+   - 厚重的边框和清晰的视觉分割
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 纯白背景 — 最大对比度 */
+    --bg-primary:       #FFFFFF;
+    --bg-secondary:     #F0F0F0;
+    --bg-user:          #E4E9F2;
+    --bg-assistant:     #FFFFFF;
+    --bg-input:         #FAFAFA;
+    --switch-track-bg:  #D0D0D0;
+
+    /* 纯黑文字 — 极致可读性 */
+    --text-primary:     #000000;
+    --text-secondary:   #1A1A1A;
+    --text-muted:       #4D4D4D;
+
+    /* 强调 — 高饱和蓝，色弱友好 */
+    --accent:           #0050CF;
+    --accent-hover:     #0040A8;
+
+    /* 边框 — 厚重清晰 */
+    --border:           #999999;
+    --shadow:           rgba(0, 0, 0, 0.15);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(0, 0, 0, 0.25);
+
+    /* 代码块 */
+    --bg-code:          #F0F0F0;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 青蓝色（非绿色） */
+    --success-text:     #006699;
+
+    /* 错误 — 橙红色（非纯红） */
+    --error-bg:         rgba(204, 85, 0, 0.08);
+    --error-border:     rgba(204, 85, 0, 0.30);
+    --error-text:       #CC5500;
+
+    /* 警告 — 琥珀色 */
+    --warning-bg:       #FFF0D0;
+    --warning-border:   #CC8800;
+    --warning-text:     #664400;
+
+    /* Tooltip */
+    --tooltip-bg:       #E0E0E0;
+    --tooltip-text:     #000000;
+}

@@ -1,0 +1,54 @@
+/* ============================================================
+   水墨·夜山 (暗色) — 外源主题
+   文件夹名 shanshui-dark → -dark 后缀表示暗色。
+   灵感源自国画山水：浓墨夜色 + 淡墨层次，灰度为主色调。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 深墨基调 — 焦墨/浓墨 */
+    --bg-primary:       #1A1816;
+    --bg-secondary:     #242220;
+    --bg-user:          #2E2B28;
+    --bg-assistant:     #1A1816;
+    --bg-input:         #141210;
+    --switch-track-bg:  #0D0C0A;
+
+    /* 墨色文字 — 留白般的高对比 */
+    --text-primary:     #D1CCC5;
+    --text-secondary:   #9C9690;
+    --text-muted:       #706C66;
+
+    /* 点缀 — 夜山中的微光 */
+    --accent:           #8A9B8A;
+    --accent-hover:     #9CAD9C;
+
+    /* 边框/阴影 */
+    --border:           #33302C;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.12);
+
+    /* 代码块 */
+    --bg-code:          #242220;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 竹青（暗版） */
+    --success-text:     #6B9A6B;
+
+    /* 错误 — 赭石（暗版） */
+    --error-bg:         rgba(153, 85, 51, 0.15);
+    --error-border:     rgba(153, 85, 51, 0.35);
+    --error-text:       #B08060;
+
+    /* 警告 — 藤黄（暗版） */
+    --warning-bg:       #2A2418;
+    --warning-border:   #C4A35A;
+    --warning-text:     #D4B87A;
+
+    /* Tooltip */
+    --tooltip-bg:       #2E2B28;
+    --tooltip-text:     #D1CCC5;
+}

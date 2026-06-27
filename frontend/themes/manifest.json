@@ -1,7 +1,7 @@
 {
-  "actived": "dark",
-  "actived-dark": "nord-dark",
-  "actived-light": "nord-light",
+  "actived": "light",
+  "actived-dark": "shanshui-dark",
+  "actived-light": "shanshui-light",
   "description": "第2大脑 外源主题清单 — 同时作为配置文件记录用户选择",
   "themes": [
     {
@@ -31,6 +31,34 @@
       "mode": "dark",
       "name": "Nord Polar Night",
       "name_zh": "北欧·极夜"
+    },
+    {
+      "description": "国风山水主题亮色，仿宣纸墨色，灰度为主",
+      "id": "shanshui-light",
+      "mode": "light",
+      "name": "Shanshui · Sunny Mist",
+      "name_zh": "水墨·晴岚"
+    },
+    {
+      "description": "国风山水主题暗色，浓墨夜色，灰度为主",
+      "id": "shanshui-dark",
+      "mode": "dark",
+      "name": "Shanshui · Night Mountain",
+      "name_zh": "水墨·夜山"
+    },
+    {
+      "description": "高对比度亮色主题，蓝橙语义，专为色弱人士优化",
+      "id": "highcontrast-light",
+      "mode": "light",
+      "name": "Bright Eyes · Day",
+      "name_zh": "明眸·昼"
+    },
+    {
+      "description": "高对比度暗色主题，蓝橙语义，专为色弱人士优化",
+      "id": "highcontrast-dark",
+      "mode": "dark",
+      "name": "Bright Eyes · Night",
+      "name_zh": "明眸·夜"
     }
   ]
 }
