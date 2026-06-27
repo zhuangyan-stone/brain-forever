@@ -2,7 +2,7 @@
    明眸·昼 (亮色·高对比) — 外源主题
    文件夹名 highcontrast-light → -light 后缀表示亮色。
    专为色弱人士优化的高对比度亮色主题。
-   - 使用蓝/橙替代红/绿作为语义区分
+   - 使用黑/橙替代红/绿作为语义区分
    - 对比度 ≥7:1（AAA级）
    - 厚重的边框和清晰的视觉分割
    覆盖 [data-theme="light"] 中的 CSS 自定义属性。
@@ -12,7 +12,7 @@
     /* 纯白背景 — 最大对比度 */
     --bg-primary:       #FFFFFF;
     --bg-secondary:     #F0F0F0;
-    --bg-user:          #E4E9F2;
+    --bg-user:          #F0F0F0;
     --bg-assistant:     #FFFFFF;
     --bg-input:         #FAFAFA;
     --switch-track-bg:  #D0D0D0;
@@ -22,9 +22,9 @@
     --text-secondary:   #1A1A1A;
     --text-muted:       #4D4D4D;
 
-    /* 强调 — 高饱和蓝，色弱友好 */
-    --accent:           #0050CF;
-    --accent-hover:     #0040A8;
+    /* 强调 — 纯黑，最大对比 */
+    --accent:           #000000;
+    --accent-hover:     #000000;
 
     /* 边框 — 厚重清晰 */
     --border:           #999999;

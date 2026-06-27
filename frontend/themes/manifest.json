@@ -44,14 +44,14 @@
       "name_zh": "水墨·夜山"
     },
     {
-      "description": "高对比度亮色主题，蓝橙语义，专为色弱人士优化",
+      "description": "高对比度亮色主题，暗橙语义，专为色弱人士优化",
       "id": "highcontrast-light",
       "mode": "light",
       "name": "Bright Eyes · Day",
       "name_zh": "明眸·昼"
     },
     {
-      "description": "高对比度暗色主题，蓝橙语义，专为色弱人士优化",
+      "description": "高对比度暗色主题，亮橙语义，专为色弱人士优化",
       "id": "highcontrast-dark",
       "mode": "dark",
       "name": "Bright Eyes · Night",

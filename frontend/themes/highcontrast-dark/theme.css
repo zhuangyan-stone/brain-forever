@@ -2,7 +2,7 @@
    明眸·夜 (暗色·高对比) — 外源主题
    文件夹名 highcontrast-dark → -dark 后缀表示暗色。
    专为色弱人士优化的高对比度暗色主题。
-   - 使用蓝/橙替代红/绿作为语义区分
+   - 使用白/橙替代红/绿作为语义区分
    - 对比度 ≥7:1（AAA级）
    - 厚重的边框和清晰的视觉分割
    覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
@@ -12,7 +12,7 @@
     /* 深黑背景 — 最大对比度 */
     --bg-primary:       #0D0D0D;
     --bg-secondary:     #1A1A1A;
-    --bg-user:          #222233;
+    --bg-user:          #1A1A1A;
     --bg-assistant:     #0D0D0D;
     --bg-input:         #111111;
     --switch-track-bg:  #333333;
@@ -22,9 +22,9 @@
     --text-secondary:   #E0E0E0;
     --text-muted:       #999999;
 
-    /* 强调 — 亮蓝，色弱友好 */
-    --accent:           #6BA3FF;
-    --accent-hover:     #8AB8FF;
+    /* 强调 — 纯白，最大对比 */
+    --accent:           #FFFFFF;
+    --accent-hover:     #FFFFFF;
 
     /* 边框 — 厚重清晰 */
     --border:           #666666;
