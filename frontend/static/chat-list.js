@@ -494,7 +494,10 @@ function showContextMenu(e, chat) {
     const chatsStore = window.Alpine.store('chats');
     const isActive = chatsStore && chat.sn === chatsStore.activeChatSN;
     const hasExtracted = !!chat.extracted_at;
-   
+    
+    // 已提取的特征条数（仅已提取状态时显示）
+    const countSuffix = (chat.extracted_count > 0) ? (' (' + chat.extracted_count + '条)') : '';
+    
     let traitDisabled = false;
     let traitLabel = '提取个人特征';
     
@@ -521,7 +524,7 @@ function showContextMenu(e, chat) {
     				traitLabel = '继续提取个人特征';
     			} else {
     				traitDisabled = true;
-    				traitLabel = '个人特征已提取';
+    				traitLabel = '个人特征已提取' + countSuffix;
     			}
     		} else {
     			// 没有最后消息时间或提取时间异常，允许提取
@@ -530,7 +533,7 @@ function showContextMenu(e, chat) {
     	} else {
     		// 非活跃对话：已有提取记录则禁用
     		traitDisabled = true;
-    		traitLabel = '个人特征已提取';
+    		traitLabel = '个人特征已提取' + countSuffix;
     	}
     }
    
