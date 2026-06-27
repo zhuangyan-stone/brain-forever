@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -19,6 +21,8 @@ import (
 	"BrainForever/internal/local/config"
 	"BrainForever/internal/local/logger"
 	"BrainForever/internal/local/store"
+
+	"github.com/BurntSushi/toml"
 )
 
 // ============================================================
@@ -201,16 +205,100 @@ func main() {
 	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
 
 	// ============================================================
-	// Theme management API — read/write frontend/themes/manifest.json
+	// Theme management API
+	//   - theme manifest (themes[] list) comes from frontend/themes/manifest.json (source code)
+	//   - user's theme selection (actived/actived-light/actived-dark) stored in local-server.toml (runtime config)
 	// ============================================================
+
+	// themeConfigFile is the path to the runtime theme configuration.
+	const themeConfigFile = "./local-server.toml"
+
+	// themeRuntime holds the runtime theme config read from / written to local-server.toml.
+	type themeRuntime struct {
+		Theme struct {
+			Actived      string `toml:"actived"`
+			ActivedLight string `toml:"actived-light"`
+			ActivedDark  string `toml:"actived-dark"`
+		} `toml:"theme"`
+	}
+
+	// readThemeConfig reads the theme runtime config from local-server.toml.
+	// If the file doesn't exist or is malformed, returns sensible defaults.
+	readThemeConfig := func() themeRuntime {
+		var rt themeRuntime
+		if _, err := toml.DecodeFile(themeConfigFile, &rt); err != nil {
+			rt.Theme.Actived = "light"
+			rt.Theme.ActivedLight = ""
+			rt.Theme.ActivedDark = ""
+		}
+		return rt
+	}
+
+	// writeThemeConfig writes the theme runtime config to local-server.toml.
+	// Uses a sync.Mutex to prevent concurrent writes.
+	var (
+		themeMu     sync.Mutex
+		themeMuInit sync.Once
+	)
+	writeThemeConfig := func(rt themeRuntime) error {
+		themeMuInit.Do(func() { /* lazy init, mutex ready */ })
+		themeMu.Lock()
+		defer themeMu.Unlock()
+
+		// Read existing file to preserve other sections (e.g. server config)
+		type fullConfig struct {
+			Theme struct {
+				Actived      string `toml:"actived"`
+				ActivedLight string `toml:"actived-light"`
+				ActivedDark  string `toml:"actived-dark"`
+			} `toml:"theme"`
+		}
+		var cfg fullConfig
+		if _, err := toml.DecodeFile(themeConfigFile, &cfg); err != nil {
+			// File doesn't exist or is empty; start fresh
+			cfg = fullConfig{}
+		}
+		cfg.Theme = rt.Theme
+
+		var buf strings.Builder
+		if err := toml.NewEncoder(&buf).Encode(cfg); err != nil {
+			return err
+		}
+		return os.WriteFile(themeConfigFile, []byte(buf.String()), 0644)
+	}
+
+	// Build the merged response for GET /api/themes:
+	//   themes[] from manifest.json (source code)
+	//   actived/actived-light/actived-dark from local-server.toml (runtime config)
 	srv.GET("/api/themes", func(w http.ResponseWriter, r *http.Request) {
-		data, err := os.ReadFile("./frontend/themes/manifest.json")
+		// Read themes list from manifest.json (source code)
+		manifestRaw, err := os.ReadFile("./frontend/themes/manifest.json")
 		if err != nil {
 			http.Error(w, `{"error":"cannot read theme manifest"}`, http.StatusInternalServerError)
 			return
 		}
+		var manifest struct {
+			Themes []any `json:"themes"`
+		}
+		if err := json.Unmarshal(manifestRaw, &manifest); err != nil {
+			http.Error(w, `{"error":"invalid manifest JSON"}`, http.StatusInternalServerError)
+			return
+		}
+
+		// Read runtime config from local-server.toml
+		rt := readThemeConfig()
+
+		// Merge into response
+		resp := map[string]any{
+			"themes":        manifest.Themes,
+			"actived":       rt.Theme.Actived,
+			"actived-light": rt.Theme.ActivedLight,
+			"actived-dark":  rt.Theme.ActivedDark,
+			"description":   "第2大脑 外源主题清单",
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		json.NewEncoder(w).Encode(resp)
 	})
 
 	srv.POST("/api/themes", func(w http.ResponseWriter, r *http.Request) {
@@ -223,29 +311,18 @@ func main() {
 			http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
 			return
 		}
-		// Read original file, keep themes[] intact, only update config fields
-		raw, err := os.ReadFile("./frontend/themes/manifest.json")
-		if err != nil {
-			http.Error(w, `{"error":"cannot read theme manifest"}`, http.StatusInternalServerError)
-			return
-		}
-		var m map[string]any
-		if err := json.Unmarshal(raw, &m); err != nil {
-			http.Error(w, `{"error":"invalid manifest JSON"}`, http.StatusInternalServerError)
-			return
-		}
-		m["actived"] = req.Actived
-		m["actived-light"] = req.ActivedLight
-		m["actived-dark"] = req.ActivedDark
-		out, err := json.MarshalIndent(m, "", "  ")
-		if err != nil {
-			http.Error(w, `{"error":"marshal error"}`, http.StatusInternalServerError)
-			return
-		}
-		if err := os.WriteFile("./frontend/themes/manifest.json", out, 0644); err != nil {
+
+		// Only write to local-server.toml — never touch manifest.json
+		rt := themeRuntime{}
+		rt.Theme.Actived = req.Actived
+		rt.Theme.ActivedLight = req.ActivedLight
+		rt.Theme.ActivedDark = req.ActivedDark
+
+		if err := writeThemeConfig(rt); err != nil {
 			http.Error(w, `{"error":"write error"}`, http.StatusInternalServerError)
 			return
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 	})
