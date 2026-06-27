@@ -1,0 +1,54 @@
+/* ============================================================
+   茶香·陈韵 (暗色) — 外源主题
+   文件夹名 chaxiang-dark → -dark 后缀表示暗色。
+   陈年老茶，醇厚温润。夜深茶暖，余韵悠长。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 陈茶基调 — 老茶汤色，醇厚深沉 */
+    --bg-primary:       #1C1814;
+    --bg-secondary:     #24201C;
+    --bg-user:          #2D2823;
+    --bg-assistant:     #1C1814;
+    --bg-input:         #141210;
+    --switch-track-bg:  #0D0B0A;
+
+    /* 墨色文字 — 茶汤泛光 */
+    --text-primary:     #D1C8B8;
+    --text-secondary:   #9C9080;
+    --text-muted:       #706658;
+
+    /* 点缀 — 陈茶暖褐 */
+    --accent:           #8B7A5A;
+    --accent-hover:     #9E8D6D;
+
+    /* 边框/阴影 — 夜茶勾边 */
+    --border:           #34302A;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.10);
+
+    /* 代码块 */
+    --bg-code:          #24201C;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 茶青（暗版） */
+    --success-text:     #6B9A5A;
+
+    /* 错误 — 陈褐（暗版） */
+    --error-bg:         rgba(139, 90, 60, 0.18);
+    --error-border:     rgba(139, 90, 60, 0.40);
+    --error-text:       #A08060;
+
+    /* 警告 — 桂花（暗版） */
+    --warning-bg:       #2A2418;
+    --warning-border:   #C4A85A;
+    --warning-text:     #D4B87A;
+
+    /* Tooltip */
+    --tooltip-bg:       #2D2823;
+    --tooltip-text:     #D1C8B8;
+}

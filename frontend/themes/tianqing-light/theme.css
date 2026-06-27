@@ -1,0 +1,54 @@
+/* ============================================================
+   天青色 (亮色) — 外源主题
+   文件夹名 tianqing-light → -light 后缀表示亮色。
+   天青为底，烟雨成韵。源自宋徽宗「雨过天青云破处」。
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 天青基调 — 雨过天青，云破处 */
+    --bg-primary:       #E1EEEF;
+    --bg-secondary:     #D3E4E5;
+    --bg-user:          #CBDDE0;
+    --bg-assistant:     #E1EEEF;
+    --bg-input:         #D6E5E6;
+    --switch-track-bg:  #B8CDCF;
+
+    /* 墨色文字 — 从浓墨到淡墨 */
+    --text-primary:     #1A2E30;
+    --text-secondary:   #3D5A5C;
+    --text-muted:       #6D8A8C;
+
+    /* 点缀 — 青瓷釉色，淡雅含蓄 */
+    --accent:           #5B8F96;
+    --accent-hover:     #6FA0A7;
+
+    /* 边框/阴影 — 淡烟勾边 */
+    --border:           #B8CDCF;
+    --shadow:           rgba(26, 46, 48, 0.08);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(26, 46, 48, 0.15);
+
+    /* 代码块 */
+    --bg-code:          #D3E4E5;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 青竹 */
+    --success-text:     #5A8A6A;
+
+    /* 错误 — 烟灰 */
+    --error-bg:         rgba(51, 85, 119, 0.08);
+    --error-border:     rgba(51, 85, 119, 0.25);
+    --error-text:       #336677;
+
+    /* 警告 — 浅青 */
+    --warning-bg:       #F0F5E0;
+    --warning-border:   #A3B85A;
+    --warning-text:     #5A6A30;
+
+    /* Tooltip */
+    --tooltip-bg:       #CBDDE0;
+    --tooltip-text:     #1A2E30;
+}

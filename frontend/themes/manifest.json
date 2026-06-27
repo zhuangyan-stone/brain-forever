@@ -72,6 +72,34 @@
       "highContrast": true,
       "name": "Bright Eyes · Night",
       "name_zh": "明眸·夜"
+    },
+    {
+      "description": "雨过天青，云破处。清雅亮色",
+      "id": "tianqing-light",
+      "mode": "light",
+      "name": "Celeste · Sky After Rain",
+      "name_zh": "天青色·烟雨"
+    },
+    {
+      "description": "夜如青瓷，釉色沉。天青暗色",
+      "id": "tianqing-dark",
+      "mode": "dark",
+      "name": "Celeste · Midnight Sky",
+      "name_zh": "天青色·夜雨"
+    },
+    {
+      "description": "一盏新茶，明前春色。茶汤清亮的暖色主题",
+      "id": "chaxiang-light",
+      "mode": "light",
+      "name": "Tea Fragrance · First Flush",
+      "name_zh": "茶香·明前"
+    },
+    {
+      "description": "陈年老茶，醇厚温润。夜深茶暖的暗色主题",
+      "id": "chaxiang-dark",
+      "mode": "dark",
+      "name": "Tea Fragrance · Aged Aroma",
+      "name_zh": "茶香·陈韵"
     }
   ]
 }

@@ -1,0 +1,54 @@
+/* ============================================================
+   天青色·暗 (暗色) — 外源主题
+   文件夹名 tianqing-dark → -dark 后缀表示暗色。
+   天青为底，夜雨成韵。夜如青瓷，釉色沉凝。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 夜幕基调 — 深夜天青，釉色沉凝 */
+    --bg-primary:       #161D1E;
+    --bg-secondary:     #1E2728;
+    --bg-user:          #263132;
+    --bg-assistant:     #161D1E;
+    --bg-input:         #111718;
+    --switch-track-bg:  #0A0F10;
+
+    /* 墨色文字 — 夜中微光 */
+    --text-primary:     #C8D6D7;
+    --text-secondary:   #8FA3A5;
+    --text-muted:       #5D7375;
+
+    /* 点缀 — 青瓷釉光，夜中淡雅 */
+    --accent:           #5B9BA3;
+    --accent-hover:     #6FB0B8;
+
+    /* 边框/阴影 — 夜烟勾边 */
+    --border:           #2D3A3C;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.10);
+
+    /* 代码块 */
+    --bg-code:          #1E2728;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 青竹（暗版） */
+    --success-text:     #6BB07A;
+
+    /* 错误 — 烟灰（暗版） */
+    --error-bg:         rgba(51, 85, 119, 0.18);
+    --error-border:     rgba(51, 85, 119, 0.40);
+    --error-text:       #7FA8B0;
+
+    /* 警告 — 浅青（暗版） */
+    --warning-bg:       #1E2418;
+    --warning-border:   #A3B85A;
+    --warning-text:     #C4D87A;
+
+    /* Tooltip */
+    --tooltip-bg:       #263132;
+    --tooltip-text:     #C8D6D7;
+}

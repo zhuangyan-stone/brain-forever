@@ -1,0 +1,54 @@
+/* ============================================================
+   茶香·明前 (亮色) — 外源主题
+   文件夹名 chaxiang-light → -light 后缀表示亮色。
+   一盏新茶，明前春色。茶汤清亮，暖意融融。
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 茶汤基调 — 明前茶汤，清亮透暖 */
+    --bg-primary:       #F5F0E6;
+    --bg-secondary:     #EBE4D6;
+    --bg-user:          #E0D7C5;
+    --bg-assistant:     #F5F0E6;
+    --bg-input:         #EEE8DB;
+    --switch-track-bg:  #D4CBB5;
+
+    /* 墨色文字 — 从浓茶到淡茶 */
+    --text-primary:     #2C2820;
+    --text-secondary:   #5A5545;
+    --text-muted:       #8A8570;
+
+    /* 点缀 — 茶叶的淡雅青褐 */
+    --accent:           #8B7A5A;
+    --accent-hover:     #9E8D6D;
+
+    /* 边框/阴影 — 暖褐勾边 */
+    --border:           #D4CBB5;
+    --shadow:           rgba(44, 40, 32, 0.08);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(44, 40, 32, 0.15);
+
+    /* 代码块 */
+    --bg-code:          #EBE4D6;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 茶青 */
+    --success-text:     #6B8A5A;
+
+    /* 错误 — 陈褐 */
+    --error-bg:         rgba(139, 90, 60, 0.08);
+    --error-border:     rgba(139, 90, 60, 0.25);
+    --error-text:       #8B5A3C;
+
+    /* 警告 — 桂花 */
+    --warning-bg:       #FFF5E0;
+    --warning-border:   #C4A85A;
+    --warning-text:     #7A6A30;
+
+    /* Tooltip */
+    --tooltip-bg:       #E0D7C5;
+    --tooltip-text:     #2C2820;
+}
