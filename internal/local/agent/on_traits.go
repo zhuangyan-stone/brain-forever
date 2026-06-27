@@ -45,10 +45,9 @@ type traitsMsg struct {
 
 // traitsRemoteRequest is the request sent to remote-server.
 type traitsRemoteRequest struct {
-	SN                    string      `json:"sn"`
-	Title                 string      `json:"title"`
-	Messages              []traitsMsg `json:"messages"`
-	ExistingTraitsSummary string      `json:"existing_traits_summary,omitempty"` // Traits already extracted (for incremental extraction)
+	SN       string      `json:"sn"`
+	Title    string      `json:"title"`
+	Messages []traitsMsg `json:"messages"`
 }
 
 // traitsFeature is a single extracted feature from remote-server response.
