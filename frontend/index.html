@@ -357,7 +357,7 @@
                 <div class="main-header-right">
                     <button id="themeToggle" class="icon-btn icon-btn--normal" x-data="iconBtn({ size: 'normal' })"
                         @click="$store.settings.toggleTheme()"
-                        :data-tooltip="$store.settings.theme === 1 ? '切换到亮色主题' : '切换到暗色主题'">
+                        :data-tooltip="($store.settings.theme === 1 ? '切换到亮色主题' : '切换到暗色主题') + '（' + $store.settings.getTargetThemeName() + '）'">
                         <template x-if="$store.settings.theme === 1">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round" x-html="ICON_MOON"></svg>
