@@ -61,6 +61,9 @@ document.addEventListener('alpine:init', function() {
     		var v = localStorage.getItem('brainforever_theme_dark');
     		return v || 'builtin-dark';
     	})(),
+
+    	// 主题清单缓存（响应式），页面启动时由 chat.js 预加载
+    	themeManifest: [],
    
     	// ---- 持久化 ----
     	_save: function() {
@@ -171,7 +174,8 @@ document.addEventListener('alpine:init', function() {
             if (!themeId || themeId === 'builtin-light' || themeId === 'builtin-dark') {
                 return '内置';
             }
-            var themes = window.ThemeLoader ? window.ThemeLoader.getThemes() : [];
+            // 使用响应式 themeManifest（由 chat.js 预加载）
+            var themes = this.themeManifest || [];
             var found = themes.find(function(t) { return t.id === themeId; });
             return found ? (found.name_zh || found.name) : themeId;
         },

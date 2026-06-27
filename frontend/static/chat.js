@@ -29,6 +29,15 @@ import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOff
 // ============================================================
 Alpine.store('settings').load();
 
+// 预加载主题清单，使切换按钮 tooltip 能正确显示主题中文名
+if (window.ThemeLoader) {
+    window.ThemeLoader.loadManifest().then(function(data) {
+        if (data && data.themes) {
+            Alpine.store('settings').themeManifest = data.themes;
+        }
+    });
+}
+
 const THEME_VALUES = ['light', 'dark', 'system'];
 
 function resolveTheme(theme) {
