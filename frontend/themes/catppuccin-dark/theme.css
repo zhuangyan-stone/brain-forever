@@ -1,0 +1,43 @@
+/* ============================================================
+   Catppuccin Mocha (暗色) — 外源主题
+   文件夹名 catppuccin-dark → -dark 后缀表示暗色。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    --bg-primary:       #1e1e2e;
+    --bg-secondary:     #181825;
+    --bg-user:          #313244;
+    --bg-assistant:     #1e1e2e;
+    --bg-input:         #181825;
+    --switch-track-bg:  #11111b;
+
+    --text-primary:     #cdd6f4;
+    --text-secondary:   #a6adc8;
+    --text-muted:       #6c7086;
+
+    --accent:           #89b4fa;
+    --accent-hover:     #9fc7fa;
+
+    --border:           #313244;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.15);
+
+    --bg-code:          #181825;
+
+    --pure-black:       #000000;
+    --pure-white:       #ffffff;
+
+    --success-text:     #a6e3a1;
+
+    --error-bg:         rgba(243, 139, 168, 0.12);
+    --error-border:     rgba(243, 139, 168, 0.3);
+    --error-text:       #f38ba8;
+
+    --warning-bg:       #3d3100;
+    --warning-border:   #f9e2af;
+    --warning-text:     #f9e2af;
+
+    --tooltip-bg:       #313244;
+    --tooltip-text:     #cdd6f4;
+}

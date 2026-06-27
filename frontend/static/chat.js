@@ -55,6 +55,10 @@ function applyTheme(themeVal) {
     const themeStr = resolveTheme(themeVal);
     document.documentElement.setAttribute('data-theme', themeStr);
     switchHighlightTheme(themeStr);
+    // 外源主题联动：切换明暗时自动加载对应的外源主题 CSS
+    if (window.ThemeLoader) {
+        window.ThemeLoader.apply();
+    }
 }
 
 // 初始化主题

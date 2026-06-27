@@ -26,6 +26,24 @@
         })();
     </script>
     <link rel="stylesheet" href="/static/theme.css">
+    <script>
+        // ★ 零 FOUC：在 theme.css 之后同步注入外源主题 CSS
+        //   document.write 是阻塞的，浏览器加载完此 CSS 之前不会渲染后续内容
+        (function () {
+            try {
+                var themeStr = document.documentElement.getAttribute('data-theme');
+                if (!themeStr) themeStr = 'light';
+                var externalLight = localStorage.getItem('brainforever_theme_light') || '';
+                var externalDark = localStorage.getItem('brainforever_theme_dark') || '';
+                var externalId = themeStr === 'light' ? externalLight : externalDark;
+                if (externalId) {
+                    document.write(
+                        '<link rel="stylesheet" href="/themes/' + encodeURIComponent(externalId) + '/theme.css">'
+                    );
+                }
+            } catch(e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="/static/layout.css">
     <link rel="stylesheet" href="/static/input.css">
     <link rel="stylesheet" href="/static/reasoning.css">
@@ -36,6 +54,7 @@
     <link rel="stylesheet" href="/static/dialogs/msg-delete-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/title-edit-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/portrait-dialog.css">
+    <link rel="stylesheet" href="/static/components/theme-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
     <link rel="stylesheet" href="/static/responsive.css">
     <link rel="stylesheet" href="/static/components/toast.css">
@@ -376,6 +395,14 @@
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                             x-html="ICON_USER"></svg>
                                         生成个人画像
+                                    </button>
+                                    <!-- 选择颜色主题 -->
+                                    <button class="dropdown-item" id="themeSelectBtn"
+                                        @click="onOpenThemeDialog">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                            x-html="ICON_PALETTE"></svg>
+                                        选择颜色主题
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
@@ -828,8 +855,50 @@
         </div>
     </div>
 
+    <!-- ============================================================
+         主题选择对话框（Alpine 组件：themeDialog）
+         ============================================================ -->
+    <div class="dialog-overlay" id="themeDialog"
+        x-data="themeDialog()"
+        :class="{ show: show }"
+        @click.self="close">
+        <div class="dialog-box">
+            <div class="dialog-header">
+                <h3>选择颜色主题</h3>
+                <button class="dialog-close-btn" @click="close" aria-label="关闭">&times;</button>
+            </div>
+            <div class="dialog-body theme-dialog-body">
+                <div class="theme-select-group">
+                    <label for="themeSelectLight">亮色主题</label>
+                    <select id="themeSelectLight" x-model="selectedLight">
+                        <template x-for="t in availableLight" :key="t.id">
+                            <option :value="t.id" x-text="t.name_zh || t.name"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="theme-select-group">
+                    <label for="themeSelectDark">暗色主题</label>
+                    <select id="themeSelectDark" x-model="selectedDark">
+                        <template x-for="t in availableDark" :key="t.id">
+                            <option :value="t.id" x-text="t.name_zh || t.name"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="dialog-btn dialog-btn-cancel" @click="close">取消</button>
+                <button class="dialog-btn dialog-btn-confirm" @click="confirm">确认</button>
+            </div>
+        </div>
+    </div>
+
     <!-- AI 生成免责声明 — 页面加载后由 JS 动态插入模型名称 -->
     <div class="ai-disclaimer" id="aiDisclaimer">内容由 AI 生成，请仔细甄别</div>
+
+    <!-- 外源主题加载器（必须在 Alpine store 之前加载） -->
+    <script src="/static/theme-loader.js"></script>
+    <!-- 主题选择对话框 Alpine 组件 -->
+    <script src="/static/components/theme-dialog.js"></script>
 
     <script type="module" src="/static/chat.js"></script>
 </body>

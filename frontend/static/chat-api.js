@@ -759,6 +759,25 @@ window.onOpenUserTraits = function() {
 };
 
 // ============================================================
+// 打开主题选择对话框
+// ============================================================
+window.onOpenThemeDialog = function() {
+    try {
+        var dialogEl = document.getElementById('themeDialog');
+        if (dialogEl) {
+            var data = Alpine.$data(dialogEl);
+            if (data && typeof data.open === 'function') {
+                data.open();
+                return;
+            }
+        }
+        console.warn('主题选择对话框组件未找到或未初始化');
+    } catch (e) {
+        console.error('打开主题选择对话框失败:', e);
+    }
+};
+
+// ============================================================
 // 注册方法到 Alpine store + window — 供 HTML 模板中 @click 表达式调用
 // chat-api.js 是 ES Module，export 的函数不会进入全局作用域。
 // 但 Alpine 模板 @click="onChatLogout" 需要在 Alpine 的表达式作用域

@@ -200,6 +200,56 @@ func main() {
 	// /api/user/portrait -GET (generate user portrait via remote-server, streaming SSE)
 	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
 
+	// ============================================================
+	// Theme management API — read/write frontend/themes/manifest.json
+	// ============================================================
+	srv.GET("/api/themes", func(w http.ResponseWriter, r *http.Request) {
+		data, err := os.ReadFile("./frontend/themes/manifest.json")
+		if err != nil {
+			http.Error(w, `{"error":"cannot read theme manifest"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
+	})
+
+	srv.POST("/api/themes", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Actived      string `json:"actived"`
+			ActivedLight string `json:"actived-light"`
+			ActivedDark  string `json:"actived-dark"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+			return
+		}
+		// Read original file, keep themes[] intact, only update config fields
+		raw, err := os.ReadFile("./frontend/themes/manifest.json")
+		if err != nil {
+			http.Error(w, `{"error":"cannot read theme manifest"}`, http.StatusInternalServerError)
+			return
+		}
+		var m map[string]any
+		if err := json.Unmarshal(raw, &m); err != nil {
+			http.Error(w, `{"error":"invalid manifest JSON"}`, http.StatusInternalServerError)
+			return
+		}
+		m["actived"] = req.Actived
+		m["actived-light"] = req.ActivedLight
+		m["actived-dark"] = req.ActivedDark
+		out, err := json.MarshalIndent(m, "", "  ")
+		if err != nil {
+			http.Error(w, `{"error":"marshal error"}`, http.StatusInternalServerError)
+			return
+		}
+		if err := os.WriteFile("./frontend/themes/manifest.json", out, 0644); err != nil {
+			http.Error(w, `{"error":"write error"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+	})
+
 	// ── Static file server -frontend pages ──
 	// When CacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
 	// take effect immediately during development.

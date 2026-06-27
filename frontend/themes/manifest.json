@@ -1,0 +1,36 @@
+{
+  "actived": "dark",
+  "actived-dark": "nord-dark",
+  "actived-light": "nord-light",
+  "description": "第2大脑 外源主题清单 — 同时作为配置文件记录用户选择",
+  "themes": [
+    {
+      "description": "温暖柔和的亮色主题",
+      "id": "catppuccin-light",
+      "mode": "light",
+      "name": "Catppuccin Latte",
+      "name_zh": "猫布奇诺·拿铁"
+    },
+    {
+      "description": "温暖柔和的暗色主题",
+      "id": "catppuccin-dark",
+      "mode": "dark",
+      "name": "Catppuccin Mocha",
+      "name_zh": "猫布奇诺·摩卡"
+    },
+    {
+      "description": "冷静优雅的亮色主题",
+      "id": "nord-light",
+      "mode": "light",
+      "name": "Nord Snow Storm",
+      "name_zh": "北欧·雪暴"
+    },
+    {
+      "description": "冷静优雅的暗色主题",
+      "id": "nord-dark",
+      "mode": "dark",
+      "name": "Nord Polar Night",
+      "name_zh": "北欧·极夜"
+    }
+  ]
+}

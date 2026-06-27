@@ -1,0 +1,43 @@
+/* ============================================================
+   Nord Polar Night (暗色) — 外源主题
+   文件夹名 nord-dark → -dark 后缀表示暗色。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    --bg-primary:       #2e3440;
+    --bg-secondary:     #3b4252;
+    --bg-user:          #434c5e;
+    --bg-assistant:     #2e3440;
+    --bg-input:         #3b4252;
+    --switch-track-bg:  #1a1e26;
+
+    --text-primary:     #eceff4;
+    --text-secondary:   #d8dee9;
+    --text-muted:       #7b88a1;
+
+    --accent:           #88c0d0;
+    --accent-hover:     #99d0e0;
+
+    --border:           #434c5e;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.12);
+
+    --bg-code:          #3b4252;
+
+    --pure-black:       #000000;
+    --pure-white:       #ffffff;
+
+    --success-text:     #a3be8c;
+
+    --error-bg:         rgba(191, 97, 81, 0.15);
+    --error-border:     rgba(191, 97, 81, 0.35);
+    --error-text:       #bf6161;
+
+    --warning-bg:       #3d3100;
+    --warning-border:   #d08770;
+    --warning-text:     #ebcb8b;
+
+    --tooltip-bg:       #434c5e;
+    --tooltip-text:     #eceff4;
+}

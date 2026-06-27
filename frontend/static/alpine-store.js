@@ -45,38 +45,50 @@ document.addEventListener('alpine:init', function() {
     // ES Module 通过 Alpine.store('settings') 直接访问。
     // ============================================================
     Alpine.store('settings', {
-        deepThink: typeof _bfSettings.deepThink === 'boolean' ? _bfSettings.deepThink : false,
-        traitSearch: typeof _bfSettings.traitSearch === 'boolean' ? _bfSettings.traitSearch : true,
-        webSearch: typeof _bfSettings.webSearch === 'boolean' ? _bfSettings.webSearch : true,
-        sendMode: typeof _bfSettings.sendMode === 'number' ? _bfSettings.sendMode : 0,
-        theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 0,
-
-        // ---- 持久化 ----
-        _save: function() {
-            localStorage.setItem('brainforever_settings', JSON.stringify({
-                sendMode: this.sendMode,
-                deepThink: this.deepThink,
-                traitSearch: this.traitSearch,
-                webSearch: this.webSearch,
-                theme: this.theme,
-            }));
-        },
+    	deepThink: typeof _bfSettings.deepThink === 'boolean' ? _bfSettings.deepThink : false,
+    	traitSearch: typeof _bfSettings.traitSearch === 'boolean' ? _bfSettings.traitSearch : true,
+    	webSearch: typeof _bfSettings.webSearch === 'boolean' ? _bfSettings.webSearch : true,
+    	sendMode: typeof _bfSettings.sendMode === 'number' ? _bfSettings.sendMode : 0,
+    	theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 0,
+   
+    	// ---- 外源主题选择（独立 localStorage key） ----
+    	activedLight: localStorage.getItem('brainforever_theme_light') || '',
+    	activedDark: localStorage.getItem('brainforever_theme_dark') || '',
+   
+    	// ---- 持久化 ----
+    	_save: function() {
+    		localStorage.setItem('brainforever_settings', JSON.stringify({
+    			sendMode: this.sendMode,
+    			deepThink: this.deepThink,
+    			traitSearch: this.traitSearch,
+    			webSearch: this.webSearch,
+    			theme: this.theme,
+    		}));
+    		// 同步持久化外源主题选择
+    		localStorage.setItem('brainforever_theme_light', this.activedLight);
+    		localStorage.setItem('brainforever_theme_dark', this.activedDark);
+    	},
 
         /**
          * 从 localStorage 加载设置（供 ES Module 调用）
          */
         load: function() {
-            try {
-                var raw = localStorage.getItem('brainforever_settings');
-                if (raw) {
-                    var parsed = JSON.parse(raw);
-                    if (typeof parsed.sendMode === 'number') this.sendMode = parsed.sendMode;
-                    if (typeof parsed.deepThink === 'boolean') this.deepThink = parsed.deepThink;
-                    if (typeof parsed.traitSearch === 'boolean') this.traitSearch = parsed.traitSearch;
-                    if (typeof parsed.webSearch === 'boolean') this.webSearch = parsed.webSearch;
-                    if (typeof parsed.theme === 'number') this.theme = parsed.theme;
-                }
-            } catch(_) {}
+        	try {
+        		var raw = localStorage.getItem('brainforever_settings');
+        		if (raw) {
+        			var parsed = JSON.parse(raw);
+        			if (typeof parsed.sendMode === 'number') this.sendMode = parsed.sendMode;
+        			if (typeof parsed.deepThink === 'boolean') this.deepThink = parsed.deepThink;
+        			if (typeof parsed.traitSearch === 'boolean') this.traitSearch = parsed.traitSearch;
+        			if (typeof parsed.webSearch === 'boolean') this.webSearch = parsed.webSearch;
+        			if (typeof parsed.theme === 'number') this.theme = parsed.theme;
+        		}
+        		// 加载外源主题选择
+        		var light = localStorage.getItem('brainforever_theme_light');
+        		if (light !== null) this.activedLight = light;
+        		var dark = localStorage.getItem('brainforever_theme_dark');
+        		if (dark !== null) this.activedDark = dark;
+        	} catch(_) {}
         },
 
         /**
@@ -110,6 +122,34 @@ document.addEventListener('alpine:init', function() {
             document.dispatchEvent(new CustomEvent('theme-changed', {
                 detail: { theme: newTheme }
             }));
+        },
+
+        /**
+         * setThemeSelection — 设置外源主题选择
+         * @param {string} lightId - 亮色主题 ID（空串=使用内置亮色）
+         * @param {string} darkId  - 暗色主题 ID（空串=使用内置暗色）
+         */
+        setThemeSelection: function(lightId, darkId) {
+            this.activedLight = lightId;
+            this.activedDark = darkId;
+            this._save();
+            // 触发 ThemeLoader 刷新外源 CSS
+            if (window.ThemeLoader) {
+                window.ThemeLoader.apply();
+            }
+            // 同步到服务端（异步，不阻塞 UI）
+            var mode = document.documentElement.getAttribute('data-theme') || 'light';
+            fetch('/api/themes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    actived: mode,
+                    'actived-light': lightId,
+                    'actived-dark': darkId,
+                }),
+            }).catch(function(err) {
+                console.warn('同步主题选择到服务端失败:', err);
+            });
         },
     });
 

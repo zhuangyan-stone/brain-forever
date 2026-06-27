@@ -1,0 +1,52 @@
+/* ============================================================
+   主题选择对话框样式
+   注意：覆盖 dialog.css 中 .dialog-body 的 white-space: pre-wrap，
+   避免模板换行符被渲染为可见间距导致竖向空白过大。
+   ============================================================ */
+
+.theme-dialog-body {
+    padding: 12px 20px;
+    white-space: normal;
+    line-height: 1.4;
+}
+
+.theme-select-group {
+    margin-bottom: 10px;
+}
+
+.theme-select-group:last-child {
+    margin-bottom: 0;
+}
+
+.theme-select-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 4px;
+}
+
+.theme-select-group select {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1px solid var(--border, #3c3c3c);
+    border-radius: 6px;
+    background: var(--bg-input, #1a1a1a);
+    color: var(--text-primary, #d4d4d4);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    appearance: auto;
+    -webkit-appearance: auto;
+}
+
+.theme-select-group select:focus {
+    border-color: var(--accent, #57C3C3);
+}
+
+.theme-select-group select option {
+    padding: 4px 8px;
+    background: var(--bg-secondary, #252526);
+    color: var(--text-primary, #d4d4d4);
+}
