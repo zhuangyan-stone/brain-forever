@@ -26,19 +26,17 @@ document.addEventListener('alpine:init', function() {
             init: function() {
                 var self = this;
                 this.$watch('selectedLight', function(value) {
-                    if (self.linkThemes && value) {
-                        var linked = self._getLinkedId(value, 'dark');
-                        if (linked && linked !== self.selectedDark) {
-                            self.selectedDark = linked;
-                        }
+                    if (!self.linkThemes) return;
+                    var linked = value ? self._getLinkedId(value, 'dark') : '';
+                    if (linked !== self.selectedDark) {
+                        self.selectedDark = linked;
                     }
                 });
                 this.$watch('selectedDark', function(value) {
-                    if (self.linkThemes && value) {
-                        var linked = self._getLinkedId(value, 'light');
-                        if (linked && linked !== self.selectedLight) {
-                            self.selectedLight = linked;
-                        }
+                    if (!self.linkThemes) return;
+                    var linked = value ? self._getLinkedId(value, 'light') : '';
+                    if (linked !== self.selectedLight) {
+                        self.selectedLight = linked;
                     }
                 });
             },
@@ -89,8 +87,8 @@ document.addEventListener('alpine:init', function() {
             open: async function() {
                 var data = await window.ThemeLoader.loadManifest();
 
-                var builtinLight = { id: '', name: '内置亮色', name_zh: '内置亮色' };
-                var builtinDark  = { id: '', name: '内置暗色', name_zh: '内置暗色' };
+                var builtinLight = { id: 'builtin-light', name: '内置亮色', name_zh: '内置亮色' };
+                var builtinDark  = { id: 'builtin-dark', name: '内置暗色', name_zh: '内置暗色' };
 
                 var allThemes = (data && data.themes) || [];
 
@@ -101,8 +99,12 @@ document.addEventListener('alpine:init', function() {
                     allThemes.filter(function(t) { return t.mode === 'dark'; })
                 );
 
-                this.selectedLight = localStorage.getItem('brainforever_theme_light') || '';
-                this.selectedDark  = localStorage.getItem('brainforever_theme_dark') || '';
+                // 从 localStorage 读取已保存的选择；
+                // 若为空（旧版遗留或首次使用），默认选中"内置"方案
+                var savedLight = localStorage.getItem('brainforever_theme_light');
+                var savedDark  = localStorage.getItem('brainforever_theme_dark');
+                this.selectedLight = savedLight || 'builtin-light';
+                this.selectedDark  = savedDark || 'builtin-dark';
 
                 this.show = true;
             },
@@ -115,8 +117,10 @@ document.addEventListener('alpine:init', function() {
                 this.linkThemes = !this.linkThemes;
                 if (this.linkThemes) {
                     // 开启联动时，根据当前亮色主题自动同步暗色
-                    var linked = this._getLinkedId(this.selectedLight, 'dark');
-                    if (linked && linked !== this.selectedDark) {
+                    var linked = this.selectedLight
+                        ? this._getLinkedId(this.selectedLight, 'dark')
+                        : '';
+                    if (linked !== this.selectedDark) {
                         this.selectedDark = linked;
                     }
                 }

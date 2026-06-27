@@ -36,7 +36,8 @@
                 var externalLight = localStorage.getItem('brainforever_theme_light') || '';
                 var externalDark = localStorage.getItem('brainforever_theme_dark') || '';
                 var externalId = themeStr === 'light' ? externalLight : externalDark;
-                if (externalId) {
+                // 仅在 externalId 非空且非内置主题时注入外源 CSS
+                if (externalId && externalId !== 'builtin-light' && externalId !== 'builtin-dark') {
                     document.write(
                         '<link rel="stylesheet" href="/themes/' + encodeURIComponent(externalId) + '/theme.css">'
                     );

@@ -40,7 +40,8 @@ window.ThemeLoader = (function() {
                 ? (localStorage.getItem('brainforever_theme_light') || '')
                 : (localStorage.getItem('brainforever_theme_dark') || '');
 
-            if (!themeId) {
+            // themeId 为空或为 builtin-light/builtin-dark 时，均表示使用内置主题
+            if (!themeId || themeId === 'builtin-light' || themeId === 'builtin-dark') {
                 this.clear();
                 return;
             }
@@ -62,11 +63,16 @@ window.ThemeLoader = (function() {
 
         /**
          * clear — 移除所有外源主题 CSS，回退到内置主题
+         *
+         * 清除两类 <link>：
+         *   1. 运行时加载的（id="external-theme-css"）
+         *   2. 页面初始化时通过 document.write 注入的（无 id，但 href 以 /themes/ 开头）
          */
         clear: function() {
-            var old = document.getElementById('external-theme-css');
-            if (old) {
-                old.parentNode.removeChild(old);
+            var links = document.querySelectorAll('link[href^="/themes/"]');
+            for (var i = 0; i < links.length; i++) {
+                var link = links[i];
+                link.parentNode.removeChild(link);
             }
             _currentId = '';
         },

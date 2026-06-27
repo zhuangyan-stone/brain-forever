@@ -52,8 +52,15 @@ document.addEventListener('alpine:init', function() {
     	theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 0,
    
     	// ---- 外源主题选择（独立 localStorage key） ----
-    	activedLight: localStorage.getItem('brainforever_theme_light') || '',
-    	activedDark: localStorage.getItem('brainforever_theme_dark') || '',
+    	// 使用 'builtin-light'/'builtin-dark' 表示内置方案（非空字符串，避免 falsy 问题）
+    	activedLight: (function() {
+    		var v = localStorage.getItem('brainforever_theme_light');
+    		return v || 'builtin-light';
+    	})(),
+    	activedDark: (function() {
+    		var v = localStorage.getItem('brainforever_theme_dark');
+    		return v || 'builtin-dark';
+    	})(),
    
     	// ---- 持久化 ----
     	_save: function() {
@@ -84,10 +91,11 @@ document.addEventListener('alpine:init', function() {
         			if (typeof parsed.theme === 'number') this.theme = parsed.theme;
         		}
         		// 加载外源主题选择
+        		// 兼容旧版空字符串：空值 → 使用 'builtin-light'/'builtin-dark'
         		var light = localStorage.getItem('brainforever_theme_light');
-        		if (light !== null) this.activedLight = light;
+        		if (light !== null) this.activedLight = light || 'builtin-light';
         		var dark = localStorage.getItem('brainforever_theme_dark');
-        		if (dark !== null) this.activedDark = dark;
+        		if (dark !== null) this.activedDark = dark || 'builtin-dark';
         	} catch(_) {}
         },
 
