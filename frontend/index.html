@@ -872,17 +872,19 @@
                     <label for="themeSelectLight">亮色主题</label>
                     <select id="themeSelectLight" x-model="selectedLight">
                         <template x-for="t in availableLight" :key="t.id">
-                            <option :value="t.id" x-text="t.name_zh || t.name"></option>
+                            <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')"></option>
                         </template>
                     </select>
+                    <div class="theme-desc" x-show="selectedLight" x-text="selectedLightDesc"></div>
                 </div>
                 <div class="theme-select-group">
                     <label for="themeSelectDark">暗色主题</label>
                     <select id="themeSelectDark" x-model="selectedDark">
                         <template x-for="t in availableDark" :key="t.id">
-                            <option :value="t.id" x-text="t.name_zh || t.name"></option>
+                            <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')"></option>
                         </template>
                     </select>
+                    <div class="theme-desc" x-show="selectedDark" x-text="selectedDarkDesc"></div>
                 </div>
             </div>
             <div class="dialog-footer">

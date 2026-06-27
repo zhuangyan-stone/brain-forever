@@ -64,6 +64,22 @@ document.addEventListener('alpine:init', function() {
                 return targetList.some(function(t) { return t.id === linked; }) ? linked : '';
             },
 
+            // ---- 选中主题的描述 ----
+
+            /** 当前亮色选中主题的描述，空串表示内置主题或未选择 */
+            get selectedLightDesc() {
+                if (!this.selectedLight) return '';
+                var found = this.availableLight.find(function(t) { return t.id === this.selectedLight; }.bind(this));
+                return found ? (found.description || '') : '';
+            },
+
+            /** 当前暗色选中主题的描述，空串表示内置主题或未选择 */
+            get selectedDarkDesc() {
+                if (!this.selectedDark) return '';
+                var found = this.availableDark.find(function(t) { return t.id === this.selectedDark; }.bind(this));
+                return found ? (found.description || '') : '';
+            },
+
             /**
              * open — 打开对话框
              * 1. 从服务端加载 manifest

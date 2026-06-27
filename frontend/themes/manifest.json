@@ -47,6 +47,7 @@
       "description": "高对比度亮色主题，暗橙语义，专为色弱人士优化",
       "id": "highcontrast-light",
       "mode": "light",
+      "highContrast": true,
       "name": "Bright Eyes · Day",
       "name_zh": "明眸·昼"
     },
@@ -54,6 +55,7 @@
       "description": "高对比度暗色主题，亮橙语义，专为色弱人士优化",
       "id": "highcontrast-dark",
       "mode": "dark",
+      "highContrast": true,
       "name": "Bright Eyes · Night",
       "name_zh": "明眸·夜"
     }
