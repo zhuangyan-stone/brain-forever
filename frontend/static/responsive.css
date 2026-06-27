@@ -223,7 +223,9 @@ body.small-screen-mode .main-title:not(:empty)::before {
     display: inline-block;
     width: 0.85rem;
     height: 0.63rem;
-    background: url('./img/quote-left.svg') no-repeat center / contain;
+    background-color: var(--text-primary);
+    -webkit-mask: url('./img/quote-left.svg') no-repeat center / contain;
+    mask: url('./img/quote-left.svg') no-repeat center / contain;
     font-size: 1.4rem;
     margin-right: 3px;
     vertical-align: middle;
