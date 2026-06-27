@@ -50,3 +50,78 @@
     background: var(--bg-secondary, #252526);
     color: var(--text-primary, #d4d4d4);
 }
+
+/* ============================================================
+   亮/暗联动开关
+   ============================================================ */
+.theme-link-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.theme-link-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.theme-link-toggle-slider {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    background: var(--bg-input, #1a1a1a);
+    border: 1px solid var(--border, #3c3c3c);
+    border-radius: 10px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.theme-link-toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--text-secondary, #a0a0a0);
+    border-radius: 50%;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.theme-link-toggle.active .theme-link-toggle-slider {
+    background: var(--accent, #57C3C3);
+    border-color: var(--accent, #57C3C3);
+}
+
+.theme-link-toggle.active .theme-link-toggle-slider::after {
+    transform: translateX(14px);
+    background: #fff;
+}
+
+.theme-link-toggle-text {
+    font-size: 12px;
+    color: var(--text-secondary, #a0a0a0);
+    white-space: nowrap;
+}
+
+.theme-link-toggle.active .theme-link-toggle-text {
+    color: var(--text-primary, #d4d4d4);
+}
+
+/* footer 布局：左端开关，中间弹性空白，右端按钮 */
+.theme-dialog-body + .dialog-footer {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+}
+
+.dialog-footer-spacer {
+    flex: 1;
+}

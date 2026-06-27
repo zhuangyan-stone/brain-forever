@@ -886,6 +886,12 @@
                 </div>
             </div>
             <div class="dialog-footer">
+                <label class="theme-link-toggle" :class="{ active: linkThemes }">
+                    <input type="checkbox" :checked="linkThemes" @change="toggleLinkThemes" />
+                    <span class="theme-link-toggle-slider"></span>
+                    <span class="theme-link-toggle-text">亮/暗联动</span>
+                </label>
+                <div class="dialog-footer-spacer"></div>
                 <button class="dialog-btn dialog-btn-cancel" @click="close">取消</button>
                 <button class="dialog-btn dialog-btn-confirm" @click="confirm">确认</button>
             </div>
