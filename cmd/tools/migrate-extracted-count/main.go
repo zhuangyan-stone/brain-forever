@@ -109,6 +109,21 @@ func migrateOne(p dbPair) error {
 		return fmt.Errorf("既无旧列也无新列")
 	}
 
+	// Step 2b: 重命名 trait_time → extracted_at
+	oldTimeCol := "trait_time"
+	newTimeCol := "extracted_at"
+	if cols[oldTimeCol] && !cols[newTimeCol] {
+		fmt.Printf("  🔄 重命名: %s → %s\n", oldTimeCol, newTimeCol)
+		_, err := chatsDB.Exec(fmt.Sprintf(`ALTER TABLE chat_sessions RENAME COLUMN %s TO %s`, oldTimeCol, newTimeCol))
+		if err != nil {
+			fmt.Printf("  ⚠️ RENAME 失败，回退: %v\n", err)
+			chatsDB.Exec(fmt.Sprintf(`ALTER TABLE chat_sessions ADD COLUMN %s DATETIME`, newTimeCol))
+			chatsDB.Exec(fmt.Sprintf(`UPDATE chat_sessions SET %s = %s`, newTimeCol, oldTimeCol))
+		}
+	} else if cols[newTimeCol] {
+		fmt.Printf("  ℹ️ 新列 %s 已存在\n", newTimeCol)
+	}
+
 	// Step 3: 读所有 chat SN
 	type chatRow struct {
 		ID int64
