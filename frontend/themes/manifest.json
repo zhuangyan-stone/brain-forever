@@ -44,14 +44,14 @@
       "name_zh": "水墨·夜山"
     },
     {
-      "description": "竹林听雨，阳光穿叶泻下。竹叶翠绿交织阳光白亮",
+      "description": "竹林听雨，阳光穿叶。竹叶翠绿交织阳光白亮",
       "id": "zhuzhangmangxie-light",
       "mode": "light",
       "name": "Bamboo Staff · No Wind Nor Rain",
       "name_zh": "竹杖芒鞋·也无风雨"
     },
     {
-      "description": "暮色竹林，风雨初歇。深绿竹林中橙色残阳余晖",
+      "description": "暮色竹林，风雨初歇。竹林苍绿抬望残阳余晖",
       "id": "zhuzhangmangxie-dark",
       "mode": "dark",
       "name": "Straw Sandals · No Sunshine Either",
