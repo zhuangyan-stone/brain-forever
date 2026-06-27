@@ -18,7 +18,7 @@ document.addEventListener('alpine:init', function() {
             availableDark: [],    // 暗色主题列表 [{ id, name, name_zh }]
             selectedLight: '',    // 当前选中的亮色主题 ID
             selectedDark: '',     // 当前选中的暗色主题 ID
-            linkThemes: false,    // 亮暗联动开关
+            linkThemes: true,     // 亮暗联动开关（默认开启）
 
             /**
              * init — Alpine 初始化时注册 watcher，监听亮/暗主题选择变化
