@@ -277,7 +277,7 @@ function getToggleButton() {
         globalToggleButton = document.createElement('button');
         globalToggleButton.className = 'icon-btn icon-btn--small menu-toggle-btn';
         globalToggleButton.setAttribute('aria-label', '切换侧边栏');
-        globalToggleButton.dataset.tooltip = '切换侧边栏';
+        globalToggleButton.dataset.tooltip = '切换侧边栏 (Ctrl+B)';
         globalToggleButton.innerHTML = TOGGLE_BTN_OPEN_SVG;
         // 绑定统一切换逻辑
         globalToggleButton.addEventListener('click', (e) => {
@@ -976,6 +976,21 @@ document.addEventListener('keydown', (e) => {
             }
             msgInput.focus();
         }
+    }
+});
+
+// ============================================================
+// 全局热键 — Ctrl+B：切换左边栏（仅在没有弹出对话框时生效）
+// 调用 toggleSidebarMaster() 走统一切换逻辑（宽屏双栏/小屏抽屉）
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        // 检查是否有对话框打开（Alpine 对话框 + msgbox 动态对话框均有 .show class）
+        const hasDialog = document.querySelector('.dialog-overlay.show, .portrait-overlay.show');
+        if (hasDialog) return;
+
+        e.preventDefault();
+        toggleSidebarMaster();
     }
 });
 
