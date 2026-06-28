@@ -14,22 +14,52 @@
     <rect x="1430" y="0" width="10" height="900" fill="#3A3E42"/>
   </g>
 
-  <!-- 齿轮/机械元素 -->
-  <g transform="translate(1150, 700) scale(1.5) translate(-1150, -700)" opacity="0.08">
-    <!-- 大齿轮（右下，放大150%） -->
-    <circle cx="1150" cy="700" r="120" fill="none" stroke="#C06A30" stroke-width="6"/>
-    <circle cx="1150" cy="700" r="90" fill="none" stroke="#C06A30" stroke-width="3"/>
-    <circle cx="1150" cy="700" r="30" fill="#C06A30"/>
-    <g stroke="#C06A30" stroke-width="6">
-      <line x1="1150" y1="570" x2="1150" y2="550"/>
-      <line x1="1150" y1="830" x2="1150" y2="850"/>
-      <line x1="1020" y1="700" x2="1000" y2="700"/>
-      <line x1="1280" y1="700" x2="1300" y2="700"/>
-      <line x1="1058" y1="608" x2="1044" y2="594"/>
-      <line x1="1242" y1="792" x2="1256" y2="806"/>
-      <line x1="1058" y1="792" x2="1044" y2="806"/>
-      <line x1="1242" y1="608" x2="1256" y2="594"/>
+  <!-- 古典闹钟 — 时间的力量（原齿轮位） -->
+  <g transform="translate(1150, 700) scale(1.2)" opacity="0.08">
+    <!-- 钟体外壳 -->
+    <circle cx="0" cy="0" r="100" fill="none" stroke="#C06A30" stroke-width="5"/>
+    <circle cx="0" cy="0" r="90" fill="none" stroke="#C06A30" stroke-width="1.5"/>
+    <!-- 钟面内圈 -->
+    <circle cx="0" cy="0" r="82" fill="none" stroke="#C06A30" stroke-width="0.8" opacity="0.5"/>
+
+    <!-- 顶部两个铃铛 -->
+    <ellipse cx="-30" cy="-95" rx="28" ry="18" fill="none" stroke="#C06A30" stroke-width="3"/>
+    <ellipse cx="30" cy="-95" rx="28" ry="18" fill="none" stroke="#C06A30" stroke-width="3"/>
+
+    <!-- 铃锤 -->
+    <line x1="0" y1="-95" x2="0" y2="-118" stroke="#C06A30" stroke-width="2.5"/>
+    <circle cx="0" cy="-121" r="5" fill="#C06A30"/>
+
+    <!-- 12个钟点刻度 -->
+    <g stroke="#C06A30" stroke-width="2.5" stroke-linecap="round">
+      <g transform="rotate(0)"><line x1="0" y1="-85" x2="0" y2="-77"/></g>
+      <g transform="rotate(30)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
+      <g transform="rotate(60)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
+      <g transform="rotate(90)"><line x1="0" y1="-85" x2="0" y2="-77"/></g>
+      <g transform="rotate(120)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
+      <g transform="rotate(150)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
+      <g transform="rotate(180)"><line x1="0" y1="-85" x2="0" y2="-77"/></g>
+      <g transform="rotate(210)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
+      <g transform="rotate(240)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
+      <g transform="rotate(270)"><line x1="0" y1="-85" x2="0" y2="-77"/></g>
+      <g transform="rotate(300)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
+      <g transform="rotate(330)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
     </g>
+
+    <!-- 时针（短粗，指向约10点） -->
+    <line x1="0" y1="0" x2="-25" y2="-40" stroke="#C06A30" stroke-width="4" stroke-linecap="round"/>
+    <!-- 分针（细长，指向约2点） -->
+    <line x1="0" y1="0" x2="35" y2="-55" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 秒针（最细，指向约7点） -->
+    <line x1="0" y1="0" x2="-20" y2="60" stroke="#C06A30" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- 中心轴 -->
+    <circle cx="0" cy="0" r="5" fill="#C06A30"/>
+    <circle cx="0" cy="0" r="2" fill="#F2F0ED"/>
+
+    <!-- 底部两只脚 -->
+    <path d="M-50,95 Q-55,108 -60,105" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M50,95 Q55,108 60,105" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
   </g>
 
   <!-- 舵轮 — 画面正上方中间，象征方向与掌控 -->
@@ -120,6 +150,13 @@
       <path d="M120,380 L190,380"/>
       <path d="M114,410 L196,410"/>
     </g>
+  </g>
+
+  <!-- 手写邀约 — 老男人的浪漫（写在领带上） -->
+  <g opacity="0.50" font-family="KaiTi, STKaiti, 'Noto Serif SC', serif" fill="#FFFFFF">
+    <text x="150" y="240" font-size="16" transform="rotate(-3, 150, 240)">我想</text>
+    <text x="158" y="290" font-size="16" transform="rotate(4, 158, 290)">约你</text>
+    <text x="145" y="340" font-size="16" transform="rotate(-2, 145, 340)">吃饭</text>
   </g>
 
   <!-- 书堆 — 知识的力量 -->
@@ -242,13 +279,23 @@
     <path d="M720,862 Q720,878 732,884" stroke="#3A3E42" stroke-width="2" fill="none" opacity="0.6"/>
   </g>
 
-  <!-- 红领巾 — 少先队员的骄傲 -->
-  <g opacity="0.15">
-    <!-- 左尾 -->
-    <path d="M1260,100 Q1230,160 1190,220 L1220,225 Q1250,170 1278,115 Z" fill="#CC2222"/>
-    <!-- 右尾 -->
-    <path d="M1290,100 Q1320,170 1360,240 L1330,235 Q1300,175 1270,115 Z" fill="#CC2222"/>
-    <!-- 领结 -->
-    <polygon points="1265,85 1290,85 1295,110 1260,110" fill="#CC2222"/>
+  <!-- 老花镜 — 岁月的沉淀（原红领巾位） -->
+  <g opacity="0.12">
+    <!-- 左镜框 -->
+    <circle cx="1245" cy="165" r="28" fill="none" stroke="#C06A30" stroke-width="3"/>
+    <circle cx="1245" cy="165" r="24" fill="none" stroke="#C06A30" stroke-width="0.8" opacity="0.4"/>
+    <!-- 右镜框 -->
+    <circle cx="1305" cy="165" r="28" fill="none" stroke="#C06A30" stroke-width="3"/>
+    <circle cx="1305" cy="165" r="24" fill="none" stroke="#C06A30" stroke-width="0.8" opacity="0.4"/>
+    <!-- 鼻梁桥 -->
+    <path d="M1272,170 Q1275,158 1278,170" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 左镜腿 -->
+    <path d="M1217,165 Q1195,160 1180,150" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 右镜腿 -->
+    <path d="M1333,165 Q1355,160 1370,150" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 镜片微反光 -->
+    <path d="M1235,150 Q1240,145 1245,148" fill="none" stroke="#F2F0ED" stroke-width="1.2" opacity="0.25"/>
+    <path d="M1295,150 Q1300,145 1305,148" fill="none" stroke="#F2F0ED" stroke-width="1.2" opacity="0.25"/>
   </g>
 </svg>
+
