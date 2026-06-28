@@ -40,4 +40,8 @@
 
     --tooltip-bg:       #d8dee9;
     --tooltip-text:     #2e3440;
+
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #fff;
+    --btn-highlight-hover-bg: var(--accent-hover);
 }

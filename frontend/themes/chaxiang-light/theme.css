@@ -52,4 +52,8 @@
     /* Tooltip */
     --tooltip-bg:       #E0D7C5;
     --tooltip-text:     #2C2820;
+
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #fff;
+    --btn-highlight-hover-bg: var(--accent-hover);
 }

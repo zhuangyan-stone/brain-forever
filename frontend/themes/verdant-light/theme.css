@@ -48,4 +48,8 @@
     --warning-bg:       #fff3cd;
     --warning-border:   #ffc107;
     --warning-text:     #856404;
+
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #fff;
+    --btn-highlight-hover-bg: var(--accent-hover);
 }
