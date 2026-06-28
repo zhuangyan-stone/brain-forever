@@ -1,0 +1,55 @@
+/* ============================================================
+   Klein Blue · 湛蓝 (亮色) — 外源主题
+   文件夹名 klienblue-light → -light 后缀表示亮色。
+   克莱因蓝为魂，纯粹之蓝，无限之蓝。
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 基调 — 克莱因蓝的纯粹，冷白为底 */
+    --bg-primary:       #F6F7FB;
+    --bg-image:         url('/themes/klienblue-light/bg.svg');
+    --bg-secondary:     #EAEDF5;
+    --bg-user:          #DCE1F0;
+    --bg-assistant:     #F6F7FB;
+    --bg-input:         #EFF2F8;
+    --switch-track-bg:  #C8CFE0;
+
+    /* 墨色文字 — 深海蓝黑 */
+    --text-primary:     #1A1F33;
+    --text-secondary:   #3D4663;
+    --text-muted:       #6D7693;
+
+    /* 点缀 — 克莱因蓝 (IKB #002FA7 的亮化版) */
+    --accent:           #1A4BC8;
+    --accent-hover:     #2B5CE0;
+
+    /* 边框/阴影 — 冷蓝勾边 */
+    --border:           #C8CFE0;
+    --shadow:           rgba(26, 31, 51, 0.08);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(26, 31, 51, 0.12);
+
+    /* 代码块 */
+    --bg-code:          #EAEDF5;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 冷翠 */
+    --success-text:     #3A9E7A;
+
+    /* 错误 — 朱红 */
+    --error-bg:         rgba(180, 60, 60, 0.08);
+    --error-border:     rgba(180, 60, 60, 0.25);
+    --error-text:       #B43C3C;
+
+    /* 警告 — 暖金 */
+    --warning-bg:       #FCF6E8;
+    --warning-border:   #D4B86A;
+    --warning-text:     #8A7A40;
+
+    /* Tooltip */
+    --tooltip-bg:       #DCE1F0;
+    --tooltip-text:     #1A1F33;
+}

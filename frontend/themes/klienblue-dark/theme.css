@@ -1,0 +1,55 @@
+/* ============================================================
+   Klein Blue · 夜蓝 (暗色) — 外源主题
+   文件夹名 klienblue-dark → -dark 后缀表示暗色。
+   克莱因蓝沉入夜色，纯粹之蓝在黑暗中发光。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 基调 — 克莱因蓝的夜空，深湛无垠 */
+    --bg-primary:       #0B1120;
+    --bg-image:         url('/themes/klienblue-dark/bg.svg');
+    --bg-secondary:     #121A2E;
+    --bg-user:          #1A2540;
+    --bg-assistant:     #0B1120;
+    --bg-input:         #080D18;
+    --switch-track-bg:  #060A14;
+
+    /* 墨色文字 — 夜蓝微光 */
+    --text-primary:     #C8D0E0;
+    --text-secondary:   #8894B0;
+    --text-muted:       #586480;
+
+    /* 点缀 — 克莱因蓝 (IKB #002FA7 发光版) */
+    --accent:           #2B59FF;
+    --accent-hover:     #4A72FF;
+
+    /* 边框/阴影 — 深蓝勾边 */
+    --border:           #1E2840;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.08);
+
+    /* 代码块 */
+    --bg-code:          #121A2E;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 冷翠（暗版） */
+    --success-text:     #5AB88A;
+
+    /* 错误 — 朱红（暗版） */
+    --error-bg:         rgba(180, 60, 60, 0.18);
+    --error-border:     rgba(180, 60, 60, 0.40);
+    --error-text:       #B06060;
+
+    /* 警告 — 暖金（暗版） */
+    --warning-bg:       #1E1A10;
+    --warning-border:   #C4A85A;
+    --warning-text:     #D4B87A;
+
+    /* Tooltip */
+    --tooltip-bg:       #1A2540;
+    --tooltip-text:     #C8D0E0;
+}
