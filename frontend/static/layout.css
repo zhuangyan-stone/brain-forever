@@ -242,8 +242,8 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     border: 2px solid var(--border-color, #ddd);
     border-radius: 50%;
@@ -254,8 +254,10 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 }
 
 .user-avatar-btn:hover {
-    border-color: var(--accent-color, #4a9eff);
-    box-shadow: 0 0 0 2px var(--accent-color-transparent, rgba(74, 158, 255, 0.2));
+    border: 2px solid var(--accent, #4a9eff);
+    outline: 2px dashed color-mix(in srgb, var(--text-primary) 25%, transparent);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 
 .user-avatar-img {
@@ -266,19 +268,18 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     border-radius: 50%;
 }
 
-/* 下拉菜单 */
+/* 下拉菜单 — 样式与 chat 上下文菜单统一 */
 .user-dropdown-menu {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
     min-width: 160px;
-    background: var(--bg-color, #fff);
-    border: 1px solid var(--border-color, #e0e0e0);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 16px var(--shadow);
     z-index: 1000;
-    padding: 0 0 4px 0;
-    overflow: hidden;
+    padding: 4px;
 }
 
 .dropdown-item {
@@ -286,43 +287,43 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     align-items: center;
     gap: 8px;
     width: 100%;
-    padding: 8px 14px;
-    font-size: 13px;
-    color: var(--text-color, #333);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
     background: none;
     border: none;
+    border-radius: 4px;
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
-    transition: background-color 0.15s;
+    transition: background-color 0.1s ease;
 }
 
 .dropdown-item:hover {
-    background-color: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    background: var(--bg-user);
 }
 
 .dropdown-item--disabled {
-    color: var(--text-secondary, #888);
+    color: var(--text-tertiary, var(--text-secondary));
     cursor: default;
-    font-weight: 500;
-    background-color: var(--bg-secondary, #f0f0f0);
+    opacity: 0.55;
+    background: transparent;
 }
 
 .dropdown-item--disabled:hover {
-    background-color: var(--bg-secondary, #f0f0f0);
+    background: transparent;
 }
 
 .dropdown-item--username {
     justify-content: center;
-    padding: 10px 14px;
 }
 
 .dropdown-item--danger {
-    color: var(--danger-color, #e74c3c);
+    color: var(--error-text);
 }
 
 .dropdown-item--danger:hover {
-    background-color: var(--danger-bg, rgba(231, 76, 60, 0.08));
+    background: var(--error-bg);
 }
 
 .dropdown-divider {
