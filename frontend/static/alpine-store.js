@@ -94,7 +94,6 @@ document.addEventListener('alpine:init', function() {
         			if (typeof parsed.theme === 'number') this.theme = parsed.theme;
         		}
         		// 加载外源主题选择
-        		// 兼容旧版空字符串：空值 → 使用 'builtin-light'/'builtin-dark'
         		var light = localStorage.getItem('brainforever_theme_light');
         		if (light !== null) this.activedLight = light || 'builtin-light';
         		var dark = localStorage.getItem('brainforever_theme_dark');
