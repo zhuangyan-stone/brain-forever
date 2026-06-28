@@ -6,7 +6,7 @@
       "id": "verdant-light",
       "mode": "light",
       "name": "Pure Verdant · Clear Sky",
-      "name_zh": "只此青绿·晴"
+      "name_zh": "只此青绿·昼"
     },
     {
       "description": "青绿微光，深灰极简，沉静专注",
@@ -23,7 +23,7 @@
       "name_zh": "水墨·晴岚"
     },
     {
-      "description": "国风山水，夜色浓深，焦墨层叠",
+      "description": "国风山水，夜色浓厚，群山层叠",
       "id": "shanshui-dark",
       "mode": "dark",
       "name": "Shanshui · Night Mountain",
@@ -44,14 +44,14 @@
       "name_zh": "天青·暮色"
     },
     {
-      "description": "一盏新茶，明前春色。茶汤清亮的暖色主题",
+      "description": "半盏新茶，明前春色。茶汤清亮人心暖",
       "id": "chaxiang-light",
       "mode": "light",
       "name": "Tea Fragrance · First Flush",
       "name_zh": "茶香·明前"
     },
     {
-      "description": "陈年老茶，醇厚温润。夜深茶暖的暗色主题",
+      "description": "陈年苦茗，霜后秋香。余韵悠长岁月甘",
       "id": "chaxiang-dark",
       "mode": "dark",
       "name": "Tea Fragrance · Aged Aroma",
@@ -97,7 +97,7 @@
       "id": "nord-dark",
       "mode": "dark",
       "name": "Nord Cold Night",
-      "name_zh": "北欧·夜冷"
+      "name_zh": "北欧·月冷"
     },    
     {
       "description": "克莱因蓝，纯粹",

@@ -1,28 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- 猫 + 咖啡机 — 右下角 -->
-  <g fill="none" stroke="#4c4f69" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 猫 + 咖啡机 — 右下角（猫在咖啡机内，杯子在外面） -->
+  <g fill="none" stroke="#2a7af5" stroke-linecap="round" stroke-linejoin="round">
 
-    <!-- ===== 咖啡机 ===== -->
-    <g transform="translate(1190, 640)" opacity="0.08" stroke-width="2">
+    <!-- ===== 咖啡机（内部猫） ===== -->
+    <g transform="translate(1224, 696)" opacity="0.18" stroke-width="2">
       <!-- 机身 -->
-      <rect x="0" y="30" width="80" height="120" rx="6" stroke="#4c4f69" fill="#4c4f69" fill-opacity="0.05"/>
+      <rect x="0" y="30" width="80" height="120" rx="6" stroke="#2a7af5" fill="#2a7af5" fill-opacity="0.05"/>
       <!-- 顶部 -->
-      <rect x="0" y="15" width="80" height="20" rx="4" stroke="#4c4f69" fill="#4c4f69" fill-opacity="0.06"/>
+      <rect x="0" y="15" width="80" height="20" rx="4" stroke="#2a7af5" fill="#2a7af5" fill-opacity="0.06"/>
       <!-- 冲煮头 -->
-      <rect x="20" y="35" width="40" height="12" rx="2" stroke="#4c4f69"/>
+      <rect x="20" y="35" width="40" height="12" rx="2" stroke="#2a7af5"/>
       <!-- 手柄 -->
-      <path d="M65,38 L85,30 L85,50 L65,46" stroke="#4c4f69" fill="none"/>
-      <!-- 接水盘格栅 -->
-      <line x1="15" y1="118" x2="65" y2="118" stroke="#4c4f69" stroke-width="1"/>
-      <line x1="15" y1="125" x2="65" y2="125" stroke="#4c4f69" stroke-width="1"/>
-      <line x1="15" y1="132" x2="65" y2="132" stroke="#4c4f69" stroke-width="1"/>
+      <path d="M65,38 L85,30 L85,50 L65,46" stroke="#2a7af5" fill="none"/>
       <!-- 蒸汽棒 -->
-      <path d="M75,48 Q85,50 82,65 Q80,75 75,78" stroke="#4c4f69" stroke-width="1.5"/>
-      <!-- 咖啡杯 -->
-      <path d="M25,105 L20,140 L60,140 L55,105 Z" fill="#4c4f69" fill-opacity="0.04" stroke="#4c4f69"/>
-      <path d="M55,112 Q70,112 70,126 Q70,140 55,140" fill="none" stroke="#4c4f69"/>
-      <!-- 咖啡液面 -->
-      <line x1="24" y1="118" x2="56" y2="118" stroke="#4c4f69" stroke-width="1.5" stroke-dasharray="2,2"/>
+      <path d="M75,48 Q85,50 82,65 Q80,75 75,78" stroke="#2a7af5" stroke-width="1.5"/>
       <!-- 蒸汽 -->
       <g opacity="0.6">
         <path d="M40,8 Q35,0 40,-8 Q45,-16 40,-24" stroke-width="1.2"/>
@@ -30,46 +21,52 @@
         <path d="M35,8 Q30,0 35,-6" stroke-width="0.8"/>
       </g>
       <!-- 调节旋钮 -->
-      <circle cx="70" cy="80" r="5" fill="#4c4f69" fill-opacity="0.04" stroke="#4c4f69" stroke-width="1"/>
+      <circle cx="70" cy="80" r="5" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5" stroke-width="1"/>
+      <!-- 猫（放在咖啡机内，原杯子的位置） -->
+      <g transform="translate(4, 69) scale(0.748)" stroke-width="3.0">
+        <!-- 尾巴 -->
+        <path d="M45,110 Q60,100 70,80 Q80,60 68,45" stroke="#2a7af5" fill="none"/>
+        <!-- 身体 -->
+        <path d="M20,75 Q10,55 22,36 C35,28 65,28 78,36 Q90,55 80,75 Z" fill="#2a7af5" fill-opacity="0.05" stroke="#2a7af5"/>
+        <!-- 头部 -->
+        <circle cx="50" cy="18" r="20" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
+        <!-- 左耳 -->
+        <path d="M34,6 L28,-8 L44,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
+        <!-- 右耳 -->
+        <path d="M66,6 L72,-8 L56,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
+        <!-- 眼睛（主题色 #2a7af5） -->
+        <circle cx="42" cy="15" r="7" fill="#2a7af5" fill-opacity="0.50" stroke="none"/>
+        <circle cx="58" cy="15" r="7" fill="#2a7af5" fill-opacity="0.50" stroke="none"/>
+        <!-- 瞳孔 -->
+        <circle cx="42" cy="15" r="3.5" fill="#2a7af5" fill-opacity="0.65" stroke="none"/>
+        <circle cx="58" cy="15" r="3.5" fill="#2a7af5" fill-opacity="0.65" stroke="none"/>
+        <!-- 鼻子 -->
+        <path d="M48,22 L50,24 L52,22" fill="#2a7af5" fill-opacity="0.15" stroke="none"/>
+        <!-- 胡须 -->
+        <path d="M25,20 L8,16" stroke-width="1" opacity="0.85"/>
+        <path d="M25,24 L6,24" stroke-width="1" opacity="0.85"/>
+        <path d="M75,20 L92,16" stroke-width="1" opacity="0.85"/>
+        <path d="M75,24 L94,24" stroke-width="1" opacity="0.85"/>
+        <!-- 前腿 -->
+        <path d="M32,75 L28,100 L38,100" fill="none" stroke="#2a7af5"/>
+        <path d="M68,75 L72,100 L62,100" fill="none" stroke="#2a7af5"/>
+        <!-- 后腿 -->
+        <path d="M22,68 Q15,80 15,95 L22,100" fill="none" stroke="#2a7af5"/>
+        <path d="M78,68 Q85,80 85,95 L78,100" fill="none" stroke="#2a7af5"/>
+      </g>
     </g>
 
-    <!-- ===== 猫 ===== -->
-    <g transform="translate(1115, 712) scale(0.76)" opacity="0.10" stroke-width="2.2">
-      <!-- 尾巴 -->
-      <path d="M45,110 Q60,100 70,80 Q80,60 68,45" stroke="#4c4f69" fill="none"/>
-      <!-- 身体 -->
-      <path d="M20,75 Q10,55 22,36 C35,28 65,28 78,36 Q90,55 80,75 Z" fill="#4c4f69" fill-opacity="0.05" stroke="#4c4f69"/>
-      <!-- 头部 -->
-      <circle cx="50" cy="18" r="20" fill="#4c4f69" fill-opacity="0.04" stroke="#4c4f69"/>
-      <!-- 左耳 -->
-      <path d="M34,6 L28,-8 L44,4" fill="#4c4f69" fill-opacity="0.04" stroke="#4c4f69"/>
-      <!-- 右耳 -->
-      <path d="M66,6 L72,-8 L56,4" fill="#4c4f69" fill-opacity="0.04" stroke="#4c4f69"/>
-      <!-- 眼睛（当前主题色 #1e66f5） -->
-      <circle cx="42" cy="15" r="7" fill="#1e66f5" fill-opacity="0.50" stroke="none"/>
-      <circle cx="58" cy="15" r="7" fill="#1e66f5" fill-opacity="0.50" stroke="none"/>
-      <!-- 瞳孔 -->
-      <circle cx="42" cy="15" r="3.5" fill="#1e66f5" fill-opacity="0.65" stroke="none"/>
-      <circle cx="58" cy="15" r="3.5" fill="#1e66f5" fill-opacity="0.65" stroke="none"/>
-      <!-- 鼻子 -->
-      <path d="M48,22 L50,24 L52,22" fill="#4c4f69" fill-opacity="0.15" stroke="none"/>
-      <!-- 胡须 -->
-      <path d="M25,20 L8,16" stroke-width="1" opacity="0.85"/>
-      <path d="M25,24 L6,24" stroke-width="1" opacity="0.85"/>
-      <path d="M75,20 L92,16" stroke-width="1" opacity="0.85"/>
-      <path d="M75,24 L94,24" stroke-width="1" opacity="0.85"/>
-      <!-- 前腿 -->
-      <path d="M32,75 L28,100 L38,100" fill="none" stroke="#4c4f69"/>
-      <path d="M68,75 L72,100 L62,100" fill="none" stroke="#4c4f69"/>
-      <!-- 后腿 -->
-      <path d="M22,68 Q15,80 15,95 L22,100" fill="none" stroke="#4c4f69"/>
-      <path d="M78,68 Q85,80 85,95 L78,100" fill="none" stroke="#4c4f69"/>
-    </g>
-
-    <!-- ===== 底部装饰线 ===== -->
-    <g opacity="0.04" stroke-width="1">
-      <line x1="1050" y1="850" x2="1200" y2="850"/>
-      <line x1="1060" y1="855" x2="1190" y2="855"/>
+    <!-- ===== 咖啡杯（放在外面，与咖啡机底部对齐） ===== -->
+    <g transform="translate(1300, 734) scale(0.8)" opacity="0.10" stroke-width="2">
+      <!-- 咖啡杯 -->
+      <path d="M25,105 L20,140 L60,140 L55,105 Z" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
+      <path d="M55,112 Q70,112 70,126 Q70,140 55,140" fill="none" stroke="#2a7af5"/>
+      <!-- 咖啡液面 -->
+      <line x1="24" y1="118" x2="56" y2="118" stroke="#2a7af5" stroke-width="1.5" stroke-dasharray="2,2"/>
+      <!-- 杯内水位线 -->
+      <line x1="24" y1="118" x2="56" y2="118" stroke="#2a7af5" stroke-width="1"/>
+      <line x1="23" y1="125" x2="57" y2="125" stroke="#2a7af5" stroke-width="1"/>
+      <line x1="22" y1="132" x2="58" y2="132" stroke="#2a7af5" stroke-width="1"/>
     </g>
   </g>
 </svg>

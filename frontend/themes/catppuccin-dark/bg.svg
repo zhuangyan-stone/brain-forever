@@ -3,7 +3,7 @@
   <g fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round">
 
     <!-- ===== 咖啡机 ===== -->
-    <g transform="translate(1190, 640)" opacity="0.10" stroke-width="2">
+    <g transform="translate(1232, 696)" opacity="0.20" stroke-width="2">
       <!-- 机身 -->
       <rect x="0" y="30" width="80" height="120" rx="6" stroke="#cdd6f4" fill="#cdd6f4" fill-opacity="0.05"/>
       <!-- 顶部 -->
@@ -12,10 +12,10 @@
       <rect x="20" y="35" width="40" height="12" rx="2" stroke="#cdd6f4"/>
       <!-- 手柄 -->
       <path d="M65,38 L85,30 L85,50 L65,46" stroke="#cdd6f4" fill="none"/>
-      <!-- 接水盘格栅 -->
-      <line x1="15" y1="118" x2="65" y2="118" stroke="#cdd6f4" stroke-width="1"/>
-      <line x1="15" y1="125" x2="65" y2="125" stroke="#cdd6f4" stroke-width="1"/>
-      <line x1="15" y1="132" x2="65" y2="132" stroke="#cdd6f4" stroke-width="1"/>
+      <!-- 杯内液面线 -->
+      <line x1="22" y1="118" x2="58" y2="118" stroke="#cdd6f4" stroke-width="1"/>
+      <line x1="21" y1="125" x2="59" y2="125" stroke="#cdd6f4" stroke-width="1"/>
+      <line x1="20" y1="132" x2="60" y2="132" stroke="#cdd6f4" stroke-width="1"/>
       <!-- 蒸汽棒 -->
       <path d="M75,48 Q85,50 82,65 Q80,75 75,78" stroke="#cdd6f4" stroke-width="1.5"/>
       <!-- 咖啡杯 -->
@@ -34,7 +34,7 @@
     </g>
 
     <!-- ===== 猫 ===== -->
-    <g transform="translate(1115, 712) scale(0.76)" opacity="0.12" stroke-width="2.2">
+    <g transform="translate(1324, 768) scale(0.76)" opacity="0.12" stroke-width="2.2">
       <!-- 尾巴 -->
       <path d="M45,110 Q60,100 70,80 Q80,60 68,45" stroke="#cdd6f4" fill="none"/>
       <!-- 身体 -->
@@ -67,9 +67,5 @@
     </g>
 
     <!-- ===== 底部装饰线 ===== -->
-    <g opacity="0.05" stroke-width="1">
-      <line x1="1050" y1="850" x2="1200" y2="850"/>
-      <line x1="1060" y1="855" x2="1190" y2="855"/>
-    </g>
   </g>
 </svg>
