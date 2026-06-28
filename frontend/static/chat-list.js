@@ -494,9 +494,7 @@ function showContextMenu(e, chat) {
     const chatsStore = window.Alpine.store('chats');
     const isActive = chatsStore && chat.sn === chatsStore.activeChatSN;
     const hasExtracted = !!chat.extracted_at;
-    
-    // 已提取的特征条数（仅已提取状态时显示）
-    const countSuffix = (chat.extracted_count > 0) ? (' (' + chat.extracted_count + '条)') : '';
+    const hasCount = chat.extracted_count > 0;
     
     let traitDisabled = false;
     let traitLabel = '提取个人特征';
@@ -524,7 +522,7 @@ function showContextMenu(e, chat) {
     				traitLabel = '继续提取个人特征';
     			} else {
     				traitDisabled = true;
-    				traitLabel = '个人特征已提取' + countSuffix;
+    				traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
     			}
     		} else {
     			// 没有最后消息时间或提取时间异常，允许提取
@@ -533,14 +531,15 @@ function showContextMenu(e, chat) {
     	} else {
     		// 非活跃对话：已有提取记录则禁用
     		traitDisabled = true;
-    		traitLabel = '个人特征已提取' + countSuffix;
+    		traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
     	}
     }
    
     traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
    
     if (traitDisabled) {
-    	traitItem.classList.add('chat-context-menu-item-success');
+    	// 已提取但条目为 0 → 真正的禁用样式（灰色）；已有条目 → 成功态样式（绿色）
+    	traitItem.classList.add(hasCount ? 'chat-context-menu-item-success' : 'chat-context-menu-item-disabled');
     } else {
     	traitItem.addEventListener('click', () => {
     		closeContextMenu();

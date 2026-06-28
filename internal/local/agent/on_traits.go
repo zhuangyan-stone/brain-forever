@@ -225,12 +225,14 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// ----------------------------------------------------------
 		// 6b. No new traits extracted → do NOT mark messages as
-		//     extracted, do NOT update trait count.
+		//     extracted (so they can be retried with more context
+		//     next time), but still set extracted_at to indicate
+		//     an extraction attempt was made.
 		//
-		//     Next time extraction is triggered, these unextracted
-		//     messages will still be included, providing the LLM
-		//     with more continuous context at the tail.
+		//     This ensures the frontend shows "个人特征已提取（0条）"
+		//     instead of "提取个人特征" after an empty extraction.
 		// ----------------------------------------------------------
+		updateExtractionProgress(foundChat, chatsStore, 0)
 	}
 
 	// ----------------------------------------------------------
