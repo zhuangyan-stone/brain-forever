@@ -27,7 +27,7 @@
       "id": "shanshui-dark",
       "mode": "dark",
       "name": "Shanshui · Night Mountain",
-      "name_zh": "水墨·夜山"
+      "name_zh": "水墨·黛山"
     },
     {
       "description": "雨过天青云破处，清雅亮",
@@ -58,14 +58,14 @@
       "name_zh": "茶香·陈韵"
     },
     {
-      "description": "竹林听雨，阳光穿叶。竹叶翠，阳光白亮犹带冷",
+      "description": "竹林雨歇，竹叶翠，阳光冷",
       "id": "zhuzhangmangxie-light",
       "mode": "light",
       "name": "Bamboo Staff · No Wind Nor Rain",
       "name_zh": "竹杖芒鞋·也无风雨"
     },
     {
-      "description": "暮色竹林，风雨初歇。竹林苍，残阳似血余晖暖",
+      "description": "暮色行匆，暮光黄，余晖暖",
       "id": "zhuzhangmangxie-dark",
       "mode": "dark",
       "name": "Straw Sandals · No Sunshine Either",
