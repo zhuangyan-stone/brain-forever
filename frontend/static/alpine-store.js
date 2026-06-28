@@ -164,6 +164,21 @@ document.addEventListener('alpine:init', function() {
         },
 
         /**
+         * getCurrentThemeName — 获取当前主题的显示名称
+         * @returns {string} 主题显示名称（如"猫布奇诺·摩卡"），内置主题返回"内置"
+         */
+        getCurrentThemeName: function() {
+            var curIsLight = this.theme === 0;
+            var themeId = curIsLight ? this.activedLight : this.activedDark;
+            if (!themeId || themeId === 'builtin-light' || themeId === 'builtin-dark') {
+                return '内置';
+            }
+            var themes = this.themeManifest || [];
+            var found = themes.find(function(t) { return t.id === themeId; });
+            return found ? (found.name_zh || found.name) : themeId;
+        },
+
+        /**
          * getTargetThemeName — 获取切换目标主题的显示名称（供主题切换按钮 tooltip 使用）
          * @returns {string} 主题显示名称（如"猫布奇诺·摩卡"），内置主题返回"内置"
          */
