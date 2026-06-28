@@ -1,0 +1,65 @@
+/* ============================================================
+   彩蝶粉韵 · 夜 (暗色) — 外源主题
+   文件夹名 butterfly-pink-dark → -dark 后缀表示暗色。
+   小女孩喜欢的粉色 + 儿童追逐的彩色蝴蝶 — 夜色版。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 基调 — 深紫罗兰夜色，神秘梦幻 */
+    --bg-primary:       #1A1114;
+    --bg-image:         url('/themes/butterfly-pink-dark/bg.svg');
+    --bg-secondary:     #2D1B22;
+    --bg-user:          #3D2530;
+    --bg-assistant:     #1A1114;
+    --bg-input:         #22151A;
+    --switch-track-bg:  #3D2530;
+
+    /* 文字 — 粉白微光 */
+    --text-primary:     #FDE8EC;
+    --text-secondary:   #D4A0B0;
+    --text-muted:       #8C6B78;
+
+    /* 点缀 — 霓虹蝴蝶粉（发光版） */
+    --accent:           #FF6B9D;
+    --accent-hover:     #FF8FB1;
+
+    /* 边框/阴影 — 暗玫勾边 */
+    --border:           #5C3D4A;
+    --shadow:           rgba(0, 0, 0, 0.4);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 107, 157, 0.10);
+
+    /* 代码块 */
+    --bg-code:          #2D1B22;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 蝴蝶翠翅（暗版） */
+    --success-text:     #5ABF8A;
+
+    /* 错误 — 蝴蝶橙色斑（暗版） */
+    --error-bg:         rgba(255, 140, 50, 0.15);
+    --error-border:     rgba(255, 140, 50, 0.35);
+    --error-text:       #FF8C42;
+
+    /* 警告 — 蝴蝶金色鳞粉（暗版） */
+    --warning-bg:       #2A1F10;
+    --warning-border:   #D4A84A;
+    --warning-text:     #FFD54F;
+
+    /* Tooltip */
+    --tooltip-bg:       #3D2530;
+    --tooltip-text:     #FDE8EC;
+
+    /* 高亮按钮 — 霓虹蝴蝶粉 */
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #FFFFFF;
+    --btn-highlight-hover-bg: var(--accent-hover);
+
+    /* 危险/删除按钮 */
+    --btn-danger-bg:          #E84393;
+    --btn-danger-color:       #FFFFFF;
+    --btn-danger-hover-bg:    #D63384;
+}

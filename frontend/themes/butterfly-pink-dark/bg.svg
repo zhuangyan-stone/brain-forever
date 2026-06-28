@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- 彩蝶粉韵 · 夜 — 魔光棒 + 发光蝴蝶 -->
+
+  <defs>
+    <!-- 魔光棒渐变 — 霓虹粉 -->
+    <linearGradient id="wandPink" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B9D" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#FF4081" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#FF6B9D" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 魔光棒渐变 — 紫 -->
+    <linearGradient id="wandPurple" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#BB6BD9" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#AB47BC" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#BB6BD9" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 魔光棒渐变 — 金 -->
+    <linearGradient id="wandGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD54F" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#FFB300" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FFD54F" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 魔光棒渐变 — 青 -->
+    <linearGradient id="wandTeal" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2ECC71" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#1ABC9C" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#2ECC71" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 魔光棒渐变 — 橙 -->
+    <linearGradient id="wandOrange" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FF8C42" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#FF6B35" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FF8C42" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- 魔光晕滤镜 -->
+    <filter id="glowWand" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowWandSoft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- 星光粒子 -->
+    <g id="star">
+      <path d="M0,-6 Q0,0 6,0 Q0,0 0,6 Q0,0 -6,0 Q0,0 0,-6Z" fill="#FFF"/>
+    </g>
+  </defs>
+
+  <!-- 透明底色，CSS background-color 可见 -->
+  <rect width="1440" height="900" fill="none"/>
+
+  <!-- ====== 魔光棒组 ====== -->
+
+  <!-- 魔光棒 1 — 左上霓虹粉，斜射 -->
+  <g filter="url(#glowWand)" opacity="0.35">
+    <path d="M60,20 L280,240" stroke="url(#wandPink)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M60,20 L280,240" stroke="#FF6B9D" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <!-- 棒头星光 -->
+    <use href="#star" x="60" y="20" transform="scale(1.2)" fill="#FF6B9D" opacity="0.9"/>
+  </g>
+
+  <!-- 魔光棒 2 — 右上紫，斜射 -->
+  <g filter="url(#glowWand)" opacity="0.3">
+    <path d="M1380,60 L1150,280" stroke="url(#wandPurple)" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M1380,60 L1150,280" stroke="#BB6BD9" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <use href="#star" x="1380" y="60" transform="scale(1.3)" fill="#BB6BD9" opacity="0.9"/>
+  </g>
+
+  <!-- 魔光棒 3 — 左中金，垂直 -->
+  <g filter="url(#glowWand)" opacity="0.25">
+    <path d="M120,500 L120,850" stroke="url(#wandGold)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M120,500 L120,850" stroke="#FFD54F" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+    <use href="#star" x="120" y="500" transform="scale(1)" fill="#FFD54F" opacity="0.9"/>
+  </g>
+
+  <!-- 魔光棒 4 — 右下青，斜射 -->
+  <g filter="url(#glowWand)" opacity="0.3">
+    <path d="M1120,860 L1320,660" stroke="url(#wandTeal)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M1120,860 L1320,660" stroke="#2ECC71" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <use href="#star" x="1320" y="660" transform="scale(1.1)" fill="#2ECC71" opacity="0.9"/>
+  </g>
+
+  <!-- 魔光棒 5 — 中右橙，水平 -->
+  <g filter="url(#glowWand)" opacity="0.2">
+    <path d="M950,420 L1400,420" stroke="url(#wandOrange)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M950,420 L1400,420" stroke="#FF8C42" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+    <use href="#star" x="1400" y="420" transform="scale(0.9)" fill="#FF8C42" opacity="0.9"/>
+  </g>
+
+  <!-- 魔光棒 6 — 左下粉，短斜 -->
+  <g filter="url(#glowWand)" opacity="0.25">
+    <path d="M280,780 L460,600" stroke="url(#wandPink)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M280,780 L460,600" stroke="#FF6B9D" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+    <use href="#star" x="280" y="780" transform="scale(1)" fill="#FF6B9D" opacity="0.8"/>
+  </g>
+
+  <!-- 魔光棒 7 — 中上紫，短斜 -->
+  <g filter="url(#glowWand)" opacity="0.2">
+    <path d="M680,0 L550,180" stroke="url(#wandPurple)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M680,0 L550,180" stroke="#AB47BC" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+    <use href="#star" x="680" y="0" transform="scale(0.8)" fill="#AB47BC" opacity="0.8"/>
+  </g>
+
+  <!-- ====== 魔光棒散落星光粒子 ====== -->
+  <g opacity="0.25">
+    <use href="#star" x="340" y="160" transform="scale(0.6)" fill="#FF6B9D"/>
+    <use href="#star" x="420" y="280" transform="scale(0.5)" fill="#FFD54F"/>
+    <use href="#star" x="900" y="180" transform="scale(0.7)" fill="#BB6BD9"/>
+    <use href="#star" x="1250" y="400" transform="scale(0.5)" fill="#FF8C42"/>
+    <use href="#star" x="780" y="550" transform="scale(0.6)" fill="#2ECC71"/>
+    <use href="#star" x="160" y="320" transform="scale(0.45)" fill="#FF4081"/>
+    <use href="#star" x="600" y="720" transform="scale(0.55)" fill="#AB47BC"/>
+    <use href="#star" x="1020" y="250" transform="scale(0.5)" fill="#FF6B9D"/>
+    <use href="#star" x="480" y="420" transform="scale(0.4)" fill="#FFD54F"/>
+    <use href="#star" x="1350" y="520" transform="scale(0.6)" fill="#BB6BD9"/>
+    <use href="#star" x="200" y="600" transform="scale(0.5)" fill="#FF8C42"/>
+    <use href="#star" x="880" y="780" transform="scale(0.45)" fill="#2ECC71"/>
+  </g>
+
+  <!-- ====== 发光蝴蝶剪影组 ====== -->
+  <g opacity="0.20">
+    <!-- 发光蝴蝶 1 — 左上霓虹粉 -->
+    <g transform="translate(180, 120) scale(0.9)">
+      <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#FF6B9D"/>
+      <line x1="0" y1="24" x2="0" y2="36" stroke="#FF6B9D" stroke-width="1.5"/>
+      <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#FF6B9D" stroke-width="0.8" opacity="0.5"/>
+      <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#FF6B9D" stroke-width="0.8" opacity="0.5"/>
+    </g>
+    <!-- 发光蝴蝶 2 — 右上紫 -->
+    <g transform="translate(1200, 80) scale(0.65) rotate(15)">
+      <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#BB6BD9"/>
+      <line x1="0" y1="24" x2="0" y2="36" stroke="#BB6BD9" stroke-width="1.5"/>
+      <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#BB6BD9" stroke-width="0.8" opacity="0.5"/>
+      <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#BB6BD9" stroke-width="0.8" opacity="0.5"/>
+    </g>
+    <!-- 发光蝴蝶 3 — 中左金 -->
+    <g transform="translate(100, 400) scale(0.55) rotate(-10)">
+      <path d="M0,0 C-15,-20 -33,-25 -29,-10 C-25,5 -10,10 0,20 C10,10 25,5 29,-10 C33,-25 15,-20 0,0Z" fill="#FFD54F"/>
+      <line x1="0" y1="20" x2="0" y2="30" stroke="#FFD54F" stroke-width="1.5"/>
+    </g>
+    <!-- 发光蝴蝶 4 — 中央霓虹粉 -->
+    <g transform="translate(550, 300) scale(0.75) rotate(8)">
+      <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#FF4081"/>
+      <line x1="0" y1="24" x2="0" y2="36" stroke="#FF4081" stroke-width="1.5"/>
+      <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#FF4081" stroke-width="0.8" opacity="0.5"/>
+      <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#FF4081" stroke-width="0.8" opacity="0.5"/>
+    </g>
+    <!-- 发光蝴蝶 5 — 右中橙 -->
+    <g transform="translate(1050, 380) scale(0.6) rotate(-20)">
+      <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#FF8C42"/>
+      <line x1="0" y1="24" x2="0" y2="36" stroke="#FF8C42" stroke-width="1.5"/>
+      <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#FF8C42" stroke-width="0.8" opacity="0.5"/>
+      <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#FF8C42" stroke-width="0.8" opacity="0.5"/>
+    </g>
+    <!-- 发光蝴蝶 6 — 左下青 -->
+    <g transform="translate(180, 680) scale(0.7) rotate(5)">
+      <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#2ECC71"/>
+      <line x1="0" y1="24" x2="0" y2="36" stroke="#2ECC71" stroke-width="1.5"/>
+      <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#2ECC71" stroke-width="0.8" opacity="0.5"/>
+      <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#2ECC71" stroke-width="0.8" opacity="0.5"/>
+    </g>
+    <!-- 发光蝴蝶 7 — 右下紫 -->
+    <g transform="translate(1150, 660) scale(0.55) rotate(-12)">
+      <path d="M0,0 C-15,-20 -33,-25 -29,-10 C-25,5 -10,10 0,20 C10,10 25,5 29,-10 C33,-25 15,-20 0,0Z" fill="#AB47BC"/>
+      <line x1="0" y1="20" x2="0" y2="30" stroke="#AB47BC" stroke-width="1.5"/>
+    </g>
+  </g>
+
+  <!-- 萤火虫光点 -->
+  <g opacity="0.12">
+    <circle cx="120" cy="250" r="5" fill="#FF6B9D"/>
+    <circle cx="650" cy="120" r="4" fill="#FFD54F"/>
+    <circle cx="400" cy="550" r="6" fill="#FF4081"/>
+    <circle cx="800" cy="400" r="3" fill="#FF8C42"/>
+    <circle cx="320" cy="480" r="4" fill="#2ECC71"/>
+    <circle cx="1350" cy="320" r="5" fill="#BB6BD9"/>
+    <circle cx="700" cy="650" r="3" fill="#FFD54F"/>
+    <circle cx="1300" cy="480" r="4" fill="#FF4081"/>
+    <circle cx="250" cy="720" r="3" fill="#FF6B9D"/>
+    <circle cx="950" cy="720" r="4" fill="#AB47BC"/>
+    <circle cx="500" cy="160" r="2.5" fill="#FF8C42"/>
+    <circle cx="880" cy="160" r="3.5" fill="#2ECC71"/>
+  </g>
+</svg>

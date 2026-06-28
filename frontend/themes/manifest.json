@@ -112,6 +112,20 @@
       "mode": "dark",
       "name": "Klein Blue · Deep",
       "name_zh": "克莱因蓝·深邃"
+    },
+    {
+      "description": "彩蝶纷飞，暖粉梦境",
+      "id": "butterfly-pink-light",
+      "mode": "light",
+      "name": "Butterfly Pink · Daydream",
+      "name_zh": "彩蝶·白日梦"
+    },
+    {
+      "description": "流光幻影，魔法梦境",
+      "id": "butterfly-pink-dark",
+      "mode": "dark",
+      "name": "Butterfly Pink · Night Magic",
+      "name_zh": "彩蝶·睡意酣"
     }
   ]
 }

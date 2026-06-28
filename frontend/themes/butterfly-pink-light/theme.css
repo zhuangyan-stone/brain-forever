@@ -1,0 +1,65 @@
+/* ============================================================
+   彩蝶粉韵 · 昼 (亮色) — 外源主题
+   文件夹名 butterfly-pink-light → -light 后缀表示亮色。
+   小女孩喜欢的粉色 + 儿童追逐的彩色蝴蝶。
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 基调 — 樱花粉白，温软如春 */
+    --bg-primary:       #FFF5F7;
+    --bg-image:         url('/themes/butterfly-pink-light/bg.svg');
+    --bg-secondary:     #FDE8EC;
+    --bg-user:          #FBC4D0;
+    --bg-assistant:     #FFFBFD;
+    --bg-input:         #FEF0F3;
+    --switch-track-bg:  #E8D0D5;
+
+    /* 墨色文字 — 暖棕玫瑰色 */
+    --text-primary:     #2D1B1E;
+    --text-secondary:   #5C3D48;
+    --text-muted:       #9B7B85;
+
+    /* 点缀 — 蝴蝶粉（艳粉） */
+    --accent:           #D63384;
+    --accent-hover:     #C2185B;
+
+    /* 边框/阴影 — 粉黛勾边 */
+    --border:           #E8C4CC;
+    --shadow:           rgba(180, 80, 120, 0.10);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(180, 80, 120, 0.08);
+
+    /* 代码块 */
+    --bg-code:          #FDE8EC;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 蝴蝶翠翅（青碧色） */
+    --success-text:     #0FA88C;
+
+    /* 错误 — 蝴蝶橙色斑 */
+    --error-bg:         rgba(255, 107, 53, 0.10);
+    --error-border:     rgba(255, 107, 53, 0.25);
+    --error-text:       #FF6B35;
+
+    /* 警告 — 蝴蝶金色鳞粉 */
+    --warning-bg:       #FFF8E1;
+    --warning-border:   #F5A623;
+    --warning-text:     #B8860B;
+
+    /* Tooltip */
+    --tooltip-bg:       #E8C4CC;
+    --tooltip-text:     #2D1B1E;
+
+    /* 高亮按钮 — 蝴蝶粉 */
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #FFFFFF;
+    --btn-highlight-hover-bg: var(--accent-hover);
+
+    /* 危险/删除按钮 */
+    --btn-danger-bg:          #E84393;
+    --btn-danger-color:       #FFFFFF;
+    --btn-danger-hover-bg:    #D63384;
+}
