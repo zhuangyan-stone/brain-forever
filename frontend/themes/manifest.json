@@ -2,20 +2,6 @@
   "description": "第2大脑 外源主题清单",
   "themes": [
     {
-      "description": "冷静优雅的亮色主题",
-      "id": "nord-light",
-      "mode": "light",
-      "name": "Nord Frost Gray",
-      "name_zh": "北欧·霜灰"
-    },
-    {
-      "description": "冷静优雅的暗色主题",
-      "id": "nord-dark",
-      "mode": "dark",
-      "name": "Nord Cold Night",
-      "name_zh": "北欧·夜冷"
-    },
-    {
       "description": "国风山水主题亮色，仿宣纸墨",
       "id": "shanshui-light",
       "mode": "light",
@@ -84,9 +70,23 @@
       "mode": "dark",
       "name": "Catppuccin Mocha",
       "name_zh": "猫布奇诺·摩卡"
+    },
+        {
+      "description": "冷静优雅的亮色主题",
+      "id": "nord-light",
+      "mode": "light",
+      "name": "Nord Frost Gray",
+      "name_zh": "北欧·霜灰"
+    },
+    {
+      "description": "冷静优雅的暗色主题",
+      "id": "nord-dark",
+      "mode": "dark",
+      "name": "Nord Cold Night",
+      "name_zh": "北欧·夜冷"
     },    
     {
-      "description": "明眸善睐，明窗净几，亮色",
+      "description": "明眸善睐，亮色",
       "id": "highcontrast-light",
       "mode": "light",
       "highContrast": true,
@@ -94,7 +94,7 @@
       "name_zh": "明眸·昼"
     },
     {
-      "description": "明眸善睐，明窗净几，暗色",
+      "description": "明眸善睐，暗色",
       "id": "highcontrast-dark",
       "mode": "dark",
       "highContrast": true,

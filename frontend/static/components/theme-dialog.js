@@ -86,18 +86,12 @@ document.addEventListener('alpine:init', function() {
              */
             open: async function() {
                 var data = await window.ThemeLoader.loadManifest();
-
-                var builtinLight = { id: 'builtin-light', name: '内置亮色', name_zh: '内置亮色' };
-                var builtinDark  = { id: 'builtin-dark', name: '内置暗色', name_zh: '内置暗色' };
-
                 var allThemes = (data && data.themes) || [];
 
-                this.availableLight = [builtinLight].concat(
-                    allThemes.filter(function(t) { return t.mode === 'light'; })
-                );
-                this.availableDark = [builtinDark].concat(
-                    allThemes.filter(function(t) { return t.mode === 'dark'; })
-                );
+                // data.themes 已由 ThemeLoader 注入内置主题（含完整 id/name/name_zh），
+                // 且内置主题排在列表最前面，直接按 mode 过滤即可
+                this.availableLight = allThemes.filter(function(t) { return t.mode === 'light'; });
+                this.availableDark = allThemes.filter(function(t) { return t.mode === 'dark'; });
 
                 // 从 localStorage 读取已保存的选择；
                 // 若为空（旧版遗留或首次使用），默认选中"内置"方案

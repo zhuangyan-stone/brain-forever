@@ -86,7 +86,14 @@ window.ThemeLoader = (function() {
                 var resp = await fetch('/api/themes');
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var data = await resp.json();
-                _manifestCache = data.themes || [];
+                // 将内置主题作为完整对象注入到列表最前面，
+                // 使所有展示代码（tooltip、对话框等）无需特判内置/外源
+                var builtinThemes = [
+                    { id: 'builtin-light', mode: 'light', name: 'Built-in Light', name_zh: '内置亮色' },
+                    { id: 'builtin-dark', mode: 'dark', name: 'Built-in Dark', name_zh: '内置暗色' },
+                ];
+                data.themes = builtinThemes.concat(data.themes || []);
+                _manifestCache = data.themes;
                 return data;
             } catch(e) {
                 console.warn('ThemeLoader: 加载主题清单失败', e);
