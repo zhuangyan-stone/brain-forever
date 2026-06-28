@@ -2,46 +2,60 @@
   "description": "第2大脑 外源主题清单",
   "themes": [
     {
-      "description": "温暖柔和的亮色主题",
-      "id": "catppuccin-light",
-      "mode": "light",
-      "name": "Catppuccin Latte",
-      "name_zh": "猫布奇诺·拿铁"
-    },
-    {
-      "description": "温暖柔和的暗色主题",
-      "id": "catppuccin-dark",
-      "mode": "dark",
-      "name": "Catppuccin Mocha",
-      "name_zh": "猫布奇诺·摩卡"
-    },
-    {
       "description": "冷静优雅的亮色主题",
       "id": "nord-light",
       "mode": "light",
-      "name": "Nord Snow Storm",
-      "name_zh": "北欧·雪暴"
+      "name": "Nord Frost Gray",
+      "name_zh": "北欧·霜灰"
     },
     {
       "description": "冷静优雅的暗色主题",
       "id": "nord-dark",
       "mode": "dark",
-      "name": "Nord Polar Night",
-      "name_zh": "北欧·极夜"
+      "name": "Nord Cold Night",
+      "name_zh": "北欧·夜冷"
     },
     {
       "description": "国风山水主题亮色，仿宣纸墨",
       "id": "shanshui-light",
       "mode": "light",
       "name": "Shanshui · Sunny Mist",
-      "name_zh": "水墨·晴岚"
+      "name_zh": "水墨·晴岚万重"
     },
     {
       "description": "国风山水主题暗色，夜如泼墨",
       "id": "shanshui-dark",
       "mode": "dark",
       "name": "Shanshui · Night Mountain",
-      "name_zh": "水墨·夜山"
+      "name_zh": "水墨·夜色如障"
+    },
+    {
+      "description": "雨过天青云破处。清雅亮",
+      "id": "tianqing-light",
+      "mode": "light",
+      "name": "Celeste · Sky After Rain",
+      "name_zh": "天青·听雨的颜色"
+    },
+    {
+      "description": "夜如青瓷釉色沉。天青暗",
+      "id": "tianqing-dark",
+      "mode": "dark",
+      "name": "Celeste · Midnight Sky",
+      "name_zh": "天青·等你的心情"
+    },
+    {
+      "description": "一盏新茶，明前春色。茶汤清亮的暖色主题",
+      "id": "chaxiang-light",
+      "mode": "light",
+      "name": "Tea Fragrance · First Flush",
+      "name_zh": "茶香·明前"
+    },
+    {
+      "description": "陈年老茶，醇厚温润。夜深茶暖的暗色主题",
+      "id": "chaxiang-dark",
+      "mode": "dark",
+      "name": "Tea Fragrance · Aged Aroma",
+      "name_zh": "茶香·陈韵"
     },
     {
       "description": "竹林听雨，阳光穿叶。竹叶翠，阳光白亮犹带冷",
@@ -58,6 +72,20 @@
       "name_zh": "竹杖芒鞋·也无晴"
     },
     {
+      "description": "温暖柔和的亮色主题",
+      "id": "catppuccin-light",
+      "mode": "light",
+      "name": "Catppuccin Latte",
+      "name_zh": "猫布奇诺·拿铁"
+    },
+    {
+      "description": "温暖柔和的暗色主题",
+      "id": "catppuccin-dark",
+      "mode": "dark",
+      "name": "Catppuccin Mocha",
+      "name_zh": "猫布奇诺·摩卡"
+    },    
+    {
       "description": "明眸善睐，明窗净几，亮色",
       "id": "highcontrast-light",
       "mode": "light",
@@ -72,34 +100,6 @@
       "highContrast": true,
       "name": "Bright Eyes · Night",
       "name_zh": "明眸·夜"
-    },
-    {
-      "description": "雨过天青云破处。清雅亮",
-      "id": "tianqing-light",
-      "mode": "light",
-      "name": "Celeste · Sky After Rain",
-      "name_zh": "天青色·烟雨"
-    },
-    {
-      "description": "夜如青瓷釉色沉。天青暗",
-      "id": "tianqing-dark",
-      "mode": "dark",
-      "name": "Celeste · Midnight Sky",
-      "name_zh": "天青色·等你"
-    },
-    {
-      "description": "一盏新茶，明前春色。茶汤清亮的暖色主题",
-      "id": "chaxiang-light",
-      "mode": "light",
-      "name": "Tea Fragrance · First Flush",
-      "name_zh": "茶香·明前"
-    },
-    {
-      "description": "陈年老茶，醇厚温润。夜深茶暖的暗色主题",
-      "id": "chaxiang-dark",
-      "mode": "dark",
-      "name": "Tea Fragrance · Aged Aroma",
-      "name_zh": "茶香·陈韵"
     }
   ]
 }
