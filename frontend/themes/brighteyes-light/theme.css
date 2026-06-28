@@ -54,4 +54,6 @@
     /* Tooltip */
     --tooltip-bg:       #E0E0E0;
     --tooltip-text:     #000000;
+
+    --send-btn-hover-bg: #FFAA33;
 }

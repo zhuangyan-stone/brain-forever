@@ -2,32 +2,32 @@
   "description": "第2大脑 外源主题清单",
   "themes": [
     {
-      "description": "国风山水主题亮色，仿宣纸墨",
+      "description": "国风山水，熟宣",
       "id": "shanshui-light",
       "mode": "light",
       "name": "Shanshui · Sunny Mist",
       "name_zh": "水墨·晴岚万重"
     },
     {
-      "description": "国风山水主题暗色，夜如泼墨",
+      "description": "国风山水，泼墨",
       "id": "shanshui-dark",
       "mode": "dark",
       "name": "Shanshui · Night Mountain",
       "name_zh": "水墨·夜色如障"
     },
     {
-      "description": "雨过天青云破处。清雅亮",
+      "description": "雨过天青云破处，清雅亮",
       "id": "tianqing-light",
       "mode": "light",
       "name": "Celeste · Sky After Rain",
-      "name_zh": "天青·听雨的颜色"
+      "name_zh": "天青·清雅亮"
     },
     {
-      "description": "夜如青瓷釉色沉。天青暗",
+      "description": "风生烟紫夜阑时，静深幽",
       "id": "tianqing-dark",
       "mode": "dark",
       "name": "Celeste · Midnight Sky",
-      "name_zh": "天青·等你的心情"
+      "name_zh": "天青·静深幽"
     },
     {
       "description": "一盏新茶，明前春色。茶汤清亮的暖色主题",
@@ -87,7 +87,7 @@
     },    
     {
       "description": "明眸善睐，亮色",
-      "id": "highcontrast-light",
+      "id": "brighteyes-light",
       "mode": "light",
       "highContrast": true,
       "name": "Bright Eyes · Day",
@@ -95,7 +95,7 @@
     },
     {
       "description": "明眸善睐，暗色",
-      "id": "highcontrast-dark",
+      "id": "brighteyes-dark",
       "mode": "dark",
       "highContrast": true,
       "name": "Bright Eyes · Night",

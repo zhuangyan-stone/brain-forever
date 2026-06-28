@@ -1,19 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- 夜雨天青 — 夜色中的瓷釉光泽 -->
-  <g fill="none" stroke="#708090" stroke-linecap="round">
-    <!-- 夜山沉影 -->
+  <!-- 暮色烟紫 — 天青染紫的夜 -->
+  <g fill="none" stroke="#7A6D90" stroke-linecap="round">
+    <!-- 暮山沉影，染紫 -->
     <path d="M0,480 C200,400 350,460 500,380 C650,300 800,430 1000,360 C1200,290 1400,400 1440,380 L1440,900 L0,900 Z" 
-          fill="#6A7A8A" opacity="0.12" stroke="none"/>
+          fill="#6A5A8A" opacity="0.12" stroke="none"/>
     <path d="M0,560 C300,500 500,540 700,480 C900,420 1100,520 1440,480 L1440,900 L0,900 Z" 
-          fill="#4A5A6A" opacity="0.07" stroke="none"/>
+          fill="#4A3A6A" opacity="0.07" stroke="none"/>
     
-    <!-- 夜云 -->
+    <!-- 暮云含紫 -->
     <path d="M200,300 Q300,270 400,300 Q500,330 600,300 Q700,270 800,300" 
           stroke-width="2" opacity="0.12"/>
     <path d="M600,260 Q700,230 800,250 Q900,270 1000,250 Q1100,230 1200,250" 
           stroke-width="1.5" opacity="0.08"/>
     
-    <!-- 雨丝 -->
+    <!-- 雨丝，暮色中微紫 -->
     <g opacity="0.08" stroke-width="0.5">
       <line x1="150" y1="0" x2="140" y2="120"/>
       <line x1="220" y1="0" x2="210" y2="90"/>

@@ -1,6 +1,6 @@
 /* ============================================================
    明眸·夜 (暗色) — 外源主题
-   文件夹名 highcontrast-dark → -dark 后缀表示暗色。
+   文件夹名 brighteyes-dark → -dark 后缀表示暗色。
    专为色弱人士优化的高对比度暗色主题。
    - 使用白/橙替代红/绿作为语义区分
    - 对比度 ≥7:1（AAA级）
@@ -54,4 +54,10 @@
     /* Tooltip */
     --tooltip-bg:       #333333;
     --tooltip-text:     #FFFFFF;
+
+    /* 发送按钮 — accent 为纯白时，白底+白图标不可见，
+       通过专用变量与 accent 解耦，使用深色底+白图标 */
+    --send-btn-color:      var(--bg-secondary);
+    --send-btn-bg:   var(--pure-white);
+    --send-btn-hover-bg: #FFAA33;
 }

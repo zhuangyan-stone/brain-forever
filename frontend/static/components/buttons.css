@@ -228,8 +228,8 @@ buttons.css — 所有按钮样式
     height: 36px;
     border-radius: 50%;
     border: none;
-    background: var(--accent);
-    color: #fff;
+    background: var(--send-btn-bg, var(--accent));
+    color: var(--send-btn-color, #fff);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -238,7 +238,7 @@ buttons.css — 所有按钮样式
 }
 
 .send-btn:hover {
-    background: var(--accent-hover);
+    background: var(--send-btn-hover-bg, var(--accent-hover));
 }
 
 .send-btn:active {

@@ -15,9 +15,28 @@
 
 'use strict';
 
+// ── 主题 ID 迁移映射 ──
+// 当主题被重命名后，旧 ID 仍可能残留在用户 localStorage 中。
+// 此映射在读取时自动将旧 ID 转换为新 ID，并回写到 localStorage 完成迁移。
+var THEME_ID_MIGRATIONS = {
+    'highcontrast-dark':  'brighteyes-dark',
+};
+
 window.ThemeLoader = (function() {
     var _currentId = '';      // 当前已加载的外源主题 ID
     var _manifestCache = null; // themes[] 缓存
+
+    /** 读取主题 ID 并执行旧 ID → 新 ID 迁移 */
+    function _readThemeId(storageKey) {
+        var id = localStorage.getItem(storageKey) || '';
+        var mapped = THEME_ID_MIGRATIONS[id];
+        if (mapped) {
+            // 自动迁移：回写新 ID，下次加载直接命中
+            localStorage.setItem(storageKey, mapped);
+            return mapped;
+        }
+        return id;
+    }
 
     return {
         /** 当前已加载的外源主题 ID（空字符串=使用内置主题） */
@@ -37,8 +56,8 @@ window.ThemeLoader = (function() {
         apply: function() {
             var mode = document.documentElement.getAttribute('data-theme') || 'light';
             var themeId = mode === 'light'
-                ? (localStorage.getItem('brainforever_theme_light') || '')
-                : (localStorage.getItem('brainforever_theme_dark') || '');
+                ? _readThemeId('brainforever_theme_light')
+                : _readThemeId('brainforever_theme_dark');
 
             // themeId 为空或为 builtin-light/builtin-dark 时，均表示使用内置主题
             if (!themeId || themeId === 'builtin-light' || themeId === 'builtin-dark') {
