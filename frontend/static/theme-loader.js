@@ -94,6 +94,31 @@ window.ThemeLoader = (function() {
                 ];
                 data.themes = builtinThemes.concat(data.themes || []);
                 _manifestCache = data.themes;
+
+                // ★ 清理 localStorage 中已删除/不存在的主题 ID，避免页面加载时
+                //   尝试加载已删除主题的 CSS 导致 MIME 类型错误和控制台报错。
+                //   同时也防止非标准 ID 在后续打开对话框时触发 watcher 级联问题。
+                (function cleanStaleThemeIds(allThemes) {
+                    var validIds = {};
+                    for (var i = 0; i < allThemes.length; i++) {
+                        validIds[allThemes[i].id] = true;
+                    }
+                    var lightId = localStorage.getItem('brainforever_theme_light');
+                    var darkId = localStorage.getItem('brainforever_theme_dark');
+                    var changed = false;
+                    if (lightId && !validIds[lightId]) {
+                        localStorage.removeItem('brainforever_theme_light');
+                        changed = true;
+                    }
+                    if (darkId && !validIds[darkId]) {
+                        localStorage.removeItem('brainforever_theme_dark');
+                        changed = true;
+                    }
+                    if (changed) {
+                        console.log('ThemeLoader: 已清理 localStorage 中不存在的主题 ID');
+                    }
+                })(data.themes);
+
                 return data;
             } catch(e) {
                 console.warn('ThemeLoader: 加载主题清单失败', e);

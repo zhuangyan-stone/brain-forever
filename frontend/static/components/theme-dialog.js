@@ -46,6 +46,10 @@ document.addEventListener('alpine:init', function() {
              * @param {string} id      - 当前选择的主题 ID
              * @param {'light'|'dark'} targetMode - 目标模式
              * @returns {string} 对应的主题 ID，不存在则返回空串
+             *
+             * ★ 安全约束：返回的 linked ID 必须与原始 id 属于同一前缀（即 A-light → A-dark 且
+             *   A-dark → A-light），且必须存在于目标列表中，否则返回空串。
+             *   空串意味着"内置主题"，不会进一步触发 watcher 联动。
              */
             _getLinkedId: function(id, targetMode) {
                 if (!id) return '';
@@ -55,8 +59,12 @@ document.addEventListener('alpine:init', function() {
                 } else if (id.endsWith('-dark')) {
                     linked = id.slice(0, -5) + '-light';
                 } else {
+                    // 不以 -light/-dark 结尾的 ID（如已删除的 'coffee-mocha'），
+                    // 无法推断对应模式的主题，直接返回空串。
                     return '';
                 }
+                // 自检：linked 不能等于原 id（防止 malformed ID 导致死循环）
+                if (linked === id) return '';
                 // 确认目标列表中存在此主题
                 var targetList = targetMode === 'dark' ? this.availableDark : this.availableLight;
                 return targetList.some(function(t) { return t.id === linked; }) ? linked : '';
@@ -93,12 +101,32 @@ document.addEventListener('alpine:init', function() {
                 this.availableLight = allThemes.filter(function(t) { return t.mode === 'light'; });
                 this.availableDark = allThemes.filter(function(t) { return t.mode === 'dark'; });
 
-                // 从 localStorage 读取已保存的选择；
-                // 若为空（旧版遗留或首次使用），默认选中"内置"方案
+                // ★ 修复：从 localStorage 读取已保存的选择时，验证其是否存在于可用主题列表中。
+                //   如果保存的主题 ID 已被删除/不存在于 manifest（如旧版遗留的 'coffee-mocha'），
+                //   降级到内置主题，避免非-existent ID 触发 watcher 级联循环导致页面卡死。
                 var savedLight = localStorage.getItem('brainforever_theme_light');
                 var savedDark  = localStorage.getItem('brainforever_theme_dark');
+
+                // 验证亮色主题
+                if (savedLight && !this.availableLight.some(function(t) { return t.id === savedLight; })) {
+                    savedLight = 'builtin-light';
+                }
+                // 验证暗色主题
+                if (savedDark && !this.availableDark.some(function(t) { return t.id === savedDark; })) {
+                    savedDark = 'builtin-dark';
+                }
+
+                // ★ 在设置初始值之前禁用联动 watcher，防止 selectedLight/selectedDark
+                //   被重复赋值时触发 watcher 之间的级联反应（Alpine $watch 同步执行，
+                //   可能因响应式系统内部机制导致无限更新循环）。
+                //   设置完初始值后再恢复联动。
+                var prevLink = this.linkThemes;
+                this.linkThemes = false;
+
                 this.selectedLight = savedLight || 'builtin-light';
                 this.selectedDark  = savedDark || 'builtin-dark';
+
+                this.linkThemes = prevLink;
 
                 this.show = true;
             },
