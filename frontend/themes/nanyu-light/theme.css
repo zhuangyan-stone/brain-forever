@@ -6,31 +6,31 @@
    ============================================================ */
 
 [data-theme="light"] {
-    /* 基调 — 暖白钢灰，如抛光钢板 */
-    --bg-primary:       #F2F0ED;
+    /* 基调 — 亮不锈钢银，如抛光钢板 */
+    --bg-primary:       #E8EAEC;
     --bg-image:         url('/themes/nanyu-light/bg.svg');
-    --bg-secondary:     #E8E5E2;
-    --bg-user:          #DCD9D5;
-    --bg-assistant:     #F2F0ED;
-    --bg-input:         #F7F5F3;
-    --switch-track-bg:  #C8C5C1;
+    --bg-secondary:     #DCDEE0;
+    --bg-user:          #D0D2D5;
+    --bg-assistant:     #E8EAEC;
+    --bg-input:         #F0F2F4;
+    --switch-track-bg:  #B8BBBF;
 
-    /* 墨色文字 — 深钢灰 */
-    --text-primary:     #2C2C2C;
-    --text-secondary:   #505050;
-    --text-muted:       #8A8885;
+    /* 墨色文字 — 深灰钢（亮背景上保证对比） */
+    --text-primary:     #1F1F1F;
+    --text-secondary:   #404040;
+    --text-muted:       #757575;
 
     /* 点缀 — 锻铜橙 (forge copper)，工业中的暖色 */
     --accent:           #C06A30;
     --accent-hover:     #D47A42;
 
-    /* 边框/阴影 — 暖灰勾边 */
-    --border:           #D0CCC8;
-    --shadow:           rgba(44, 44, 44, 0.08);
-    --shadow-inset:     inset 0 1.5px 2.5px rgba(44, 44, 44, 0.12);
+    /* 边框/阴影 — 银钢勾边 */
+    --border:           #C0C3C7;
+    --shadow:           rgba(31, 31, 31, 0.08);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(31, 31, 31, 0.10);
 
     /* 代码块 */
-    --bg-code:          #E8E5E2;
+    --bg-code:          #DCDEE0;
 
     /* 纯色 */
     --pure-black:       #000000;
@@ -50,8 +50,8 @@
     --warning-text:     #8A5A30;
 
     /* Tooltip */
-    --tooltip-bg:       #DCD9D5;
-    --tooltip-text:     #2C2C2C;
+    --tooltip-bg:       #D0D2D5;
+    --tooltip-text:     #1F1F1F;
 
     --btn-highlight-bg:       var(--accent);
     --btn-highlight-color:    #fff;

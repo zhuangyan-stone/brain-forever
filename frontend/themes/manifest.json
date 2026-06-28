@@ -128,18 +128,18 @@
       "name_zh": "彩蝶·睡意酣"
     },
     {
-      "description": "熔炉之昼",
+      "description": "钢铁灰",
       "id": "nanyu-light",
       "mode": "light",
       "name": "Old Man · Day",
-      "name_zh": "老男人南郁·昼"
+      "name_zh": "老男人·白天"
     },
     {
-      "description": "熔炉之夜",
+      "description": "熔炉夜",
       "id": "nanyu-dark",
       "mode": "dark",
       "name": "Old Man · Night",
-      "name_zh": "老男人南郁·夜"
+      "name_zh": "老男人·夜晚"
     }
   ]
 }

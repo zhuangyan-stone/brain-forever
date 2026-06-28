@@ -15,8 +15,8 @@
   </g>
 
   <!-- 齿轮/机械元素 -->
-  <g opacity="0.12">
-    <!-- 大齿轮（右下） -->
+  <g transform="translate(1150, 700) scale(1.5) translate(-1150, -700)" opacity="0.12">
+    <!-- 大齿轮（右下，放大150%） -->
     <circle cx="1150" cy="700" r="120" fill="none" stroke="#E8853D" stroke-width="6"/>
     <circle cx="1150" cy="700" r="90" fill="none" stroke="#E8853D" stroke-width="3"/>
     <circle cx="1150" cy="700" r="30" fill="#E8853D"/>
@@ -31,7 +31,56 @@
       <line x1="1058" y1="792" x2="1044" y2="806"/>
       <line x1="1242" y1="608" x2="1256" y2="594"/>
     </g>
+  </g>
+
+  <!-- 舵轮 — 画面正上方中间，象征方向与掌控，熔炉光泽 -->
+  <g transform="translate(720, 120)" opacity="0.12">
+    <!-- 中心轮毂 -->
+    <circle cx="0" cy="0" r="10" fill="none" stroke="#E8853D" stroke-width="3.5"/>
+    <circle cx="0" cy="0" r="3.5" fill="#E8853D"/>
+
+    <!-- 外圈装饰环 -->
+    <circle cx="0" cy="0" r="48" fill="none" stroke="#E8853D" stroke-width="1.2"/>
+
+    <!-- 8根辐条 + 手柄（利用旋转复用） -->
+    <g stroke="#E8853D" stroke-width="2.5" fill="none">
+      <g transform="rotate(0)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
+      <g transform="rotate(45)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
+      <g transform="rotate(90)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
+      <g transform="rotate(135)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
+      <g transform="rotate(180)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
+      <g transform="rotate(225)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
+      <g transform="rotate(270)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
+      <g transform="rotate(315)">
+        <line x1="0" y1="-9" x2="0" y2="-50"/>
+        <circle cx="0" cy="-54" r="4.5" fill="#E8853D"/>
+      </g>
     </g>
+
+    <!-- 中心微光晕（暗色版特有） -->
+    <circle cx="0" cy="0" r="14" fill="#E8853D" opacity="0.15"/>
+  </g>
 
   <!-- 铆钉装饰 -->
   <g opacity="0.15" fill="#E8853D">
@@ -151,6 +200,50 @@
       <rect x="1" y="4" width="18" height="3" fill="#1A1C1E" opacity="0.3"/>
     </g>
   </g>
+  </g>
+
+  <!-- 机械键盘 — 画面下方中间，程序员的标志 -->
+  <g transform="translate(720, 755) scale(1.2) translate(-720, -835)" opacity="0.12">
+    <!-- 键盘底座 -->
+    <rect x="630" y="808" width="180" height="54" rx="5" fill="#4A4E53"/>
+    <rect x="630" y="808" width="180" height="54" rx="5" fill="none" stroke="#6A6E73" stroke-width="0.5"/>
+
+    <!-- ESC 键（熔炉橙强调） -->
+    <rect x="636" y="811" width="10" height="7" rx="1.5" fill="#E8853D"/>
+
+    <!-- 数字行 — 12 个键 -->
+    <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="9.5,2.3" fill="none">
+      <line x1="650" y1="820" x2="798" y2="820"/>
+    </g>
+
+    <!-- QWERTY 行 — 12 个键（左偏移，模拟阶梯布局） -->
+    <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="9.5,2.3" fill="none">
+      <line x1="655" y1="830" x2="798" y2="830"/>
+    </g>
+
+    <!-- ASDF 行 — 11 个键 -->
+    <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="10.5,2.5" fill="none">
+      <line x1="650" y1="840" x2="798" y2="840"/>
+    </g>
+
+    <!-- Shift 行 — 10 个键 -->
+    <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="11.5,2.8" fill="none">
+      <line x1="654" y1="850" x2="798" y2="850"/>
+    </g>
+
+    <!-- 空格行：Ctrl Win Alt [空格] Alt Fn Ctrl -->
+    <g fill="#6A6E73">
+      <rect x="636" y="856" width="14" height="6" rx="1.5"/>
+      <rect x="652" y="856" width="10" height="6" rx="1.5"/>
+      <rect x="664" y="856" width="10" height="6" rx="1.5"/>
+      <rect x="676" y="856" width="52" height="6" rx="1.5"/>
+      <rect x="730" y="856" width="10" height="6" rx="1.5"/>
+      <rect x="742" y="856" width="10" height="6" rx="1.5"/>
+      <rect x="754" y="856" width="14" height="6" rx="1.5"/>
+    </g>
+
+    <!-- USB 连接线 -->
+    <path d="M720,862 Q720,878 732,884" stroke="#4A4E53" stroke-width="2" fill="none" opacity="0.6"/>
   </g>
 
   <!-- 红领巾 — 少先队员的骄傲 -->
