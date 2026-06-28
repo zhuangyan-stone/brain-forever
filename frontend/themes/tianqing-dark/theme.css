@@ -1,57 +1,57 @@
 /* ============================================================
-   天青色·暗 (暗色) — 外源主题
-   文件夹名 tianqing-dark → -dark 后缀表示暗色。
-   天青染紫，烟雨成暮。夜如青瓷染暮色，釉色沉凝。
-   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
-   ============================================================ */
+    天青色·暮 (暗色) — 外源主题
+    文件夹名 tianqing-dark → -dark 后缀表示暗色。
+    天青为底，紫字为文。夜如青瓷沉釉，紫烟浮光。
+    覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+    ============================================================ */
 
 [data-theme="dark"] {
-    /* 夜幕基调 — 深霄天青染紫，釉色沉凝 */
-    --bg-primary:       #191A24;
+    /* 夜幕基调 — 深霄天青沉釉，不再染紫 */
+    --bg-primary:       #141E20;
     --bg-image:         url('/themes/tianqing-dark/bg.svg');
-    --bg-secondary:     #222332;
-    --bg-user:          #2B2C3D;
-    --bg-assistant:     #191A24;
-    --bg-input:         #13141C;
-    --switch-track-bg:  #0C0D14;
+    --bg-secondary:     #1A282A;
+    --bg-user:          #223234;
+    --bg-assistant:     #141E20;
+    --bg-input:         #101819;
+    --switch-track-bg:  #0C1415;
 
-    /* 墨色文字 — 暮色微光 */
-    --text-primary:     #CECAD6;
-    --text-secondary:   #928BA0;
-    --text-muted:       #605B6E;
+    /* 紫烟文字 — 夜如青瓷，紫烟浮光 */
+    --text-primary:     #D4C6E8;
+    --text-secondary:   #A894C0;
+    --text-muted:       #7A68A0;
 
-    /* 点缀 — 天青染紫，暮色中的釉光 */
-    --accent:           #7A8FBD;
-    --accent-hover:     #8EA3CE;
+    /* 点缀 — 天青釉光，与亮色主题呼应 */
+    --accent:           #6DA2AB;
+    --accent-hover:     #81B7C0;
 
     /* 边框/阴影 — 暮烟勾边 */
-    --border:           #2E2E3E;
+    --border:           #253537;
     --shadow:           rgba(0, 0, 0, 0.5);
     --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.10);
 
     /* 代码块 */
-    --bg-code:          #222332;
+    --bg-code:          #1A282A;
 
     /* 纯色 */
     --pure-black:       #000000;
     --pure-white:       #FFFFFF;
 
-    /* 成功 — 青竹（暗版染紫） */
-    --success-text:     #6BB07A;
+    /* 成功 — 青竹（暗版） */
+    --success-text:     #5AA07A;
 
-    /* 错误 — 暮烟（暗版） */
-    --error-bg:         rgba(68, 51, 119, 0.18);
-    --error-border:     rgba(68, 51, 119, 0.40);
-    --error-text:       #8B7FA0;
+    /* 错误 — 烟紫（暗版，与紫色文字呼应） */
+    --error-bg:         rgba(100, 68, 160, 0.18);
+    --error-border:     rgba(100, 68, 160, 0.40);
+    --error-text:       #A890C4;
 
     /* 警告 — 浅青染紫（暗版） */
-    --warning-bg:       #1E1D28;
-    --warning-border:   #A3A85A;
-    --warning-text:     #C4C87A;
+    --warning-bg:       #1A2020;
+    --warning-border:   #9AAC5A;
+    --warning-text:     #C0C87A;
 
     /* Tooltip */
-    --tooltip-bg:       #2B2C3D;
-    --tooltip-text:     #CECAD6;
+    --tooltip-bg:       #223234;
+    --tooltip-text:     #D4C6E8;
 
     --btn-highlight-bg:       var(--accent);
     --btn-highlight-color:    #fff;
