@@ -10,7 +10,7 @@
     --bg-primary:       #F5F0E6;
     --bg-image:         url('/themes/chaxiang-light/bg.svg');
     --bg-secondary:     #EBE4D6;
-    --bg-user:          #E0D7C5;
+    --bg-user:          #F0E2DA;   /* 桃花淡粉 — 桃花的粉 */
     --bg-assistant:     #F5F0E6;
     --bg-input:         #EEE8DB;
     --switch-track-bg:  #D4CBB5;
@@ -20,9 +20,9 @@
     --text-secondary:   #5A5545;
     --text-muted:       #8A8570;
 
-    /* 点缀 — 茶叶的淡雅青褐 */
-    --accent:           #8B7A5A;
-    --accent-hover:     #9E8D6D;
+    /* 点缀 — 明前茶芽的翠绿，小草之绿 */
+    --accent:           #7A9B5A;   /* 小草绿 */
+    --accent-hover:     #8DAF6D;   /* 更亮的小草绿 */
 
     /* 边框/阴影 — 暖褐勾边 */
     --border:           #D4CBB5;
@@ -36,18 +36,18 @@
     --pure-black:       #000000;
     --pure-white:       #FFFFFF;
 
-    /* 成功 — 茶青 */
-    --success-text:     #6B8A5A;
+    /* 成功 — 春草绿 */
+    --success-text:     #5E9B4E;   /* 更明亮的草绿 */
 
     /* 错误 — 陈褐 */
     --error-bg:         rgba(139, 90, 60, 0.08);
     --error-border:     rgba(139, 90, 60, 0.25);
     --error-text:       #8B5A3C;
 
-    /* 警告 — 桂花 */
-    --warning-bg:       #FFF5E0;
-    --warning-border:   #C4A85A;
-    --warning-text:     #7A6A30;
+    /* 警告 — 桃花粉 */
+    --warning-bg:       #FFF0EE;   /* 淡粉底 */
+    --warning-border:   #E8B0A8;   /* 粉边框 */
+    --warning-text:     #B07060;   /* 深粉文字 */
 
     /* Tooltip */
     --tooltip-bg:       #E0D7C5;
