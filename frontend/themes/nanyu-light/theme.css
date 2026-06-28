@@ -1,0 +1,63 @@
+/* ============================================================
+   南郁老登 · 钢昼 (亮色) — 工业钢铁风
+   文件夹名 nanyu-light → -light 后缀表示亮色。
+   钢铁为骨，炉火为魂。五十岁老程序员的沉稳与力量。
+   覆盖 [data-theme="light"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="light"] {
+    /* 基调 — 暖白钢灰，如抛光钢板 */
+    --bg-primary:       #F2F0ED;
+    --bg-image:         url('/themes/nanyu-light/bg.svg');
+    --bg-secondary:     #E8E5E2;
+    --bg-user:          #DCD9D5;
+    --bg-assistant:     #F2F0ED;
+    --bg-input:         #F7F5F3;
+    --switch-track-bg:  #C8C5C1;
+
+    /* 墨色文字 — 深钢灰 */
+    --text-primary:     #2C2C2C;
+    --text-secondary:   #505050;
+    --text-muted:       #8A8885;
+
+    /* 点缀 — 锻铜橙 (forge copper)，工业中的暖色 */
+    --accent:           #C06A30;
+    --accent-hover:     #D47A42;
+
+    /* 边框/阴影 — 暖灰勾边 */
+    --border:           #D0CCC8;
+    --shadow:           rgba(44, 44, 44, 0.08);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(44, 44, 44, 0.12);
+
+    /* 代码块 */
+    --bg-code:          #E8E5E2;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 冷翠 */
+    --success-text:     #3A8A6A;
+
+    /* 错误 — 朱红 */
+    --error-bg:         rgba(180, 60, 60, 0.08);
+    --error-border:     rgba(180, 60, 60, 0.25);
+    --error-text:       #B43C3C;
+
+    /* 警告 — 暖金 */
+    --warning-bg:       #FCF0E8;
+    --warning-border:   #C06A30;
+    --warning-text:     #8A5A30;
+
+    /* Tooltip */
+    --tooltip-bg:       #DCD9D5;
+    --tooltip-text:     #2C2C2C;
+
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #fff;
+    --btn-highlight-hover-bg: var(--accent-hover);
+
+    --btn-danger-bg:          #CC3333;
+    --btn-danger-color:       #fff;
+    --btn-danger-hover-bg:    #AA2222;
+}

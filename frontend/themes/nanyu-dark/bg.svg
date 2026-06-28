@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- 南郁老登 · 钢夜 — 工业钢铁风（暗色版）
+       作者：南郁，五十岁老程序员的沉稳与力量 -->
+  
+  <!-- 底色 — 深钢灰 -->
+  <rect width="1440" height="900" fill="#1A1C1E"/>
+
+  <!-- 底部熔炉红光 — 像是钢厂炉火的余晖 -->
+  <ellipse cx="720" cy="920" rx="800" ry="220" fill="#E8853D" opacity="0.06"/>
+
+  <!-- 工业几何结构 — 两侧垂直钢柱 -->
+  <g opacity="0.20">
+    <rect x="0" y="0" width="12" height="900" fill="#4A4E53"/>
+    <rect x="1428" y="0" width="12" height="900" fill="#4A4E53"/>
+  </g>
+
+  <!-- 齿轮/机械元素 -->
+  <g opacity="0.12">
+    <!-- 大齿轮（右下） -->
+    <circle cx="1150" cy="700" r="120" fill="none" stroke="#E8853D" stroke-width="6"/>
+    <circle cx="1150" cy="700" r="90" fill="none" stroke="#E8853D" stroke-width="3"/>
+    <circle cx="1150" cy="700" r="30" fill="#E8853D"/>
+    <!-- 齿轮齿 -->
+    <g stroke="#E8853D" stroke-width="6">
+      <line x1="1150" y1="570" x2="1150" y2="550"/>
+      <line x1="1150" y1="830" x2="1150" y2="850"/>
+      <line x1="1020" y1="700" x2="1000" y2="700"/>
+      <line x1="1280" y1="700" x2="1300" y2="700"/>
+      <line x1="1058" y1="608" x2="1044" y2="594"/>
+      <line x1="1242" y1="792" x2="1256" y2="806"/>
+      <line x1="1058" y1="792" x2="1044" y2="806"/>
+      <line x1="1242" y1="608" x2="1256" y2="594"/>
+    </g>
+    </g>
+
+  <!-- 铆钉装饰 -->
+  <g opacity="0.15" fill="#E8853D">
+    <circle cx="80" cy="80" r="5"/>
+    <circle cx="200" cy="80" r="5"/>
+    <circle cx="320" cy="80" r="5"/>
+    <circle cx="80" cy="820" r="5"/>
+    <circle cx="200" cy="820" r="5"/>
+    <circle cx="320" cy="820" r="5"/>
+    <circle cx="1120" cy="80" r="5"/>
+    <circle cx="1240" cy="80" r="5"/>
+    <circle cx="1360" cy="80" r="5"/>
+    <circle cx="1120" cy="820" r="5"/>
+    <circle cx="1240" cy="820" r="5"/>
+    <circle cx="1360" cy="820" r="5"/>
+  </g>
+
+  <!-- 领带装饰 — 程序员的骄傲 -->
+  <g opacity="0.18">
+    <!-- 领带结 -->
+    <polygon points="135,130 175,130 180,180 130,180" fill="#E8853D"/>
+    <!-- 领带主体 -->
+    <path d="M130,180
+             L180,180
+             L190,340
+             Q196,400 205,440
+             L155,500
+             L105,440
+             Q114,400 120,340 Z"
+          fill="#E8853D"/>
+    <!-- 领带内折阴影 -->
+    <path d="M150,180 L155,490" stroke="#1A1C1E" stroke-width="1.5" opacity="0.3" fill="none"/>
+    <!-- 领带条纹装饰 -->
+    <g stroke="#1A1C1E" stroke-width="0.8" opacity="0.2" fill="none">
+      <path d="M134,200 L176,200"/>
+      <path d="M132,230 L178,230"/>
+      <path d="M130,260 L180,260"/>
+      <path d="M128,290 L182,290"/>
+      <path d="M126,320 L184,320"/>
+      <path d="M124,350 L186,350"/>
+      <path d="M120,380 L190,380"/>
+      <path d="M114,410 L196,410"/>
+    </g>
+  </g>
+
+  <!-- 书堆 — 知识的力量 -->
+  <g transform="translate(200,720) scale(0.88) translate(-200,-700)">
+  <g opacity="0.40">
+    <!-- 第1本 -->
+    <g transform="translate(100,838) rotate(-2)">
+      <rect x="0" y="0" width="210" height="22" rx="2" fill="#7B9DBF"/>
+      <rect x="4" y="1" width="3" height="20" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第2本 -->
+    <g transform="translate(108,813) rotate(1.5)">
+      <rect x="0" y="0" width="195" height="25" rx="2" fill="#C49A6C"/>
+      <rect x="4" y="1" width="3" height="23" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第3本 -->
+    <g transform="translate(95,785) rotate(3)">
+      <rect x="0" y="0" width="220" height="20" rx="2" fill="#8FB58F"/>
+      <rect x="4" y="1" width="3" height="18" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第4本 -->
+    <g transform="translate(112,758) rotate(-1.5)">
+      <rect x="0" y="0" width="190" height="28" rx="2" fill="#BF7C7C"/>
+      <rect x="4" y="1" width="3" height="26" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第5本 -->
+    <g transform="translate(102,728) rotate(0.5)">
+      <rect x="0" y="0" width="205" height="24" rx="2" fill="#9B8FBF"/>
+      <rect x="4" y="1" width="3" height="22" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第6本 -->
+    <g transform="translate(118,700) rotate(-2.5)">
+      <rect x="0" y="0" width="185" height="22" rx="2" fill="#BF9B7C"/>
+      <rect x="4" y="1" width="3" height="20" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第7本 -->
+    <g transform="translate(105,672) rotate(1.8)">
+      <rect x="0" y="0" width="200" height="26" rx="2" fill="#6CBFBF"/>
+      <rect x="4" y="1" width="3" height="24" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第8本 -->
+    <g transform="translate(98,644) rotate(-1)">
+      <rect x="0" y="0" width="215" height="24" rx="2" fill="#A8A87C"/>
+      <rect x="4" y="1" width="3" height="22" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第9本 -->
+    <g transform="translate(115,618) rotate(2.2)">
+      <rect x="0" y="0" width="188" height="22" rx="2" fill="#BF8F9B"/>
+      <rect x="4" y="1" width="3" height="20" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第10本 -->
+    <g transform="translate(108,592) rotate(-0.8)">
+      <rect x="0" y="0" width="200" height="28" rx="2" fill="#7CA8BF"/>
+      <rect x="4" y="1" width="3" height="26" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第11本 -->
+    <g transform="translate(100,566) rotate(1.2)">
+      <rect x="0" y="0" width="210" height="20" rx="2" fill="#8FBF9B"/>
+      <rect x="4" y="1" width="3" height="18" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第12本 -->
+    <g transform="translate(110,538) rotate(-1.8)">
+      <rect x="0" y="0" width="195" height="26" rx="2" fill="#BF7CA8"/>
+      <rect x="4" y="1" width="3" height="24" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第13本（斜靠在右侧） -->
+    <g transform="translate(305,710) rotate(18)">
+      <rect x="0" y="0" width="22" height="130" rx="2" fill="#C49A6C"/>
+      <rect x="1" y="4" width="20" height="3" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+    <!-- 第14本（斜靠在内侧） -->
+    <g transform="translate(288,740) rotate(12)">
+      <rect x="0" y="0" width="20" height="110" rx="2" fill="#7B9DBF"/>
+      <rect x="1" y="4" width="18" height="3" fill="#1A1C1E" opacity="0.3"/>
+    </g>
+  </g>
+  </g>
+
+  <!-- 红领巾 — 少先队员的骄傲 -->
+  <g opacity="0.20">
+    <!-- 左尾 -->
+    <path d="M1260,100 Q1230,160 1190,220 L1220,225 Q1250,170 1278,115 Z" fill="#DD3333"/>
+    <!-- 右尾 -->
+    <path d="M1290,100 Q1320,170 1360,240 L1330,235 Q1300,175 1270,115 Z" fill="#DD3333"/>
+    <!-- 领结 -->
+    <polygon points="1265,85 1290,85 1295,110 1260,110" fill="#DD3333"/>
+  </g>
+
+  <!-- 零星火花点缀 — 暗色中的微光 -->
+  <g opacity="0.25">
+    <circle cx="480" cy="350" r="2" fill="#F0A05A"/>
+    <circle cx="680" cy="280" r="1.5" fill="#F0A05A"/>
+    <circle cx="850" cy="420" r="2.5" fill="#F0A05A"/>
+    <circle cx="320" cy="500" r="1.5" fill="#F0A05A"/>
+    <circle cx="950" cy="180" r="2" fill="#E8853D"/>
+    <circle cx="550" cy="650" r="1.5" fill="#E8853D"/>
+    <circle cx="700" cy="520" r="1" fill="#F0A05A"/>
+    <circle cx="420" cy="750" r="2" fill="#E8853D"/>
+  </g>
+</svg>

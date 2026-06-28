@@ -1,0 +1,63 @@
+/* ============================================================
+   南郁老登 · 钢夜 (暗色) — 工业钢铁风
+   文件夹名 nanyu-dark → -dark 后缀表示暗色。
+   钢铁为骨，炉火为魂。五十岁老程序员的沉稳与力量。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 基调 — 深钢灰，如重工业厂房的夜色 */
+    --bg-primary:       #1A1C1E;
+    --bg-image:         url('/themes/nanyu-dark/bg.svg');
+    --bg-secondary:     #232629;
+    --bg-user:          #2D3135;
+    --bg-assistant:     #1A1C1E;
+    --bg-input:         #151719;
+    --switch-track-bg:  #383D42;
+
+    /* 墨色文字 — 暖白钢色，有温度的灰 */
+    --text-primary:     #E8E6E3;
+    --text-secondary:   #B0AFAE;
+    --text-muted:       #757575;
+
+    /* 点缀 — 熔炉橙 (forge orange)，暗夜中的炉火 */
+    --accent:           #E8853D;
+    --accent-hover:     #F0A05A;
+
+    /* 边框/阴影 — 深钢勾边 */
+    --border:           #35393D;
+    --shadow:           rgba(0, 0, 0, 0.5);
+    --shadow-inset:     inset 0 1px 2px rgba(232, 133, 61, 0.08);
+
+    /* 代码块 */
+    --bg-code:          #232629;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 冷翠（暗版） */
+    --success-text:     #5BBF8A;
+
+    /* 错误 — 朱红（暗版） */
+    --error-bg:         rgba(180, 60, 60, 0.18);
+    --error-border:     rgba(180, 60, 60, 0.40);
+    --error-text:       #BF6060;
+
+    /* 警告 — 暖金（暗版） */
+    --warning-bg:       #2A1F10;
+    --warning-border:   #E8853D;
+    --warning-text:     #F0A05A;
+
+    /* Tooltip */
+    --tooltip-bg:       #2D3135;
+    --tooltip-text:     #E8E6E3;
+
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #fff;
+    --btn-highlight-hover-bg: var(--accent-hover);
+
+    --btn-danger-bg:          #CC3333;
+    --btn-danger-color:       #fff;
+    --btn-danger-hover-bg:    #AA2222;
+}

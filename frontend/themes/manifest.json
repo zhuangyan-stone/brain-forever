@@ -85,7 +85,7 @@
       "name": "Catppuccin Mocha",
       "name_zh": "猫布奇诺·摩卡"
     },
-        {
+    {
       "description": "挪威的森林，明亮冷静",
       "id": "nord-light",
       "mode": "light",
@@ -126,6 +126,20 @@
       "mode": "dark",
       "name": "Butterfly Pink · Night Magic",
       "name_zh": "彩蝶·睡意酣"
+    },
+    {
+      "description": "熔炉之昼",
+      "id": "nanyu-light",
+      "mode": "light",
+      "name": "Old Man · Day",
+      "name_zh": "老男人南郁·昼"
+    },
+    {
+      "description": "熔炉之夜",
+      "id": "nanyu-dark",
+      "mode": "dark",
+      "name": "Old Man · Night",
+      "name_zh": "老男人南郁·夜"
     }
   ]
 }
