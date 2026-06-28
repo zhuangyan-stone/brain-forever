@@ -289,7 +289,7 @@ document.addEventListener('alpine:init', function() {
                 }
 
                 // ---- 4. 文档内容 ----
-                parts.push('## AI 眼中的你 ……');
+                parts.push('## AI 眼中的 ' + userName + ' ……');
                 parts.push('');
                 parts.push(docText);
 

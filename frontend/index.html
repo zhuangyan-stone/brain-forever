@@ -835,7 +835,7 @@
                      ================================================ -->
                 <div class="portrait-content" x-show="portraitHTML">
                     <!-- 固定主标题（UI 固定添加，不由后台生成） -->
-                    <div class="portrait-content-title">AI 眼中的你 ……</div>
+                    <div class="portrait-content-title" x-text="'AI 眼中的 ' + (userName || '匿名用户') + ' ……'"></div>
                     <div x-html="portraitHTML"></div>
                 </div>
             </div>

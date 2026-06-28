@@ -149,7 +149,7 @@
     scrollbar-color: var(--border) transparent;
 }
 
-/* 画像内容区固定主标题 — "AI 眼中的你 ……" */
+/* 画像内容区固定主标题 — "AI 眼中的 {昵称} …..." */
 .portrait-content-title {
     font-size: 1.25rem;
     font-weight: 700;
