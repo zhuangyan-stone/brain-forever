@@ -41,24 +41,24 @@
       "id": "tianqing-dark",
       "mode": "dark",
       "name": "Celeste · Midnight Sky",
-      "name_zh": "天青·暮色"
+      "name_zh": "天青·暮临"
     },
     {
-      "description": "半盏新茶，明前春色。茶汤清亮人心暖",
+      "description": "半盏新茶明前春，茶汤清亮人心暖",
       "id": "chaxiang-light",
       "mode": "light",
       "name": "Tea Fragrance · First Flush",
       "name_zh": "茶香·明前"
     },
     {
-      "description": "陈年苦茗，霜后秋香。余韵悠长岁月甘",
+      "description": "陈年苦茗霜后秋。余韵悠长岁月甘",
       "id": "chaxiang-dark",
       "mode": "dark",
       "name": "Tea Fragrance · Aged Aroma",
       "name_zh": "茶香·陈韵"
     },
     {
-      "description": "竹林雨歇，竹叶翠，阳光冷",
+      "description": "竹林雨歇，竹叶翠，晨风冷",
       "id": "zhuzhangmangxie-light",
       "mode": "light",
       "name": "Bamboo Staff · No Wind Nor Rain",
@@ -72,7 +72,7 @@
       "name_zh": "竹杖芒鞋·也无晴"
     },
     {
-      "description": "暖咖色调，柔和舒适",
+      "description": "浅咖色调，柔和舒适",
       "id": "catppuccin-light",
       "mode": "light",
       "name": "Catppuccin Latte",
@@ -86,14 +86,14 @@
       "name_zh": "猫布奇诺·摩卡"
     },
         {
-      "description": "北欧极简，霜白冷灰，冷静明亮",
+      "description": "挪威的森林，明亮冷静",
       "id": "nord-light",
       "mode": "light",
       "name": "Nord Frost Gray",
       "name_zh": "北欧·霜灰"
     },
     {
-      "description": "北欧极夜，深蓝冷灰，沉静优雅",
+      "description": "挪威的森林，优雅沉浸",
       "id": "nord-dark",
       "mode": "dark",
       "name": "Nord Cold Night",

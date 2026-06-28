@@ -1,30 +1,30 @@
-/* ============================================================
-   Catppuccin Mocha (暗色) — 外源主题
+i/* ============================================================
+   Catppuccin Mocha (暗色) — 深咖主题
    文件夹名 catppuccin-dark → -dark 后缀表示暗色。
    覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
    ============================================================ */
 
 [data-theme="dark"] {
-    --bg-primary:       #1e1e2e;
+    --bg-primary:       #2c2420;
     --bg-image:         url('/themes/catppuccin-dark/bg.svg');
-    --bg-secondary:     #181825;
-    --bg-user:          #313244;
-    --bg-assistant:     #1e1e2e;
-    --bg-input:         #181825;
-    --switch-track-bg:  #11111b;
+    --bg-secondary:     #231c18;
+    --bg-user:          #3d322c;
+    --bg-assistant:     #2c2420;
+    --bg-input:         #231c18;
+    --switch-track-bg:  #1a1410;
 
-    --text-primary:     #cdd6f4;
-    --text-secondary:   #a6adc8;
-    --text-muted:       #6c7086;
+    --text-primary:     #e8ddd4;
+    --text-secondary:   #c9bbb0;
+    --text-muted:       #8f7e73;
 
     --accent:           #89b4fa;
     --accent-hover:     #9fc7fa;
 
-    --border:           #313244;
+    --border:           #3d322c;
     --shadow:           rgba(0, 0, 0, 0.5);
-    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.15);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.08);
 
-    --bg-code:          #181825;
+    --bg-code:          #231c18;
 
     --pure-black:       #000000;
     --pure-white:       #ffffff;
@@ -39,8 +39,8 @@
     --warning-border:   #f9e2af;
     --warning-text:     #f9e2af;
 
-    --tooltip-bg:       #313244;
-    --tooltip-text:     #cdd6f4;
+    --tooltip-bg:       #3d322c;
+    --tooltip-text:     #e8ddd4;
 
     --btn-highlight-bg:       var(--accent);
     --btn-highlight-color:    #fff;

@@ -1,16 +1,16 @@
 /* ============================================================
-   Catppuccin Latte (亮色) — 外源主题
+   Catppuccin Latte (亮色) — 浅咖主题
    文件夹名 catppuccin-light → -light 后缀表示亮色。
    覆盖 [data-theme="light"] 中的 CSS 自定义属性。
    ============================================================ */
 
 [data-theme="light"] {
-    --bg-primary:       #eff1f5;
+    --bg-primary:       #f2e6d9;
     --bg-image:         url('/themes/catppuccin-light/bg.svg');
-    --bg-secondary:     #e6e9ef;
-    --bg-user:          #dce0e8;
-    --bg-assistant:     #eff1f5;
-    --bg-input:         #e6e9ef;
+    --bg-secondary:     #eadccf;
+    --bg-user:          #e5d5c3;
+    --bg-assistant:     #f2e6d9;
+    --bg-input:         #eadccf;
     --switch-track-bg:  #ccd0da;
 
     --text-primary:     #4c4f69;
@@ -24,7 +24,7 @@
     --shadow:           rgba(0, 0, 0, 0.06);
     --shadow-inset:     inset 0 1.5px 2.5px rgba(0, 0, 0, 0.12);
 
-    --bg-code:          #e6e9ef;
+    --bg-code:          #eadccf;
 
     --pure-black:       #000000;
     --pure-white:       #ffffff;
@@ -39,7 +39,7 @@
     --warning-border:   #df8e1d;
     --warning-text:     #7c4c00;
 
-    --tooltip-bg:       #e6e9ef;
+    --tooltip-bg:       #eadccf;
     --tooltip-text:     #4c4f69;
 
     --btn-highlight-bg:       var(--accent);
