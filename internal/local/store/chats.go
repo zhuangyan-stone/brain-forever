@@ -170,6 +170,8 @@ func (s *ChatStore) initSchema() error {
 		return fmt.Errorf("failed to initialize chat tables. %w", err)
 	}
 
+	// TODO : remove this migration logic after a few versions,
+	// as it is only for backward compatibility with old versions.
 	// Migration 1: rename extracted_message_count to extracted_count
 	var oldCol string
 	err = s.db.QueryRow(
