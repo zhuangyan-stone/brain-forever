@@ -58,7 +58,7 @@
       "name_zh": "竹杖芒鞋·也无晴"
     },
     {
-      "description": "明窗亮几，亮色",
+      "description": "明眸善睐，明窗净几，亮色",
       "id": "highcontrast-light",
       "mode": "light",
       "highContrast": true,
@@ -66,7 +66,7 @@
       "name_zh": "明眸·昼"
     },
     {
-      "description": "明窗亮几，暗色",
+      "description": "明眸善睐，明窗净几，暗色",
       "id": "highcontrast-dark",
       "mode": "dark",
       "highContrast": true,
@@ -74,18 +74,18 @@
       "name_zh": "明眸·夜"
     },
     {
-      "description": "雨过天青，云破处。清雅亮色",
+      "description": "雨过天青云破处。清雅亮",
       "id": "tianqing-light",
       "mode": "light",
       "name": "Celeste · Sky After Rain",
       "name_zh": "天青色·烟雨"
     },
     {
-      "description": "夜如青瓷，釉色沉。天青暗色",
+      "description": "夜如青瓷釉色沉。天青暗",
       "id": "tianqing-dark",
       "mode": "dark",
       "name": "Celeste · Midnight Sky",
-      "name_zh": "天青色·夜雨"
+      "name_zh": "天青色·等你"
     },
     {
       "description": "一盏新茶，明前春色。茶汤清亮的暖色主题",
