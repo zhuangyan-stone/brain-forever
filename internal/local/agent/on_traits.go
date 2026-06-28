@@ -209,19 +209,23 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 5. Embed each trait and store into user-specific traits DB
 	// ----------------------------------------------------------
-	newTraitCount := len(remoteResp.Features)
-	if newTraitCount > 0 {
-		if err := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN); err != nil {
-			// Non-fatal: still return features to frontend even if storage fails
-		}
+	if len(remoteResp.Features) > 0 {
+		storedCount, _ := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN)
 
 		// ----------------------------------------------------------
-		// 6a. At least one new trait extracted → mark all messages
-		//     that participated in this extraction as extracted,
-		//     and update the cumulative trait count.
+		// 6a. At least one trait was successfully stored → mark
+		//     messages as extracted and update the cumulative count
+		//     with the actual stored count (not the LLM-returned count,
+		//     since some may have failed embedding/storage).
 		// ----------------------------------------------------------
-		chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
-		updateExtractionProgress(foundChat, chatsStore, newTraitCount)
+		if storedCount > 0 {
+			chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
+			updateExtractionProgress(foundChat, chatsStore, storedCount)
+		} else {
+			// All traits failed to store → don't mark messages
+			// as extracted, just update extracted_at.
+			updateExtractionProgress(foundChat, chatsStore, 0)
+		}
 	} else {
 		// ----------------------------------------------------------
 		// 6b. No new traits extracted → do NOT mark messages as
@@ -334,15 +338,17 @@ func callTraitsRemote(ctx context.Context, req *traitsRemoteRequest, acceptLang 
 // storeTraitsInSession embeds each trait feature and stores it along with keywords
 // into the session's per-user traits database.
 // chatSN is the source chat SN (chat_sessions.sn), stored in the trait record for traceability.
-func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) error {
+// Returns the number of traits successfully stored, and any error (if the store is unavailable).
+func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) (int, error) {
 	emb := h.embedder
 
 	// The traits store was already created eagerly at session creation or user switch time
 	vs, err := session.ensureTraitsStore()
 	if err != nil {
-		return fmt.Errorf("ensure traits store: %w", err)
+		return 0, fmt.Errorf("ensure traits store: %w", err)
 	}
 
+	stored := 0
 	for _, f := range features {
 		if f.FeatureText == "" {
 			continue
@@ -380,9 +386,11 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 			}
 			vs.AddKeyword(keyword)
 		}
+
+		stored++
 	}
 
-	return nil
+	return stored, nil
 }
 
 // handleNoNewMessages builds and writes the response when there are no
