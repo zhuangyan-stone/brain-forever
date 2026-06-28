@@ -6,6 +6,7 @@
 
 [data-theme="dark"] {
     --bg-primary:       #1e1e2e;
+    --bg-image:         url('/themes/catppuccin-dark/bg.svg');
     --bg-secondary:     #181825;
     --bg-user:          #313244;
     --bg-assistant:     #1e1e2e;

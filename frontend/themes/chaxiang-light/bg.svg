@@ -9,21 +9,22 @@
         <path d="M1285,750 L1315,750" stroke-width="1.5" opacity="0.08"/>
         <ellipse cx="1300" cy="720" rx="10" ry="3" fill="#8A7A5A" opacity="0.04" stroke="none"/>
         
-        <!-- 透明茶汤（清亮透光的茶色） -->
-        <path d="M1285,735 L1290,720 L1310,720 L1315,735 Z" fill="#C89050" opacity="0.08" stroke="none"/>
-        <!-- 茶汤表面涟漪 -->
-        <ellipse cx="1300" cy="735" rx="7.5" ry="2.5" fill="#D4A060" opacity="0.06" stroke="none"/>
-        <!-- 茶汤表面高光线 -->
-        <ellipse cx="1300" cy="735" rx="7.5" ry="2.5" fill="none" stroke="#D4A060" stroke-width="0.5" opacity="0.07"/>
+        <!-- 透明茶汤（清亮透光的茶色） — 八分满 -->
+        <path d="M1282,744 L1290,720 L1310,720 L1318,744 Z" fill="#C89050" opacity="0.08" stroke="none"/>
       </g>
       
-      <!-- 茶烟袅袅 -->
-      <path d="M1300,715 Q1290,680 1300,650 Q1310,620 1300,590 Q1290,560 1300,530" 
-            stroke-width="1.5" opacity="0.10"/>
-      <path d="M1295,715 Q1285,685 1295,655 Q1305,625 1295,595 Q1285,565 1295,540" 
-            stroke-width="1" opacity="0.06"/>
-      <path d="M1305,715 Q1315,685 1305,655 Q1295,625 1305,595 Q1315,560 1305,540" 
-            stroke-width="1" opacity="0.06"/>
+      <!-- 茶烟袅袅 — 由浓渐散 -->
+      <path d="M1300,715 Q1296,701 1295,688" stroke-width="1.38" opacity="0.12"/>
+      <path d="M1295,688 Q1294,668 1300,650 Q1310,620 1300,590" stroke-width="0.8" opacity="0.06"/>
+      <path d="M1300,590 Q1290,560 1300,530" stroke-width="0.4" opacity="0.03"/>
+      
+      <path d="M1295,715 Q1291,703 1290,691" stroke-width="1.0" opacity="0.1"/>
+      <path d="M1290,691 Q1289,673 1295,655 Q1305,625 1295,595" stroke-width="0.6" opacity="0.06"/>
+      <path d="M1295,595 Q1285,565 1295,540" stroke-width="0.3" opacity="0.03"/>
+      
+      <path d="M1305,715 Q1309,703 1310,691" stroke-width="1.0" opacity="0.08"/>
+      <path d="M1310,691 Q1311,673 1305,655 Q1295,625 1305,595" stroke-width="0.6" opacity="0.05"/>
+      <path d="M1305,595 Q1315,560 1305,540" stroke-width="0.3" opacity="0.03"/>
     </g>
     
     <!-- 远处茶山层叠 -->

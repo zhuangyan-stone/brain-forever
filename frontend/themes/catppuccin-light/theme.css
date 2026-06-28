@@ -6,6 +6,7 @@
 
 [data-theme="light"] {
     --bg-primary:       #eff1f5;
+    --bg-image:         url('/themes/catppuccin-light/bg.svg');
     --bg-secondary:     #e6e9ef;
     --bg-user:          #dce0e8;
     --bg-assistant:     #eff1f5;

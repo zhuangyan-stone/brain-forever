@@ -1,29 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
   <!-- 陈年老茶 — 夜深茶暖，醇厚温润 -->
   <g fill="none" stroke="#A09070" stroke-linecap="round">
-    <!-- 茶盏 + 暖烟（整体放大 180%，移至画面左侧） -->
-    <g transform="translate(150, 572) scale(1.8) translate(-1300, -632)">
-      <!-- 茶盏轮廓（上下翻转后底大口小） -->
-      <g transform="matrix(1 0 0 -1 0 1455)">
-        <path d="M1285,740 L1292,715 L1308,715 L1315,740 Z" stroke-width="1.5" opacity="0.12"/>
-        <path d="M1288,740 L1312,740" stroke-width="1.5" opacity="0.12"/>
-        <ellipse cx="1300" cy="715" rx="8" ry="2.5" fill="#A09070" opacity="0.06" stroke="none"/>
+    <!-- 茶杯 + 茶烟（整体放大 180%，移至画面左侧） -->
+    <g transform="translate(150, 580) scale(1.8) translate(-1300, -640)">
+      <!-- 茶杯轮廓（上下翻转后底大口小） -->
+      <g transform="matrix(1 0 0 -1 0 1470)">
+        <path d="M1280,750 L1290,720 L1310,720 L1320,750 Z" stroke-width="1.5" opacity="0.12"/>
+        <path d="M1285,750 L1315,750" stroke-width="1.5" opacity="0.12"/>
+        <ellipse cx="1300" cy="720" rx="10" ry="3" fill="#A09070" opacity="0.06" stroke="none"/>
         
-        <!-- 透明茶汤（透光琥珀色） -->
-        <path d="M1288,730 L1292,715 L1308,715 L1312,730 Z" fill="#C89050" opacity="0.12" stroke="none"/>
-        <!-- 茶汤表面涟漪 -->
-        <ellipse cx="1300" cy="730" rx="6" ry="2" fill="#D4A060" opacity="0.08" stroke="none"/>
-        <!-- 茶汤表面高光线 -->
-        <ellipse cx="1300" cy="730" rx="6" ry="2" fill="none" stroke="#D4A060" stroke-width="0.5" opacity="0.10"/>
+        <!-- 透明茶汤（透光琥珀色） — 三分残 -->
+        <path d="M1287,729 L1290,720 L1310,720 L1313,729 Z" fill="#C89050" opacity="0.12" stroke="none"/>
       </g>
       
-      <!-- 暖烟升腾 — 夜深茶暖 -->
-      <path d="M1300,710 Q1290,675 1300,645 Q1310,615 1300,585 Q1290,555 1300,525" 
-            stroke-width="1.5" opacity="0.15"/>
-      <path d="M1295,710 Q1285,680 1295,650 Q1305,620 1295,590 Q1285,560 1295,535" 
-            stroke-width="1" opacity="0.10"/>
-      <path d="M1305,710 Q1315,680 1305,650 Q1295,620 1305,590 Q1315,560 1305,535" 
-            stroke-width="1" opacity="0.10"/>
+      <!-- 暖烟残尽 — 夜深茶凉 -->
+      <g transform="translate(1260, 712)" opacity="0.38">
+        <path d="M40,8 Q35,0 40,-8 Q45,-16 40,-24" stroke-width="1.2"/>
+        <path d="M48,10 Q43,2 48,-6 Q53,-14 48,-20" stroke-width="1"/>
+        <path d="M35,8 Q30,0 35,-6" stroke-width="0.8"/>
+      </g>
     </g>
     
     <!-- 茶山层叠 — 夜色 -->
