@@ -104,8 +104,8 @@
 }
 
 .theme-link-toggle.active .theme-link-toggle-slider {
-    background: var(--accent, #57C3C3);
-    border-color: var(--accent, #57C3C3);
+    background: var(--btn-highlight-bg, var(--accent, #57C3C3));
+    border-color: var(--btn-highlight-bg, var(--accent, #57C3C3));
 }
 
 .theme-link-toggle.active .theme-link-toggle-slider::after {

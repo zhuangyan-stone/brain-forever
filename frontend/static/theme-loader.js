@@ -20,6 +20,8 @@
 // 此映射在读取时自动将旧 ID 转换为新 ID，并回写到 localStorage 完成迁移。
 var THEME_ID_MIGRATIONS = {
     'highcontrast-dark':  'brighteyes-dark',
+    'brighteyes-light':   'builtin-light',
+    'brighteyes-dark':    'builtin-dark',
 };
 
 window.ThemeLoader = (function() {
@@ -108,8 +110,8 @@ window.ThemeLoader = (function() {
                 // 将内置主题作为完整对象注入到列表最前面，
                 // 使所有展示代码（tooltip、对话框等）无需特判内置/外源
                 var builtinThemes = [
-                    { id: 'builtin-light', mode: 'light', name: 'Built-in Light', name_zh: '内置亮色' },
-                    { id: 'builtin-dark', mode: 'dark', name: 'Built-in Dark', name_zh: '内置暗色' },
+                    { id: 'builtin-light', mode: 'light', highContrast: true, name: 'Bright Eyes · Day', name_zh: '明眸·昼', description: '内置，白底黑字，清亮明快' },
+                    { id: 'builtin-dark', mode: 'dark', highContrast: true, name: 'Bright Eyes · Night', name_zh: '明眸·夜', description: '内置，黑底白字，沉静专注' },
                 ];
                 data.themes = builtinThemes.concat(data.themes || []);
                 _manifestCache = data.themes;

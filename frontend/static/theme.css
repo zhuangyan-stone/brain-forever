@@ -1,107 +1,123 @@
 /* ============================================================
     第2大脑 AI 助手 — 主题变量 & 全局重置
     ============================================================
-    主题色彩变量集中定义区
+    内置默认主题（明眸 · 高对比度）
     — 暗色主题 (默认) 与 亮色主题 上下并列，方便对比与统一调整
     ============================================================ */
 
 /* ---------- 暗色主题 (默认) ---------- */
 :root,
 [data-theme="dark"] {
-    /* 主背景 / 表面 */
-    --bg-primary:       #1e1e1e;
-    --bg-image:         none;        /* 可选背景图，由外源主题覆盖 */
-    --bg-secondary:     #252526;
-    --bg-user:          #2d2d2d;
-    --bg-assistant:     #1e1e1e;
-    --bg-input:         #1a1a1a;
-    --switch-track-bg:  #0d0d0d;
+    /* 深黑背景 — 最大对比度 */
+    --bg-primary:       #0D0D0D;
+    --bg-image:         none;
+    --bg-secondary:     #1A1A1A;
+    --bg-user:          #2A2A2A;
+    --bg-assistant:     #0D0D0D;
+    --bg-input:         #111111;
+    --switch-track-bg:  #333333;
 
-    /* 文字 */
-    --text-primary:     #d4d4d4;
-    --text-secondary:   #a0a0a0;
-    --text-muted:       #6e6e6e;
+    /* 纯白文字 — 极致可读性 */
+    --text-primary:     #FFFFFF;
+    --text-secondary:   #E0E0E0;
+    --text-muted:       #999999;
 
-    /* 强调色 */
-    --accent:           #57C3C3;
-    --accent-hover:     #6DD0D0;
+    /* 强调 — 纯白，最大对比 */
+    --accent:           #FFFFFF;
+    --accent-hover:     #FFFFFF;
 
-    /* 边框 / 阴影 */
-    --border:           #3c3c3c;
-    --shadow:           rgba(0, 0, 0, 0.4);
-    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.28);
+    /* 边框 — 厚重清晰 */
+    --border:           #666666;
+    --shadow:           rgba(0, 0, 0, 0.6);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.20);
 
-    /* 纯色 — 用于需要明确黑/白的场景（如标题下边框） */
+    /* 代码块 */
+    --bg-code:          #1A1A1A;
+
+    /* 纯色 */
     --pure-black:       #000000;
-    --pure-white:       #ffffff;
+    --pure-white:       #FFFFFF;
 
-    /* 代码块背景 */
-    --bg-code:          #1a1a1a;
+    /* 成功 — 青色（非绿色） */
+    --success-text:     #00AA99;
 
-    /* 成功色 */
-    --success-text:     #66bb6a;
-
-    /* 错误色 */
-    --error-bg:         rgba(244, 67, 54, 0.12);
-    --error-border:     rgba(244, 67, 54, 0.35);
-    --error-text:       #ef5350;
+    /* 错误 — 橙色（非纯红） */
+    --error-bg:         rgba(255, 140, 50, 0.12);
+    --error-border:     rgba(255, 140, 50, 0.35);
+    --error-text:       #FF8C32;
 
     /* 通用 */
     --radius:           12px;
     --max-width:        960px;
 
-    /* 警告色 */
-    --warning-bg:       #3d3100;
-    --warning-border:   #ffc107;
-    --warning-text:     #ffd54f;
+    /* 警告 — 琥珀色 */
+    --warning-bg:       #2A1F00;
+    --warning-border:   #FFAA33;
+    --warning-text:     #FFBB66;
 
     /* Tooltip */
-    --tooltip-bg:       #616161;
-    --tooltip-text:     #ffffff;
+    --tooltip-bg:       #333333;
+    --tooltip-text:     #FFFFFF;
 
-    /* Tooltip */
-    --tooltip-bg:       #2d2d2d;
-    --tooltip-text:     #e0e0e0;
+    /* 高亮按钮 — accent 为纯白时需独立配置 */
+    --btn-highlight-bg:         #000000;
+    --btn-highlight-color:      #FFFFFF;
+    --btn-highlight-hover-bg:   #FFAA33;
 }
 
 /* ---------- 亮色主题 ---------- */
 [data-theme="light"] {
-    --bg-primary:       #ffffff;
-    --bg-image:         none;        /* 可选背景图，由外源主题覆盖 */
-    --bg-secondary:     #f5f5f5;
-    --bg-user:          #E0F5F5;
-    --bg-assistant:     #ffffff;
-    --bg-input:         #fafafa;
-    --switch-track-bg:  #e8e8e8;
+    /* 纯白背景 — 最大对比度 */
+    --bg-primary:       #FFFFFF;
+    --bg-image:         none;
+    --bg-secondary:     #F0F0F0;
+    --bg-user:          #E0E0E0;
+    --bg-assistant:     #FFFFFF;
+    --bg-input:         #FAFAFA;
+    --switch-track-bg:  #D0D0D0;
 
-    --text-primary:     #212121;
-    --text-secondary:   #616161;
-    --text-muted:       #9e9e9e;
+    /* 纯黑文字 — 极致可读性 */
+    --text-primary:     #000000;
+    --text-secondary:   #1A1A1A;
+    --text-muted:       #4D4D4D;
 
-    --accent:           #57C3C3;
-    --accent-hover:     #3DA8A8;
+    /* 强调 — 纯黑，最大对比 */
+    --accent:           #000000;
+    --accent-hover:     #000000;
 
-    --border:           #e0e0e0;
-    --shadow:           rgba(0, 0, 0, 0.08);
+    /* 边框 — 厚重清晰 */
+    --border:           #999999;
+    --shadow:           rgba(0, 0, 0, 0.15);
     --shadow-inset:     inset 0 1.5px 2.5px rgba(0, 0, 0, 0.25);
 
-    --bg-code:          #f5f5f5;
+    /* 代码块 */
+    --bg-code:          #F0F0F0;
 
-    --error-bg:         rgba(244, 67, 54, 0.06);
-    --error-border:     rgba(244, 67, 54, 0.2);
-    --error-text:       #d32f2f;
-
-    /* 成功色 */
-    --success-text:     #2e7d32;
-
-    /* 纯色 — 用于需要明确黑/白的场景（如标题下边框） */
+    /* 纯色 */
     --pure-black:       #000000;
-    --pure-white:       #ffffff;
+    --pure-white:       #FFFFFF;
 
-    /* 警告色 */
-    --warning-bg:       #fff3cd;
-    --warning-border:   #ffc107;
-    --warning-text:     #856404;
+    /* 成功 — 青蓝色（非绿色） */
+    --success-text:     #006699;
+
+    /* 错误 — 橙红色（非纯红） */
+    --error-bg:         rgba(204, 85, 0, 0.08);
+    --error-border:     rgba(204, 85, 0, 0.30);
+    --error-text:       #CC5500;
+
+    /* 警告 — 琥珀色 */
+    --warning-bg:       #FFF0D0;
+    --warning-border:   #CC8800;
+    --warning-text:     #664400;
+
+    /* Tooltip */
+    --tooltip-bg:       #E0E0E0;
+    --tooltip-text:     #000000;
+
+    /* 高亮按钮 — 黑底白图标，hover 橙色 */
+    --btn-highlight-bg:         #000000;
+    --btn-highlight-color:      #FFFFFF;
+    --btn-highlight-hover-bg:   #FFAA33;
 }
 
 /* ============================================================

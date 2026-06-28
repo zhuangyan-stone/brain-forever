@@ -1,33 +1,47 @@
 {
-  "description": "第2大脑 外源主题清单",
+  "description": "第2大脑 主题清单",
   "themes": [
     {
-      "description": "国风山水，熟宣",
+      "description": "青绿点缀，素白干净，清亮明快",
+      "id": "verdant-light",
+      "mode": "light",
+      "name": "Pure Verdant · Clear Sky",
+      "name_zh": "只此青绿·晴"
+    },
+    {
+      "description": "青绿微光，深灰极简，沉静专注",
+      "id": "verdant-dark",
+      "mode": "dark",
+      "name": "Pure Verdant · Nightfall",
+      "name_zh": "只此青绿·夜"
+    },
+    {
+      "description": "国风山水，熟宣暖白，墨色氤氲",
       "id": "shanshui-light",
       "mode": "light",
       "name": "Shanshui · Sunny Mist",
-      "name_zh": "水墨·晴岚万重"
+      "name_zh": "水墨·晴岚"
     },
     {
-      "description": "国风山水，泼墨",
+      "description": "国风山水，夜色浓深，焦墨层叠",
       "id": "shanshui-dark",
       "mode": "dark",
       "name": "Shanshui · Night Mountain",
-      "name_zh": "水墨·夜色如障"
+      "name_zh": "水墨·夜山"
     },
     {
       "description": "雨过天青云破处，清雅亮",
       "id": "tianqing-light",
       "mode": "light",
       "name": "Celeste · Sky After Rain",
-      "name_zh": "天青·清雅亮·听雨"
+      "name_zh": "天青·雨过"
     },
     {
       "description": "风生烟紫夜阑时，静深幽",
       "id": "tianqing-dark",
       "mode": "dark",
       "name": "Celeste · Midnight Sky",
-      "name_zh": "天青·静深幽·等你"
+      "name_zh": "天青·暮色"
     },
     {
       "description": "一盏新茶，明前春色。茶汤清亮的暖色主题",
@@ -58,49 +72,33 @@
       "name_zh": "竹杖芒鞋·也无晴"
     },
     {
-      "description": "温暖柔和的亮色主题",
+      "description": "暖咖色调，柔和舒适",
       "id": "catppuccin-light",
       "mode": "light",
       "name": "Catppuccin Latte",
       "name_zh": "猫布奇诺·拿铁"
     },
     {
-      "description": "温暖柔和的暗色主题",
+      "description": "深咖色调，温润沉静",
       "id": "catppuccin-dark",
       "mode": "dark",
       "name": "Catppuccin Mocha",
       "name_zh": "猫布奇诺·摩卡"
     },
         {
-      "description": "冷静优雅的亮色主题",
+      "description": "北欧极简，霜白冷灰，冷静明亮",
       "id": "nord-light",
       "mode": "light",
       "name": "Nord Frost Gray",
       "name_zh": "北欧·霜灰"
     },
     {
-      "description": "冷静优雅的暗色主题",
+      "description": "北欧极夜，深蓝冷灰，沉静优雅",
       "id": "nord-dark",
       "mode": "dark",
       "name": "Nord Cold Night",
       "name_zh": "北欧·夜冷"
     },    
-    {
-      "description": "明眸善睐，亮色",
-      "id": "brighteyes-light",
-      "mode": "light",
-      "highContrast": true,
-      "name": "Bright Eyes · Day",
-      "name_zh": "明眸·昼"
-    },
-    {
-      "description": "明眸善睐，暗色",
-      "id": "brighteyes-dark",
-      "mode": "dark",
-      "highContrast": true,
-      "name": "Bright Eyes · Night",
-      "name_zh": "明眸·夜"
-    },
     {
       "description": "克莱因蓝，纯粹",
       "id": "klienblue-light",

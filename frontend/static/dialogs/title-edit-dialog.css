@@ -53,14 +53,14 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* 确认按钮 — 使用 accent 色 */
+/* 确认按钮 — 使用高亮按钮色 */
 .dialog-btn-confirm {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
+    background: var(--btn-highlight-bg, var(--accent));
+    color: var(--btn-highlight-color, #fff);
+    border-color: var(--btn-highlight-bg, var(--accent));
 }
 
 .dialog-btn-confirm:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
+    background: var(--btn-highlight-hover-bg, var(--accent-hover));
+    border-color: var(--btn-highlight-hover-bg, var(--accent-hover));
 }

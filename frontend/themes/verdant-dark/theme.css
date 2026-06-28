@@ -1,0 +1,59 @@
+/* ============================================================
+   只此青绿·夜 (暗色)
+   文件夹名 verdant-dark → -dark 后缀表示暗色。
+   青绿微光，深灰极简。灵感源自春晚《只此青绿》/《千里江山图》。
+   覆盖 [data-theme="dark"] 中的 CSS 自定义属性。
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 主背景 / 表面 */
+    --bg-primary:       #1e1e1e;
+    --bg-image:         none;
+    --bg-secondary:     #252526;
+    --bg-user:          #2d2d2d;
+    --bg-assistant:     #1e1e1e;
+    --bg-input:         #1a1a1a;
+    --switch-track-bg:  #0d0d0d;
+
+    /* 文字 */
+    --text-primary:     #d4d4d4;
+    --text-secondary:   #a0a0a0;
+    --text-muted:       #6e6e6e;
+
+    /* 强调色 — 青绿 (#57C3C3) */
+    --accent:           #57C3C3;
+    --accent-hover:     #6DD0D0;
+
+    /* 边框 / 阴影 */
+    --border:           #3c3c3c;
+    --shadow:           rgba(0, 0, 0, 0.4);
+    --shadow-inset:     inset 0 1px 2px rgba(255, 255, 255, 0.28);
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #ffffff;
+
+    /* 代码块 */
+    --bg-code:          #1a1a1a;
+
+    /* 成功 */
+    --success-text:     #66bb6a;
+
+    /* 错误 */
+    --error-bg:         rgba(244, 67, 54, 0.12);
+    --error-border:     rgba(244, 67, 54, 0.35);
+    --error-text:       #ef5350;
+
+    /* 通用 */
+    --radius:           12px;
+    --max-width:        960px;
+
+    /* 警告 */
+    --warning-bg:       #3d3100;
+    --warning-border:   #ffc107;
+    --warning-text:     #ffd54f;
+
+    /* Tooltip */
+    --tooltip-bg:       #2d2d2d;
+    --tooltip-text:     #e0e0e0;
+}
