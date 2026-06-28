@@ -15,7 +15,7 @@ import { clearAllStickyNotes } from './components/sticky-mgr.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat, fetchLlmInfo } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, updateChatTitleBySN } from './chat-list.js';
-import { ICON_TOGGLE } from './svg_icons_re.js';
+import { ICON_TOGGLE_OPEN, ICON_TOGGLE_CLOSE } from './svg_icons_re.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 
@@ -218,8 +218,19 @@ let globalToggleButton = null;
 // ----- 全局竖向分隔线 (唯一实例) -----
 let globalHeaderDivider = null;
 
-// 切换按钮 SVG（复用现有 .panel-toggle 风格）
-const TOGGLE_BTN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_TOGGLE + '</svg>';
+// 侧栏收起时显示的"展开"按钮 SVG（矩形 + 竖线）
+const TOGGLE_BTN_OPEN_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_TOGGLE_OPEN + '</svg>';
+// 侧栏展开后显示的"关闭"按钮 SVG（矩形 + 左指向箭头 ←）
+const TOGGLE_BTN_CLOSE_SVG = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + ICON_TOGGLE_CLOSE + '</svg>';
+
+/**
+ * setToggleButtonIcon — 根据侧边栏状态更新切换按钮的 SVG 图标。
+ * @param {boolean} open - true 表示侧边栏已展开，使用关闭箭头图标；false 使用展开图标。
+ */
+function setToggleButtonIcon(open) {
+    const btn = getToggleButton();
+    btn.innerHTML = open ? TOGGLE_BTN_CLOSE_SVG : TOGGLE_BTN_OPEN_SVG;
+}
 
 // ===== 品牌文本常量（方便以后修改） =====
 const BRAND_TITLE = '第2大脑';
@@ -267,7 +278,7 @@ function getToggleButton() {
         globalToggleButton.className = 'icon-btn icon-btn--small menu-toggle-btn';
         globalToggleButton.setAttribute('aria-label', '切换侧边栏');
         globalToggleButton.dataset.tooltip = '切换侧边栏';
-        globalToggleButton.innerHTML = TOGGLE_BTN_SVG;
+        globalToggleButton.innerHTML = TOGGLE_BTN_OPEN_SVG;
         // 绑定统一切换逻辑
         globalToggleButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -400,6 +411,9 @@ function updateBrandLayout() {
     } else {
         sidebarVisible = isLeftVisible;
     }
+
+    // 根据侧边栏展开/收起状态更新切换按钮图标
+    setToggleButtonIcon(sidebarVisible);
 
     const toggleButton = getToggleButton();
     const mainHeader = document.querySelector('.main-header');
