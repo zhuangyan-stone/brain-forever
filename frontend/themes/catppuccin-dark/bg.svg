@@ -49,15 +49,15 @@
       <circle cx="42" cy="15" r="7" fill="#89b4fa" fill-opacity="0.40" stroke="none"/>
       <circle cx="58" cy="15" r="7" fill="#89b4fa" fill-opacity="0.40" stroke="none"/>
       <!-- 瞳孔 -->
-      <circle cx="42" cy="15" r="3.5" fill="#89b4fa" fill-opacity="0.60" stroke="none"/>
-      <circle cx="58" cy="15" r="3.5" fill="#89b4fa" fill-opacity="0.60" stroke="none"/>
+      <circle cx="42" cy="15" r="3.5" fill="#0aff0a" fill-opacity="0.98" stroke="none"/>
+      <circle cx="58" cy="15" r="3.5" fill="#0aff0a" fill-opacity="0.98" stroke="none"/>
       <!-- 鼻子 -->
       <path d="M48,22 L50,24 L52,22" fill="#cdd6f4" fill-opacity="0.15" stroke="none"/>
       <!-- 胡须 -->
-      <path d="M25,20 L8,16" stroke-width="1" opacity="0.4"/>
-      <path d="M25,24 L6,24" stroke-width="1" opacity="0.4"/>
-      <path d="M75,20 L92,16" stroke-width="1" opacity="0.4"/>
-      <path d="M75,24 L94,24" stroke-width="1" opacity="0.4"/>
+      <path d="M25,20 L8,16" stroke-width="1" opacity="0.8"/>
+      <path d="M25,24 L6,24" stroke-width="1" opacity="0.8"/>
+      <path d="M75,20 L92,16" stroke-width="1" opacity="0.8"/>
+      <path d="M75,24 L94,24" stroke-width="1" opacity="0.8"/>
       <!-- 前腿 -->
       <path d="M32,75 L28,100 L38,100" fill="none" stroke="#cdd6f4"/>
       <path d="M68,75 L72,100 L62,100" fill="none" stroke="#cdd6f4"/>
