@@ -210,8 +210,8 @@ const msgbox = {
             const cancelBtn = createBtn('取消', 'dialog-btn-cancel', () => exit(-1));
             footer.appendChild(cancelBtn);
 
-            // "确认" 按钮（警告色）
-            const confirmBtn = createBtn('确认', 'msgbox-btn-danger', () => exit(1));
+            // "确认" 按钮（使用 dialog-btn-delete 样式，统一危险色）
+            const confirmBtn = createBtn('确认', 'dialog-btn-delete', () => exit(1));
             footer.appendChild(confirmBtn);
 
             // 关闭按钮

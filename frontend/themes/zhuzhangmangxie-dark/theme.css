@@ -58,4 +58,8 @@
     --btn-highlight-bg:       var(--accent);
     --btn-highlight-color:    #fff;
     --btn-highlight-hover-bg: var(--accent-hover);
+
+    --btn-danger-bg:          #e53935;
+    --btn-danger-color:       #fff;
+    --btn-danger-hover-bg:    #c62828;
 }

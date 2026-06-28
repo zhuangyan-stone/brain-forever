@@ -165,14 +165,14 @@
     margin-top: 20px !important;
 }
 
-/* ---- 删除按钮（红色） ---- */
+/* ---- 删除按钮（使用主题危险色） ---- */
 .dialog-btn-delete {
-    background: #e53935;
-    color: #fff;
-    border-color: #e53935;
+    background: var(--btn-danger-bg, #e53935);
+    color: var(--btn-danger-color, #fff);
+    border-color: var(--btn-danger-bg, #e53935);
 }
 
 .dialog-btn-delete:hover {
-    background: #c62828;
-    border-color: #c62828;
+    background: var(--btn-danger-hover-bg, #c62828);
+    border-color: var(--btn-danger-hover-bg, #c62828);
 }

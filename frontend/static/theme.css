@@ -63,6 +63,11 @@
     --btn-highlight-bg:         #000000;
     --btn-highlight-color:      #FFFFFF;
     --btn-highlight-hover-bg:   #FFAA33;
+
+    /* 危险/删除按钮 */
+    --btn-danger-bg:            #CC3333;
+    --btn-danger-color:         #FFFFFF;
+    --btn-danger-hover-bg:      #AA2222;
 }
 
 /* ---------- 亮色主题 ---------- */
@@ -118,6 +123,11 @@
     --btn-highlight-bg:         #000000;
     --btn-highlight-color:      #FFFFFF;
     --btn-highlight-hover-bg:   #FFAA33;
+
+    /* 危险/删除按钮 */
+    --btn-danger-bg:            #CC3333;
+    --btn-danger-color:         #FFFFFF;
+    --btn-danger-hover-bg:      #AA2222;
 }
 
 /* ============================================================
