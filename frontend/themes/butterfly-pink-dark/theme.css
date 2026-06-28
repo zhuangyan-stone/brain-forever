@@ -58,8 +58,8 @@
     --btn-highlight-color:    #FFFFFF;
     --btn-highlight-hover-bg: var(--accent-hover);
 
-    /* 危险/删除按钮 */
-    --btn-danger-bg:          #E84393;
+    /* 危险/删除按钮 — 亮橙，与霓虹蝴蝶粉主色区分 */
+    --btn-danger-bg:          #FF8C42;
     --btn-danger-color:       #FFFFFF;
-    --btn-danger-hover-bg:    #D63384;
+    --btn-danger-hover-bg:    #E67A30;
 }
