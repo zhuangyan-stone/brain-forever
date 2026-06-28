@@ -122,7 +122,10 @@ body {
 .main-content {
     flex: 1;
     min-width: 400px;
-    background: var(--bg-primary);
+    background-color: var(--bg-primary);
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -334,7 +337,6 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    /* position: relative 不再需要（tickNav 已改用 position: fixed） */
 }
 
 .scroll-container {

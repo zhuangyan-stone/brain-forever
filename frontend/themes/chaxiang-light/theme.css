@@ -8,6 +8,7 @@
 [data-theme="light"] {
     /* 茶汤基调 — 明前茶汤，清亮透暖 */
     --bg-primary:       #F5F0E6;
+    --bg-image:         url('/themes/chaxiang-light/bg.svg');
     --bg-secondary:     #EBE4D6;
     --bg-user:          #E0D7C5;
     --bg-assistant:     #F5F0E6;

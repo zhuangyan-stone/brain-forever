@@ -8,6 +8,7 @@
 [data-theme="light"] {
     /* 宣纸基调 — 仿古宣纸暖白 */
     --bg-primary:       #F5F0E8;
+    --bg-image:         url('/themes/shanshui-light/bg.svg');
     --bg-secondary:     #EDE7DC;
     --bg-user:          #E3DBD0;
     --bg-assistant:     #F5F0E8;

@@ -8,6 +8,7 @@
 [data-theme="dark"] {
     /* 深墨基调 — 焦墨/浓墨 */
     --bg-primary:       #1A1816;
+    --bg-image:         url('/themes/shanshui-dark/bg.svg');
     --bg-secondary:     #242220;
     --bg-user:          #2E2B28;
     --bg-assistant:     #1A1816;

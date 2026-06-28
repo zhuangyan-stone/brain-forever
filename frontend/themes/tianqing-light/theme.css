@@ -8,6 +8,7 @@
 [data-theme="light"] {
     /* 天青基调 — 雨过天青，云破处 */
     --bg-primary:       #E1EEEF;
+    --bg-image:         url('/themes/tianqing-light/bg.svg');
     --bg-secondary:     #D3E4E5;
     --bg-user:          #CBDDE0;
     --bg-assistant:     #E1EEEF;

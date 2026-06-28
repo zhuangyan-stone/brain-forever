@@ -8,6 +8,7 @@
 [data-theme="dark"] {
     /* 夜幕基调 — 深夜天青，釉色沉凝 */
     --bg-primary:       #161D1E;
+    --bg-image:         url('/themes/tianqing-dark/bg.svg');
     --bg-secondary:     #1E2728;
     --bg-user:          #263132;
     --bg-assistant:     #161D1E;

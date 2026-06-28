@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- 茶烟 — 一盏新茶升起袅袅茶烟 -->
+  <g fill="none" stroke="#8A7A5A" stroke-linecap="round">
+    <!-- 茶杯 + 茶烟（整体放大 180%，移至画面左侧） -->
+    <g transform="translate(150, 580) scale(1.8) translate(-1300, -640)">
+      <!-- 茶杯轮廓（上下翻转后底大口小） -->
+      <g transform="matrix(1 0 0 -1 0 1470)">
+        <path d="M1280,750 L1290,720 L1310,720 L1320,750 Z" stroke-width="1.5" opacity="0.08"/>
+        <path d="M1285,750 L1315,750" stroke-width="1.5" opacity="0.08"/>
+        <ellipse cx="1300" cy="720" rx="10" ry="3" fill="#8A7A5A" opacity="0.04" stroke="none"/>
+        
+        <!-- 透明茶汤（清亮透光的茶色） -->
+        <path d="M1285,735 L1290,720 L1310,720 L1315,735 Z" fill="#C89050" opacity="0.08" stroke="none"/>
+        <!-- 茶汤表面涟漪 -->
+        <ellipse cx="1300" cy="735" rx="7.5" ry="2.5" fill="#D4A060" opacity="0.06" stroke="none"/>
+        <!-- 茶汤表面高光线 -->
+        <ellipse cx="1300" cy="735" rx="7.5" ry="2.5" fill="none" stroke="#D4A060" stroke-width="0.5" opacity="0.07"/>
+      </g>
+      
+      <!-- 茶烟袅袅 -->
+      <path d="M1300,715 Q1290,680 1300,650 Q1310,620 1300,590 Q1290,560 1300,530" 
+            stroke-width="1.5" opacity="0.10"/>
+      <path d="M1295,715 Q1285,685 1295,655 Q1305,625 1295,595 Q1285,565 1295,540" 
+            stroke-width="1" opacity="0.06"/>
+      <path d="M1305,715 Q1315,685 1305,655 Q1295,625 1305,595 Q1315,560 1305,540" 
+            stroke-width="1" opacity="0.06"/>
+    </g>
+    
+    <!-- 远处茶山层叠 -->
+    <path d="M0,600 C200,550 350,620 500,560 C650,500 800,600 1000,550 C1200,500 1400,580 1440,560 L1440,900 L0,900 Z" 
+          fill="#8A9A6A" opacity="0.05" stroke="none"/>
+    <path d="M0,680 C300,640 500,690 700,640 C900,590 1100,670 1440,630 L1440,900 L0,900 Z" 
+          fill="#6A7A4A" opacity="0.03" stroke="none"/>
+    
+    <!-- 零星茶叶飘落 -->
+    <g opacity="0.06" stroke-width="0.8">
+      <path d="M300,400 Q305,395 310,400 Q305,405 300,400 Z" fill="#6A7A4A" stroke="none"/>
+      <path d="M550,500 Q555,495 560,500 Q555,505 550,500 Z" fill="#6A7A4A" stroke="none"/>
+      <path d="M900,450 Q905,445 910,450 Q905,455 900,450 Z" fill="#6A7A4A" stroke="none"/>
+      <path d="M1100,520 Q1105,515 1110,520 Q1105,525 1100,520 Z" fill="#6A7A4A" stroke="none"/>
+    </g>
+  </g>
+</svg>

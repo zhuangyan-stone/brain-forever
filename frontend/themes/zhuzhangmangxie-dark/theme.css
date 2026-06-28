@@ -10,6 +10,7 @@
 [data-theme="dark"] {
     /* 基底 — 竹林暮色，深绿浓郁 */
     --bg-primary:       #162416;
+    --bg-image:         url('/themes/zhuzhangmangxie-dark/bg.svg');
     --bg-secondary:     #1E301E;
     --bg-user:          #263A26;
     --bg-assistant:     #162416;

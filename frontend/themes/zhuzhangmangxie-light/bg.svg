@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <defs>
+    <!-- 阳光光斑发光滤镜 -->
+    <filter id="sun-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- 竹子组件 v1：叶稍上仰 -->
+    <g id="bamboo">
+      <rect x="-3" y="0" width="6" height="300" rx="2" fill="#5C9E5C" opacity="0.15"/>
+      <rect x="-4" y="40" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="100" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="160" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="220" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="280" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <g transform="rotate(6, 3, 30)">
+        <path d="M3,30 Q22,20 42,28 Q22,36 3,30" fill="#70B070" opacity="0.13"/>
+      </g>
+      <g transform="rotate(-10, -3, 80)">
+        <path d="M-3,80 Q-22,70 -42,78 Q-22,86 -3,80" fill="#70B070" opacity="0.11"/>
+      </g>
+      <g transform="rotate(-4, 3, 140)">
+        <path d="M3,140 Q22,130 42,138 Q22,146 3,140" fill="#70B070" opacity="0.13"/>
+      </g>
+      <g transform="rotate(8, -3, 200)">
+        <path d="M-3,200 Q-22,190 -42,198 Q-22,206 -3,200" fill="#70B070" opacity="0.11"/>
+      </g>
+    </g>
+
+    <!-- 竹子组件 v2：叶稍下垂 -->
+    <g id="bamboo2">
+      <rect x="-3" y="0" width="6" height="300" rx="2" fill="#5C9E5C" opacity="0.15"/>
+      <rect x="-4" y="40" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="100" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="160" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="220" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="280" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <g transform="rotate(-5, 3, 30)">
+        <path d="M3,30 Q22,20 42,28 Q22,36 3,30" fill="#70B070" opacity="0.13"/>
+      </g>
+      <g transform="rotate(8, -3, 80)">
+        <path d="M-3,80 Q-22,70 -42,78 Q-22,86 -3,80" fill="#70B070" opacity="0.11"/>
+      </g>
+      <g transform="rotate(7, 3, 140)">
+        <path d="M3,140 Q22,130 42,138 Q22,146 3,140" fill="#70B070" opacity="0.13"/>
+      </g>
+      <g transform="rotate(-6, -3, 200)">
+        <path d="M-3,200 Q-22,190 -42,198 Q-22,206 -3,200" fill="#70B070" opacity="0.11"/>
+      </g>
+    </g>
+
+    <!-- 竹子组件 v3：叶稍大角度 -->
+    <g id="bamboo3">
+      <rect x="-3" y="0" width="6" height="300" rx="2" fill="#5C9E5C" opacity="0.15"/>
+      <rect x="-4" y="40" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="100" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="160" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="220" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <rect x="-4" y="280" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
+      <g transform="rotate(12, 3, 30)">
+        <path d="M3,30 Q22,20 42,28 Q22,36 3,30" fill="#70B070" opacity="0.13"/>
+      </g>
+      <g transform="rotate(-15, -3, 80)">
+        <path d="M-3,80 Q-22,70 -42,78 Q-22,86 -3,80" fill="#70B070" opacity="0.11"/>
+      </g>
+      <g transform="rotate(10, 3, 140)">
+        <path d="M3,140 Q22,130 42,138 Q22,146 3,140" fill="#70B070" opacity="0.13"/>
+      </g>
+      <g transform="rotate(-12, -3, 200)">
+        <path d="M-3,200 Q-22,190 -42,198 Q-22,206 -3,200" fill="#70B070" opacity="0.11"/>
+      </g>
+    </g>
+  </defs>
+
+  <!-- 竹林：疏疏落落，远近交错 -->
+  <g>
+    <!-- 近丛（左侧，较大） -->
+    <use href="#bamboo" x="40" y="540" transform="scale(1.3)" />
+    <use href="#bamboo2" x="100" y="560" transform="scale(1.1)" />
+    <use href="#bamboo3" x="160" y="580" transform="scale(1.15)" />
+
+    <!-- 更远处 -->
+    <use href="#bamboo" x="3400" y="660" transform="scale(0.4)" />
+    <use href="#bamboo2" x="3800" y="640" transform="scale(0.35)" />
+    <use href="#bamboo3" x="4250" y="680" transform="scale(0.3)" />
+  </g>
+
+
+  <!-- 阳光光斑：穿过竹叶缝隙的亮点，带发光效果 -->
+  <g opacity="0.85" filter="url(#sun-glow)">
+    <circle cx="80" cy="710" r="5" fill="#FFFFFF"/>
+    <circle cx="130" cy="680" r="3.5" fill="#FFFFFF"/>
+    <circle cx="60" cy="760" r="4" fill="#FFFFFF"/>
+    <circle cx="180" cy="730" r="2.5" fill="#FFFFFF"/>
+
+    <circle cx="280" cy="750" r="3" fill="#FFFFFF"/>
+    <circle cx="350" cy="780" r="2" fill="#FFFFFF"/>
+  </g>
+</svg>

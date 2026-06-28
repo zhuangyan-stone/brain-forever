@@ -8,6 +8,7 @@
 [data-theme="dark"] {
     /* 陈茶基调 — 老茶汤色，醇厚深沉 */
     --bg-primary:       #1C1814;
+    --bg-image:         url('/themes/chaxiang-dark/bg.svg');
     --bg-secondary:     #24201C;
     --bg-user:          #2D2823;
     --bg-assistant:     #1C1814;
