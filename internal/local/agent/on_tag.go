@@ -157,10 +157,11 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 		tags = []toolimp.TagItem{}
 	}
 
-	// Return the tags along with the chat SN
+	// Return the tags along with the chat SN and title
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"sn":   chatSN,
-		"tags": tags,
+		"sn":    chatSN,
+		"title": chatTitle,
+		"tags":  tags,
 	})
 }

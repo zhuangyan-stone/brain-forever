@@ -231,13 +231,6 @@ async function selectChat(sn) {
         chats.active.titleState = result.title_state;
     }
 
-    // 8.0 调试：获取并打印话题分类标签
-    fetchChatTags(sn).then(tagResult => {
-        if (tagResult && tagResult.tags && tagResult.tags.length > 0) {
-            console.log('📑 话题分类 [' + sn + ']:', JSON.stringify(tagResult.tags, null, 2));
-        }
-    });
-
     // 8. 渲染消息 — 通过 Alpine store 的 groups 数据驱动
     // 转换 messages → groups 并设置到 Alpine store（按 SN 查找，而非假定 active）
     chats.setChatMessageGroups(sn, result.messages);
@@ -562,10 +555,11 @@ function showContextMenu(e, chat) {
     tagItem.addEventListener('click', async () => {
         closeContextMenu();
         const result = await fetchChatTags(chat.sn);
+        const title = (result && result.title) || chat.title || '';
         if (result && result.tags && result.tags.length > 0) {
-            console.log('📑 话题分类结果 [' + chat.sn + ']:', JSON.stringify(result.tags, null, 2));
+            console.log('📑 话题分类结果 [' + title + ']:', JSON.stringify(result.tags, null, 2));
         } else {
-            console.log('📑 话题分类 [' + chat.sn + ']: 未匹配到分类');
+            console.log('📑 话题分类 [' + title + ']: 未匹配到分类');
         }
     });
     menu.appendChild(tagItem);
