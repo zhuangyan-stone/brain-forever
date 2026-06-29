@@ -126,6 +126,11 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 	req.ForceToolChoice(toolimp.ChatTagToolName)
 
+	// Disable thinking mode since we force the LLM to only call the chat_tag tool,
+	// without generating any text content. Enabling thinking would waste tokens on
+	// reasoning_content that is never shown to the user.
+	req.Thinking = &llm.ThinkingConfig{Type: "disabled"}
+
 	// Call LLM (non-streaming)
 	resp, err := h.charLLMClient.ChatWithOptions(r.Context(), req)
 	if err != nil {
