@@ -31,6 +31,32 @@ func (s *ChatStore) SelectTagsGroup() (map[string]int, error) {
 	return result, nil
 }
 
+// SelectNonEmptyTagsGroup is like SelectTagsGroup but filters out empty-string tags.
+// This is used when building the LLM prompt, so the empty placeholder tag
+// (saved when LLM returns no tags) doesn't pollute the tag usage statistics.
+func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
+	var rows []struct {
+		Tag   string `db:"tag"`
+		Count int    `db:"cnt"`
+	}
+
+	err := s.db.Select(&rows,
+		`SELECT tag, COUNT(1) AS cnt
+		 FROM chat_tags
+		 WHERE tag != ''
+		 GROUP BY tag`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select not-empty tag groups. %w", err)
+	}
+
+	result := make(map[string]int, len(rows))
+	for _, r := range rows {
+		result[r.Tag] = r.Count
+	}
+	return result, nil
+}
+
 // InsertChatTag creates a new chat tag and returns it.
 func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 	result, err := s.db.Exec(

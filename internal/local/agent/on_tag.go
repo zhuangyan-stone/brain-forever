@@ -84,8 +84,8 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build the LLM prompt with the tag system prompt.
-	// 1. Load user's existing tags with usage counts
-	tagUsageMap, _ := session.chatsStore.SelectTagsGroup()
+	// 1. Load user's existing tags with usage counts (excluding empty tags)
+	tagUsageMap, _ := session.chatsStore.SelectNonEmptyTagsGroup()
 	tagsUsageStr := formatTagsUsage(tagUsageMap)
 
 	// 2. Build system prompt with TagsUsage and Title template data
@@ -193,6 +193,28 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 	// Ensure we always return a valid JSON array
 	if tags == nil {
 		tags = []string{}
+	}
+
+	// ============================================================
+	// Persist tags to database
+	// ============================================================
+	// 1. Delete any existing tags for this chat (replace semantics)
+	if delErr := session.chatsStore.DeleteChatTagsByChatID(dbSessionID); delErr != nil {
+		h.logger.Errorf("failed to delete old chat tags for chat %d: %v", dbSessionID, delErr)
+	}
+
+	// 2. Insert new tags
+	if len(tags) == 0 {
+		// LLM returned no tags — still save an empty string tag
+		if _, insErr := session.chatsStore.InsertChatTag(dbSessionID, ""); insErr != nil {
+			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", dbSessionID, insErr)
+		}
+	} else {
+		for _, tag := range tags {
+			if _, insErr := session.chatsStore.InsertChatTag(dbSessionID, tag); insErr != nil {
+				h.logger.Errorf("failed to insert chat tag %q for chat %d: %v", tag, dbSessionID, insErr)
+			}
+		}
 	}
 
 	// Read LLM message viewing stats from the samples tool.
