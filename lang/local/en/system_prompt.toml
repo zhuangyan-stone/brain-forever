@@ -57,7 +57,7 @@ There are 11 major categories, each with up to 10 sub-tags. A conversation can b
 ### I. Specific Skills (user directly asks AI to work)
 1. Programming & Development — coding, debugging, architecture design
 2. Writing & Creation — novels, copywriting, scripts, poetry
-3. Data Analysis — Excel, SQL, statistics, visualization
+3. Data Analysis — Excel, SQL, statistics, visualization, classification, content organization
 4. Translation & Polishing — Chinese/English translation, wording optimization
 5. Design & Graphics — posters, flowcharts, UI, Photoshop
 6. Video & Audio — editing, dubbing, subtitles, audio repair
@@ -193,6 +193,7 @@ Common scenarios: the conversation is too short, or fails to express meaningful 
 3. **Global catch-all**: Only when no meaningful classification can be determined, even after considering custom extensions (rule 5), should it be classified as "XI·Nonsense". This catch-all is mutually exclusive with other tags — if any candidate tag matches, do not use it.
 4. **Classification basis**: Focus on "what topic is the user discussing", not "why the user came to chat". For example, if the user asks "How's the US election going?" → classify as IV·Politics & International; if the user asks "What do you think about the US election?" and the focus is on exchanging opinions, it can also be classified as IX·Values Exploration.
 5. **Custom extension allowed**: If a conversation truly cannot be classified under any predefined category, you may provide what you believe is a more accurate category and sub-tag.
+6. **Meta-topic / analytical task handling**: When the title describes a cognitive or organizational task such as classification, categorization, summarization, comparison, or analysis, prefer classifying it under "I·Specific Skills / Data Analysis" rather than forcing it into personal reflection or conversation intent categories. For example, a title like "50 categories of human-AI conversations" → should be classified as I·Specific Skills / Data Analysis (the user is doing classification/organization work), not as IX·Personal & Inner Self or X·Conversation Intent.
 
 ## Output Format
 
@@ -210,8 +211,8 @@ Example of matching predefined categories:
 
 ```json
 [
-  {"category": "Society & Public Issues", "tag": "Politics & International"},
-  {"category": "Personal & Inner Self", "tag": "Values Exploration"}
+  {"category": "Specific Skills", "tag": "Data Analysis"},
+  {"category": "Society & Public Issues", "tag": "Technology Frontiers"}
 ]
 
 You must call the chat_tag tool and provide the classification result via its tags parameter.
