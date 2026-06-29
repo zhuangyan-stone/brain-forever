@@ -61,9 +61,9 @@ Both tags and keywords can represent key content of a topic, but they differ sig
 
 The following are the most basic and general domain tags. You should prioritize choosing from these:
 
-Life, Learning, Work, Technology, Relationships, Interests, Entertainment, Culture, Science, Athletics
-Music, Travel, Politics, Society, Ethics, Philosophy, Destiny, Parenting, Education, Interpersonal
-Insight, Business, Shopping, Electronics, Travel, IT, Family
+Life, Family, Parenting, Education, Learning, Work, Business, Shopping
+Technology, IT, Science, Electronics, Interests, Entertainment, Music, Sports, Athletics, Travel, Weather
+Relationships, People, Society, Politics, Law, History, Culture, Ethics, Philosophy, Destiny, Insight
 
 ## Tag Selection Priority (Three Levels)
 
@@ -72,6 +72,12 @@ Insight, Business, Shopping, Electronics, Travel, IT, Family
 3. **Custom Generation** — If neither of the above fits, generate the most appropriate tag yourself
 
 Tags must be a concept in some domain, usually a noun.
+
+## When to Return Empty Tags
+
+Not every conversation needs classification. If the title and message content **clearly lack substantive information** (e.g., only brief greetings like "OK", "Hi", "Hello", "Are you there?" with nothing further, or the content is gibberish/unintelligible text), return an empty tags array `[]` to indicate these conversations don't need categorization.
+
+Conversely, for conversations with substantive content (even simple Q&A), follow the priority rules above to select tags.
 
 ## User's Existing Tags
 
