@@ -18,27 +18,70 @@ document.addEventListener('alpine:init', function() {
             availableDark: [],    // 暗色主题列表 [{ id, name, name_zh }]
             selectedLight: '',    // 当前选中的亮色主题 ID
             selectedDark: '',     // 当前选中的暗色主题 ID
+            selectedMode: 'light',// 立即启用：'light' | 'dark'
             linkThemes: true,     // 亮暗联动开关（默认开启）
 
             /**
              * init — Alpine 初始化时注册 watcher，监听亮/暗主题选择变化
+             * 选择改变时立即生效（不再需要点击"确认"按钮）
              */
             init: function() {
                 var self = this;
+                // 标记：open() 完成初始值设定之前不触发立即生效
+                this._initComplete = false;
+
                 this.$watch('selectedLight', function(value) {
-                    if (!self.linkThemes) return;
-                    var linked = value ? self._getLinkedId(value, 'dark') : '';
-                    if (linked !== self.selectedDark) {
-                        self.selectedDark = linked;
+                    // 亮暗联动
+                    if (self.linkThemes) {
+                        var linked = value ? self._getLinkedId(value, 'dark') : '';
+                        if (linked !== self.selectedDark) {
+                            self.selectedDark = linked;
+                        }
+                    }
+                    // 初始化完成后，选择亮色主题立即生效
+                    if (self._initComplete) {
+                        self._applyImmediately();
                     }
                 });
                 this.$watch('selectedDark', function(value) {
-                    if (!self.linkThemes) return;
-                    var linked = value ? self._getLinkedId(value, 'light') : '';
-                    if (linked !== self.selectedLight) {
-                        self.selectedLight = linked;
+                    // 亮暗联动
+                    if (self.linkThemes) {
+                        var linked = value ? self._getLinkedId(value, 'light') : '';
+                        if (linked !== self.selectedLight) {
+                            self.selectedLight = linked;
+                        }
+                    }
+                    // 初始化完成后，选择暗色主题立即生效
+                    if (self._initComplete) {
+                        self._applyImmediately();
                     }
                 });
+                this.$watch('selectedMode', function(value) {
+                    // 初始化完成后，切换亮暗模式立即生效
+                    if (self._initComplete) {
+                        self._applyMode(value);
+                    }
+                });
+            },
+
+            /**
+             * _applyImmediately — 将当前选择的亮/暗主题立即应用并持久化
+             */
+            _applyImmediately: function() {
+                Alpine.store('settings').setThemeSelection(this.selectedLight, this.selectedDark);
+            },
+
+            /**
+             * _applyMode — 将页面切换为指定亮/暗模式
+             * @param {'light'|'dark'} mode
+             */
+            _applyMode: function(mode) {
+                var themeVal = mode === 'dark' ? 1 : 0;
+                Alpine.store('settings').theme = themeVal;
+                Alpine.store('settings')._save();
+                document.dispatchEvent(new CustomEvent('theme-changed', {
+                    detail: { theme: themeVal }
+                }));
             },
 
             /**
@@ -91,6 +134,7 @@ document.addEventListener('alpine:init', function() {
              * 1. 从服务端加载 manifest
              * 2. 构建亮/暗两组列表（首项为"内置"默认项）
              * 3. 设置当前选中值
+             * 4. 保存原始值，供取消时恢复
              */
             open: async function() {
                 var data = await window.ThemeLoader.loadManifest();
@@ -116,6 +160,12 @@ document.addEventListener('alpine:init', function() {
                     savedDark = 'builtin-dark';
                 }
 
+                // ★ 保存原始值，供取消时恢复
+                this._originalLight = savedLight || 'builtin-light';
+                this._originalDark  = savedDark || 'builtin-dark';
+                // ★ 保存当前亮暗模式，供取消时恢复
+                this._originalMode = Alpine.store('settings').theme === 1 ? 'dark' : 'light';
+
                 // ★ 在设置初始值之前禁用联动 watcher，防止 selectedLight/selectedDark
                 //   被重复赋值时触发 watcher 之间的级联反应（Alpine $watch 同步执行，
                 //   可能因响应式系统内部机制导致无限更新循环）。
@@ -123,10 +173,14 @@ document.addEventListener('alpine:init', function() {
                 var prevLink = this.linkThemes;
                 this.linkThemes = false;
 
-                this.selectedLight = savedLight || 'builtin-light';
-                this.selectedDark  = savedDark || 'builtin-dark';
+                this.selectedLight = this._originalLight;
+                this.selectedDark  = this._originalDark;
+                this.selectedMode  = this._originalMode;
 
                 this.linkThemes = prevLink;
+
+                // ★ 标记初始化完成，之后的选择变化将立即生效
+                this._initComplete = true;
 
                 this.show = true;
             },
@@ -149,19 +203,48 @@ document.addEventListener('alpine:init', function() {
             },
 
             /**
-             * close — 关闭对话框
+             * close — 关闭对话框（取消操作），恢复原始主题选择
              */
             close: function() {
+                var needRestore = false;
+
+                // 1. 恢复主题选择（若变更）
+                if (this._originalLight !== undefined && this._originalDark !== undefined) {
+                    var themeChanged = this.selectedLight !== this._originalLight
+                        || this.selectedDark !== this._originalDark;
+                    if (themeChanged) {
+                        this._initComplete = false;
+                        this.selectedLight = this._originalLight;
+                        this.selectedDark  = this._originalDark;
+                        this._initComplete = true;
+                        // 先将原始主题 ID 持久化（不触发 ThemeLoader.apply，避免与模式恢复冲突）
+                        Alpine.store('settings').setThemeSelection(this.selectedLight, this.selectedDark);
+                        needRestore = true;
+                    }
+                }
+
+                // 2. 恢复亮暗模式（若变更）
+                if (this._originalMode !== undefined && this.selectedMode !== this._originalMode) {
+                    this.selectedMode = this._originalMode;
+                    // _applyMode 会触发 ThemeLoader.apply，重新加载正确模式的主题 CSS
+                    this._applyMode(this._originalMode);
+                    needRestore = true;
+                } else if (needRestore) {
+                    // 主题变了但模式没变，手动触发 ThemeLoader 加载已恢复的主题 CSS
+                    if (window.ThemeLoader) {
+                        window.ThemeLoader.apply();
+                    }
+                }
+
                 this.show = false;
             },
 
             /**
-             * confirm — 确认选择
-             * 通过 Alpine.store('settings').setThemeSelection 保存并同步
+             * confirm — 确认选择，关闭对话框
+             * 主题选择已在 watcher 中立即生效，此处仅关闭对话框（不恢复原始值）
              */
             confirm: function() {
-                Alpine.store('settings').setThemeSelection(this.selectedLight, this.selectedDark);
-                this.close();
+                this.show = false;
             },
         };
     });

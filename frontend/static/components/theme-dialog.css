@@ -61,6 +61,72 @@
 }
 
 /* ============================================================
+   立即启用：亮/暗模式单选按钮组（label 与按钮同一行）
+   ============================================================ */
+.theme-mode-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.theme-mode-group label:first-child {
+    display: inline;
+    flex-shrink: 0;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.theme-mode-radios {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    border: 1px solid var(--border, #3c3c3c);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-input, #1a1a1a);
+}
+
+.theme-mode-radios > input[type="radio"] {
+    display: none;
+}
+
+.theme-mode-radio {
+    flex: 1;
+    display: flex;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.theme-mode-radio label {
+    flex: 1;
+    display: flex;
+    cursor: pointer;
+}
+
+.theme-mode-radio span {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--text-secondary, #a0a0a0);
+    background: var(--bg-input, #1a1a1a);
+    transition: color 0.15s ease, background 0.15s ease;
+    border-right: 1px solid var(--border, #3c3c3c);
+}
+
+.theme-mode-radio:last-child span {
+    border-right: none;
+}
+
+.theme-mode-radio.active span {
+    color: var(--btn-highlight-color, #fff);
+    background: var(--btn-highlight-bg, var(--accent, #57C3C3));
+}
+
+/* ============================================================
    亮/暗联动开关
    ============================================================ */
 .theme-link-toggle {
