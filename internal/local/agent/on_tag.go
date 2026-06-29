@@ -62,11 +62,13 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 	// Look up the chat by SN from the session's chat list
 	var dbSessionID int64
 	var chatTitle string
+	var taged bool
 	session.chatsMu.Lock()
 	for _, c := range session.chats {
 		if c.SN == chatSN {
 			dbSessionID = c.ID
 			chatTitle = c.Title
+			taged = c.Taged
 			break
 		}
 	}
@@ -74,6 +76,38 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 
 	if dbSessionID == 0 {
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
+		return
+	}
+
+	// If the chat has already been tagged, return existing tags from DB directly
+	if taged {
+		existingTags, listErr := session.chatsStore.ListChatTagsByChatID(dbSessionID)
+		var tags []string
+		if listErr == nil {
+			for _, ct := range existingTags {
+				if ct.Tag != "" {
+					tags = append(tags, ct.Tag)
+				}
+			}
+		}
+		if tags == nil {
+			tags = []string{}
+		}
+
+		totalMessages := 0
+		if count, err := session.chatsStore.CountMessages(dbSessionID); err == nil {
+			totalMessages = count
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"sn":                chatSN,
+			"title":             chatTitle,
+			"tags":              tags,
+			"totalMessages":     totalMessages,
+			"viewedMessages":    0,
+			"allMessagesViewed": false,
+		})
 		return
 	}
 
