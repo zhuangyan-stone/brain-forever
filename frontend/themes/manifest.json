@@ -128,18 +128,18 @@
       "name_zh": "彩蝶·睡意酣"
     },
     {
-      "description": "钢铁灰",
+      "description": "钢铁灰-老男人的坚强",
       "id": "nanyu-light",
       "mode": "light",
       "name": "Old Man · Day",
-      "name_zh": "老男人·犯困"
+      "name_zh": "NanYu-老登·白日犯困"
     },
     {
-      "description": "熔炉夜",
+      "description": "熔炉夜-老男人的成长",
       "id": "nanyu-dark",
       "mode": "dark",
       "name": "Old Man · Night",
-      "name_zh": "老男人·无眠"
+      "name_zh": "NanYu-老登·夜里无眠"
     }
   ]
 }
