@@ -61,7 +61,9 @@ Both tags and keywords can represent key content of a topic, but they differ sig
 
 The following are the most basic and general domain tags. You should prioritize choosing from these:
 
-Life, Learning, Work, Technology, Relationships, Interests, Entertainment, Culture, Science, Athletics, Music, Travel, Politics, Society, Ethics, Philosophy, Destiny, Parenting, Education, Interpersonal, Insight
+Life, Learning, Work, Technology, Relationships, Interests, Entertainment, Culture, Science, Athletics
+Music, Travel, Politics, Society, Ethics, Philosophy, Destiny, Parenting, Education, Interpersonal
+Insight, Business, Shopping, Electronics, Travel, IT, Family
 
 ## Tag Selection Priority (Three Levels)
 
@@ -77,7 +79,13 @@ Below are the tags this user has previously used in conversations (sorted by fre
 
 {{.TagsUsage}}
 
-In addition to serving as a reference, the user's existing tags have another very important role: you should pay attention to the number of topics under each tag. The more topics a tag contains, the finer the granularity should be when generating new tags in that domain. For example, if you find that the user has many topics under the "Sports" tag, when generating new tags, you should prioritize refining it, such as generating ["Basketball", "Sports"] and ["Table Tennis", "Sports"].
+In addition to serving as a reference, the user's existing tags have another very important role:
+you should pay attention to the number of topics under each tag.
+The more topics a tag contains, the finer the granularity should be when generating new tags in that domain.
+For example, if you find that the user has many topics under the "Sports" tag, when generating new tags,
+you should prioritize refining it, such as generating ["Basketball", "Sports"] and ["Table Tennis", "Sports"].
+Similarly, when the "Relationships" tag covers many topics, it can be refined into
+["Romance", "Relationships"], ["Family", "Relationships"], ["Friendship", "Relationships"].
 
 ## Number of Tags
 
