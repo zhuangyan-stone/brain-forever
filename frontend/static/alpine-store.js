@@ -469,17 +469,13 @@ document.addEventListener('alpine:init', function() {
             var within7Days = [];
             var within30Days = [];
             var earlier = {};       // { '2026/3/25': [...] }
-            var categorized = {};   // { categoryId: [...] }
+            var categorized = [];   // tagged chats
 
             for (var i = 0; i < chats.length; i++) {
                 var chat = chats[i];
                 // 已分类 — 同时加入分类分组和时间线分组
-                if (chat.category && chat.category > 0) {
-                    var catKey = String(chat.category);
-                    if (!categorized[catKey]) {
-                        categorized[catKey] = [];
-                    }
-                    categorized[catKey].push(chat);
+                if (chat.taged) {
+                    categorized.push(chat);
                     // 不 continue，继续进入时间线分组逻辑
                 }
                 // 置顶
@@ -561,16 +557,13 @@ document.addEventListener('alpine:init', function() {
         this.chatsTimeline = groups;
 
             // ---- 构建分类分组（category tab）- 只保留一级分类 ----
-            var catKeys = Object.keys(categorized);
             var catGroups = [];
-            if (catKeys.length > 0) {
-                for (var k = 0; k < catKeys.length; k++) {
-                    catGroups.push({
-                        label: '分类 ' + catKeys[k],
-                        type: 'normal',
-                        items: categorized[catKeys[k]],
-                    });
-                }
+            if (categorized.length > 0) {
+                catGroups.push({
+                    label: '已分类',
+                    type: 'normal',
+                    items: categorized,
+                });
             }
             this.chatCategories = catGroups;
         },

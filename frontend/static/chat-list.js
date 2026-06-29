@@ -103,7 +103,7 @@ export function addDirtyChat(title, sn) {
         title: title,    // 标题由前端基于首条消息生成
         title_state: 0,  // 原始标题
         pinned: false,
-        category: 0,
+        taged: false,
         role_no: 0,
         create_at: new Date().toISOString(),
         update_at: new Date().toISOString(),
@@ -863,7 +863,7 @@ export function updateChatEntry(sn, title, titleState) {
             title: title || '',
             title_state: titleState,
             pinned: false,
-            category: 0,
+            taged: false,
             role_no: 0,
             create_at: now,
             update_at: now,

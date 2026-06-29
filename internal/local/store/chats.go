@@ -27,13 +27,13 @@ type Chat struct {
 	Title      string `db:"title" json:"title"`             // Conversation title
 	TitleState int8   `db:"title_state" json:"title_state"` // Title modification state: 0=original (default), 1=AI modified, 2=user modified
 
-	ExtractMode int8       `db:"extract_mode" json:"extract_mode"` // 0=manual, 1=auto, default 0
-	ExtractedAt *time.Time `db:"extracted_at" json:"extracted_at"` // Last extraction time, default null
+	ExtractMode    int8       `db:"extract_mode" json:"extract_mode"`       // 0=manual, 1=auto, default 0
+	ExtractedAt    *time.Time `db:"extracted_at" json:"extracted_at"`       // Last extraction time, default null
+	ExtractedCount int        `db:"extracted_count" json:"extracted_count"` // Number of traits extracted for this chat, default 0
 
-	ExtractedCount int  `db:"extracted_count" json:"extracted_count"` // Number of traits extracted for this chat, default 0
-	Deleted        bool `db:"deleted" json:"-"`                       // Soft delete flag (excluded from JSON)
-	Pinned         bool `db:"pinned" json:"pinned"`                   // Whether pinned
-	Category       int  `db:"category" json:"category"`               // Category ID, 0=uncategorized
+	Deleted bool `db:"deleted" json:"-"`     // Soft delete flag (excluded from JSON)
+	Pinned  bool `db:"pinned" json:"pinned"` // Whether pinned
+	Taged   bool `db:"taged" json:"taged"`   // Whether tagged/classified
 
 	CreateAt time.Time `db:"create_at" json:"create_at"`
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
@@ -125,7 +125,7 @@ func (s *ChatStore) initSchema() error {
 			extracted_count    INTEGER NOT NULL DEFAULT 0,
 			deleted   INTEGER NOT NULL DEFAULT 0,
 			pinned    INTEGER NOT NULL DEFAULT 0,
-			category  INTEGER NOT NULL DEFAULT 0,
+			taged     INTEGER NOT NULL DEFAULT 0,
 			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
@@ -225,6 +225,25 @@ func (s *ChatStore) initSchema() error {
 		}
 	}
 
+	// Migration 3: rename category(int) to taged(bool)
+	// category > 0 → taged = 1, category = 0 → taged = 0
+	err = s.db.QueryRow(
+		`SELECT name FROM pragma_table_info('chat_sessions') WHERE name = 'category'`,
+	).Scan(&oldCol)
+	if err == nil {
+		// Add taged column (safe if schema already created it: IF NOT EXISTS not supported for ALTER ADD)
+		if _, err := s.db.Exec(`ALTER TABLE chat_sessions ADD COLUMN taged INTEGER NOT NULL DEFAULT 0`); err != nil {
+			// Column may already exist from schema init, that's fine
+		}
+		// Migrate data: any previously categorized chat becomes tagged
+		s.db.Exec(`UPDATE chat_sessions SET taged = 1 WHERE category > 0`)
+		// Drop the old category column
+		if _, err := s.db.Exec(`ALTER TABLE chat_sessions DROP COLUMN category`); err != nil {
+			// DROP COLUMN requires SQLite 3.35.0+; if it fails, the old column
+			// will just be ignored by the new code (not in SELECT list).
+		}
+	}
+
 	return nil
 }
 
@@ -247,7 +266,7 @@ func (s *ChatStore) InsertChat(sn string, roleNO int,
 	err = s.db.Get(&chat,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
-		        deleted, pinned, category, create_at, update_at
+		        deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions WHERE id = ?`, id,
 	)
 	if err != nil {
@@ -342,7 +361,7 @@ func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
 	err := s.db.Get(&chat,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
-		        deleted, pinned, category, create_at, update_at
+		        deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions WHERE sn = ?`, sn,
 	)
 	if err != nil {
@@ -357,7 +376,7 @@ func (s *ChatStore) ListDeletedChats(n int) ([]Chat, error) {
 	err := s.db.Select(&chats,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
 		    extracted_at, extracted_count,
-		    deleted, pinned, category, create_at, update_at
+		    deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions
 		 WHERE deleted = 1
 		 ORDER BY update_at DESC
@@ -392,7 +411,7 @@ func (s *ChatStore) ListChats(n int) ([]Chat, error) {
 	err := s.db.Select(&chats,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
-		        deleted, pinned, category, create_at, update_at
+		        deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions
 		 WHERE deleted = 0
 		 ORDER BY pinned DESC, create_at DESC

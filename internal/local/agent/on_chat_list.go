@@ -16,7 +16,7 @@ import (
 //
 // The user is identified by the HTTP session cookie, not by a query parameter.
 // Returns only chat metadata (id, sn, title, title_state, pinned,
-// category, create_at, update_at, etc.) without messages or web sources.
+// taged, create_at, update_at, etc.) without messages or web sources.
 // Messages are loaded lazily when the user switches to a specific chat.
 func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
