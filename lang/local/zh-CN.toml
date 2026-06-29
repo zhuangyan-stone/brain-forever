@@ -41,14 +41,3 @@ other = "转换消息格式失败：{{.Error}}"
 [api_error_llm_call_failed]
 other = "AI 模型调用失败"
 
-[chat_title_label]
-other = "标题："
-
-[chat_conversation_label]
-other = "对话内容："
-
-[role_user_label]
-other = "用户："
-
-[role_assistant_label]
-other = "AI："

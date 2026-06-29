@@ -41,14 +41,3 @@ other = "Failed to convert messages: {{.Error}}"
 [api_error_llm_call_failed]
 other = "LLM call failed"
 
-[chat_title_label]
-other = "Title: "
-
-[chat_conversation_label]
-other = "Conversation: "
-
-[role_user_label]
-other = "User: "
-
-[role_assistant_label]
-other = "AI: "

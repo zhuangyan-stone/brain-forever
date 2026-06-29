@@ -3,7 +3,6 @@ package agent
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
@@ -75,45 +74,13 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load messages from DB
-	dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
-	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_failed_to_list_messages", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
-		return
-	}
-
-	agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, dbSessionID)
-	if convErr != nil {
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_failed_to_convert_messages", map[string]interface{}{"Error": convErr.Error()}), http.StatusInternalServerError)
-		return
-	}
-
-	// Build the LLM prompt with the tag system prompt
+	// Build the LLM prompt with the tag system prompt.
+	// Only the chat title is sent to the LLM, not the full conversation content,
+	// to avoid the LLM being distracted by example details within the conversation.
 	systemPrompt := i18n.SystemPrompt.TL(lang, "tag", nil)
-
-	// Build conversation text from the messages
-	var conversationBuilder strings.Builder
-	conversationBuilder.WriteString(i18n.TL(lang, "chat_title_label"))
-	conversationBuilder.WriteString(chatTitle)
-	conversationBuilder.WriteString("\n\n")
-	conversationBuilder.WriteString(i18n.TL(lang, "chat_conversation_label"))
-	conversationBuilder.WriteString("\n")
-	for _, msg := range agentMsgs {
-		switch msg.Role {
-		case llm.RoleUser:
-			conversationBuilder.WriteString(i18n.TL(lang, "role_user_label"))
-		case llm.RoleAssistant:
-			conversationBuilder.WriteString(i18n.TL(lang, "role_assistant_label"))
-		default:
-			continue
-		}
-		conversationBuilder.WriteString(msg.Content)
-		conversationBuilder.WriteString("\n")
-	}
-
 	llmMessages := []llm.Message{
 		{Role: llm.RoleSystem, Content: systemPrompt},
-		{Role: llm.RoleUser, Content: conversationBuilder.String()},
+		{Role: llm.RoleUser, Content: chatTitle},
 	}
 
 	// Create the chat tag tool and force the LLM to use it

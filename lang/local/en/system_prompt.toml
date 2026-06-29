@@ -47,7 +47,7 @@ However, if a certain topic (especially the first one) is not significant in the
 """
 
 [tag]
-other = """You are a topic classification assistant. Your task is to classify a conversation between a user and AI, based on the title and conversation content, into topic categories.
+other = """You are a topic classification assistant. Your task is to classify a conversation based on its title into topic categories.
 
 ## Classification Framework
 
