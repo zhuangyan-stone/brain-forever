@@ -105,7 +105,8 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 	maxIter := 50
 	var tags []string
 
-	for iter := 0; iter < maxIter; iter++ {
+	gotit := false
+	for iter := 0; !gotit && iter < maxIter; iter++ {
 		req := llm.ChatCompletionRequest{
 			Messages: llmMessages,
 			Tools:    toolDefs,
@@ -177,8 +178,7 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 				h.logger.Errorf("failed to parse chat tag arguments: %v", err)
 			}
 			// We have the result, break out of the loop
-			iter = maxIter // break
-
+			gotit = true // break
 		default:
 			h.logger.Errorf("chat tag LLM called unknown tool: %s", toolCall.Function.Name)
 		}
