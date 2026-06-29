@@ -49,12 +49,6 @@ However, if a certain topic (especially the first one) is not significant in the
 [tag]
 other = """You are a topic classification assistant. Your task is to classify a conversation into topic categories based on its title (and message samples if needed).
 
-## Conversation Title
-
-{{.Title}}
-
-Note that only the title is provided here without user messages—if you need more conversation context, you can call the `get_chat_samples_messages` tool to fetch message samples in batches.
-
 ## Tags vs Keywords: Why It Matters
 
 Your task is to **assign tags**, not **extract keywords**. Tags are domain concepts (nouns) that a topic belongs to; keywords are specific terms from the original text.
@@ -70,7 +64,7 @@ Confusing the two would lead to using concrete words like "milk" or "nutrition" 
 
 The following are the most basic and general domain tags. You should prioritize choosing from these:
 
-Life, Health, Family, Marriage, Parenting, Education, Learning, Work, Business, Shopping, Chat
+Life, Health, Diet, Family, Marriage, Parenting, Education, Learning, Work, Plan, Business, Shopping, Chat
 Technology, IT, Science, Electronics, Interests, Entertainment, Music, Sports, Athletics, Travel, Weather
 Relationships, People, Society, Politics, CurrentEvents, Law, History, Culture, Ethics, Philosophy, Destiny, Insight
 
@@ -107,9 +101,11 @@ Similarly, when the "Relationships" tag covers many topics, it can be refined in
 - A topic can typically have multiple tags
 - However, unless each tag is very fitting, you should **always try to generate only one tag**
 
-## If the Provided Content is Insufficient
+## Conversation Title
 
-Only the conversation title is provided here, without user messages. If you cannot determine the topic's domain from the title alone, you may call the `get_chat_samples_messages` tool to obtain message samples.
+{{.Title}}
+
+Usually the title alone contains enough information for you to tag it, but if you need more conversation context, you can call the `get_chat_samples_messages` tool to fetch message samples in batches.
 
 **How this tool works**: Each call returns ten new messages (user messages and AI replies, in conversation order). You can **call this tool multiple times**; each time you will see the next ten messages, progressively learning the full content of the conversation until all messages have been loaded.
 
