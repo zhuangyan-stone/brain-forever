@@ -67,6 +67,17 @@
     </g>
   </defs>
 
+<!-- 题词：苏轼《定风波》左上角 -->
+  <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28" font-size="14">
+    <text x="50" y="180">
+      <tspan x="50" dy="0" font-size="28" font-weight="bold" opacity="0.5">定风波</tspan>
+      <tspan x="50" dy="36">莫听穿林打叶声，何妨吟啸且徐行</tspan>
+      <tspan x="50" dy="25">竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生</tspan>
+      <tspan x="50" dy="25">料峭春风吹酒醒，微冷，山头斜照却相迎</tspan>
+      <tspan x="50" dy="25">回首向来萧瑟处，归去，也无风雨也无晴</tspan>
+    </text>
+  </g>
+
   <!-- 暮色竹影 -->
   <g opacity="0.18">
     <!-- 近丛 -->
