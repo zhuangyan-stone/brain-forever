@@ -460,6 +460,26 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 	return nil
 }
 
+// UpdateChatTag updates the tagged state of a chat.
+func (s *ChatStore) UpdateChatTag(id int64, taged bool) error {
+	tagVal := 0
+	if taged {
+		tagVal = 1
+	}
+	result, err := s.db.Exec(
+		"UPDATE chat_sessions SET taged = ? WHERE id = ?",
+		tagVal, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update chat tag. %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("chat not found (id=%d)", id)
+	}
+	return nil
+}
+
 // EmptyTrash permanently deletes all soft-deleted chats (and their messages/web_sources).
 func (s *ChatStore) EmptyTrash() error {
 	// Get all deleted chat IDs first

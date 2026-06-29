@@ -217,6 +217,21 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// 3. Mark this chat as tagged in the database
+	if tagErr := session.chatsStore.UpdateChatTag(dbSessionID, true); tagErr != nil {
+		h.logger.Errorf("failed to update chat taged flag for chat %d: %v", dbSessionID, tagErr)
+	}
+
+	// 4. Update in-memory cache
+	session.chatsMu.Lock()
+	for i := range session.chats {
+		if session.chats[i].ID == dbSessionID {
+			session.chats[i].Taged = true
+			break
+		}
+	}
+	session.chatsMu.Unlock()
+
 	// Read LLM message viewing stats from the samples tool.
 	viewedCount := samplesTool.GetViewedMessageCount()
 	allViewed := samplesTool.IsAllMessagesViewed()
