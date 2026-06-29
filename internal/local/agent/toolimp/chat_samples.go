@@ -17,7 +17,13 @@ import (
 // ChatSamplesToolName is the name of the tool used for fetching
 // sample messages from the current conversation when the title
 // alone is insufficient for topic classification.
+// This is the name exposed to the LLM API.
 const ChatSamplesToolName = "get_chat_samples_messages"
+
+// chatSamplesI18NKey is the key used for i18n translation lookups.
+// It matches the translation file name (without extension) in the
+// tools/ directory and the key registered in i18n.TLTools.
+const chatSamplesI18NKey = "chat_samples_messages"
 
 // pageSize is the number of messages (user + assistant) loaded per tool call.
 const pageSize = 10
@@ -50,7 +56,7 @@ func chatSamplesToolDefinition(lang string) llm.ToolDefinition {
 		Type: "function",
 		Function: llm.ToolFunctionDef{
 			Name:        ChatSamplesToolName,
-			Description: i18n.Tools.TL(lang, ChatSamplesToolName, "description"),
+			Description: i18n.Tools.TL(lang, chatSamplesI18NKey, "description"),
 			Parameters:  paramsMap,
 			Strict:      &strict,
 		},
@@ -119,7 +125,7 @@ func (f *ChatSamplesToolImp) SetArgument(arguments string) error {
 }
 
 func (f *ChatSamplesToolImp) GetPendingText() string {
-	return i18n.Tools.TL(f.lang, ChatSamplesToolName, "pending")
+	return i18n.Tools.TL(f.lang, chatSamplesI18NKey, "pending")
 }
 
 // Execute loads the next batch of messages (up to pageSize=10) from the DB
@@ -133,7 +139,7 @@ func (f *ChatSamplesToolImp) GetPendingText() string {
 func (f *ChatSamplesToolImp) Execute() (string, error) {
 	// If all messages are already loaded, return a notification.
 	if f.allMessagesLoaded {
-		return i18n.Tools.TL(f.lang, ChatSamplesToolName, "all_messages_loaded"), nil
+		return i18n.Tools.TL(f.lang, chatSamplesI18NKey, "all_messages_loaded"), nil
 	}
 
 	// Resolve chatID on first call if not yet resolved.
@@ -157,7 +163,7 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 
 	if len(dbMessages) == 0 {
 		f.allMessagesLoaded = true
-		return i18n.Tools.TL(f.lang, ChatSamplesToolName, "no_messages"), nil
+		return i18n.Tools.TL(f.lang, chatSamplesI18NKey, "no_messages"), nil
 	}
 
 	// Check if we've loaded all remaining messages.
@@ -170,14 +176,14 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 
 	// Format the messages for LLM consumption.
 	var parts []string
-	parts = append(parts, i18n.Tools.TL(f.lang, ChatSamplesToolName, "label_title", map[string]interface{}{
+	parts = append(parts, i18n.Tools.TL(f.lang, chatSamplesI18NKey, "label_title", map[string]interface{}{
 		"Title": f.chatTitle,
 	}))
 
 	for _, m := range dbMessages {
-		roleLabel := i18n.Tools.TL(f.lang, ChatSamplesToolName, "label_user")
+		roleLabel := i18n.Tools.TL(f.lang, chatSamplesI18NKey, "label_user")
 		if m.Role == 1 {
-			roleLabel = i18n.Tools.TL(f.lang, ChatSamplesToolName, "label_ai")
+			roleLabel = i18n.Tools.TL(f.lang, chatSamplesI18NKey, "label_ai")
 		}
 		content := m.Content
 		if utf8.RuneCountInString(content) > 500 {
