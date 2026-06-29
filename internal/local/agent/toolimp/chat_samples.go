@@ -176,9 +176,6 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 
 	// Format the messages for LLM consumption.
 	var parts []string
-	parts = append(parts, i18n.Tools.TL(f.lang, chatSamplesI18NKey, "label_title", map[string]interface{}{
-		"Title": f.chatTitle,
-	}))
 
 	for _, m := range dbMessages {
 		roleLabel := i18n.Tools.TL(f.lang, chatSamplesI18NKey, "label_user")

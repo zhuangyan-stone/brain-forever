@@ -10,9 +10,6 @@ other = "All conversation messages have been loaded, no more content."
 [no_messages]
 other = "No more messages in this conversation."
 
-[label_title]
-other = "Chat title: {{.Title}}"
-
 [label_user]
 other = "User"
 

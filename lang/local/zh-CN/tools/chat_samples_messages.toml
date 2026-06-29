@@ -10,9 +10,6 @@ other = "所有对话消息已加载完毕，没有更多内容。"
 [no_messages]
 other = "该对话暂无更多消息。"
 
-[label_title]
-other = "对话标题：{{.Title}}"
-
 [label_user]
 other = "用户"
 
