@@ -73,6 +73,15 @@ type WebSource struct {
 	CreateAt    time.Time `db:"create_at"`
 }
 
+// ChatTag represents a tag associated with a chat session.
+type ChatTag struct {
+	ID       int64     `db:"id" json:"id"`               // Auto-increment primary key
+	ChatID   int64     `db:"chat_id" json:"chat_id"`     // References chat_sessions.id
+	Tag      string    `db:"tag" json:"tag"`             // Tag string (topic classification)
+	CreateAt time.Time `db:"create_at" json:"create_at"` // Creation time
+	UpdateAt time.Time `db:"update_at" json:"update_at"` // Last update time
+}
+
 func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
 	// Check if the database specified by dbFile (path + filename) exists.
 	// If not, create it. Contains two tables: chat_sessions and chat_messages,
@@ -151,6 +160,20 @@ func (s *ChatStore) initSchema() error {
 		CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg
 			ON web_sources(chat_id, msg_id);
 
+		CREATE TABLE IF NOT EXISTS chat_tags (
+			id        INTEGER PRIMARY KEY AUTOINCREMENT,
+			chat_id   INTEGER NOT NULL REFERENCES chat_sessions(id),
+			tag       TEXT    NOT NULL,
+			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_id
+			ON chat_tags(chat_id);
+
+		CREATE INDEX IF NOT EXISTS idx_chat_tags_tag
+			ON chat_tags(tag);
+
 		CREATE TRIGGER IF NOT EXISTS trg_chat_sessions_update_at
 			BEFORE UPDATE ON chat_sessions
 			FOR EACH ROW
@@ -163,6 +186,13 @@ func (s *ChatStore) initSchema() error {
 			FOR EACH ROW
 		BEGIN
 			UPDATE chat_messages SET update_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+		END;
+
+		CREATE TRIGGER IF NOT EXISTS trg_chat_tags_update_at
+			BEFORE UPDATE ON chat_tags
+			FOR EACH ROW
+		BEGIN
+			UPDATE chat_tags SET update_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 		END;
 	`
 	_, err := s.db.Exec(schema)
@@ -243,7 +273,7 @@ func (s *ChatStore) LogicDelete(sn string) error {
 }
 
 // PhysicalDelete physically deletes the session identified by id + sn.
-// Also deletes all its messages (transaction-safe).
+// Also deletes all its messages, web sources, and tags (transaction-safe).
 func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -262,6 +292,15 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 	}
 	if !exists {
 		return fmt.Errorf("session not found (id=%d, sn=%s)", id, sn)
+	}
+
+	// Delete all tags under this session
+	_, err = tx.Exec(
+		"DELETE FROM chat_tags WHERE chat_id = ?",
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete tags of session. %w", err)
 	}
 
 	// Delete all web sources under this session
@@ -424,6 +463,12 @@ func (s *ChatStore) EmptyTrash() error {
 	defer tx.Rollback()
 
 	for _, id := range deletedIDs {
+		// Delete all tags under this session
+		_, err = tx.Exec("DELETE FROM chat_tags WHERE chat_id = ?", id)
+		if err != nil {
+			return fmt.Errorf("failed to delete tags for chat %d: %w", id, err)
+		}
+
 		// Delete all web sources under this session
 		_, err = tx.Exec("DELETE FROM web_sources WHERE chat_id = ?", id)
 		if err != nil {
