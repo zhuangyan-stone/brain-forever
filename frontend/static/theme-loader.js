@@ -89,8 +89,8 @@ window.ThemeLoader = (function() {
                 // 将内置主题作为完整对象注入到列表最前面，
                 // 使所有展示代码（tooltip、对话框等）无需特判内置/外源
                 var builtinThemes = [
-                    { id: 'builtin-light', mode: 'light', highContrast: true, name: 'Buildin/Bright Eyes · Day ', name_zh: '默认/明眸·昼', description: '内置，白底黑字，清亮明快' },
-                    { id: 'builtin-dark', mode: 'dark', highContrast: true, name: 'Buildin/Bright Eyes · Night ', name_zh: '默认/明眸·夜', description: '内置，黑底白字，沉静专注' },
+                    { id: 'builtin-light', mode: 'light', highContrast: true, name: 'Buildin - Bright Eyes · Day ', name_zh: '默认 - 明眸·昼', description: '内置，白底黑字，清亮明快' },
+                    { id: 'builtin-dark', mode: 'dark', highContrast: true, name: 'Buildin - Bright Eyes · Night ', name_zh: '默认 - 明眸·夜', description: '内置，黑底白字，沉静专注' },
                 ];
                 data.themes = builtinThemes.concat(data.themes || []);
                 _manifestCache = data.themes;
