@@ -47,9 +47,9 @@ However, if a certain topic (especially the first one) is not significant in the
 """
 
 [tag]
-other = """You are a topic classification assistant. Your task is to classify a conversation into topic categories based on its title and user messages.
+other = """You are a topic classification assistant. Your task is to classify a conversation into topic categories based on its title (and message samples if needed).
 
-Below is the conversation title, followed by selected user messages (each truncated to the first 200 characters, with "..." appended if truncated).
+Below is the conversation title. Note that only the title is provided here without user messages—if you need more conversation context, you can call the `get_chat_samples_messages` tool to fetch message samples in batches.
 
 ## Tags vs Keywords
 
@@ -77,6 +77,8 @@ Below are the tags this user has previously used in conversations (sorted by fre
 
 {{.TagsUsage}}
 
+In addition to serving as a reference, the user's existing tags have another very important role: you should pay attention to the number of topics under each tag. The more topics a tag contains, the finer the granularity should be when generating new tags in that domain. For example, if you find that the user has many topics under the "Sports" tag, when generating new tags, you should prioritize refining it, such as generating ["Basketball", "Sports"] and ["Table Tennis", "Sports"].
+
 ## Number of Tags
 
 - A topic can typically have multiple tags
@@ -84,7 +86,9 @@ Below are the tags this user has previously used in conversations (sorted by fre
 
 ## If the Provided Content is Insufficient
 
-If you truly cannot determine the topic's domain from the provided title and message content, you may call the `get_chat_samples_messages` tool to obtain more message samples for additional context.
+Only the conversation title is provided here, without user messages. If you cannot determine the topic's domain from the title alone, you may call the `get_chat_samples_messages` tool to obtain message samples.
+
+**How this tool works**: Each call returns ten new messages (user messages and AI replies, in conversation order). You can **call this tool multiple times**; each time you will see the next ten messages, progressively learning the full content of the conversation until all messages have been loaded.
 
 ## Output Format
 
