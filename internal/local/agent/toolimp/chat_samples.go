@@ -178,16 +178,16 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 	var parts []string
 
 	for _, m := range dbMessages {
-		roleLabel := i18n.Tools.TL(f.lang, chatSamplesI18NKey, "label_user")
+		roleLabel := i18n.TL(f.lang, "label_user")
 		if m.Role == 1 {
-			roleLabel = i18n.Tools.TL(f.lang, chatSamplesI18NKey, "label_ai")
+			roleLabel = i18n.TL(f.lang, "label_ai")
 		}
 		content := m.Content
 		if utf8.RuneCountInString(content) > 500 {
 			runes := []rune(content)
 			content = string(runes[:500]) + "..."
 		}
-		parts = append(parts, roleLabel+": "+content)
+		parts = append(parts, roleLabel+content)
 	}
 
 	result := strings.Join(parts, "\n")

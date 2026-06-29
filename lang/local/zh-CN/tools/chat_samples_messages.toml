@@ -10,8 +10,5 @@ other = "所有对话消息已加载完毕，没有更多内容。"
 [no_messages]
 other = "该对话暂无更多消息。"
 
-[label_user]
-other = "用户"
-
-[label_ai]
-other = "AI"
+[fetch_samples_failed]
+other = "获取消息样本失败：{{.Error}}"

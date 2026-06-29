@@ -142,7 +142,7 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 			sampleContent, err := samplesTool.Execute()
 			if err != nil {
 				h.logger.Errorf("chat samples tool execute failed: %v", err)
-				sampleContent = fmt.Sprintf("获取消息样本失败: %v", err)
+				sampleContent = i18n.Tools.TL(lang, "chat_samples_messages", "fetch_samples_failed", map[string]interface{}{"Error": err.Error()})
 			}
 
 			// Build assistant message with tool call

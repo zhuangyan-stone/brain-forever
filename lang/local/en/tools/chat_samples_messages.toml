@@ -10,8 +10,5 @@ other = "All conversation messages have been loaded, no more content."
 [no_messages]
 other = "No more messages in this conversation."
 
-[label_user]
-other = "User"
-
-[label_ai]
-other = "AI"
+[fetch_samples_failed]
+other = "Failed to fetch chat samples: {{.Error}}"
