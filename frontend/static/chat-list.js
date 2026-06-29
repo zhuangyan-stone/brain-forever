@@ -554,8 +554,8 @@ function showContextMenu(e, chat) {
     tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 归类';
     tagItem.addEventListener('click', async () => {
         closeContextMenu();
-        // 开始申请归类，显示提示
-        showToast('📑 正在申请归类', 'info', 60000);
+        // 开始申请归类，显示提示（5 秒后自动消失，结果返回后会再显示结果 Toast）
+        showToast('📑 正在申请归类', 'info', 5000);
         const result = await fetchChatTags(chat.sn);
         const title = (result && result.title) || chat.title || '';
         if (result && result.tags && result.tags.length > 0) {
