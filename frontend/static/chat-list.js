@@ -558,8 +558,12 @@ function showContextMenu(e, chat) {
         const title = (result && result.title) || chat.title || '';
         if (result && result.tags && result.tags.length > 0) {
             console.log('📑 话题分类结果 [' + title + ']:', JSON.stringify(result.tags, null, 2));
+            // Toast 展示分类结果
+            var tagStr = result.tags.join('、');
+            showToast('📑 分类结果：「' + tagStr + '」', 'success', 5000);
         } else {
             console.log('📑 话题分类 [' + title + ']: 未匹配到分类');
+            showToast('📑 未匹配到分类', 'info', 4000);
         }
     });
     menu.appendChild(tagItem);
