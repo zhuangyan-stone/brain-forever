@@ -25,3 +25,30 @@ other = "No personal traits data available. Please start a conversation first"
 
 [api_error_portrait_service_unavailable]
 other = "Portrait service temporarily unavailable: {{.Error}}"
+
+[api_error_sn_required]
+other = "sn query parameter is required"
+
+[api_error_chat_not_found]
+other = "Chat not found"
+
+[api_error_failed_to_list_messages]
+other = "Failed to list messages: {{.Error}}"
+
+[api_error_failed_to_convert_messages]
+other = "Failed to convert messages: {{.Error}}"
+
+[api_error_llm_call_failed]
+other = "LLM call failed"
+
+[chat_title_label]
+other = "Title: "
+
+[chat_conversation_label]
+other = "Conversation: "
+
+[role_user_label]
+other = "User: "
+
+[role_assistant_label]
+other = "AI: "

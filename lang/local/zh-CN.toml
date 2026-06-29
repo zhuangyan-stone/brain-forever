@@ -25,3 +25,30 @@ other = "暂无个人特征数据，请先进行对话和特征提取"
 
 [api_error_portrait_service_unavailable]
 other = "画像服务暂时不可用：{{.Error}}"
+
+[api_error_sn_required]
+other = "缺少 sn 查询参数"
+
+[api_error_chat_not_found]
+other = "未找到指定对话"
+
+[api_error_failed_to_list_messages]
+other = "读取消息列表失败：{{.Error}}"
+
+[api_error_failed_to_convert_messages]
+other = "转换消息格式失败：{{.Error}}"
+
+[api_error_llm_call_failed]
+other = "AI 模型调用失败"
+
+[chat_title_label]
+other = "标题："
+
+[chat_conversation_label]
+other = "对话内容："
+
+[role_user_label]
+other = "用户："
+
+[role_assistant_label]
+other = "AI："
