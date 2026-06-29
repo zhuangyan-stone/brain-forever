@@ -47,5 +47,5 @@ other = "User: "
 other = "AI: "
 
 [portrait_hot_tags_prefix]
-other = "Your hottest conversation domains: "
+other = "Topics you and AI talk about most often: "
 
