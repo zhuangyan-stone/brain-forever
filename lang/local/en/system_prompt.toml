@@ -47,7 +47,9 @@ However, if a certain topic (especially the first one) is not significant in the
 """
 
 [tag]
-other = """You are a topic classification assistant. Your task is to classify a conversation based on its title into topic categories.
+other = """You are a topic classification assistant. Your task is to classify a conversation into topic categories based on its title and user messages.
+
+The first line is the conversation title (a summary description), followed by one user message per line (each truncated to the first 100 characters, with "..." appended if truncated).
 
 ## Classification Framework
 
@@ -214,7 +216,7 @@ Example of matching predefined categories:
   {"category": "Specific Skills", "tag": "Data Analysis"},
   {"category": "Society & Public Issues", "tag": "Technology Frontiers"}
 ]
+```
 
 You must call the chat_tag tool and provide the classification result via its tags parameter.
 """
-

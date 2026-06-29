@@ -3,6 +3,8 @@ package agent
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+	"unicode/utf8"
 
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
@@ -75,12 +77,36 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build the LLM prompt with the tag system prompt.
-	// Only the chat title is sent to the LLM, not the full conversation content,
-	// to avoid the LLM being distracted by example details within the conversation.
+	// Send the chat title along with truncated user messages (first 100 runes each)
+	// to provide concrete topic evidence for more accurate classification.
+	// Each user message is capped at 100 runes and marked with "..." if truncated.
 	systemPrompt := i18n.SystemPrompt.TL(lang, "tag", nil)
+
+	// Load user messages for better classification context.
+	// Only user messages (role==0) are included; AI replies are excluded
+	// to avoid introducing noise from tangential or example content.
+	var userMsgParts []string
+	userMsgParts = append(userMsgParts, chatTitle) // title always goes first as context
+
+	dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
+	if err == nil {
+		for _, m := range dbMessages {
+			if m.Role == 0 { // 0 = user message
+				content := m.Content
+				// Truncate to first 100 runes, append "..." if truncated
+				if utf8.RuneCountInString(content) > 100 {
+					runes := []rune(content)
+					content = string(runes[:100]) + "..."
+				}
+				userMsgParts = append(userMsgParts, content)
+			}
+		}
+	}
+
+	userContent := strings.Join(userMsgParts, "\n")
 	llmMessages := []llm.Message{
 		{Role: llm.RoleSystem, Content: systemPrompt},
-		{Role: llm.RoleUser, Content: chatTitle},
+		{Role: llm.RoleUser, Content: userContent},
 	}
 
 	// Create the chat tag tool and force the LLM to use it
