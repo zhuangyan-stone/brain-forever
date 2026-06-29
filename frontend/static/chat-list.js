@@ -5,14 +5,14 @@
 
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
-import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
+import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits, fetchChatTags } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 import { renderMarkdown } from './chat-markdown.js';
-import { visualLength, truncateByVisualLength } from './toolsets.js';
+import { visualLength, truncateByVisualLength, escapeHtml } from './toolsets.js';
 
 'use strict';
 
@@ -558,9 +558,14 @@ function showContextMenu(e, chat) {
         const title = (result && result.title) || chat.title || '';
         if (result && result.tags && result.tags.length > 0) {
             console.log('📑 话题分类结果 [' + title + ']:', JSON.stringify(result.tags, null, 2));
-            // Toast 展示分类结果
-            var tagStr = result.tags.join('、');
-            showToast('📑 分类结果：「' + tagStr + '」', 'success', 5000);
+            // Toast 展示分类结果（第一行标签，第二行标题）
+            var tagStr = escapeHtml(result.tags.join('、'));
+            var displayTitle = title ? escapeHtml(title) : '';
+            var htmlMsg = '📑 分类结果：<strong>' + tagStr + '</strong>';
+            if (displayTitle) {
+                htmlMsg += '<br>《' + displayTitle + '》';
+            }
+            showToastHTML(htmlMsg, 'success', 5000);
         } else {
             console.log('📑 话题分类 [' + title + ']: 未匹配到分类');
             showToast('📑 未匹配到分类', 'info', 4000);
