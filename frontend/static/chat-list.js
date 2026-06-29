@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits, fetchChatTags } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE } from './svg_icons_re.js';
@@ -231,6 +231,13 @@ async function selectChat(sn) {
         chats.active.titleState = result.title_state;
     }
 
+    // 8.0 调试：获取并打印话题分类标签
+    fetchChatTags(sn).then(tagResult => {
+        if (tagResult && tagResult.tags && tagResult.tags.length > 0) {
+            console.log('📑 话题分类 [' + sn + ']:', JSON.stringify(tagResult.tags, null, 2));
+        }
+    });
+
     // 8. 渲染消息 — 通过 Alpine store 的 groups 数据驱动
     // 转换 messages → groups 并设置到 Alpine store（按 SN 查找，而非假定 active）
     chats.setChatMessageGroups(sn, result.messages);
@@ -425,7 +432,7 @@ function showContextMenu(e, chat) {
     // 导致菜单定位异常。e.currentTarget 始终指向事件绑定的按钮元素。
     const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 36 * 4 + 4 + 10; // 4 items * 36px + padding + separator
+    const menuHeight = 36 * 5 + 4 + 10; // 5 items * 36px + padding + separator
 
     const isSmallScreen = document.body.classList.contains('small-screen-mode');
     let left, top;
@@ -547,6 +554,21 @@ function showContextMenu(e, chat) {
     	});
     }
     menu.appendChild(traitItem);
+
+    // 话题分类
+    const tagItem = document.createElement('div');
+    tagItem.className = 'chat-context-menu-item';
+    tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 分类';
+    tagItem.addEventListener('click', async () => {
+        closeContextMenu();
+        const result = await fetchChatTags(chat.sn);
+        if (result && result.tags && result.tags.length > 0) {
+            console.log('📑 话题分类结果 [' + chat.sn + ']:', JSON.stringify(result.tags, null, 2));
+        } else {
+            console.log('📑 话题分类 [' + chat.sn + ']: 未匹配到分类');
+        }
+    });
+    menu.appendChild(tagItem);
 
     // 分隔线
     const separator = document.createElement('div');
