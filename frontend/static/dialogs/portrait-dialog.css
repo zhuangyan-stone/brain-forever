@@ -115,12 +115,12 @@
 .portrait-essence {
     width: 36%;
     min-width: 320px;
-    padding: 16px 16px 12px;
+    padding: 12px 16px 8px;
     overflow-y: auto;
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 4px;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
 }
@@ -600,8 +600,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 4px 0;
+    gap: 4px;
+    padding: 2px 0;
 }
 
 .portrait-essence-avatar {
@@ -624,13 +624,13 @@
 .portrait-essence-info {
     background: var(--bg-input);
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     font-size: 0.78rem;
     color: var(--text-muted);
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
 .portrait-info-line {
@@ -654,8 +654,9 @@
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 8px;
-    padding-bottom: 6px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+    padding-bottom: 4px;
 }
 
 /* 书签容器 — 使用 masonry 错落布局 */
@@ -665,9 +666,9 @@
     flex-wrap: wrap;
     align-items: flex-start;
     align-content: flex-start;
-    gap: 10px 8px;
-    padding: 8px 4px 8px 10px;
-    min-height: 100px;
+    gap: 8px 6px;
+    padding: 4px 4px 4px 10px;
+    min-height: 0;
 }
 
 /* 单个书签 */
@@ -765,8 +766,8 @@
 .portrait-essence-highlights {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 4px;
+    gap: 8px;
+    margin-bottom: 2px;
 }
 
 .portrait-highlight-block {
@@ -875,11 +876,11 @@
     align-items: center;
     justify-content: center;
     flex: 1;
-    min-height: 100px;
+    min-height: 60px;
     color: var(--text-muted);
     font-size: 0.82rem;
-    gap: 10px;
-    padding: 16px 0;
+    gap: 6px;
+    padding: 8px 0;
 }
 
 .portrait-essence-spinner {

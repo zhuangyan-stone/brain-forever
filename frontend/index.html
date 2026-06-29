@@ -799,20 +799,20 @@
                         <div class="portrait-info-line">生成于：<span x-text="(portraitInfo || {}).generated_at"></span></div>
                     </div>
 
-                    <!-- 全过程旋转进度：从打开到 done 在精华区正中显示 -->
-                    <div class="portrait-essence-waiting" x-show="!isDone">
-                        <div class="portrait-essence-spinner"></div>
-                        <span>正在生成……</span>
-                    </div>
-
                     <!-- 最热领域 — 标签云（portraitInfo.hot_tags 由 local-server 提供） -->
                     <div class="portrait-essence-section" x-show="portraitInfo && portraitInfo.hot_tags && portraitInfo.hot_tags.length">
                         <div class="portrait-essence-section-label">🔥 最热领域</div>
                         <div class="portrait-bookmark-container">
-                            <template x-for="(item, idx) in portraitInfo.hot_tags" :key="idx">
+                            <template x-for="(item, idx) in ((portraitInfo || {}).hot_tags || [])" :key="idx">
                                 <span class="portrait-bookmark" x-text="item.tag + ' (' + item.count + ')'"></span>
                             </template>
                         </div>
+                    </div>
+
+                    <!-- 全过程旋转进度：从打开到 done 在精华区正中显示 -->
+                    <div class="portrait-essence-waiting" x-show="!isDone">
+                        <div class="portrait-essence-spinner"></div>
+                        <span>正在生成……</span>
                     </div>
 
                     <!-- 核心特质 — 书签图 -->
