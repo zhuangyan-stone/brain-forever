@@ -46,3 +46,6 @@ other = "用户："
 [label_ai]
 other = "AI："
 
+[portrait_hot_tags_prefix]
+other = "你的话题最热门领域是："
+

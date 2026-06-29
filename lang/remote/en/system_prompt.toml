@@ -355,6 +355,11 @@ other = """You are a **User Personal Portrait Generation Assistant**. Based on a
 
 {{.TraitsJSON}}
 
+{{if .TagsInfo}}
+Additionally, based on the topic tag statistics of all the user's conversations, you may also want to note:
+{{.TagsInfo}}
+{{end}}
+
 Please generate the user's personal portrait based on the above traits.
 """
 

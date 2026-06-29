@@ -87,9 +87,10 @@ func formatTraitItems(items []portraitTraitItem, lang string) string {
 
 // portraitRequest is the JSON body for POST /api/portrait.
 type portraitRequest struct {
-	Lang    string              `json:"lang"`    // e.g. "zh-CN"
-	Retouch int                 `json:"retouch"` // 0-5
-	Traits  []portraitTraitItem `json:"traits"`  // user's personal traits
+	Lang     string              `json:"lang"`      // e.g. "zh-CN"
+	Retouch  int                 `json:"retouch"`   // 0-5
+	Traits   []portraitTraitItem `json:"traits"`    // user's personal traits
+	TagsInfo string              `json:"tags_info"` // "你的话题最热门领域是：技术(5次)、生活(3次)..."
 }
 
 // ============================================================
@@ -152,6 +153,7 @@ func OnTripPortrait(w http.ResponseWriter, r *http.Request) {
 	systemContent := i18n.SystemPrompt.TL(req.Lang, "portrait", map[string]interface{}{
 		"Retouch":    req.Retouch,
 		"TraitsJSON": traitsDesc,
+		"TagsInfo":   req.TagsInfo,
 	})
 
 	// ----------------------------------------------------------

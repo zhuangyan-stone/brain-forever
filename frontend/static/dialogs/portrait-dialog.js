@@ -263,6 +263,15 @@ document.addEventListener('alpine:init', function() {
                     parts.push('');
                 }
 
+                // ---- 1b. 最热领域 ----
+                if (info && info.hot_tags && info.hot_tags.length) {
+                    parts.push('## 🔥 最热领域');
+                    info.hot_tags.forEach(function(item) {
+                        parts.push('- ' + item.tag + '（' + item.count + ' 个对话）');
+                    });
+                    parts.push('');
+                }
+
                 // ---- 2. 核心特质 ----
                 if (meta && meta.core_traits && meta.core_traits.length) {
                     parts.push('## ✨ 核心特质');

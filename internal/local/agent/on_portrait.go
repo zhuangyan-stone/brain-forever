@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"BrainForever/infra/httpx/sse"
@@ -42,9 +44,16 @@ type portraitTraitItem struct {
 
 // portraitRemoteRequest is the request sent to remote-server.
 type portraitRemoteRequest struct {
-	Lang    string              `json:"lang"`
-	Retouch int                 `json:"retouch"`
-	Traits  []portraitTraitItem `json:"traits"`
+	Lang     string              `json:"lang"`
+	Retouch  int                 `json:"retouch"`
+	Traits   []portraitTraitItem `json:"traits"`
+	TagsInfo string              `json:"tags_info"` // "你的话题最热门领域是：技术(5次)、生活(3次)..."
+}
+
+// hotTagItem represents a single tag with its conversation count.
+type hotTagItem struct {
+	Tag   string `json:"tag"`
+	Count int    `json:"count"`
 }
 
 // OnGetUserPortrait handles GET /api/user/portrait — reads all personal traits
@@ -95,7 +104,14 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 3. Convert traits to portrait request format
+	// 3a. Read user's topic tags with counts for LLM context + frontend display
+	// ----------------------------------------------------------
+	tagUsageMap, _ := session.chatsStore.SelectNonEmptyTagsGroup()
+	hotTags := formatHotTags(tagUsageMap) // top 10 sorted by count desc
+	tagsInfoStr := buildTagsInfoString(hotTags, lang)
+
+	// ----------------------------------------------------------
+	// 4. Convert traits to portrait request format
 	// ----------------------------------------------------------
 	traitItems := make([]portraitTraitItem, 0, len(allTraits))
 	for _, t := range allTraits {
@@ -109,14 +125,15 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 4. Call remote-server portrait API (SSE streaming)
+	// 5. Call remote-server portrait API (SSE streaming)
 	// ----------------------------------------------------------
 	acceptLang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
 	remoteResp, err := callPortraitRemote(r.Context(), &portraitRemoteRequest{
-		Lang:    acceptLang,
-		Retouch: retouch,
-		Traits:  traitItems,
+		Lang:     acceptLang,
+		Retouch:  retouch,
+		Traits:   traitItems,
+		TagsInfo: tagsInfoStr,
 	})
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_portrait_service_unavailable", map[string]interface{}{"Error": err.Error()}), http.StatusBadGateway)
@@ -125,7 +142,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	defer remoteResp.Body.Close()
 
 	// ----------------------------------------------------------
-	// 5. Set SSE headers for frontend
+	// 6. Set SSE headers for frontend
 	// ----------------------------------------------------------
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -138,17 +155,17 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 6. Compute portrait info (essence area metadata) and send
+	// 7. Compute portrait info (essence area metadata) and send
 	//    as 'info' SSE event before proxying the remote stream.
 	// ----------------------------------------------------------
-	info := computePortraitInfo(allTraits, retouch)
+	info := computePortraitInfo(allTraits, retouch, hotTags)
 	if infoJSON, err := json.Marshal(info); err == nil {
 		fmt.Fprintf(w, "data: %s\n\n", infoJSON)
 		flusher.Flush()
 	}
 
 	// ----------------------------------------------------------
-	// 7. Proxy SSE stream from remote-server to frontend
+	// 8. Proxy SSE stream from remote-server to frontend
 	//
 	// Use sse.Reader to read each "data: ..." line from the
 	// remote-server's SSE response and forward it verbatim
@@ -194,19 +211,20 @@ type portraitInfo struct {
 
 // portraitInfoData carries additional metadata for the essence area display.
 type portraitInfoData struct {
-	GeneratedAt  string `json:"generated_at"`  // Generation timestamp
-	ChatCount    int    `json:"chat_count"`    // Number of unique conversations
-	TraitCount   int    `json:"trait_count"`   // Number of personal traits
-	SpanDays     int    `json:"span_days"`     // Time span in days
-	EarliestDate string `json:"earliest_date"` // Earliest message date (YYYY-MM-DD)
-	LatestDate   string `json:"latest_date"`   // Latest message date (YYYY-MM-DD)
-	Retouch      int    `json:"retouch"`       // Polish level
+	GeneratedAt  string       `json:"generated_at"`  // Generation timestamp
+	ChatCount    int          `json:"chat_count"`    // Number of unique conversations
+	TraitCount   int          `json:"trait_count"`   // Number of personal traits
+	SpanDays     int          `json:"span_days"`     // Time span in days
+	EarliestDate string       `json:"earliest_date"` // Earliest message date (YYYY-MM-DD)
+	LatestDate   string       `json:"latest_date"`   // Latest message date (YYYY-MM-DD)
+	Retouch      int          `json:"retouch"`       // Polish level
+	HotTags      []hotTagItem `json:"hot_tags"`      // Top 10 topic tags with counts
 }
 
 // computePortraitInfo computes the essence-area metadata from traits.
 // allTraits is ordered by create_at DESC (newest first per ListAllTraitsByCreateTime),
 // so the first element is the latest and the last is the earliest.
-func computePortraitInfo(allTraits []store.PersonalTrait, retouch int) portraitInfo {
+func computePortraitInfo(allTraits []store.PersonalTrait, retouch int, hotTags []hotTagItem) portraitInfo {
 	// Count unique conversations
 	chatSNSet := make(map[string]struct{})
 	for _, t := range allTraits {
@@ -245,6 +263,7 @@ func computePortraitInfo(allTraits []store.PersonalTrait, retouch int) portraitI
 			EarliestDate: earliestStr,
 			LatestDate:   latestStr,
 			Retouch:      retouch,
+			HotTags:      hotTags,
 		},
 	}
 }
@@ -289,4 +308,58 @@ func callPortraitRemote(_ interface{}, req *portraitRemoteRequest) (*http.Respon
 	}
 
 	return httpResp, nil
+}
+
+// ============================================================
+// Tags helpers
+// ============================================================
+
+// formatHotTags sorts the tag usage map by count descending and returns
+// the top 10 tags as a slice of hotTagItem.
+func formatHotTags(tagUsageMap map[string]int) []hotTagItem {
+	if len(tagUsageMap) == 0 {
+		return nil
+	}
+
+	type tagCount struct {
+		Tag   string
+		Count int
+	}
+
+	var sorted []tagCount
+	for t, c := range tagUsageMap {
+		sorted = append(sorted, tagCount{t, c})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Count > sorted[j].Count
+	})
+
+	// Take top 10
+	n := 10
+	if len(sorted) < n {
+		n = len(sorted)
+	}
+
+	result := make([]hotTagItem, 0, n)
+	for _, tc := range sorted[:n] {
+		result = append(result, hotTagItem{Tag: tc.Tag, Count: tc.Count})
+	}
+	return result
+}
+
+// buildTagsInfoString formats the top tags into a human-readable string
+// for embedding in the LLM system prompt, e.g.:
+//
+//	"你的话题最热门领域是：技术(5次)、生活(3次)、娱乐(2次)"
+func buildTagsInfoString(hotTags []hotTagItem, lang string) string {
+	if len(hotTags) == 0 {
+		return ""
+	}
+
+	prefix := i18n.TL(lang, "portrait_hot_tags_prefix")
+	var parts []string
+	for _, ht := range hotTags {
+		parts = append(parts, fmt.Sprintf("%s(%d次)", ht.Tag, ht.Count))
+	}
+	return prefix + strings.Join(parts, "、")
 }

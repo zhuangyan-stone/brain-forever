@@ -805,6 +805,16 @@
                         <span>正在生成……</span>
                     </div>
 
+                    <!-- 最热领域 — 标签云（portraitInfo.hot_tags 由 local-server 提供） -->
+                    <div class="portrait-essence-section" x-show="portraitInfo && portraitInfo.hot_tags && portraitInfo.hot_tags.length">
+                        <div class="portrait-essence-section-label">🔥 最热领域</div>
+                        <div class="portrait-bookmark-container">
+                            <template x-for="(item, idx) in portraitInfo.hot_tags" :key="idx">
+                                <span class="portrait-bookmark" x-text="item.tag + ' (' + item.count + ')'"></span>
+                            </template>
+                        </div>
+                    </div>
+
                     <!-- 核心特质 — 书签图 -->
                     <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.core_traits && portraitMeta.core_traits.length">
                         <div class="portrait-essence-section-label">✨ 核心特质</div>
