@@ -82,16 +82,13 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 	tagUsageMap, _ := session.chatsStore.SelectTagsGroup()
 	tagsUsageStr := formatTagsUsage(tagUsageMap)
 
-	// 2. Build system prompt with TagsUsage template data
+	// 2. Build system prompt with TagsUsage and Title template data
 	systemPrompt := i18n.SystemPrompt.TL(lang, "tag", map[string]interface{}{
 		"TagsUsage": tagsUsageStr,
+		"Title":     chatTitle,
 	})
 
-	// 3. The user content is just the chat title.
-	// The LLM can call get_chat_samples_messages if it needs more context.
-	userContent := chatTitle
-
-	// 4. Create tools
+	// 3. Create tools
 	tagTool := toolimp.MakeChatTagTool(lang)
 	samplesTool := toolimp.MakeChatSamplesTool(lang, session.chatsStore, chatSN, chatTitle)
 	toolDefs := []llm.ToolDefinition{
@@ -99,13 +96,13 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 		tagTool.GetDefinition(),
 	}
 
-	// 5. Multi-turn tool call loop
+	// 4. Multi-turn tool call loop, starting with just the system prompt
+	// (the chat title is embedded in the system prompt via template)
 	llmMessages := []llm.Message{
 		{Role: llm.RoleSystem, Content: systemPrompt},
-		{Role: llm.RoleUser, Content: userContent},
 	}
 
-	maxIter := 3
+	maxIter := 50
 	var tags []string
 
 	for iter := 0; iter < maxIter; iter++ {
@@ -113,19 +110,14 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 			Messages: llmMessages,
 			Tools:    toolDefs,
 		}
-		// Disable thinking mode since we force the LLM to only call tools,
+		// Disable thinking mode since the LLM only needs to call tools,
 		// without generating any text content. Enabling thinking would waste tokens.
 		req.Thinking = &llm.ThinkingConfig{Type: "disabled"}
 
-		if iter == 0 {
-			// First iteration: let LLM choose between get_chat_samples_messages or chat_tag
-			req.RequiredToolChoice()
-		} else {
-			// Subsequent iterations: force chat_tag
-			toolDefs = []llm.ToolDefinition{tagTool.GetDefinition()}
-			req.Tools = toolDefs
-			req.ForceToolChoice(toolimp.ChatTagToolName)
-		}
+		// Let the LLM decide in every iteration: call get_chat_samples_messages
+		// for more context, or call chat_tag to submit the classification.
+		// This allows the LLM to load multiple rounds of message samples as needed.
+		req.EnableToolChoice()
 
 		// Call LLM (non-streaming)
 		resp, err := h.charLLMClient.ChatWithOptions(r.Context(), req)
@@ -174,7 +166,8 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 			}
 
 			llmMessages = append(llmMessages, assistantMsg, toolResultMsg)
-			// Continue loop to force chat_tag
+			// Continue the loop to give LLM another chance to decide:
+			// either load more samples or submit the classification.
 
 		case toolimp.ChatTagToolName:
 			// Parse the classification result

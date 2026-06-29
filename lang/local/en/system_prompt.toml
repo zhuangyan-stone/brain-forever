@@ -49,7 +49,11 @@ However, if a certain topic (especially the first one) is not significant in the
 [tag]
 other = """You are a topic classification assistant. Your task is to classify a conversation into topic categories based on its title (and message samples if needed).
 
-Below is the conversation title. Note that only the title is provided here without user messages—if you need more conversation context, you can call the `get_chat_samples_messages` tool to fetch message samples in batches.
+## Conversation Title
+
+{{.Title}}
+
+Note that only the title is provided here without user messages—if you need more conversation context, you can call the `get_chat_samples_messages` tool to fetch message samples in batches.
 
 ## Tags vs Keywords
 
@@ -96,7 +100,7 @@ Similarly, when the "Relationships" tag covers many topics, it can be refined in
 ## Number of Tags
 
 - A topic can typically have multiple tags
-- However, unless each tag is very fitting, you should **always try to generate only one, at most two tags**
+- However, unless each tag is very fitting, you should **always try to generate only one tag**
 
 ## If the Provided Content is Insufficient
 
