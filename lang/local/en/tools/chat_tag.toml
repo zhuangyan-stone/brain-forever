@@ -1,17 +1,8 @@
 [description]
-other = "Record the topic classification result for a conversation. Provide the tags parameter with an array of all matching classification labels. Each label contains a category (main category name) and a tag (sub-category name). Follow the classification framework in the system prompt and ensure the output meets the format constraints."
+other = "Record the topic classification result for a conversation. Provide the tags parameter as a string array containing all matching classification tags. Follow the classification rules in the system prompt and ensure the output meets the format constraints."
 
 [pending]
 other = "Analyzing conversation topics..."
 
-[param_title_description]
-other = "The title of the conversation"
-
-[param_conversation_description]
-other = "A summary or the full content of the conversation"
-
-[result_category]
-other = "Topic category name"
-
 [result_tag]
-other = "Sub-category tag name"
+other = "Topic tag name"

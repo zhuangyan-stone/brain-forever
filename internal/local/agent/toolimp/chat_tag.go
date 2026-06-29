@@ -16,18 +16,16 @@ import (
 // into topic categories based on the chat title and content.
 const ChatTagToolName = "chat_tag"
 
-// TagItem represents a single tag classification result,
-// consisting of a category (main category name) and a tag (sub-category name).
+// TagItem represents a single tag string.
 type TagItem struct {
-	Category string `json:"category"`
-	Tag      string `json:"tag"`
+	Tag string `json:"tag"`
 }
 
 // chatTagToolDefinition returns the ToolDefinition for chat topic tagging
 // using llm types, with translated descriptions.
 //
 // The tool expects the LLM to provide a "tags" parameter containing a JSON array
-// of objects, each with "category" and "tag" fields.
+// of tag strings.
 func chatTagToolDefinition(lang string) llm.ToolDefinition {
 	schema := map[string]any{
 		"type": "object",
@@ -35,21 +33,10 @@ func chatTagToolDefinition(lang string) llm.ToolDefinition {
 			"tags": map[string]any{
 				"type": "array",
 				"items": map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						"category": map[string]any{
-							"type":        "string",
-							"description": i18n.Tools.TL(lang, ChatTagToolName, "result_category"),
-						},
-						"tag": map[string]any{
-							"type":        "string",
-							"description": i18n.Tools.TL(lang, ChatTagToolName, "result_tag"),
-						},
-					},
-					"required":             []string{"category", "tag"},
-					"additionalProperties": false,
+					"type":        "string",
+					"description": i18n.Tools.TL(lang, ChatTagToolName, "result_tag"),
 				},
-				"description": "JSON array of classification results, each element containing category and tag fields",
+				"description": "Array of classification tag strings",
 			},
 		},
 		"required":             []string{"tags"},
@@ -85,8 +72,8 @@ type ChatTagToolImp struct {
 	def  llm.ToolDefinition
 	lang string
 
-	// Tags holds the parsed tag items from the LLM's tool call arguments.
-	Tags []TagItem
+	// Tags holds the parsed tag strings from the LLM's tool call arguments.
+	Tags []string
 }
 
 // Ensure ChatTagToolImp implements llm.ToolIMP at compile time.
@@ -108,10 +95,10 @@ func (f *ChatTagToolImp) GetDefinition() llm.ToolDefinition {
 // SetArgument parses the LLM's tool call arguments JSON.
 // Expected format:
 //
-//	{"tags": [{"category": "...", "tag": "..."}, ...]}
+//	{"tags": ["tag1", "tag2", ...]}
 func (f *ChatTagToolImp) SetArgument(arguments string) error {
 	var result struct {
-		Tags []TagItem `json:"tags"`
+		Tags []string `json:"tags"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
 		return fmt.Errorf("failed to parse chat tag arguments: %w", err)
@@ -133,7 +120,7 @@ func (f *ChatTagToolImp) Execute() (string, error) {
 
 	result := "Topic classification results:\n"
 	for _, t := range f.Tags {
-		result += fmt.Sprintf("- %s / %s\n", t.Category, t.Tag)
+		result += fmt.Sprintf("- %s\n", t)
 	}
 	return result, nil
 }

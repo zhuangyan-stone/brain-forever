@@ -35,6 +35,26 @@ func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	return msgs, nil
 }
 
+// ListMessagesByRange queries messages of a given chat starting from a specific message ID,
+// limited to a specific count, ordered by id ASC.
+// If startID is 0, starts from the first message (id > 0).
+func (s *ChatStore) ListMessagesByRange(chatID int64, startID int64, limit int) ([]Message, error) {
+	var msgs []Message
+	err := s.db.Select(&msgs,
+		`SELECT id, chat_id, group_index, role, reasoning, content,
+		        extracted, interrupted, create_at, update_at
+		 FROM chat_messages
+		 WHERE chat_id = ? AND id > ?
+		 ORDER BY id ASC
+		 LIMIT ?`,
+		chatID, startID, limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list messages by range: %w", err)
+	}
+	return msgs, nil
+}
+
 // ListUnExtractMessages queries only un-extracted messages (extracted = 0) of a given chat,
 // sorted by group_index and id. This is used by the trait extraction handler to avoid
 // fetching already-extracted messages from the database layer.

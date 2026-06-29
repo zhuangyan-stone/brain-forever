@@ -1,0 +1,20 @@
+[description]
+other = "Get sample messages from the current conversation (user messages and AI replies) to help determine the topic domain. Call this tool when you cannot determine the topic domain from the title and provided message content alone."
+
+[pending]
+other = "Fetching conversation samples..."
+
+[all_messages_loaded]
+other = "All conversation messages have been loaded, no more content."
+
+[no_messages]
+other = "No more messages in this conversation."
+
+[label_title]
+other = "Chat title: {{.Title}}"
+
+[label_user]
+other = "User"
+
+[label_ai]
+other = "AI"

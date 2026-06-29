@@ -1,17 +1,8 @@
 [description]
-other = "记录对话的话题分类结果。调用时需提供 tags 参数，包含所有匹配的分类标签数组。每个标签包含 category（大类名）和 tag（子标签名），请依据系统提示词中的分类框架进行归类，确保输出符合格式约束。"
+other = "记录对话的话题分类结果。调用时需提供 tags 参数，为字符串数组，包含所有匹配的分类标签。依据系统提示词中的分类规则进行归类，确保输出符合格式约束。"
 
 [pending]
 other = "正在分析对话话题……"
 
-[param_title_description]
-other = "对话的标题"
-
-[param_conversation_description]
-other = "对话的内容摘要或完整内容"
-
-[result_category]
-other = "话题大类名"
-
 [result_tag]
-other = "子标签名"
+other = "话题标签名"
