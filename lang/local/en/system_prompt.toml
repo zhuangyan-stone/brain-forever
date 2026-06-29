@@ -107,7 +107,9 @@ Similarly, when the "Relationships" tag covers many topics, it can be refined in
 
 Usually the title alone contains enough information for you to tag it, but if you need more conversation context, you can call the `get_chat_samples_messages` tool to fetch message samples in batches.
 
-**How this tool works**: Each call returns ten new messages (user messages and AI replies, in conversation order). You can **call this tool multiple times**; each time you will see the next ten messages, progressively learning the full content of the conversation until all messages have been loaded.
+**How this tool works**: Each call returns ten new messages (user messages and AI replies, in conversation order). You can call this tool multiple times; each time you will see the next ten messages, progressively learning the full content of the conversation.
+
+**Important limit**: You may call the `get_chat_samples_messages` tool **at most 3 times** (i.e., read up to 30 message samples). After 3 calls, you **must** generate tags based on the information you have gathered so far, regardless of whether you have seen all messages. Do not call the tool repeatedly to read more content — reading partial messages is sufficient to determine the topic domain.
 
 ## Output Format
 
