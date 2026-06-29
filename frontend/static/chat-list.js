@@ -551,21 +551,35 @@ function showContextMenu(e, chat) {
     // 话题分类
     const tagItem = document.createElement('div');
     tagItem.className = 'chat-context-menu-item';
-    tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 分类';
+    tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 归类';
     tagItem.addEventListener('click', async () => {
         closeContextMenu();
+        // 开始申请归类，显示提示
+        showToast('📑 正在申请归类', 'info', 60000);
         const result = await fetchChatTags(chat.sn);
         const title = (result && result.title) || chat.title || '';
         if (result && result.tags && result.tags.length > 0) {
-            console.log('📑 话题分类结果 [' + title + ']:', JSON.stringify(result.tags, null, 2));
-            // Toast 展示分类结果（第一行标签，第二行标题）
-            var tagStr = escapeHtml(result.tags.join('、'));
-            var displayTitle = title ? escapeHtml(title) : '';
-            var htmlMsg = '📑 分类结果：<strong>' + tagStr + '</strong>';
+            console.log('📑 [' + title + ']归类：', JSON.stringify(result.tags, null, 2));
+            // Toast 展示分类结果（第一行标签，第二行标题，第三行消息查看统计）
+            // white-space: pre-wrap 让 \n 自动换行，无需 HTML
+            var tagStr = result.tags.join('、');
+            var displayTitle = title || '';
+            var msg = '📑 归类：' + tagStr;
             if (displayTitle) {
-                htmlMsg += '<br>《' + displayTitle + '》';
+                msg += '\n《' + displayTitle + '》';
             }
-            showToastHTML(htmlMsg, 'success', 5000);
+            // 显示 LLM 查看了多少条消息的统计信息
+            if (typeof result.viewedMessages !== 'undefined') {
+                var viewedInfo = '🔍 查看了 ' + result.viewedMessages + ' 条消息';
+                if (result.totalMessages && result.totalMessages > 0) {
+                    viewedInfo += '（共 ' + result.totalMessages + ' 条）';
+                }
+                if (result.allMessagesViewed) {
+                    viewedInfo += ' ✅ 已看完全部';
+                }
+                msg += '\n' + viewedInfo;
+            }
+            showToast(msg, 'success', 6000);
         } else {
             console.log('📑 话题分类 [' + title + ']: 未匹配到分类');
             showToast('📑 未匹配到分类', 'info', 4000);

@@ -89,6 +89,13 @@ type ChatSamplesToolImp struct {
 
 	// chatTitle is cached for formatting the output.
 	chatTitle string
+
+	// totalMessages is the total number of messages in this chat (set at creation time).
+	totalMessages int
+
+	// viewedMessageCount is the cumulative count of messages returned to the LLM
+	// across all Execute() calls.
+	viewedMessageCount int
 }
 
 // Ensure ChatSamplesToolImp implements llm.ToolIMP at compile time.
@@ -96,13 +103,15 @@ var _ llm.ToolIMP = (*ChatSamplesToolImp)(nil)
 
 // MakeChatSamplesTool creates a new ChatSamplesToolImp with the given language,
 // chat store reference, chat SN, and chat title.
-func MakeChatSamplesTool(lang string, chatsStore *store.ChatStore, chatSN string, chatTitle string) *ChatSamplesToolImp {
+// totalMessages is the total number of messages in this chat.
+func MakeChatSamplesTool(lang string, chatsStore *store.ChatStore, chatSN string, chatTitle string, totalMessages int) *ChatSamplesToolImp {
 	return &ChatSamplesToolImp{
-		def:        chatSamplesToolDefinition(lang),
-		lang:       lang,
-		chatSN:     chatSN,
-		chatsStore: chatsStore,
-		chatTitle:  chatTitle,
+		def:           chatSamplesToolDefinition(lang),
+		lang:          lang,
+		chatSN:        chatSN,
+		chatsStore:    chatsStore,
+		chatTitle:     chatTitle,
+		totalMessages: totalMessages,
 	}
 }
 
@@ -122,6 +131,21 @@ func (f *ChatSamplesToolImp) GetDefinition() llm.ToolDefinition {
 func (f *ChatSamplesToolImp) SetArgument(arguments string) error {
 	// This tool has no parameters, so no parsing is needed.
 	return nil
+}
+
+// GetTotalMessages returns the total number of messages in the chat.
+func (f *ChatSamplesToolImp) GetTotalMessages() int {
+	return f.totalMessages
+}
+
+// GetViewedMessageCount returns how many messages have been viewed by the LLM so far.
+func (f *ChatSamplesToolImp) GetViewedMessageCount() int {
+	return f.viewedMessageCount
+}
+
+// IsAllMessagesViewed returns true if all messages in the chat have been loaded/viewed.
+func (f *ChatSamplesToolImp) IsAllMessagesViewed() bool {
+	return f.allMessagesLoaded
 }
 
 func (f *ChatSamplesToolImp) GetPendingText() string {
@@ -173,6 +197,9 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 
 	// Update the cursor to the last message's ID for next pagination.
 	f.nextStartMessageID = dbMessages[len(dbMessages)-1].ID
+
+	// Accumulate viewed message count.
+	f.viewedMessageCount += len(dbMessages)
 
 	// Format the messages for LLM consumption.
 	var parts []string

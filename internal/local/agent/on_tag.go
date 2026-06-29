@@ -77,6 +77,12 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Count total messages in this chat for tracking how many the LLM views.
+	totalMessages := 0
+	if count, err := session.chatsStore.CountMessages(dbSessionID); err == nil {
+		totalMessages = count
+	}
+
 	// Build the LLM prompt with the tag system prompt.
 	// 1. Load user's existing tags with usage counts
 	tagUsageMap, _ := session.chatsStore.SelectTagsGroup()
@@ -90,7 +96,7 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Create tools
 	tagTool := toolimp.MakeChatTagTool(lang)
-	samplesTool := toolimp.MakeChatSamplesTool(lang, session.chatsStore, chatSN, chatTitle)
+	samplesTool := toolimp.MakeChatSamplesTool(lang, session.chatsStore, chatSN, chatTitle, totalMessages)
 	toolDefs := []llm.ToolDefinition{
 		samplesTool.GetDefinition(),
 		tagTool.GetDefinition(),
@@ -189,12 +195,19 @@ func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
 		tags = []string{}
 	}
 
-	// Return the tags along with the chat SN and title
+	// Read LLM message viewing stats from the samples tool.
+	viewedCount := samplesTool.GetViewedMessageCount()
+	allViewed := samplesTool.IsAllMessagesViewed()
+
+	// Return the tags along with the chat SN, title, and message viewing stats
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"sn":    chatSN,
-		"title": chatTitle,
-		"tags":  tags,
+		"sn":                chatSN,
+		"title":             chatTitle,
+		"tags":              tags,
+		"totalMessages":     totalMessages,
+		"viewedMessages":    viewedCount,
+		"allMessagesViewed": allViewed,
 	})
 }
 

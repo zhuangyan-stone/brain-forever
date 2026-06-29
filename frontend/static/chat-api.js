@@ -522,7 +522,7 @@ export async function fetchLlmInfo() {
 /**
  * fetchChatTags 获取指定对话的话题分类标签。
  * @param {string} sn - 目标会话的 SN
- * @returns {Promise<{sn: string, tags: Array<string>}|null>}
+ * @returns {Promise<{sn: string, title: string, tags: Array<string>, totalMessages: number, viewedMessages: number, allMessagesViewed: boolean}|null>}
  */
 export async function fetchChatTags(sn) {
     if (!sn) return null;
