@@ -63,12 +63,12 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Phase 2: If the deleted chat is the current active chat, reset it (under mu lock)
-	//  必须在 LogicDelete（I/O 操作）之前执行，以避免竞态条件：
-	//   如果 OnNewMessage 在 chatsMu unlock 和 mu lock 之间获取到 mu，
-	//   会发现 currentChat.dbChat 仍然指向被删除的 chat（非 nil），
-	//   导致 ensureSessionDBForChat 直接 return，将新消息写入已删除的 chat。
-	//   将 reset 移到 LogicDelete 之前 + 紧跟在 chatsMu unlock 之后，
-	//   可将竞争窗口从毫秒级 I/O 时长"缩小到几纳秒的 CPU 指令间隙"。
+	//  Must execute before LogicDelete (I/O operation) to avoid race conditions:
+	//   If OnNewMessage acquires mu between chatsMu unlock and mu lock,
+	//   it will find currentChat.dbChat still pointing to the deleted chat (non-nil),
+	//   causing ensureSessionDBForChat to return early, writing new messages to the deleted chat.
+	//   Moving reset before LogicDelete + immediately after chatsMu unlock
+	//   reduces the race window from millisecond-level I/O duration to a few nanoseconds of CPU instruction gap.
 	session.mu.Lock()
 	if session.currentChat != nil && session.currentChat.dbChat != nil && session.currentChat.dbChat.ID == chatID {
 		session.currentChat = &chat{}
