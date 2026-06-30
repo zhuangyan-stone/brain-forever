@@ -92,7 +92,7 @@ In addition to serving as a reference, the user's existing tags have another ver
 you should pay attention to the number of topics under each tag.
 The more topics a tag contains, the finer the granularity should be when generating new tags in that domain.
 For example, if you find that the user has many topics under the "Sports" tag, when generating new tags,
-you should prioritize refining it, such as generating ["Basketball", "Sports"] and ["Table Tennis", "Sports"].
+you should prioritize refining it, such as generating ["Basketball", "Sports"] and ["Swimming", "Sports"].
 Similarly, when the "Relationships" tag covers many topics, it can be refined into
 ["Romance", "Relationships"], ["Family", "Relationships"], ["Friendship", "Relationships"].
 
