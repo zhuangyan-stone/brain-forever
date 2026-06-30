@@ -799,12 +799,17 @@
                         <div class="portrait-info-line">生成于：<span x-text="(portraitInfo || {}).generated_at"></span></div>
                     </div>
 
-                    <!-- 最热领域 — 标签云（portraitInfo.hot_tags 由 local-server 提供） -->
+                    <!-- 话题热区 — 标签云（portraitInfo.hot_tags 由 local-server 提供） -->
                     <div class="portrait-essence-section" x-show="portraitInfo && portraitInfo.hot_tags && portraitInfo.hot_tags.length">
-                        <div class="portrait-essence-section-label">🔥 最热领域</div>
+                        <div class="portrait-essence-section-label">🔥 话题热区</div>
                         <div class="portrait-bookmark-container">
                             <template x-for="(item, idx) in ((portraitInfo || {}).hot_tags || [])" :key="idx">
-                                <span class="portrait-bookmark" x-text="item.tag + ' (' + item.count + ')'"></span>
+                                <span class="portrait-hot-tag"
+                                    :class="'portrait-hot-tag-c' + ((idx % 10) + 1)"
+                                    :title="item.tag + '（' + item.count + ' 个对话）'">
+                                    <span x-text="item.tag"></span>
+                                    <span class="portrait-hot-tag-count" x-text="item.count"></span>
+                                </span>
                             </template>
                         </div>
                     </div>
@@ -829,9 +834,9 @@
                         </div>
                     </div>
 
-                    <!-- 重点摘要 — 引文风格 -->
+                    <!-- 印象速写 — 引文风格 -->
                     <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.key_highlights && portraitMeta.key_highlights.length">
-                        <div class="portrait-essence-section-label">🔖 重点摘要</div>
+                        <div class="portrait-essence-section-label">🔖 印象速写</div>
                         <div class="portrait-essence-highlights">
                             <template x-for="(item, idx) in ((portraitMeta || {}).key_highlights || [])" :key="idx">
                                 <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 10)" x-html="renderHighlightMD(item)"></div>

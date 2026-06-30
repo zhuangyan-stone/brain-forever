@@ -8,7 +8,7 @@
 //   3. 复制按钮（Markdown 格式，内容包含左侧精华区 + 文档内容）
 //   4. 分享按钮（占位）
 //   5. 取消（流式中）/ 关闭（完成后）按钮
-//   6. 精华区：头像、信息区、核心特质书签、重点摘要引文
+//   6. 精华区：头像、信息区、核心特质书签、印象速写引文
 //
 // SSE 事件类型：
 //   - info:  精华区元数据（生成时间、对话数、特征数、时间跨度、润色度）
@@ -219,7 +219,7 @@ document.addEventListener('alpine:init', function() {
             // ---- 复制功能 ----
 
             /**
-             * 执行复制操作 — 复制内容包含左侧精华区（信息、核心特质、重点摘要）+ 文档内容
+             * 执行复制操作 — 复制内容包含左侧精华区（信息、核心特质、印象速写）+ 文档内容
              * 统一输出 Markdown 格式。
              */
             copyAll: function() {
@@ -263,9 +263,9 @@ document.addEventListener('alpine:init', function() {
                     parts.push('');
                 }
 
-                // ---- 1b. 最热领域 ----
+                // ---- 1b. 话题热区 ----
                 if (info && info.hot_tags && info.hot_tags.length) {
-                    parts.push('## 🔥 最热领域');
+                    parts.push('## 🔥 话题热区');
                     info.hot_tags.forEach(function(item) {
                         parts.push('- ' + item.tag + '（' + item.count + ' 个对话）');
                     });
@@ -281,9 +281,9 @@ document.addEventListener('alpine:init', function() {
                     parts.push('');
                 }
 
-                // ---- 3. 重点摘要 ----
+                // ---- 3. 印象速写 ----
                 if (meta && meta.key_highlights && meta.key_highlights.length) {
-                    parts.push('## 🔖 重点摘要');
+                    parts.push('## 🔖 印象速写');
                     meta.key_highlights.forEach(function(item) {
                         parts.push('> ' + item);
                     });
@@ -409,7 +409,7 @@ document.addEventListener('alpine:init', function() {
                         break;
 
                     case 'meta':
-                        // 结构化元数据：核心特质 + 重点摘要
+                        // 结构化元数据：核心特质 + 印象速写
                         if (data && typeof data === 'object') {
                             this.portraitMeta = data;
                         }
