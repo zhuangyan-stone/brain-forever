@@ -828,6 +828,7 @@
                             <template x-for="(trait, idx) in ((portraitMeta || {}).core_traits || [])" :key="idx">
                                 <span class="portrait-bookmark"
                                     :class="bookmarkSizeClass(trait) + ' ' + ('portrait-bookmark-c' + ((idx % 10) + 1))"
+                                    :style="'--idx: ' + idx"
                                     x-text="trait"
                                     :title="trait">
                                 </span>
@@ -840,7 +841,7 @@
                         <div class="portrait-essence-section-label">✏️ 印象速写</div>
                         <div class="portrait-essence-highlights">
                             <template x-for="(item, idx) in ((portraitMeta || {}).key_highlights || [])" :key="idx">
-                                <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 10)" x-html="renderHighlightMD(item)"></div>
+                                <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 10)" :style="'--idx: ' + idx" x-html="renderHighlightMD(item)"></div>
                             </template>
                         </div>
                     </div>

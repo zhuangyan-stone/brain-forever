@@ -623,7 +623,7 @@
 
 /* ---- 信息区 — 固定三行 ---- */
 .portrait-essence-info {
-    background: linear-gradient(to right, var(--bg-input) 20%, var(--bg-secondary) 50%);
+    background: linear-gradient(to right, var(--bg-input) 22%, var(--bg-secondary) 88%);
     border-radius: 8px;
     padding: 6px 10px;
     display: flex;
@@ -678,7 +678,19 @@
     min-height: 0;
 }
 
-/* 单个书签 — 固定黑色文字（不跟随主题），因为背景色固定为浅色 */
+/* 单书签入场动效 — 依次淡入上移 */
+.portrait-bookmark {
+    animation: bookmarkPopIn 0.35s ease both;
+    animation-delay: calc(var(--idx, 0) * 0.08s);
+}
+
+/* 单条印象速写入场动效 — 依次淡入左滑 */
+.portrait-highlight-block {
+    animation: highlightFadeIn 0.35s ease both;
+    animation-delay: calc(var(--idx, 0) * 0.1s);
+}
+
+/* ---- 书签 — 固定黑色文字（不跟随主题），因为背景色固定为浅色 ---- */
 .portrait-bookmark {
     display: inline-flex;
     align-items: center;
@@ -1058,4 +1070,16 @@
 @keyframes portraitFadeIn {
     from { opacity: 0; transform: scale(0.95) translateY(-10px); }
     to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 书签依次弹入 — 从下方淡入并缩放 */
+@keyframes bookmarkPopIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.92); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 印象速写引文依次滑入 — 从左侧淡入 */
+@keyframes highlightFadeIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
