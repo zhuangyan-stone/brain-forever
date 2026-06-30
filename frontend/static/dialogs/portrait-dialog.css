@@ -679,7 +679,7 @@
     font-size: 0.8rem;
     font-weight: 700;
     font-family: '仿宋', 'FangSong', 'Noto Serif SC', serif;
-    color: #000;
+    color: var(--text-primary);
     text-align: left;
     cursor: default;
     position: relative;
