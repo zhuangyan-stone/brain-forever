@@ -207,6 +207,9 @@ func main() {
 	// /api/user/portrait -GET (generate user portrait via remote-server, streaming SSE)
 	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
 
+	// /api/doc/title -POST (generate overall title for a document, e.g. portrait)
+	srv.POST("/api/doc/title", chatHandler.OnGetDocTitle)
+
 	// ============================================================
 	// Theme management API
 	//   - theme manifest (themes[] list) comes from frontend/themes/manifest.json (source code)

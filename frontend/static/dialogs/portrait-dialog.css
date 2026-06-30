@@ -645,9 +645,9 @@
     font-weight: 600;
 }
 
-/* ---- 核心特质 — 书签图 ---- */
+/* ---- 精华区各区块 — 统一底部间距 ---- */
 .portrait-essence-section {
-    margin: 0;
+    margin: 0 0 10px;
 }
 
 .portrait-essence-section-label {
@@ -774,7 +774,7 @@
     position: relative;
     padding: 8px 10px 8px 18px;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.88rem;
     line-height: 1.55;
     font-family: '仿宋', 'FangSong', 'Noto Serif SC', serif;
     color: var(--text-primary);

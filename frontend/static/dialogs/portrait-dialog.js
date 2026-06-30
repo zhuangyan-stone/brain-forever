@@ -97,16 +97,12 @@ document.addEventListener('alpine:init', function() {
     ];
 
     /**
-     * 根据文本长度确定书签大小（长短不一的效果）
+     * 书签统一使用中等尺寸（不再按文本长度分配不同大小）
      * @param {string} text
      * @returns {string} CSS class
      */
     function bookmarkSizeClass(text) {
-        var len = text.length;
-        if (len <= 2) return 'portrait-bookmark-xs';
-        if (len <= 4) return 'portrait-bookmark-sm';
-        if (len <= 8) return 'portrait-bookmark-md';
-        return 'portrait-bookmark-lg';
+        return 'portrait-bookmark-md';
     }
 
     // ============================================================
@@ -116,8 +112,9 @@ document.addEventListener('alpine:init', function() {
         return {
             // ---- 状态 ----
             show: false,
-            portrait: '',           // 完整画像 Markdown 原文
-            portraitHTML: '',       // 渲染后的 HTML
+            portrait: '',           // 完整画像 Markdown 原文（不含末行总标题）
+            portraitHTML: '',       // 渲染后的 HTML（不含末行总标题）
+            portraitTitle: '',      // 末行总标题（由 LLM 生成，从正文中提取）
             portraitMeta: null,     // 结构化元数据 {core_traits, key_highlights}
             portraitInfo: null,     // 精华区元数据 {generated_at, chat_count, ...}
             isStreaming: false,     // 是否正在流式接收
@@ -150,13 +147,9 @@ document.addEventListener('alpine:init', function() {
                 return !this.isStreaming || this.isDone;
             },
 
-            // 书签大小计算 — 给模板中 :class 使用
+            // 书签统一使用中等尺寸（不再按文本长度分配不同大小）
             bookmarkSizeClass: function(text) {
-                var len = (text || '').length;
-                if (len <= 2) return 'portrait-bookmark-xs';
-                if (len <= 4) return 'portrait-bookmark-sm';
-                if (len <= 8) return 'portrait-bookmark-md';
-                return 'portrait-bookmark-lg';
+                return 'portrait-bookmark-md';
             },
 
             /**
@@ -193,6 +186,7 @@ document.addEventListener('alpine:init', function() {
                 // 重置状态
                 this.portrait = '';
                 this.portraitHTML = '';
+                this.portraitTitle = '';
                 this.portraitMeta = null;
                 this.portraitInfo = null;
                 this.wordCloudItems = [];
@@ -244,6 +238,7 @@ document.addEventListener('alpine:init', function() {
                 this.show = false;
                 this.portrait = '';
                 this.portraitHTML = '';
+                this.portraitTitle = '';
                 this.portraitMeta = null;
                 this.portraitInfo = null;
                 this.wordCloudItems = [];
@@ -345,6 +340,13 @@ document.addEventListener('alpine:init', function() {
                 parts.push('## AI 眼中的 ' + userName + ' ……');
                 parts.push('');
                 parts.push(docText);
+
+                // ---- 5. 总标题（末行） ----
+                var portraitTitle = this.portraitTitle || '';
+                if (portraitTitle) {
+                    parts.push('');
+                    parts.push(portraitTitle);
+                }
 
                 return parts.join('\n');
             },
@@ -487,17 +489,45 @@ document.addEventListener('alpine:init', function() {
             },
 
             /**
+             * 流完成后，调用 local-server 生成文档标题
+             */
+            _fetchDocTitle: function() {
+                var self = this;
+                var text = this.portrait;
+                if (!text) return;
+
+                fetch('/api/doc/title', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: text }),
+                }).then(function(response) {
+                    if (!response.ok) return;
+                    return response.json();
+                }).then(function(data) {
+                    if (data && data.title) {
+                        self.portraitTitle = data.title;
+                    }
+                }).catch(function() {
+                    // 静默失败：标题生成非必需，不影响画像展示
+                });
+            },
+
+            /**
              * 流完成回调
              */
             _onStreamDone: function() {
                 this.isStreaming = false;
                 this.isDone = true;
+
                 // 最终渲染
                 this.portraitHTML = renderMarkdown(this.portrait);
                 if (this._renderTimer) {
                     clearTimeout(this._renderTimer);
                     this._renderTimer = null;
                 }
+
+                // 异步调用 local-server 生成文档总标题
+                this._fetchDocTitle();
             },
 
             /**

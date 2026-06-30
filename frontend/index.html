@@ -850,8 +850,8 @@
                      画像内容区（右栏/下栏）
                      ================================================ -->
                 <div class="portrait-content" x-show="portraitHTML">
-                    <!-- 固定主标题（UI 固定添加，不由后台生成） -->
-                    <div class="portrait-content-title" x-text="'AI 眼中的 ' + (userName || '匿名用户') + ' ……'"></div>
+                    <!-- 主标题：优先使用 LLM 生成的总标题，否则使用固定标题 -->
+                    <div class="portrait-content-title" x-text="portraitTitle || ('AI 眼中的 ' + (userName || '匿名用户') + ' ……')"></div>
                     <div x-html="portraitHTML"></div>
                 </div>
             </div>

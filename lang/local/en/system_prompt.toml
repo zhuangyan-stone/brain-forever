@@ -46,6 +46,11 @@ The current title is: {{.Title}}, and the new title should be distinguishable fr
 However, if a certain topic (especially the first one) is not significant in the overall conversation, there's no need to reflect it in the title. If the entire conversation lacks a central topic, you may also use the format "A, B, and C...".
 """
 
+[doc_title]
+other = """You are a document title generation assistant. Generate a concise overall title for the user portrait document below.
+The title should summarize the entire portrait and serve as a one-sentence summary of the user. Keep it within 40 characters. Output the title directly without any additional explanation.
+"""
+
 [tag]
 other = """You are a topic classification assistant. Your task is to classify a conversation into topic categories based on its title (and message samples if needed).
 
