@@ -112,13 +112,14 @@ document.addEventListener('alpine:init', function() {
         return {
             // ---- 状态 ----
             show: false,
-            portrait: '',           // 完整画像 Markdown 原文（不含末行总标题）
-            portraitHTML: '',       // 渲染后的 HTML（不含末行总标题）
-            portraitTitle: '',      // 末行总标题（由 LLM 生成，从正文中提取）
+            portrait: '',           // 完整画像 Markdown 原文
+            portraitHTML: '',       // 渲染后的 HTML
+            portraitTitle: '',      // 文档总标题（由 _fetchDocTitle 从 /api/doc/title 获取）
             portraitMeta: null,     // 结构化元数据 {core_traits, key_highlights}
             portraitInfo: null,     // 精华区元数据 {generated_at, chat_count, ...}
             isStreaming: false,     // 是否正在流式接收
-            isDone: false,          // 是否已完成
+            isDone: false,          // 是否已完成（流+标题）
+            isWaitingTitle: false,  // 流已完成，正在等待 LLM 生成文档标题
             hasError: false,
             errorMessage: '',
             userName: '',           // 用户昵称
@@ -131,6 +132,8 @@ document.addEventListener('alpine:init', function() {
             _resizeObserver: null,
             // SSE AbortController
             _abortController: null,
+            // 标题请求 AbortController
+            _titleAbortController: null,
             // 安全地引用 $el（通过 init 钩子设置）
             _el: null,
 
@@ -140,11 +143,13 @@ document.addEventListener('alpine:init', function() {
             },
 
             get showCancel() {
-                return this.isStreaming && !this.isDone;
+                // 流式未完成 或 等待标题生成 → 显示"取消"按钮
+                return (this.isStreaming && !this.isDone) || this.isWaitingTitle;
             },
 
             get showClose() {
-                return !this.isStreaming || this.isDone;
+                // 流式已完成 且 不等待标题 且 整体已完成 → 显示"关闭"按钮
+                return !this.isStreaming && !this.isWaitingTitle && this.isDone;
             },
 
             // 书签统一使用中等尺寸（不再按文本长度分配不同大小）
@@ -183,7 +188,11 @@ document.addEventListener('alpine:init', function() {
             open: function() {
                 var self = this;
 
-                // 重置状态
+                // 重置状态（先清理旧请求）
+                if (this._titleAbortController) {
+                    this._titleAbortController.abort();
+                    this._titleAbortController = null;
+                }
                 this.portrait = '';
                 this.portraitHTML = '';
                 this.portraitTitle = '';
@@ -192,6 +201,7 @@ document.addEventListener('alpine:init', function() {
                 this.wordCloudItems = [];
                 this.isStreaming = true;
                 this.isDone = false;
+                this.isWaitingTitle = false;
                 this.hasError = false;
                 this.errorMessage = '';
                 this.show = true;
@@ -230,6 +240,11 @@ document.addEventListener('alpine:init', function() {
              */
             close: function() {
                 this._abortSSE();
+                // 中止标题请求（如有进行中）
+                if (this._titleAbortController) {
+                    this._titleAbortController.abort();
+                    this._titleAbortController = null;
+                }
                 // 断开 ResizeObserver
                 if (this._resizeObserver) {
                     this._resizeObserver.disconnect();
@@ -244,6 +259,7 @@ document.addEventListener('alpine:init', function() {
                 this.wordCloudItems = [];
                 this.isStreaming = false;
                 this.isDone = false;
+                this.isWaitingTitle = false;
                 this.hasError = false;
             },
 
@@ -392,7 +408,8 @@ document.addEventListener('alpine:init', function() {
                     function read() {
                         reader.read().then(function(result) {
                             if (result.done) {
-                                self._onStreamDone();
+                                // 流字节已读完，不在此处触发 _onStreamDone；
+                                // SSE 'done' 事件（由 _handleSSEEvent 解析）才是正确的完成信号。
                                 return;
                             }
 
@@ -494,21 +511,36 @@ document.addEventListener('alpine:init', function() {
             _fetchDocTitle: function() {
                 var self = this;
                 var text = this.portrait;
-                if (!text) return;
+                if (!text) {
+                    // 无内容，直接结束等待状态
+                    self.isWaitingTitle = false;
+                    self.isDone = true;
+                    return;
+                }
+
+                this._titleAbortController = new AbortController();
 
                 fetch('/api/doc/title', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: text }),
+                    signal: this._titleAbortController.signal,
                 }).then(function(response) {
-                    if (!response.ok) return;
+                    if (!response.ok) return null;
                     return response.json();
                 }).then(function(data) {
                     if (data && data.title) {
                         self.portraitTitle = data.title;
                     }
-                }).catch(function() {
+                    // 标题已获得（或接口返回无标题），结束等待
+                    self.isWaitingTitle = false;
+                    self.isDone = true;
+                }).catch(function(err) {
+                    // 用户取消不处理
+                    if (err && err.name === 'AbortError') return;
                     // 静默失败：标题生成非必需，不影响画像展示
+                    self.isWaitingTitle = false;
+                    self.isDone = true;
                 });
             },
 
@@ -517,7 +549,9 @@ document.addEventListener('alpine:init', function() {
              */
             _onStreamDone: function() {
                 this.isStreaming = false;
-                this.isDone = true;
+                // 不立即标记 isDone=true，而是进入"等待标题"状态，
+                // 让 loading 和"取消"按钮继续保持，直到标题返回
+                this.isWaitingTitle = true;
 
                 // 最终渲染
                 this.portraitHTML = renderMarkdown(this.portrait);

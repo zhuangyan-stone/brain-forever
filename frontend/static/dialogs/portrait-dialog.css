@@ -896,6 +896,24 @@
     to { transform: rotate(360deg); }
 }
 
+/* ---- 文档标题加载指示器（内容区右侧主标题处，内联在标题文本前） ---- */
+.portrait-title-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: portraitTitleSpin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+@keyframes portraitTitleSpin {
+    to { transform: rotate(360deg); }
+}
+
 /* ---- 底部按钮 ---- */
 .portrait-footer {
     display: flex;
