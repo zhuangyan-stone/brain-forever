@@ -853,7 +853,7 @@
                     <!-- 主标题：始终显示（优先 LLM 生成的总标题，否则使用固定默认标题） -->
                     <div class="portrait-content-title">
                         <span class="portrait-title-spinner" x-show="!isDone"></span>
-                        <span x-text="portraitTitle || ('AI 眼中的 ' + (userName || '匿名用户') + ' ……')"></span>
+                        <span x-text="portraitTitle || ('AI眼中的' + (userName || '匿名用户'))"></span>
                     </div>
                     <div x-html="portraitHTML"></div>
                 </div>
