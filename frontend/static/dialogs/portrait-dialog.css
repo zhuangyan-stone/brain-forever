@@ -1078,8 +1078,8 @@
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* 印象速写引文依次滑入 — 从左侧淡入 */
+/* 印象速写引文依次淡入 — 从下方淡入 */
 @keyframes highlightFadeIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
