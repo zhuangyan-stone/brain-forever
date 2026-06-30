@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>词云生成器 - 椭圆螺旋 · 5.0:2.8</title>
+    <style>
+        /* ---------- 全局样式 ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f7f9fc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 20px;
+        }
+
+        .app {
+            max-width: 1100px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            padding: 35px 40px 45px;
+            transition: box-shadow 0.3s;
+        }
+
+        .app:hover {
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a2e;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        h1 small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #888;
+            letter-spacing: 0;
+            margin-left: 4px;
+        }
+
+        .subtitle {
+            color: #6c7a89;
+            font-size: 15px;
+            margin-bottom: 28px;
+            border-left: 4px solid #4a6cf7;
+            padding-left: 16px;
+            line-height: 1.6;
+        }
+
+        .subtitle code {
+            background: #eef2f7;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #2d3748;
+        }
+
+        /* ---------- 输入区域 ---------- */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 30px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .input-row textarea {
+            flex: 1;
+            min-width: 260px;
+            padding: 14px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            font-size: 14px;
+            font-family: "SF Mono", "Fira Code", monospace;
+            line-height: 1.7;
+            resize: vertical;
+            min-height: 100px;
+            max-height: 220px;
+            background: #fafcff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            color: #1a202c;
+        }
+
+        .input-row textarea:focus {
+            outline: none;
+            border-color: #4a6cf7;
+            box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.12);
+            background: #ffffff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #4a6cf7;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(74, 108, 247, 0.30);
+        }
+        .btn-primary:hover {
+            background: #3b5de7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 108, 247, 0.35);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.25);
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #2d3748;
+        }
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-success {
+            background: #38a169;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(56, 161, 105, 0.30);
+        }
+        .btn-success:hover {
+            background: #2f855a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 161, 105, 0.35);
+        }
+
+        /* ---------- 词云容器 ---------- */
+        .cloud-wrapper {
+            background: #fafcff;
+            border-radius: 20px;
+            border: 2px dashed #e2e8f0;
+            padding: 20px;
+            transition: border-color 0.3s, background 0.3s;
+            position: relative;
+        }
+
+        .cloud-wrapper.has-cloud {
+            border-color: #cbd5e0;
+            background: #ffffff;
+            border-style: solid;
+        }
+
+        #cloud-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 5 / 2.8;          /* 5.0 : 2.8 */
+            height: auto;
+            max-height: 520px;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #ffffff;
+            transition: background 0.3s;
+        }
+
+        @media (max-width: 700px) {
+            #cloud-container {
+                max-height: 380px;
+            }
+        }
+        @media (max-width: 450px) {
+            #cloud-container {
+                max-height: 300px;
+            }
+        }
+
+        .cloud-word {
+            position: absolute;
+            white-space: nowrap;
+            cursor: default;
+            font-weight: 600;
+            transition: transform 0.2s, color 0.2s, text-shadow 0.2s;
+            user-select: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            line-height: 1.2;
+            will-change: transform;
+            transform: rotate(0deg);
+        }
+
+        .cloud-word:hover {
+            transform: scale(1.08) !important;
+            z-index: 10;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .empty-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #a0aec0;
+            font-size: 18px;
+            font-weight: 400;
+            text-align: center;
+            pointer-events: none;
+            line-height: 1.8;
+        }
+
+        .empty-hint span {
+            display: block;
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .footer-info {
+            margin-top: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stats .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stats .stat-item .num {
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 16px;
+        }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legend-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            margin-right: 4px;
+        }
+
+        @media (max-width: 700px) {
+            .app {
+                padding: 20px 16px 30px;
+            }
+            h1 {
+                font-size: 22px;
+                flex-wrap: wrap;
+            }
+            .input-row {
+                flex-direction: column;
+            }
+            .input-row textarea {
+                min-height: 80px;
+            }
+            .btn-group {
+                width: 100%;
+            }
+            .btn-group .btn {
+                flex: 1;
+                justify-content: center;
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+            .footer-info {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .stats {
+                justify-content: center;
+            }
+            .legend {
+                justify-content: center;
+            }
+        }
+
+        textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 8px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+        <h1>
+            ☁️ 词云生成器
+            <small>椭圆螺旋 · 5.0 : 2.8</small>
+        </h1>
+        <div class="subtitle">
+            输入格式：<code>[{"word": "技术", "weight": 6}, ...]</code> ，权重越大 → 越居中 → 字体越大。<br>
+            容器宽高比 5.0:2.8，椭圆螺旋因子自动适配，词云铺满矩形。
+        </div>
+
+        <div class="input-section">
+            <div class="input-row">
+                <textarea id="dataInput" spellcheck="false">[
+                    {"word": "技术", "weight": 6},
+                    {"word": "健康", "weight": 1},
+                    {"word": "感情", "weight": 3},
+                    {"word": "饮食", "weight": 1},
+                    {"word": "生活", "weight": 2},
+                    {"word": "出行", "weight": 4},
+                    {"word": "运动", "weight": 2},
+                    {"word": "学习", "weight": 2}
+                ]</textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="generateCloud()">✨ 生成词云</button>
+                    <button class="btn btn-secondary" onclick="resetExample()">📋 重置示例</button>
+                    <button class="btn btn-success" onclick="exportHTML()">📥 导出 HTML</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="cloud-wrapper" id="cloudWrapper">
+            <div id="cloud-container">
+                <div class="empty-hint" id="emptyHint">
+                    <span>📊</span>
+                    输入数据后点击 「生成词云」
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-info">
+            <div class="stats" id="statsArea">
+                <span class="stat-item">词数 <span class="num" id="wordCount">0</span></span>
+                <span class="stat-item">最大权重 <span class="num" id="maxWeight">-</span></span>
+            </div>
+            <div class="legend" id="legendArea">
+                <span>权重映射</span>
+                <span class="legend-dot" style="background:#2b6cb0;"></span>
+                <span style="font-size:13px;color:#4a5568;">小</span>
+                <span class="legend-dot" style="background:#e53e3e;"></span>
+                <span style="font-size:13px;color:#4a5568;">大</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================
+         *  词云生成器 - 椭圆螺旋布局 (5.0:2.8)
+         *  水平方向扩展更快，贴合 5.0:2.8 宽高比
+         *  全水平 · 无旋转
+         * ============================================================
+         */
+
+        // ---------- 配置 ----------
+        const CONFIG = {
+            minFontSize: 16,
+            maxFontSize: 72,
+            padding: 4,
+            spiralStep: 0.35,
+            spiralRadiusStep: 1.0,
+            maxAttempts: 12000,
+            // 椭圆因子：根据宽高比 5/2.8 ≈ 1.7857，设置为 1.9 略微强化横向
+            aspectRatioFactor: 1.9,
+            colors: [
+                '#2b6cb0', '#2c5282', '#3182ce', '#4299e1',
+                '#38a169', '#276749', '#48bb78', '#68d391',
+                '#d69e2e', '#b7791f', '#ecc94b', '#f6e05e',
+                '#e53e3e', '#c53030', '#fc8181', '#feb2b2',
+                '#805ad5', '#6b46c1', '#9f7aea', '#b794f4',
+                '#dd6b20', '#c05621', '#ed8936', '#f6ad55',
+                '#319795', '#285e61', '#38b2ac', '#81e6d9',
+                '#d53f8c', '#b83280', '#ed64a6', '#f687b3'
+            ]
+        };
+
+        // ---------- DOM 引用 ----------
+        const container = document.getElementById('cloud-container');
+        const emptyHint = document.getElementById('emptyHint');
+        const dataInput = document.getElementById('dataInput');
+        const wordCountEl = document.getElementById('wordCount');
+        const maxWeightEl = document.getElementById('maxWeight');
+        const cloudWrapper = document.getElementById('cloudWrapper');
+
+        // ---------- 工具函数 ----------
+        function getContainerSize() {
+            const rect = container.getBoundingClientRect();
+            return { width: rect.width || 800, height: rect.height || 448 };
+        }
+
+        function parseInput(text) {
+            const trimmed = text.trim();
+            if (!trimmed) return null;
+            let data;
+            try {
+                data = JSON.parse(trimmed);
+            } catch (_) {
+                return null;
+            }
+            if (!Array.isArray(data) || data.length === 0) return null;
+            for (const item of data) {
+                if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+                    return null;
+                }
+                const word = String(item.word || '').trim();
+                const weight = Number(item.weight);
+                if (!word || isNaN(weight) || weight < 0) {
+                    return null;
+                }
+            }
+            return data.map(item => ({
+                word: String(item.word).trim(),
+                weight: Number(item.weight)
+            }));
+        }
+
+        function getColor(index) {
+            return CONFIG.colors[index % CONFIG.colors.length];
+        }
+
+        function mapFontSize(weight, minWeight, maxWeight) {
+            if (maxWeight === minWeight) {
+                return (CONFIG.minFontSize + CONFIG.maxFontSize) / 2;
+            }
+            const t = (weight - minWeight) / (maxWeight - minWeight);
+            const eased = t * t * (3 - 2 * t);
+            return CONFIG.minFontSize + eased * (CONFIG.maxFontSize - CONFIG.minFontSize);
+        }
+
+        function measureText(word, fontSize) {
+            const el = document.createElement('span');
+            el.textContent = word;
+            el.style.cssText = `
+                position: absolute;
+                visibility: hidden;
+                white-space: nowrap;
+                font-size: ${fontSize}px;
+                font-weight: 600;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+                line-height: 1.2;
+                top: 0;
+                left: 0;
+                pointer-events: none;
+            `;
+            document.body.appendChild(el);
+            const rect = el.getBoundingClientRect();
+            document.body.removeChild(el);
+            return { width: rect.width, height: rect.height };
+        }
+
+        function isOverlapping(rect1, rect2, padding) {
+            const p = padding || 0;
+            return !(rect1.x + rect1.width + p <= rect2.x ||
+                rect2.x + rect2.width + p <= rect1.x ||
+                rect1.y + rect1.height + p <= rect2.y ||
+                rect2.y + rect2.height + p <= rect1.y);
+        }
+
+        // ---------- 椭圆螺旋布局 ----------
+        function spiralLayout(words, containerWidth, containerHeight) {
+            const padding = CONFIG.padding;
+            const centerX = containerWidth / 2;
+            const centerY = containerHeight / 2;
+            const placed = [];
+            const maxAttempts = CONFIG.maxAttempts;
+            const factor = CONFIG.aspectRatioFactor;
+
+            const sorted = [...words].sort((a, b) => b.weight - a.weight);
+            if (sorted.length === 0) return [];
+
+            const minWeight = sorted[sorted.length - 1].weight;
+            const maxWeight = sorted[0].weight;
+
+            const items = sorted.map((item, index) => {
+                const fontSize = mapFontSize(item.weight, minWeight, maxWeight);
+                const dim = measureText(item.word, fontSize);
+                return {
+                    ...item,
+                    fontSize,
+                    width: dim.width,
+                    height: dim.height,
+                    color: getColor(index),
+                    rotation: 0,
+                };
+            });
+
+            // 第一个词居中
+            if (items.length > 0) {
+                const first = items[0];
+                first.x = centerX - first.width / 2;
+                first.y = centerY - first.height / 2;
+                placed.push(first);
+            }
+
+            // 后续椭圆螺旋放置
+            for (let i = 1; i < items.length; i++) {
+                const word = items[i];
+                const w = word.width;
+                const h = word.height;
+                let found = false;
+
+                let angle = Math.random() * 0.5;
+                let radius = 2;
+
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    const offsetX = radius * factor * Math.cos(angle);
+                    const offsetY = radius * Math.sin(angle);
+                    const x = centerX + offsetX - w / 2;
+                    const y = centerY + offsetY - h / 2;
+
+                    if (x < 0 || y < 0 || x + w > containerWidth || y + h > containerHeight) {
+                        angle += CONFIG.spiralStep;
+                        radius += CONFIG.spiralRadiusStep * 0.5;
+                        continue;
+                    }
+
+                    const candidate = { x, y, width: w, height: h };
+                    let overlap = false;
+                    for (const p of placed) {
+                        const rect = { x: p.x, y: p.y, width: p.width, height: p.height };
+                        if (isOverlapping(candidate, rect, padding)) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+
+                    if (!overlap) {
+                        word.x = x;
+                        word.y = y;
+                        placed.push(word);
+                        found = true;
+                        break;
+                    }
+
+                    angle += CONFIG.spiralStep;
+                    radius += CONFIG.spiralRadiusStep;
+                }
+
+                if (!found) {
+                    let fallbackX, fallbackY;
+                    let attempts = 0;
+                    do {
+                        const angle2 = Math.random() * 2 * Math.PI;
+                        const r2 = Math.min(containerWidth, containerHeight) * 0.3 + Math.random() * 0.4 * Math.min(containerWidth, containerHeight);
+                        const fx = centerX + r2 * factor * Math.cos(angle2) - w / 2;
+                        const fy = centerY + r2 * Math.sin(angle2) - h / 2;
+                        fallbackX = fx;
+                        fallbackY = fy;
+                        attempts++;
+                    } while ((fallbackX < 0 || fallbackY < 0 || fallbackX + w > containerWidth || fallbackY + h > containerHeight) && attempts < 100);
+
+                    word.x = Math.max(0, Math.min(fallbackX, containerWidth - w));
+                    word.y = Math.max(0, Math.min(fallbackY, containerHeight - h));
+                    placed.push(word);
+                }
+            }
+
+            return placed;
+        }
+
+        // ---------- 渲染 ----------
+        function renderWordCloud(placedWords) {
+            container.innerHTML = '';
+            emptyHint.style.display = 'none';
+
+            if (!placedWords || placedWords.length === 0) {
+                container.appendChild(emptyHint);
+                emptyHint.style.display = 'block';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            for (const item of placedWords) {
+                const el = document.createElement('span');
+                el.className = 'cloud-word';
+                el.textContent = item.word;
+                el.style.left = item.x + 'px';
+                el.style.top = item.y + 'px';
+                el.style.fontSize = item.fontSize + 'px';
+                el.style.color = item.color;
+                el.style.transform = 'rotate(0deg)';
+                el.style.zIndex = Math.round(item.weight);
+                el.dataset.weight = item.weight;
+                fragment.appendChild(el);
+            }
+
+            container.appendChild(fragment);
+            cloudWrapper.classList.add('has-cloud');
+        }
+
+        // ---------- 主流程 ----------
+        function generateCloud() {
+            const text = dataInput.value;
+            const data = parseInput(text);
+            if (!data) {
+                alert('❌ 数据格式错误！\n请使用: [{"word": "JavaScript", "weight": 10}, ...] 格式。');
+                return;
+            }
+
+            const size = getContainerSize();
+            const containerWidth = size.width || 800;
+            const containerHeight = size.height || 448;
+
+            const placed = spiralLayout(data, containerWidth, containerHeight);
+            renderWordCloud(placed);
+
+            const sorted = data.sort((a, b) => b.weight - a.weight);
+            wordCountEl.textContent = data.length;
+            maxWeightEl.textContent = data.length > 0 ? sorted[0].weight : '-';
+        }
+
+        // ---------- 重置示例 ----------
+        function resetExample() {
+            const example = `[
+                {"word": "技术", "weight": 6},
+                {"word": "健康", "weight": 1},
+                {"word": "感情", "weight": 3},
+                {"word": "饮食", "weight": 1},
+                {"word": "生活", "weight": 2},
+                {"word": "出行", "weight": 4},
+                {"word": "运动", "weight": 2},
+                {"word": "学习", "weight": 2}
+            ]`;
+            dataInput.value = example;
+            generateCloud();
+        }
+
+        // ---------- 导出 HTML ----------
+        function exportHTML() {
+            const cloudHTML = container.innerHTML;
+            if (!cloudHTML || cloudHTML.includes('empty-hint')) {
+                alert('⚠️ 请先生成词云！');
+                return;
+            }
+
+            const styles = document.querySelector('style').innerHTML;
+            const exportDoc = `<!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>词云 - 导出</title>
+            <style>
+                * { margin:0; padding:0; box-sizing:border-box; }
+                body {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    background: #f7f9fc;
+                    padding: 30px;
+                }
+                .export-wrapper {
+                    background: #fff;
+                    border-radius: 24px;
+                    padding: 30px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+                    max-width: 1000px;
+                    width: 100%;
+                }
+                .export-title {
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #1a1a2e;
+                    margin-bottom: 20px;
+                    text-align: center;
+                }
+                .export-container {
+                    position: relative;
+                    width: 100%;
+                    aspect-ratio: 5 / 2.8;
+                    height: auto;
+                    max-height: 520px;
+                    overflow: hidden;
+                    border-radius: 12px;
+                    background: #ffffff;
+                    border: 2px solid #e2e8f0;
+                }
+                ${styles}
+                .cloud-word {
+                    position: absolute;
+                    white-space: nowrap;
+                    cursor: default;
+                    font-weight: 600;
+                    user-select: none;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+                    line-height: 1.2;
+                }
+                .cloud-word:hover {
+                    transform: scale(1.08) !important;
+                    z-index: 10;
+                    text-shadow: 0 4px 20px rgba(0,0,0,0.12);
+                }
+                .export-footer {
+                    margin-top: 16px;
+                    text-align: center;
+                    color: #718096;
+                    font-size: 13px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="export-wrapper">
+                <div class="export-title">☁️ 词云</div>
+                <div class="export-container" id="cloud-container">
+                    ${cloudHTML}
+                </div>
+                <div class="export-footer">生成于 ${new Date().toLocaleString()}</div>
+            </div>
+        </body>
+        </html>`;
+
+            const blob = new Blob([exportDoc], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wordcloud_${Date.now()}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ---------- 窗口自适应 ----------
+        let resizeTimer = null;
+        function handleResize() {
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const hasCloud = container.querySelector('.cloud-word');
+                if (hasCloud) generateCloud();
+                resizeTimer = null;
+            }, 400);
+        }
+
+        // ---------- 初始化 ----------
+        window.addEventListener('load', () => {
+            resetExample();
+            window.addEventListener('resize', handleResize);
+            dataInput.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    generateCloud();
+                }
+            });
+        });
+
+        window.generateCloud = generateCloud;
+        window.resetExample = resetExample;
+        window.exportHTML = exportHTML;
+        window.parseInput = parseInput;
+    </script>
+
+</body>
+</html>

@@ -126,9 +126,12 @@ document.addEventListener('alpine:init', function() {
             errorMessage: '',
             userName: '',           // 用户昵称
             userAvatar: '',         // 用户头像 URL
+            wordCloudItems: [],     // 词云布局 [{tag, count, left, top, fontSize, colorClass}]
 
             // 节流渲染
             _renderTimer: null,
+            // ResizeObserver（监听词云容器尺寸变化自动重排）
+            _resizeObserver: null,
             // SSE AbortController
             _abortController: null,
             // 安全地引用 $el（通过 init 钩子设置）
@@ -156,6 +159,29 @@ document.addEventListener('alpine:init', function() {
                 return 'portrait-bookmark-lg';
             },
 
+            /**
+             * 生成词云布局 — 委托给 WordCloudLayout 组件
+             * 计算结果存入 this.wordCloudItems
+             */
+            _generateWordCloudLayout: function() {
+                var info = this.portraitInfo;
+                if (!info || !info.hot_tags || !info.hot_tags.length) {
+                    this.wordCloudItems = [];
+                    return;
+                }
+
+                // 读取实际容器尺寸
+                var container = this.$el ? this.$el.querySelector('.portrait-wordcloud') : null;
+                var cw = container ? container.clientWidth : 320;
+                var ch = container ? container.clientHeight : 200;
+                if (cw < 50 || ch < 50) {
+                    this.wordCloudItems = [];
+                    return;
+                }
+
+                this.wordCloudItems = window.WordCloudLayout.calculate(info.hot_tags, cw, ch);
+            },
+
             // ---- 方法 ----
 
             /**
@@ -169,6 +195,7 @@ document.addEventListener('alpine:init', function() {
                 this.portraitHTML = '';
                 this.portraitMeta = null;
                 this.portraitInfo = null;
+                this.wordCloudItems = [];
                 this.isStreaming = true;
                 this.isDone = false;
                 this.hasError = false;
@@ -190,6 +217,17 @@ document.addEventListener('alpine:init', function() {
                 // 使用 $nextTick 确保 DOM 已更新后再发起请求
                 this.$nextTick(function() {
                     self._startFetch();
+
+                    // 建立 ResizeObserver 监听词云容器尺寸变化
+                    var cloudContainer = self.$el ? self.$el.querySelector('.portrait-wordcloud') : null;
+                    if (cloudContainer && !self._resizeObserver) {
+                        self._resizeObserver = new ResizeObserver(function() {
+                            if (self.portraitInfo && self.portraitInfo.hot_tags && self.portraitInfo.hot_tags.length) {
+                                self._generateWordCloudLayout();
+                            }
+                        });
+                        self._resizeObserver.observe(cloudContainer);
+                    }
                 });
             },
 
@@ -198,11 +236,17 @@ document.addEventListener('alpine:init', function() {
              */
             close: function() {
                 this._abortSSE();
+                // 断开 ResizeObserver
+                if (this._resizeObserver) {
+                    this._resizeObserver.disconnect();
+                    this._resizeObserver = null;
+                }
                 this.show = false;
                 this.portrait = '';
                 this.portraitHTML = '';
                 this.portraitMeta = null;
                 this.portraitInfo = null;
+                this.wordCloudItems = [];
                 this.isStreaming = false;
                 this.isDone = false;
                 this.hasError = false;
@@ -399,6 +443,11 @@ document.addEventListener('alpine:init', function() {
                         // 精华区元数据（由 local-server 在流开始前发送）
                         if (data && typeof data === 'object') {
                             this.portraitInfo = data;
+                            // 生成词云布局（$nextTick 确保容器已渲染）
+                            var self = this;
+                            this.$nextTick(function() {
+                                self._generateWordCloudLayout();
+                            });
                         }
                         break;
 

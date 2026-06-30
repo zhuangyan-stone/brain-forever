@@ -1,0 +1,47 @@
+/* ============================================================
+   components/wordcloud.css — 词云组件样式
+   ============================================================
+   设计理念：纯文字词云，通过 JS 计算绝对定位，最大词居中，
+   其余词沿椭圆螺旋线环绕排列，无背景/边框。
+
+   颜色使用 color-mix() 与主题 --accent 混色，
+   实现与当前主题的微妙共鸣。
+   ============================================================ */
+
+/* ---- 词云容器 — 相对定位 + 固定高度，子项绝对定位 ---- */
+.portrait-wordcloud {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+}
+
+/* ---- 单个词条 — 绝对定位，仅文字+颜色 ---- */
+.portrait-wordcloud-item {
+    position: absolute;
+    font-weight: 700;
+    cursor: default;
+    white-space: nowrap;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+    opacity: 0.80;
+}
+
+.portrait-wordcloud-item:hover {
+    transform: scale(1.2) !important;
+    opacity: 1;
+    z-index: 10;
+}
+
+/* ---- 词云颜色方案 — 与主题 --accent 混色 ---- */
+/* 每种基础色保留其色彩多样性，混入 15% 的当前主题强调色，
+   在浅色/深色主题下均自动适配，产生微妙的「主题共鸣」。 */
+.portrait-wordcloud-c1  { color: color-mix(in srgb, #FF6B6B, var(--accent) 15%); }
+.portrait-wordcloud-c2  { color: color-mix(in srgb, #4ECDC4, var(--accent) 15%); }
+.portrait-wordcloud-c3  { color: color-mix(in srgb, #45B7D1, var(--accent) 15%); }
+.portrait-wordcloud-c4  { color: color-mix(in srgb, #96CEB4, var(--accent) 15%); }
+.portrait-wordcloud-c5  { color: color-mix(in srgb, #FFD93D, var(--accent) 15%); }
+.portrait-wordcloud-c6  { color: color-mix(in srgb, #DDA0DD, var(--accent) 15%); }
+.portrait-wordcloud-c7  { color: color-mix(in srgb, #6BCB77, var(--accent) 15%); }
+.portrait-wordcloud-c8  { color: color-mix(in srgb, #FF8C42, var(--accent) 15%); }
+.portrait-wordcloud-c9  { color: color-mix(in srgb, #BB8FCE, var(--accent) 15%); }
+.portrait-wordcloud-c10 { color: color-mix(in srgb, #74B9FF, var(--accent) 15%); }

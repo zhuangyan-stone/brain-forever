@@ -55,6 +55,7 @@
     <link rel="stylesheet" href="/static/dialogs/msg-delete-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/title-edit-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/portrait-dialog.css">
+    <link rel="stylesheet" href="/static/components/wordcloud.css">
     <link rel="stylesheet" href="/static/components/theme-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
     <link rel="stylesheet" href="/static/responsive.css">
@@ -101,6 +102,7 @@
     <script src="/static/components/buttons.js"></script>
     <script src="/static/components/chat-container.js"></script>
     <script src="/static/components/dialogs/dialogs.js"></script>
+    <script src="/static/components/wordcloud.js"></script>
     <script src="/static/dialogs/portrait-dialog.js"></script>
     <script src="/static/components/sources-panel.js"></script>
     <script src="/static/components/format.js"></script>
@@ -799,17 +801,16 @@
                         <div class="portrait-info-line">生成于：<span x-text="(portraitInfo || {}).generated_at"></span></div>
                     </div>
 
-                    <!-- 话题热区 — 标签云（portraitInfo.hot_tags 由 local-server 提供） -->
+                    <!-- 话题热区 — 词云（JS 螺旋排列） -->
                     <div class="portrait-essence-section" x-show="portraitInfo && portraitInfo.hot_tags && portraitInfo.hot_tags.length">
                         <div class="portrait-essence-section-label">🔥 话题热区</div>
-                        <div class="portrait-bookmark-container">
-                            <template x-for="(item, idx) in ((portraitInfo || {}).hot_tags || [])" :key="idx">
-                                <span class="portrait-hot-tag"
-                                    :class="'portrait-hot-tag-c' + ((idx % 10) + 1)"
-                                    :title="item.tag + '（' + item.count + ' 个对话）'">
-                                    <span x-text="item.tag"></span>
-                                    <span class="portrait-hot-tag-count" x-text="item.count"></span>
-                                </span>
+                        <div class="portrait-wordcloud">
+                            <template x-for="(item, idx) in wordCloudItems" :key="idx">
+                                <span class="portrait-wordcloud-item"
+                                    :class="item.colorClass"
+                                    :style="'left: ' + item.left + 'px; top: ' + item.top + 'px; font-size: ' + item.fontSize"
+                                    :title="item.tag + '（' + item.count + ' 个对话）'"
+                                    x-text="item.tag"></span>
                             </template>
                         </div>
                     </div>
