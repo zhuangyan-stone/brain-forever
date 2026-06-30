@@ -623,7 +623,7 @@
 
 /* ---- 信息区 — 固定三行 ---- */
 .portrait-essence-info {
-    background: linear-gradient(to right, var(--bg-input), var(--bg-secondary));
+    background: linear-gradient(to right, var(--bg-input) 20%, var(--bg-secondary) 50%);
     border-radius: 8px;
     padding: 6px 10px;
     display: flex;
