@@ -768,6 +768,7 @@
     flex-direction: column;
     gap: 8px;
     margin-bottom: 2px;
+    margin-top: 30px;
 }
 
 .portrait-highlight-block {
