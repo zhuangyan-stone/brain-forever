@@ -107,7 +107,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	// 3a. Read user's topic tags with counts for LLM context + frontend display
 	// ----------------------------------------------------------
 	tagUsageMap, _ := session.chatsStore.SelectNonEmptyTagsGroup()
-	hotTags := formatHotTags(tagUsageMap) // top 10 sorted by count desc
+	hotTags := formatHotTags(tagUsageMap) // top 12 sorted by count desc
 	tagsInfoStr := buildTagsInfoString(hotTags, lang)
 
 	// ----------------------------------------------------------
@@ -315,7 +315,7 @@ func callPortraitRemote(_ interface{}, req *portraitRemoteRequest) (*http.Respon
 // ============================================================
 
 // formatHotTags sorts the tag usage map by count descending and returns
-// the top 10 tags as a slice of hotTagItem.
+// the top 12 tags as a slice of hotTagItem.
 func formatHotTags(tagUsageMap map[string]int) []hotTagItem {
 	if len(tagUsageMap) == 0 {
 		return nil
@@ -334,8 +334,8 @@ func formatHotTags(tagUsageMap map[string]int) []hotTagItem {
 		return sorted[i].Count > sorted[j].Count
 	})
 
-	// Take top 10
-	n := 10
+	// Take top 12
+	n := 12
 	if len(sorted) < n {
 		n = len(sorted)
 	}
