@@ -659,6 +659,11 @@
     padding-bottom: 4px;
 }
 
+/* 印象速写标题 — 与上方核心特质内容拉开间距 */
+.portrait-essence-section:last-child .portrait-essence-section-label {
+    margin-top: 30px;
+}
+
 /* 书签容器 — 使用 masonry 错落布局 */
 .portrait-bookmark-container {
     position: relative;
@@ -768,7 +773,6 @@
     flex-direction: column;
     gap: 8px;
     margin-bottom: 2px;
-    margin-top: 30px;
 }
 
 .portrait-highlight-block {
