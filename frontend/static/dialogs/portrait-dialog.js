@@ -329,7 +329,7 @@ document.addEventListener('alpine:init', function() {
 
                 // ---- 2. 核心特质 ----
                 if (meta && meta.core_traits && meta.core_traits.length) {
-                    parts.push('## ✨ 核心特质');
+                    parts.push('## 🏷️ 人格标签');
                     meta.core_traits.forEach(function(trait) {
                         parts.push('- ' + trait);
                     });
@@ -338,7 +338,7 @@ document.addEventListener('alpine:init', function() {
 
                 // ---- 3. 印象速写 ----
                 if (meta && meta.key_highlights && meta.key_highlights.length) {
-                    parts.push('## 🔖 印象速写');
+                    parts.push('## ✏️ 印象速写');
                     meta.key_highlights.forEach(function(item) {
                         parts.push('> ' + item);
                     });

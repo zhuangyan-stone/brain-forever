@@ -823,7 +823,7 @@
 
                     <!-- 核心特质 — 书签图 -->
                     <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.core_traits && portraitMeta.core_traits.length">
-                        <div class="portrait-essence-section-label">✨ 核心特质</div>
+                        <div class="portrait-essence-section-label">🏷️ 人格标签</div>
                         <div class="portrait-bookmark-container">
                             <template x-for="(trait, idx) in ((portraitMeta || {}).core_traits || [])" :key="idx">
                                 <span class="portrait-bookmark"
@@ -837,7 +837,7 @@
 
                     <!-- 印象速写 — 引文风格 -->
                     <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.key_highlights && portraitMeta.key_highlights.length">
-                        <div class="portrait-essence-section-label">🔖 印象速写</div>
+                        <div class="portrait-essence-section-label">✏️ 印象速写</div>
                         <div class="portrait-essence-highlights">
                             <template x-for="(item, idx) in ((portraitMeta || {}).key_highlights || [])" :key="idx">
                                 <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 10)" x-html="renderHighlightMD(item)"></div>
