@@ -91,10 +91,10 @@ Below are the tags this user has previously used in conversations (sorted by fre
 In addition to serving as a reference, the user's existing tags have another very important role:
 you should pay attention to the number of topics under each tag.
 The more topics a tag contains, the finer the granularity should be when generating new tags in that domain.
-For example, if you find that the user has many topics under the "Sports" tag, when generating new tags,
+- For example, if you find that the user has many topics under the "Sports" tag, when generating new tags,
 you should prioritize refining it, such as generating ["Basketball", "Sports"] and ["Swimming", "Sports"].
-Similarly, when the "Relationships" tag covers many topics, it can be refined into
-["Romance", "Relationships"], ["Family", "Relationships"], ["Friendship", "Relationships"].
+- Similarly, when the "Relationships" tag covers many topics, it can be refined into ["Romance", "Relationships"], ["Family", "Relationships"], ["Friendship", "Relationships"].
+- Example 3: if you find that the user has hundreds of topics under the "Technology" tag, subsequent tags can be refined to ["C++"], ["Algorithms"].
 
 ## Number of Tags
 
