@@ -80,20 +80,23 @@
   <!-- 题词：苏轼《定风波》左上角 -->
   <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28" font-size="14">
     <text x="50" y="180">
-      <tspan x="50" dy="0" font-size="28" font-weight="bold" opacity="0.5">定风波</tspan>
       <tspan x="50" dy="36">莫听穿林打叶声，何妨吟啸且徐行</tspan>
-      <tspan x="50" dy="25">竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生</tspan>
-      <tspan x="50" dy="25">料峭春风吹酒醒，微冷，山头斜照却相迎</tspan>
-      <tspan x="50" dy="25">回首向来萧瑟处，归去，也无风雨也无晴</tspan>
     </text>
   </g>
 
   <!-- 竹林：疏疏落落，远近交错 -->
   <g>
-    <!-- 近丛（左侧，较大） -->
-    <use href="#bamboo" x="40" y="540" transform="scale(1.3)" />
-    <use href="#bamboo2" x="100" y="560" transform="scale(1.1)" />
-    <use href="#bamboo3" x="160" y="580" transform="scale(1.15)" />
+    <!-- 近丛（左侧，较大）—— 微风轻摆 -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate"
+        values="-0.6, 100, 890; 0.6, 100, 890; -0.6, 100, 890"
+        dur="3.5s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+        keyTimes="0; 0.5; 1"/>
+      <use href="#bamboo" x="40" y="540" transform="scale(1.3)" />
+      <use href="#bamboo2" x="100" y="560" transform="scale(1.1)" />
+      <use href="#bamboo3" x="160" y="580" transform="scale(1.15)" />
+    </g>
 
     <!-- 更远处 -->
     <use href="#bamboo" x="3400" y="660" transform="scale(0.4)" />
@@ -102,14 +105,32 @@
   </g>
 
 
-  <!-- 阳光光斑：穿过竹叶缝隙的亮点，带发光效果 -->
+  <!-- 阳光光斑：穿过竹叶缝隙的亮点，带发光效果，大小脉动 -->
   <g opacity="0.85" filter="url(#sun-glow)">
-    <circle cx="80" cy="710" r="5" fill="#FFFFFF"/>
-    <circle cx="130" cy="680" r="3.5" fill="#FFFFFF"/>
-    <circle cx="60" cy="760" r="4" fill="#FFFFFF"/>
-    <circle cx="180" cy="730" r="2.5" fill="#FFFFFF"/>
+    <circle cx="80" cy="710" r="5" fill="#FFFFFF">
+      <animate attributeName="r" values="5; 6.5; 5" dur="4s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+    </circle>
+    <circle cx="130" cy="680" r="3.5" fill="#FFFFFF">
+      <animate attributeName="r" values="3.5; 2; 3.5" dur="3s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+    </circle>
+    <circle cx="60" cy="760" r="4" fill="#FFFFFF">
+      <animate attributeName="r" values="4; 5.5; 4" dur="5s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+    </circle>
+    <circle cx="180" cy="730" r="2.5" fill="#FFFFFF">
+      <animate attributeName="r" values="2.5; 1.5; 2.5" dur="3.5s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+    </circle>
 
-    <circle cx="280" cy="750" r="3" fill="#FFFFFF"/>
-    <circle cx="350" cy="780" r="2" fill="#FFFFFF"/>
+    <circle cx="280" cy="750" r="3" fill="#FFFFFF">
+      <animate attributeName="r" values="3; 4.5; 3" dur="4.5s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+    </circle>
+    <circle cx="350" cy="780" r="2" fill="#FFFFFF">
+      <animate attributeName="r" values="2; 3; 2" dur="3s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+    </circle>
   </g>
 </svg>

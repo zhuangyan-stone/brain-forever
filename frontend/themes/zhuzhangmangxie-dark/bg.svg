@@ -67,42 +67,88 @@
     </g>
   </defs>
 
-<!-- 题词：苏轼《定风波》左上角 -->
-  <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28" font-size="14">
-    <text x="50" y="180">
-      <tspan x="50" dy="0" font-size="28" font-weight="bold" opacity="0.5">定风波</tspan>
-      <tspan x="50" dy="36">莫听穿林打叶声，何妨吟啸且徐行</tspan>
-      <tspan x="50" dy="25">竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生</tspan>
-      <tspan x="50" dy="25">料峭春风吹酒醒，微冷，山头斜照却相迎</tspan>
-      <tspan x="50" dy="25">回首向来萧瑟处，归去，也无风雨也无晴</tspan>
+<!-- 归去，也无风雨也无晴 — 左下竹林顶部，与竹同摆 -->
+  <g>
+    <animateTransform attributeName="transform" type="rotate"
+      values="-0.6, 80, 520; 0.6, 80, 520; -0.6, 80, 520"
+      dur="3.5s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+      keyTimes="0; 0.5; 1"/>
+    <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28" font-size="14">
+    <text x="35" y="520">
+      <tspan x="35" dy="0">
+        <tspan><animate attributeName="font-size" values="14; 15; 14" dur="4.1s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>归</tspan>
+        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>去</tspan>
+        <tspan><animate attributeName="font-size" values="14; 12; 14" dur="4.3s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>，</tspan>
+        <tspan><animate attributeName="font-size" values="14; 17; 14" dur="3.8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>也</tspan>
+        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.3s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>无</tspan>
+        <tspan><animate attributeName="font-size" values="14; 16; 14" dur="4.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>风</tspan>
+        <tspan><animate attributeName="font-size" values="14; 12; 14" dur="3.7s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>雨</tspan>
+        <tspan><animate attributeName="font-size" values="14; 17; 14" dur="4.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>也</tspan>
+        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>无</tspan>
+        <tspan><animate attributeName="font-size" values="14; 18; 14" dur="4.0s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>晴</tspan>
+      </tspan>
     </text>
+    </g>
   </g>
 
   <!-- 暮色竹影 -->
   <g opacity="0.18">
-    <!-- 近丛 -->
-    <use href="#bamboo" x="50" y="550" transform="scale(1.2)" />
-    <use href="#bamboo2" x="100" y="570" transform="scale(1.0)" />
-    
-    <!-- 中丛 -->
-    <use href="#bamboo3" x="150" y="600" transform="scale(1.1)" />
-    <use href="#bamboo" x="260" y="640" transform="scale(0.9)" />
+    <!-- 近丛 + 中丛（左侧）—— 微风轻摆 -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate"
+        values="-0.6, 140, 900; 0.6, 140, 900; -0.6, 140, 900"
+        dur="3.5s" repeatCount="indefinite"
+        calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+        keyTimes="0; 0.5; 1"/>
+      <use href="#bamboo" x="50" y="550" transform="scale(1.2)" />
+      <use href="#bamboo2" x="100" y="570" transform="scale(1.0)" />
+      <use href="#bamboo3" x="150" y="600" transform="scale(1.1)" />
+      <use href="#bamboo" x="260" y="640" transform="scale(0.9)" />
+    </g>
 
     <!-- 远丛（画面右侧，Y轴中间） -->
     <use href="#bamboo2" x="2050" y="580" transform="scale(0.6)" />
     <use href="#bamboo3" x="2390" y="550" transform="scale(0.55)" />
 
-  <!-- 前景光斑：模拟穿过竹叶的橙色光点 -->
-  <circle cx="50" cy="600" r="8" fill="#D4903A" opacity="0.5"/>
-  <circle cx="100" cy="650" r="6.5" fill="#D4903A" opacity="0.4"/>
-  <circle cx="180" cy="580" r="4" fill="#D4903A" opacity="0.6"/>
-  <circle cx="110" cy="520" r="4.8" fill="#D4903A" opacity="0.45"/>
-  <circle cx="90" cy="670" r="6.2" fill="#D4903A" opacity="0.55"/>
+  <!-- 前景光斑：模拟穿过竹叶的橙色光点，大小脉动 -->
+  <circle cx="50" cy="600" r="8" fill="#D4903A" opacity="0.5">
+    <animate attributeName="r" values="8; 10; 8" dur="4s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
+  <circle cx="100" cy="650" r="6.5" fill="#D4903A" opacity="0.4">
+    <animate attributeName="r" values="6.5; 4.5; 6.5" dur="3s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
+  <circle cx="180" cy="580" r="4" fill="#D4903A" opacity="0.6">
+    <animate attributeName="r" values="4; 5.5; 4" dur="5s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
+  <circle cx="110" cy="520" r="4.8" fill="#D4903A" opacity="0.45">
+    <animate attributeName="r" values="4.8; 3; 4.8" dur="3.5s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
+  <circle cx="90" cy="670" r="6.2" fill="#D4903A" opacity="0.55">
+    <animate attributeName="r" values="6.2; 8; 6.2" dur="4.5s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
 
-  <circle cx="1300" cy="250" r="6.5" fill="#D4903A" opacity="0.3"/>
-  <circle cx="1290" cy="260" r="8" fill="#D4903A" opacity="0.6"/>
-  <circle cx="1300" cy="380" r="4" fill="#D4903A" opacity="0.4"/>
-  <circle cx="1280" cy="420" r="4.8" fill="#D4903A" opacity="0.45"/>
+  <circle cx="1300" cy="250" r="6.5" fill="#D4903A" opacity="0.3">
+    <animate attributeName="r" values="6.5; 8.5; 6.5" dur="4s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
+  <circle cx="1290" cy="260" r="8" fill="#D4903A" opacity="0.6">
+    <animate attributeName="r" values="8; 5.5; 8" dur="3s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
+  <circle cx="1300" cy="380" r="4" fill="#D4903A" opacity="0.4">
+    <animate attributeName="r" values="4; 5.5; 4" dur="5s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
+  <circle cx="1280" cy="420" r="4.8" fill="#D4903A" opacity="0.45">
+    <animate attributeName="r" values="4.8; 3.2; 4.8" dur="3.5s" repeatCount="indefinite"
+      calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
+  </circle>
 
   </g>
 </svg>
