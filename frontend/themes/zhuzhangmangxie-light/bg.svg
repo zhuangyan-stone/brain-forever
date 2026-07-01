@@ -78,9 +78,26 @@
   </defs>
 
   <!-- 题词：苏轼《定风波》左上角 -->
-  <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28" font-size="14">
-    <text x="50" y="180">
-      <tspan x="50" dy="36">莫听穿林打叶声，何妨吟啸且徐行</tspan>
+  <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28">
+    <text x="30" y="180">
+      <tspan x="30" dy="36">
+        <tspan font-size="38" transform="rotate(5, 30, 180)">莫</tspan>
+        <tspan font-size="22" transform="rotate(-8, 60, 172)" dy="-8">听</tspan>
+        <tspan font-size="32" transform="rotate(12, 90, 188)" dy="8">穿</tspan>
+        <tspan font-size="48" transform="rotate(-3, 120, 180)">林</tspan>
+        <tspan font-size="28" transform="rotate(10, 150, 180)">打</tspan>
+        <tspan font-size="20" transform="rotate(-12, 180, 180)">叶</tspan>
+        <tspan font-size="32" transform="rotate(6, 210, 180)">声</tspan>
+      </tspan>
+      <tspan x="30" dy="33">
+        <tspan font-size="24" transform="rotate(-6, 30, 243)" dy="38">何</tspan>
+        <tspan font-size="34" transform="rotate(8, 60, 215)" dy="10">妨</tspan>
+        <tspan font-size="26" transform="rotate(-10, 90, 207)" dy="2">吟</tspan>
+        <tspan font-size="20" transform="rotate(4, 120, 207)" dy="2">啸</tspan>
+        <tspan font-size="30" transform="rotate(-7, 150, 207)" dy="2">且</tspan>
+        <tspan font-size="24" transform="rotate(13, 180, 207)" dy="2">徐</tspan>
+        <tspan font-size="18" transform="rotate(-4, 210, 207)" dy="2">行</tspan>
+      </tspan>
     </text>
   </g>
 
