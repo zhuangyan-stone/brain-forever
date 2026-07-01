@@ -79,6 +79,17 @@ func migrateOne(dbPath string) error {
 	}
 	defer db.Close()
 
+	// Check SQLite version (DROP COLUMN requires 3.35.0+)
+	var sqliteVersion string
+	if err := db.QueryRow(`SELECT sqlite_version()`).Scan(&sqliteVersion); err == nil {
+		fmt.Printf("  ℹ️  SQLite version: %s\n", sqliteVersion)
+		needed := "3.35.0"
+		if compareVersions(sqliteVersion, needed) < 0 {
+			fmt.Printf("  ⚠️  SQLite %s+ 才支持 DROP COLUMN，当前为 %s，将跳过删除旧列步骤\n", needed, sqliteVersion)
+			fmt.Println("  ℹ️  旧的 chat_id 列会被新代码忽略（不在 SELECT 列表中）")
+		}
+	}
+
 	// Check if chat_sessions table exists
 	var tbl string
 	if err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='chat_sessions'`).Scan(&tbl); err != nil {
@@ -192,6 +203,34 @@ func migrateTable(db *sql.DB, ti tableMigrateInfo) error {
 
 	fmt.Printf("  ✅ %s 迁移完成\n", name)
 	return nil
+}
+
+// compareVersions compares two semver version strings (e.g., "3.35.0").
+// Returns -1 if v1 < v2, 0 if equal, 1 if v1 > v2.
+func compareVersions(v1, v2 string) int {
+	parse := func(v string) []int {
+		var parts []int
+		for _, s := range strings.Split(v, ".") {
+			var n int
+			fmt.Sscanf(s, "%d", &n)
+			parts = append(parts, n)
+		}
+		// Pad to at least 3 parts
+		for len(parts) < 3 {
+			parts = append(parts, 0)
+		}
+		return parts
+	}
+	a, b := parse(v1), parse(v2)
+	for i := 0; i < 3; i++ {
+		if a[i] < b[i] {
+			return -1
+		}
+		if a[i] > b[i] {
+			return 1
+		}
+	}
+	return 0
 }
 
 // hasColumn checks whether a table has a specific column.
