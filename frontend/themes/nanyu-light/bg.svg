@@ -15,7 +15,7 @@
   </g>
 
   <!-- 古典闹钟 — 时间的力量（原齿轮位） -->
-  <g transform="translate(1150, 700) scale(1.2)" opacity="0.08">
+  <g transform="translate(1150, 700) scale(0.96)" opacity="0.15">
     <!-- 钟体外壳 -->
     <circle cx="0" cy="0" r="100" fill="none" stroke="#C06A30" stroke-width="5"/>
     <circle cx="0" cy="0" r="90" fill="none" stroke="#C06A30" stroke-width="1.5"/>
@@ -46,12 +46,16 @@
       <g transform="rotate(330)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
     </g>
 
-    <!-- 时针（短粗，指向约10点） -->
-    <line x1="0" y1="0" x2="-25" y2="-40" stroke="#C06A30" stroke-width="4" stroke-linecap="round"/>
-    <!-- 分针（细长，指向约2点） -->
-    <line x1="0" y1="0" x2="35" y2="-55" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
-    <!-- 秒针（最细，指向约7点） -->
-    <line x1="0" y1="0" x2="-20" y2="60" stroke="#C06A30" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+    <!-- 时针（短粗，指向约4点20分） -->
+    <line x1="0" y1="0" x2="36" y2="30" stroke="#C06A30" stroke-width="4" stroke-linecap="round"/>
+    <!-- 分针（细长，指向4点） -->
+    <line x1="0" y1="0" x2="56" y2="33" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 秒针（最细，每分钟一圈） -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate"
+        from="0" to="360" dur="60s" repeatCount="indefinite"/>
+      <line x1="0" y1="0" x2="-20" y2="60" stroke="#C06A30" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+    </g>
 
     <!-- 中心轴 -->
     <circle cx="0" cy="0" r="5" fill="#C06A30"/>
@@ -60,52 +64,6 @@
     <!-- 底部两只脚 -->
     <path d="M-50,95 Q-55,108 -60,105" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
     <path d="M50,95 Q55,108 60,105" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
-  </g>
-
-  <!-- 舵轮 — 画面正上方中间，象征方向与掌控 -->
-  <g transform="translate(720, 120)" opacity="0.10">
-    <!-- 中心轮毂 -->
-    <circle cx="0" cy="0" r="10" fill="none" stroke="#C06A30" stroke-width="3.5"/>
-    <circle cx="0" cy="0" r="3.5" fill="#C06A30"/>
-
-    <!-- 外圈装饰环 -->
-    <circle cx="0" cy="0" r="48" fill="none" stroke="#C06A30" stroke-width="1.2"/>
-
-    <!-- 8根辐条 + 手柄（利用旋转复用） -->
-    <g stroke="#C06A30" stroke-width="2.5" fill="none">
-      <g transform="rotate(0)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-      <g transform="rotate(45)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-      <g transform="rotate(90)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-      <g transform="rotate(135)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-      <g transform="rotate(180)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-      <g transform="rotate(225)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-      <g transform="rotate(270)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-      <g transform="rotate(315)">
-        <line x1="0" y1="-9" x2="0" y2="-50"/>
-        <circle cx="0" cy="-54" r="4.5" fill="#C06A30"/>
-      </g>
-    </g>
   </g>
 
   <!-- 铆钉装饰 -->
@@ -279,23 +237,5 @@
     <path d="M720,862 Q720,878 732,884" stroke="#3A3E42" stroke-width="2" fill="none" opacity="0.6"/>
   </g>
 
-  <!-- 老花镜 — 岁月的沉淀（原红领巾位） -->
-  <g opacity="0.12">
-    <!-- 左镜框 -->
-    <circle cx="1245" cy="165" r="28" fill="none" stroke="#C06A30" stroke-width="3"/>
-    <circle cx="1245" cy="165" r="24" fill="none" stroke="#C06A30" stroke-width="0.8" opacity="0.4"/>
-    <!-- 右镜框 -->
-    <circle cx="1305" cy="165" r="28" fill="none" stroke="#C06A30" stroke-width="3"/>
-    <circle cx="1305" cy="165" r="24" fill="none" stroke="#C06A30" stroke-width="0.8" opacity="0.4"/>
-    <!-- 鼻梁桥 -->
-    <path d="M1272,170 Q1275,158 1278,170" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
-    <!-- 左镜腿 -->
-    <path d="M1217,165 Q1195,160 1180,150" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
-    <!-- 右镜腿 -->
-    <path d="M1333,165 Q1355,160 1370,150" fill="none" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
-    <!-- 镜片微反光 -->
-    <path d="M1235,150 Q1240,145 1245,148" fill="none" stroke="#F2F0ED" stroke-width="1.2" opacity="0.25"/>
-    <path d="M1295,150 Q1300,145 1305,148" fill="none" stroke="#F2F0ED" stroke-width="1.2" opacity="0.25"/>
-  </g>
 </svg>
 
