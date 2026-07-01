@@ -196,6 +196,28 @@ other = "未找到指定标签"
 [db_delete_chat_tags_for_chat_failed]
 other = "删除对话的所有标签失败"
 
+# favorites.go
+[db_insert_favorite_failed]
+other = "添加收藏失败"
+
+[db_update_custom_tag_failed]
+other = "更新自定义标签失败"
+
+[db_update_favorite_item_custom_tag_failed]
+other = "更新收藏项自定义标签失败"
+
+[db_delete_favorite_failed]
+other = "删除收藏失败"
+
+[db_favorite_not_found]
+other = "未找到指定收藏记录"
+
+[db_query_favorite_exists_failed]
+other = "查询收藏记录是否存在失败"
+
+[db_select_favorited_chat_titles_group_by_tags_failed]
+other = "按自定义标签分组查询收藏对话失败"
+
 # websource.go
 [db_insert_web_source_failed]
 other = "插入网页资源失败"

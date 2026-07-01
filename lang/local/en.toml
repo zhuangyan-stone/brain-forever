@@ -196,6 +196,28 @@ other = "chat tag not found"
 [db_delete_chat_tags_for_chat_failed]
 other = "failed to delete chat tags for chat"
 
+# favorites.go
+[db_insert_favorite_failed]
+other = "failed to insert favorite"
+
+[db_update_custom_tag_failed]
+other = "failed to update custom tag"
+
+[db_update_favorite_item_custom_tag_failed]
+other = "failed to update favorite item custom tag"
+
+[db_delete_favorite_failed]
+other = "failed to delete favorite"
+
+[db_favorite_not_found]
+other = "favorite not found"
+
+[db_query_favorite_exists_failed]
+other = "failed to check favorite existence"
+
+[db_select_favorited_chat_titles_group_by_tags_failed]
+other = "failed to select favorited chat titles grouped by tags"
+
 # websource.go
 [db_insert_web_source_failed]
 other = "failed to insert web source"
