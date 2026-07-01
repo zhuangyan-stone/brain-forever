@@ -39,48 +39,6 @@ type Chat struct {
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-type Message struct {
-	ID     int64  `db:"id"`      // Auto-increment ID
-	ChatSN string `db:"chat_sn"` // Belonging chat SN (chat_sessions.sn)
-
-	GroupIndex int  `db:"group_index"` // Message group index
-	Role       int8 `db:"role"`        // 0: user 1: assistant
-
-	Reasoning *string `db:"reasoning"`
-	Content   string  `db:"content"` // Content
-
-	Extracted   bool `db:"extracted"`   // Whether extracted, default 0
-	Interrupted int  `db:"interrupted"` // 0=done, 1=user-interrupted, 2=backend-error
-
-	CreateAt time.Time `db:"create_at"`
-	UpdateAt time.Time `db:"update_at"`
-}
-
-// WebSource represents a web search result source stored in the database.
-// This is the store-layer equivalent of toolimp.WebSource, defined separately
-// to avoid circular dependencies between store and agent packages.
-type WebSource struct {
-	ID          int64     `db:"id"`      // Auto-increment primary key
-	ChatSN      string    `db:"chat_sn"` // References chat_sessions.sn
-	MsgID       int64     `db:"msg_id"`  // Message group index (= agent.Message.ID)
-	Title       string    `db:"title"`
-	Content     string    `db:"content"`
-	URL         string    `db:"url"`
-	SiteName    string    `db:"site_name"`
-	SiteIcon    string    `db:"site_icon"`
-	PublishDate string    `db:"publish_date"`
-	Score       float64   `db:"score"`
-	CreateAt    time.Time `db:"create_at"`
-}
-
-// ChatTag represents a tag associated with a chat session.
-type ChatTag struct {
-	ID       int64     `db:"id" json:"id"`               // Auto-increment primary key
-	ChatSN   string    `db:"chat_sn" json:"chat_sn"`     // References chat_sessions.sn
-	Tag      string    `db:"tag" json:"tag"`             // Tag string (topic classification)
-	CreateAt time.Time `db:"create_at" json:"create_at"` // Creation time
-}
-
 func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
 	// Check if the database specified by dbFile (path + filename) exists.
 	// If not, create it. Contains two tables: chat_sessions and chat_messages,
@@ -324,8 +282,8 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 	return nil
 }
 
-// UpdateChatTag updates the tagged state of a chat.
-func (s *ChatStore) UpdateChatTag(id int64, taged bool) error {
+// UpdateChatTagged updates the tagged state of a chat.
+func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 	tagVal := 0
 	if taged {
 		tagVal = 1
@@ -401,10 +359,10 @@ func (s *ChatStore) EmptyTrash() error {
 // Extraction progress management
 // ============================================================
 
-// UpdateExtractionProgress updates the trait extraction progress for a chat.
+// UpdateExtractionCountAndTime updates the trait extraction progress for a chat.
 // Sets extracted_at to now() and adds to the extracted trait count.
 // The increment parameter is the number of newly extracted traits in this round.
-func (s *ChatStore) UpdateExtractionProgress(chatID int64, increment int) error {
+func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) error {
 	result, err := s.db.Exec(
 		`UPDATE chat_sessions
 		 SET extracted_at = CURRENT_TIMESTAMP,
@@ -422,17 +380,21 @@ func (s *ChatStore) UpdateExtractionProgress(chatID int64, increment int) error 
 	return nil
 }
 
-// MarkMessagesExtracted marks all messages in a chat up to (and including) the
+// UpdateMessagesExtracted marks all messages in a chat up to (and including) the
 // given message id as extracted (extracted = 1). This is called after a
 // successful trait extraction to record which messages have been processed.
 // Using message id (auto-increment PK) as the cutoff ensures that even if
 // group_index is non-contiguous, all messages up to the given point are marked.
-func (s *ChatStore) MarkMessagesExtracted(chatSN string, upToID int64) error {
+func (s *ChatStore) UpdateMessagesExtracted(chatSN string, upToID int64, extracted bool) error {
+	extractedVal := 0
+	if extracted {
+		extractedVal = 1
+	}
 	_, err := s.db.Exec(
 		`UPDATE chat_messages
-		 SET extracted = 1
-		 WHERE chat_sn = ? AND id <= ? AND extracted = 0`,
-		chatSN, upToID,
+		 SET extracted = ?
+		 WHERE chat_sn = ? AND id <= ? AND extracted = ?`,
+		extractedVal, chatSN, upToID, 1-extractedVal,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to mark messages as extracted: %w", err)

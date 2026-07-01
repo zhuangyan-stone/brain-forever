@@ -219,7 +219,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		//     since some may have failed embedding/storage).
 		// ----------------------------------------------------------
 		if storedCount > 0 {
-			chatsStore.MarkMessagesExtracted(foundChat.SN, lastMsgID)
+			chatsStore.UpdateMessagesExtracted(foundChat.SN, lastMsgID, true)
 			updateExtractionProgress(foundChat, chatsStore, storedCount)
 		} else {
 			// All traits failed to store → don't mark messages
@@ -415,7 +415,7 @@ func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStor
 // and synchronizes the in-memory foundChat fields on success.
 // newTraitCount is the number of newly extracted traits in this round.
 func updateExtractionProgress(foundChat *store.Chat, chatsStore *store.ChatStore, newTraitCount int) {
-	if err := chatsStore.UpdateExtractionProgress(foundChat.ID, newTraitCount); err == nil {
+	if err := chatsStore.UpdateExtractionCountAndTime(foundChat.ID, newTraitCount); err == nil {
 		now := time.Now()
 		foundChat.ExtractedAt = &now
 		foundChat.ExtractedCount += newTraitCount
