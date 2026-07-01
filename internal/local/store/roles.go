@@ -63,6 +63,9 @@ func (s *RoleStore) initSchema() error {
 			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
+		CREATE INDEX IF NOT EXISTS idx_roles_uuid
+			ON roles(uuid);
+
 		-- Automatically set update_at to current time when a row in roles is updated
 		CREATE TRIGGER IF NOT EXISTS trg_roles_update_at
 			BEFORE UPDATE ON roles
