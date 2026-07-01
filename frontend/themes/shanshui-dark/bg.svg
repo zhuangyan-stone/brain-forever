@@ -75,8 +75,14 @@
                 M1050,190 Q1060,180 1070,190 Q1080,180 1090,190"/>
     </path>
   </g>
-  <path d="M780,250 Q790,240 800,250"
-        fill="none" stroke="#ffffff" stroke-width="1" opacity="0.12"/>
+  <g>
+    <path fill="none" stroke="#ffffff" stroke-width="1" opacity="0.12">
+      <animate attributeName="d" dur="2.8s" repeatCount="indefinite"
+        values="M780,250 Q790,240 800,250;
+                M780,250 Q790,250 800,250;
+                M780,250 Q790,240 800,250"/>
+    </path>
+  </g>
   <g class="bird-3">
     <path fill="none" stroke="#ffffff" stroke-width="1" opacity="0.10">
       <animate attributeName="d" dur="2.5s" repeatCount="indefinite"
