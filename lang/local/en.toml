@@ -23,6 +23,9 @@ other = "Failed to read traits: {{.Error}}"
 [api_error_no_traits_data]
 other = "No personal traits data available. Please start a conversation first"
 
+[api_error_failed_to_list_recent_chat_titles]
+other = "Failed to list recent chat titles: {{.Error}}"
+
 [api_error_portrait_service_unavailable]
 other = "Portrait service temporarily unavailable: {{.Error}}"
 

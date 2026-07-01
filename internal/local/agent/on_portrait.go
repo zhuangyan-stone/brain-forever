@@ -42,12 +42,20 @@ type portraitTraitItem struct {
 	CreateAt   string `json:"create_at"`
 }
 
+// portraitChatTitleItem represents a single chat title sent to remote-server.
+type portraitChatTitleItem struct {
+	ID      int64  `json:"id"`
+	Title   string `json:"title"`
+	CrateAt string `json:"create_at"`
+}
+
 // portraitRemoteRequest is the request sent to remote-server.
 type portraitRemoteRequest struct {
-	Lang     string              `json:"lang"`
-	Retouch  int                 `json:"retouch"`
-	Traits   []portraitTraitItem `json:"traits"`
-	TagsInfo string              `json:"tags_info"` // "你的话题最热门领域是：技术(5次)、生活(3次)..."
+	Lang             string                  `json:"lang"`
+	Retouch          int                     `json:"retouch"`
+	Traits           []portraitTraitItem     `json:"traits"`
+	TagsInfo         string                  `json:"tags_info"`          // "你的话题最热门领域是：技术(5次)、生活(3次)..."
+	RecentChatTitles []portraitChatTitleItem `json:"recent_chat_titles"` // recent chat titles for LLM context
 }
 
 // hotTagItem represents a single tag with its conversation count.
@@ -124,16 +132,35 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// 3. List recent chats titles
+	recentChatTitles, err := session.chatsStore.ListChatTitles(100) // Adjust the count as needed
+	if err != nil {
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
+			map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert recentChatTitles to portraitChatTitleItem slice for JSON serialization
+	chatTitleItems := make([]portraitChatTitleItem, 0, len(recentChatTitles))
+	for _, t := range recentChatTitles {
+		chatTitleItems = append(chatTitleItems, portraitChatTitleItem{
+			ID:      t.ID,
+			Title:   t.Title,
+			CrateAt: t.CrateAt.Local().Format(time.RFC3339),
+		})
+	}
+
 	// ----------------------------------------------------------
 	// 5. Call remote-server portrait API (SSE streaming)
 	// ----------------------------------------------------------
 	acceptLang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
 	remoteResp, err := callPortraitRemote(r.Context(), &portraitRemoteRequest{
-		Lang:     acceptLang,
-		Retouch:  retouch,
-		Traits:   traitItems,
-		TagsInfo: tagsInfoStr,
+		Lang:             acceptLang,
+		Retouch:          retouch,
+		Traits:           traitItems,
+		TagsInfo:         tagsInfoStr,
+		RecentChatTitles: chatTitleItems,
 	})
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_portrait_service_unavailable", map[string]interface{}{"Error": err.Error()}), http.StatusBadGateway)

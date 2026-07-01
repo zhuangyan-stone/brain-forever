@@ -598,3 +598,26 @@ func (s *ChatStore) TouchChat(id int64) error {
 	}
 	return nil
 }
+
+type ChatTitle struct {
+	ID      int64     `db:"id" json:"id"`
+	Title   string    `db:"title" json:"title"`
+	CrateAt time.Time `db:"create_at" json:"create_at"`
+}
+
+// ListChatTitles lists the titles of the most recent N non-deleted chat sessions, ordered by create_at descending.
+func (s *ChatStore) ListChatTitles(n int) ([]ChatTitle, error) {
+	var titles []ChatTitle
+	err := s.db.Select(&titles,
+		`SELECT id, title, create_at
+		 FROM chat_sessions
+		 WHERE deleted = 0
+		 ORDER BY create_at DESC
+		 LIMIT ?`,
+		n,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list chat titles. %w", err)
+	}
+	return titles, nil
+}

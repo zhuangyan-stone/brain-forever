@@ -360,6 +360,11 @@ Additionally, based on the topic tag statistics of all the user's conversations,
 {{.TagsInfo}}
 {{end}}
 
+{{if .RecentChatTitles}}
+Additionally, here are the recent topics the user has discussed with AI (in reverse chronological order). These titles can help you better understand the user's recent interests, concerns, or work content:
+{{.RecentChatTitles}}
+{{end}}
+
 Please generate the user's personal portrait based on the above traits.
 """
 

@@ -23,6 +23,9 @@ other = "读取个人特征失败：{{.Error}}"
 [api_error_no_traits_data]
 other = "暂无个人特征数据，请先进行对话和特征提取"
 
+[api_error_failed_to_list_recent_chat_titles]
+other = "列取最近对话标题信息失败：{{.Error}}"
+
 [api_error_portrait_service_unavailable]
 other = "画像服务暂时不可用：{{.Error}}"
 
