@@ -346,6 +346,11 @@
                     </div>
                 </div>
 
+                <!-- 收藏与分类之间的分隔线 -->
+                <div class="category-separator"
+                    x-show="Object.keys($store.chats.favoritesGroups || {}).length > 0 && Object.keys($store.chats.chatGroups || {}).length > 0">
+                </div>
+
                 <!-- 空状态（仅当收藏和分类都为空时显示） -->
                 <template x-if="Object.keys($store.chats.chatGroups || {}).length === 0 && Object.keys($store.chats.favoritesGroups || {}).length === 0">
                     <div class="chat-list-empty">暂无分类</div>

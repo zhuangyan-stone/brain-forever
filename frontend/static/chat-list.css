@@ -119,6 +119,31 @@
     display: none;
 }
 
+/* ---------- 分类页面的收藏与分类之间的分隔线 ---------- */
+.category-separator {
+    height: 1px;
+    background: var(--border, #e0e0e0);
+    margin: 8px 12px;
+    flex-shrink: 0;
+}
+
+/* ---------- 收藏子目录缩进 ---------- */
+.chat-group-fav-sub {
+    padding-left: 16px;
+}
+
+.chat-group-fav-sub .chat-group-header {
+    padding-left: 0.5rem;
+}
+
+.chat-group-fav-sub .chat-item {
+    padding-left: 0.5rem;
+}
+
+.chat-group-fav-sub .chat-item.active {
+    padding-left: calc(0.5rem - 3px);
+}
+
 /* ---------- 日期子分组（更早分组下） ---------- */
 .chat-date-group {
     margin-bottom: 1px;
