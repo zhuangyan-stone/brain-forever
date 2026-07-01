@@ -1,26 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
   <!-- 彩蝶粉韵 · 昼 — 只留蝴蝶 -->
 
+  <defs>
+    <style>
+      /* 风筝随风飘荡动画 — 左右 ±18px，上下 ±14px，旋转 ±6° */
+      @keyframes kiteFloat {
+        0%   { transform: translate(0px, 0px) rotate(0deg); }
+        20%  { transform: translate(14px, -10px) rotate(4deg); }
+        40%  { transform: translate(-12px, 12px) rotate(-5deg); }
+        60%  { transform: translate(18px, -14px) rotate(6deg); }
+        80%  { transform: translate(-16px, 8px) rotate(-3deg); }
+        100% { transform: translate(0px, 0px) rotate(0deg); }
+      }
+      .kite-body {
+        animation: kiteFloat 9s ease-in-out infinite;
+        transform-origin: 790px 130px;
+      }
+    </style>
+  </defs>
+
   <!-- 透明底色，CSS background-color 可见 -->
   <rect width="1440" height="900" fill="none"/>
 
   <!-- 风筝 — 简单菱形风筝，与蝴蝶共享同色调 -->
   <g opacity="0.20">
-    <!-- 风筝线 -->
-    <path d="M790,215 Q770,420 720,620 Q690,730 660,830" fill="none" stroke="#D63384" stroke-width="0.8" stroke-dasharray="3,4"/>
-    <!-- 风筝主体（菱形）放大 1.8 倍 -->
-    <g transform="translate(790, 130) rotate(12) scale(1.8)">
-      <path d="M0,-35 L24,0 L0,35 L-24,0 Z" fill="#D63384"/>
-      <path d="M0,-35 L24,0 L0,35 L-24,0 Z" fill="none" stroke="#D63384" stroke-width="1.2"/>
-      <!-- 骨架十字 -->
-      <line x1="-24" y1="0" x2="24" y2="0" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-      <line x1="0" y1="-35" x2="0" y2="35" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-      <!-- 尾部飘带结 -->
-      <circle cx="0" cy="40" r="3" fill="#F5C842"/>
-      <circle cx="0" cy="52" r="2.5" fill="#E84393"/>
-      <circle cx="0" cy="62" r="2" fill="#D63384"/>
-      <!-- 飘带 -->
-      <path d="M0,35 Q-8,45 0,55 Q8,65 0,75" fill="none" stroke="#E84393" stroke-width="1.2"/>
+    <!-- 风筝线（SMIL 动画：随风筝摆动牵动控制点与终点） -->
+    <path d="M790,215 Q770,420 720,620 Q690,730 660,830" fill="none" stroke="#D63384" stroke-width="0.8" stroke-dasharray="3,4">
+      <animate attributeName="d" dur="9s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" values="
+        M790,215 Q770,420 720,620 Q690,730 660,830;
+        M804,205 Q782,412 724,618 Q693,728 660,830;
+        M778,227 Q760,430 716,625 Q687,732 660,830;
+        M808,201 Q786,410 728,617 Q694,727 660,830;
+        M774,223 Q758,428 714,624 Q686,731 660,830;
+        M790,215 Q770,420 720,620 Q690,730 660,830
+      "/>
+    </path>
+    <!-- 风筝主体（浮动动画组） -->
+    <g class="kite-body">
+      <g transform="translate(790, 130) rotate(12) scale(1.8)">
+        <path d="M0,-35 L24,0 L0,35 L-24,0 Z" fill="#D63384"/>
+        <path d="M0,-35 L24,0 L0,35 L-24,0 Z" fill="none" stroke="#D63384" stroke-width="1.2"/>
+        <!-- 骨架十字 -->
+        <line x1="-24" y1="0" x2="24" y2="0" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
+        <line x1="0" y1="-35" x2="0" y2="35" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
+        <!-- 尾部飘带结 -->
+        <circle cx="0" cy="40" r="3" fill="#F5C842"/>
+        <circle cx="0" cy="52" r="2.5" fill="#E84393"/>
+        <circle cx="0" cy="62" r="2" fill="#D63384"/>
+        <!-- 飘带 -->
+        <path d="M0,35 Q-8,45 0,55 Q8,65 0,75" fill="none" stroke="#E84393" stroke-width="1.2"/>
+      </g>
     </g>
   </g>
 
