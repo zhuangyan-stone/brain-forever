@@ -459,10 +459,10 @@ type ChatTitleTag struct {
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// SelectChatTitleGroupByTags 查询所有已分类对话，按 tag 分组，
+// SelectChatTitlesGroupByTags 查询所有已分类对话，按 tag 分组，
 // 组内先按 update_at 逆序，再按 create_at 逆序。
 // 返回 map[string][]ChatTitleTag，key 为 tag 值。
-func (s *ChatStore) SelectChatTitleGroupByTags() (map[string][]ChatTitleTag, error) {
+func (s *ChatStore) SelectChatTitlesGroupByTags() (map[string][]ChatTitleTag, error) {
 	var rows []ChatTitleTag
 	err := s.db.Select(&rows,
 		`SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at

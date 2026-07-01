@@ -29,7 +29,7 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	groups, err := session.chatsStore.SelectChatTitleTagsGroup()
+	groups, err := session.chatsStore.SelectChatTitlesGroupByTags()
 	if err != nil {
 		h.logger.Errorf("failed to select chat title tag groups: %v", err)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
@@ -288,7 +288,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 	session.chatsMu.Unlock()
 	if chatID > 0 {
-		if tagErr := session.chatsStore.UpdateChatTag(chatID, true); tagErr != nil {
+		if tagErr := session.chatsStore.UpdateChatTagged(chatID, true); tagErr != nil {
 			h.logger.Errorf("failed to update chat taged flag for chat %s: %v", chatSN, tagErr)
 		}
 	}
