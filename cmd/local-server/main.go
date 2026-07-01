@@ -198,8 +198,8 @@ func main() {
 	srv.GET("/api/chat/title", chatHandler.OnGetSuggestedChatTitle)
 	srv.PUT("/api/chat/title", chatHandler.OnPutChatTitle)
 
-	// /api/chat/tags -GET
-	srv.GET("/api/chat/tags", chatHandler.OnMakeChatTags)
+	// /api/chat/tags -POST
+	srv.POST("/api/chat/tags", chatHandler.OnGenerateChatTags)
 
 	// /api/chat/traits -POST (extract personal traits via remote-server)
 	srv.POST("/api/chat/traits", chatHandler.OnExtractTraits)
