@@ -307,7 +307,7 @@ document.addEventListener('alpine:init', function() {
         activeChatSN: null,      // 当前选中的对话 SN，供侧边栏高亮
         activeChatSource: null,  // 点击来源区间: 'timeline' | 'favorites' | 'category' | null
         activeSubSource: null,   // 区间内具体分组标识: 'fav_customTag' | 'cat_tag' | null
-        sidebarTab: 'timeline',  // 侧边栏当前 tab: 'timeline' | 'category'
+        sidebarTab: 'timeline',  // 侧边栏当前 tab: 'timeline' | 'category' | 'favorites'
         collapsedGroups: {},     // 折叠状态: { 'groupLabel': true/false }
         chatCategories: [],      // 分类 tab 的分组数据
         currentUserNo: '',       // 当前登录用户号，由 initPage / onChatLogin 设置，供登录按钮 Alpine 模板渲染
@@ -317,7 +317,6 @@ document.addEventListener('alpine:init', function() {
         trashLoaded: false,      // 回收站是否已从服务端全量加载
         chatGroups: {},          // 类别 tab 树形分组数据: {tagName: [{sn,title,tag,create_at,update_at}, ...]}
         favoritesGroups: {},     // 收藏 tab 树形分组数据: {customTag: [{sn,title,custom_tag,create_at,update_at}, ...]}
-        favoritesExpanded: true, // 收藏根节点是否展开
         favoritesLoaded: false,  // 收藏数据是否已从服务端全量加载
 
         // ---- 计算属性 ----
@@ -384,23 +383,26 @@ document.addEventListener('alpine:init', function() {
          * @param {string} [activeSN] - 当前选中的对话 SN
          */
         /**
-         * 切换侧边栏 tab，切换到 'category' 时自动加载分组数据
-         * @param {'timeline'|'category'} tab
+         * 切换侧边栏 tab，切换到对应 tab 时自动加载分组数据
+         * @param {'timeline'|'category'|'favorites'} tab
          */
         switchSidebarTab: function(tab) {
             this.sidebarTab = tab;
-            if (tab === 'category') {
-                // 从时间线切到分类 tab：清除来源信息，使所有 chat-item 降级为 active-sub
+
+            // 从时间线切到其他 tab：清除来源信息，使所有 chat-item 降级为 active-sub
+            if (tab !== 'timeline') {
                 if (this.activeChatSource === 'timeline' || this.activeChatSource === null) {
                     this.activeChatSource = null;
                     this.activeSubSource = null;
                 }
-                if (Object.keys(this.chatGroups).length === 0) {
-                    this.loadChatGroups();
-                }
-                if (!this.favoritesLoaded) {
-                    this.loadFavorites();
-                }
+            }
+
+            // 各 Tab 独立按需加载
+            if (tab === 'category' && Object.keys(this.chatGroups).length === 0) {
+                this.loadChatGroups();
+            }
+            if (tab === 'favorites' && !this.favoritesLoaded) {
+                this.loadFavorites();
             }
         },
 

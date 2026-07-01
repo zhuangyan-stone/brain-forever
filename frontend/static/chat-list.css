@@ -45,10 +45,12 @@
     font-size: 1rem;
     line-height: 1;
     filter: grayscale(100%);
+    transition: filter 0.2s ease;
 }
 
 /* 激活的 tab，图标去掉灰度滤镜，显示原始颜色（高亮色） */
-.sidebar-tab.active .sidebar-tab-icon {
+.sidebar-tab.active .sidebar-tab-icon,
+.sidebar-tab:hover .sidebar-tab-icon {
     filter: none;
 }
 
@@ -119,40 +121,8 @@
     display: none;
 }
 
-/* ---------- 分类页面的"智能分类"标题（收藏与普通分类之间的分隔） ---------- */
-.category-divider-title {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    margin: 8px 0;
-    flex-shrink: 0;
-}
 
-.category-divider-title::before,
-.category-divider-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border, #e0e0e0);
-}
-
-.category-divider-title-text {
-    padding: 0 10px;
-    font-size: 0.72rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    white-space: nowrap;
-    -webkit-user-select: none;
-    user-select: none;
-    flex-shrink: 0;
-    line-height: 1;
-    opacity: 0.75;
-}
-
-/* ---------- 收藏子目录缩进 ---------- */
-.chat-group-fav-sub {
-    padding-left: 16px;
-}
+/* ---------- 收藏子目录（无外层根节点时的样式） ---------- */
 
 .chat-group-fav-sub .chat-group-header {
     padding-left: 0.5rem;

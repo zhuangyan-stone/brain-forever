@@ -138,19 +138,25 @@
                 </button>
             </div>
 
-            <!-- 侧边栏 Tab 切换 -->
+            <!-- 侧边栏 Tab 切换：仅活动 Tab 显示图标+文本，其他 Tab 只显示图标 -->
             <div class="sidebar-tabs" x-data>
                 <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'timeline' }"
-                    :style="{ flex: $store.chats.sidebarTab === 'timeline' ? '1.618' : '1' }"
+                    :style="{ flex: $store.chats.sidebarTab === 'timeline' ? '1.8' : '1' }"
                     @click="$store.chats.switchSidebarTab('timeline')">
                     <span class="sidebar-tab-icon">&#x1F4C5;</span>
-                    <span>时间</span>
+                    <span x-show="$store.chats.sidebarTab === 'timeline'">时间</span>
                 </button>
                 <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'category' }"
-                    :style="{ flex: $store.chats.sidebarTab === 'category' ? '1.618' : '1' }"
+                    :style="{ flex: $store.chats.sidebarTab === 'category' ? '1.8' : '1' }"
                     @click="$store.chats.switchSidebarTab('category')">
-                    <span class="sidebar-tab-icon">🏷️</span>
-                    <span>分类</span>
+                    <span class="sidebar-tab-icon">&#x1F916;</span>
+                    <span x-show="$store.chats.sidebarTab === 'category'">分类</span>
+                </button>
+                <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'favorites' }"
+                    :style="{ flex: $store.chats.sidebarTab === 'favorites' ? '1.8' : '1' }"
+                    @click="$store.chats.switchSidebarTab('favorites')">
+                    <span class="sidebar-tab-icon">&#x2B50;</span>
+                    <span x-show="$store.chats.sidebarTab === 'favorites'">收藏</span>
                 </button>
             </div>
 
@@ -299,64 +305,10 @@
                 </template>
             </div>
 
-            <!-- 类别 Tab 内容 — 树形分组 -->
+            <!-- 类别 Tab 内容 — AI 分类 -->
             <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'category'">
-                <!-- ★ 收藏树（独立于分类节点，有数据才显示） -->
-                <div class="chat-group chat-group-favorites"
-                    x-show="Object.keys($store.chats.favoritesGroups || {}).length > 0">
-                    <div class="chat-group-header"
-                        @click="$store.chats.favoritesExpanded = !$store.chats.favoritesExpanded"
-                        @mouseenter="$store.chats.closeContextMenu()">
-                        <span class="collapse-arrow"
-                            :class="{ collapsed: !$store.chats.favoritesExpanded }">&#x276F;</span>
-                        <span>&#x1F516; 收藏</span>
-                    </div>
-                    <div class="chat-group-body"
-                        :class="{ collapsed: !$store.chats.favoritesExpanded }">
-                        <template x-for="(items, customTag) in ($store.chats.favoritesGroups || {})" :key="'fav_' + customTag">
-                            <div class="chat-group chat-group-fav-sub">
-                                <div class="chat-group-header"
-                                    @click="$store.chats.toggleCollapse('fav_' + customTag)"
-                                    @mouseenter="$store.chats.closeContextMenu()">
-                                    <span class="collapse-arrow"
-                                        :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">&#x276F;</span>
-                                    <span x-text="customTag === '' ? '默认' : customTag"></span>
-                                    <span class="group-count" x-show="items.length > 0" x-text="'(' + items.length + ')'"></span>
-                                </div>
-                                <div class="chat-group-body"
-                                    :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">
-                                    <template x-for="chat in items" :key="chat.sn">
-                                        <div class="chat-item"
-                                            :class="{
-                                                active: $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active',
-                                                'active-sub': $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active-sub'
-                                            }"
-                                            :data-sn="chat.sn"
-                                            @click="$store.chats.selectChat(chat.sn, 'favorites', customTag)"
-                                            @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
-                                            <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
-                                            <button class="chat-item-more-btn"
-                                                @mouseenter="$store.chats.showCategoryContextMenu($event, chat, customTag)"
-                                                @click.stop="$store.chats.showCategoryContextMenu($event, chat, customTag)">
-                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
-                                                    x-html="ICON_DOTS"></svg>
-                                            </button>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- 智能分类标题（收藏与普通分类之间的分隔） -->
-                <div class="category-divider-title"
-                    x-show="Object.keys($store.chats.favoritesGroups || {}).length > 0 && Object.keys($store.chats.chatGroups || {}).length > 0">
-                    <span class="category-divider-title-text">🤖 智能分类</span>
-                </div>
-
-                <!-- 空状态（仅当收藏和分类都为空时显示） -->
-                <template x-if="Object.keys($store.chats.chatGroups || {}).length === 0 && Object.keys($store.chats.favoritesGroups || {}).length === 0">
+                <!-- 空状态 -->
+                <template x-if="!$store.chats.chatGroups || Object.keys($store.chats.chatGroups).length === 0">
                     <div class="chat-list-empty">暂无分类</div>
                 </template>
 
@@ -397,6 +349,55 @@
                                 </div>
                             </template>
                         </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- 收藏 Tab 内容 — 按自定义目录分组（无顶层根节点，Tab 本身充当根） -->
+            <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'favorites'">
+                <!-- 空状态 -->
+                <template x-if="!$store.chats.favoritesGroups
+                    || Object.keys($store.chats.favoritesGroups).length === 0">
+                    <div class="chat-list-empty">暂无收藏</div>
+                </template>
+
+                <!-- 收藏子目录列表（去掉了外层 "🔖 收藏" 根节点） -->
+                <template x-if="$store.chats.favoritesGroups
+                    && Object.keys($store.chats.favoritesGroups).length > 0">
+                    <div>
+                        <template x-for="(items, customTag) in $store.chats.favoritesGroups" :key="'fav_' + customTag">
+                            <div class="chat-group chat-group-fav-sub">
+                                <div class="chat-group-header"
+                                    @click="$store.chats.toggleCollapse('fav_' + customTag)"
+                                    @mouseenter="$store.chats.closeContextMenu()">
+                                    <span class="collapse-arrow"
+                                        :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">&#x276F;</span>
+                                    <span x-text="customTag === '' ? '默认' : customTag"></span>
+                                    <span class="group-count" x-show="items.length > 0" x-text="'(' + items.length + ')'"></span>
+                                </div>
+                                <div class="chat-group-body"
+                                    :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">
+                                    <template x-for="chat in items" :key="chat.sn">
+                                        <div class="chat-item"
+                                            :class="{
+                                                active: $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active',
+                                                'active-sub': $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active-sub'
+                                            }"
+                                            :data-sn="chat.sn"
+                                            @click="$store.chats.selectChat(chat.sn, 'favorites', customTag)"
+                                            @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                            <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                            <button class="chat-item-more-btn"
+                                                @mouseenter="$store.chats.showCategoryContextMenu($event, chat, customTag)"
+                                                @click.stop="$store.chats.showCategoryContextMenu($event, chat, customTag)">
+                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                                    x-html="ICON_DOTS"></svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </template>
             </div>

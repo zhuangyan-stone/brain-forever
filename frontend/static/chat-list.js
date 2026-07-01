@@ -430,7 +430,7 @@ function showContextMenu(e, chat) {
     // 导致菜单定位异常。e.currentTarget 始终指向事件绑定的按钮元素。
     const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 36 * 5 + 4 + 10; // 5 items * 36px + padding + separator
+    const menuHeight = 36 * 6 + 4 + 10; // 6 items * 36px + padding + separator
 
     const isSmallScreen = document.body.classList.contains('small-screen-mode');
     let left, top;
@@ -480,6 +480,16 @@ function showContextMenu(e, chat) {
         handleTogglePin(chat);
     });
     menu.appendChild(pinItem);
+
+    // 收藏
+    const favItem = document.createElement('div');
+    favItem.className = 'chat-context-menu-item';
+    favItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_STAR + '</svg> 收藏';
+    favItem.addEventListener('click', () => {
+        closeContextMenu();
+        handleToggleFavorite(chat);
+    });
+    menu.appendChild(favItem);
 
     // 重命名
     const renameItem = document.createElement('div');
