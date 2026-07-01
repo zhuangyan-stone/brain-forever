@@ -233,8 +233,6 @@
       <rect x="754" y="856" width="14" height="6" rx="1.5"/>
     </g>
 
-    <!-- USB 连接线 -->
-    <path d="M720,862 Q720,878 732,884" stroke="#4A4E53" stroke-width="2" fill="none" opacity="0.6"/>
   </g>
 
 

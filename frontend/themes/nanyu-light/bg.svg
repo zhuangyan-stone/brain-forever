@@ -46,10 +46,10 @@
       <g transform="rotate(330)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
     </g>
 
-    <!-- 时针（短粗，指向约4点20分） -->
-    <line x1="0" y1="0" x2="36" y2="30" stroke="#C06A30" stroke-width="4" stroke-linecap="round"/>
-    <!-- 分针（细长，指向4点） -->
-    <line x1="0" y1="0" x2="56" y2="33" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 时针（短粗，指向约2点45分） -->
+    <line x1="0" y1="0" x2="47" y2="-6" stroke="#C06A30" stroke-width="4" stroke-linecap="round"/>
+    <!-- 分针（细长，指向9点，即45分） -->
+    <line x1="0" y1="0" x2="-65" y2="0" stroke="#C06A30" stroke-width="2.5" stroke-linecap="round"/>
     <!-- 秒针（最细，每分钟一圈） -->
     <g>
       <animateTransform attributeName="transform" type="rotate"
@@ -233,8 +233,6 @@
       <rect x="754" y="856" width="14" height="6" rx="1.5"/>
     </g>
 
-    <!-- USB 连接线 -->
-    <path d="M720,862 Q720,878 732,884" stroke="#3A3E42" stroke-width="2" fill="none" opacity="0.6"/>
   </g>
 
 </svg>
