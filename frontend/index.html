@@ -945,35 +945,41 @@
     <!-- ============================================================
          收藏夹编辑对话框（Alpine 组件：favoriteEditDialog）
          ============================================================ -->
-    <div class="fav-edit-overlay" id="favoriteEditDialog"
+    <div class="dialog-overlay" id="favoriteEditDialog"
         x-data="favoriteEditDialog()"
         :class="{ show: show }"
         @click.self="cancel">
-        <div class="fav-edit-box">
-            <div class="fav-edit-header">
+        <div class="dialog-box">
+            <div class="dialog-header">
                 <h3>添加收藏</h3>
-                <button class="fav-edit-close-btn" @click="cancel" aria-label="关闭">&times;</button>
+                <button class="dialog-close-btn" @click="cancel" aria-label="关闭">&times;</button>
             </div>
-            <div class="fav-edit-body">
+            <div class="dialog-body">
                 <label class="fav-edit-label">收藏到（留空表示根目录）：</label>
-                <div class="fav-edit-combo-wrap">
-                    <input class="fav-edit-combo" type="text" list="favTagDatalist"
-                        x-model="customTag" placeholder="选择或输入收藏夹目录名"
-                        maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel"
+                <div class="fav-edit-combo-wrap"
+                    @click.outside="closeDropdown">
+                    <input class="fav-edit-combo" type="text"
+                        x-model="customTag" placeholder="根目录"
+                        maxlength="50" @keydown.enter="confirm"
+                        @keydown.escape="dropdownOpen ? closeDropdown() : cancel()"
+                        @keydown.down.prevent="dropdownOpen = true"
                         x-ref="comboInput">
                     <svg class="fav-edit-combo-arrow" viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
-                        @click="$refs.comboInput.focus()">
+                        @click="toggleDropdown">
                         <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
+                    <ul class="fav-edit-dropdown" x-show="dropdownOpen"
+                        @click.outside="closeDropdown">
+                        <li @click="selectTag('')">根目录</li>
+                        <template x-for="tag in existingTags" :key="tag">
+                            <li @click="selectTag(tag)" x-text="tag"></li>
+                        </template>
+                    </ul>
                 </div>
             </div>
-            <datalist id="favTagDatalist">
-                <option value="">根目录</option>
-                <!-- 其余 option 由 favoriteEditDialog.open() 程序化填充，避免 Alpine x-for 在 datalist 内不可靠 -->
-            </datalist>
-            <div class="fav-edit-footer">
-                <button class="fav-edit-btn" @click="cancel">取消</button>
-                <button class="fav-edit-btn fav-edit-btn-confirm" @click="confirm"
+            <div class="dialog-footer">
+                <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>
+                <button class="dialog-btn dialog-btn-confirm" @click="confirm"
                     :disabled="submitting"
                     x-text="submitting ? '提交中…' : '确认'">确认</button>
             </div>

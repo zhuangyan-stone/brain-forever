@@ -830,7 +830,7 @@ async function handleToggleFavorite(chat, defaultTag) {
             if (chatsStore && chatsStore.loadFavorites) {
                 await chatsStore.loadFavorites();
             }
-            showToast('已收藏', 'success');
+            showToast('已收藏到' + (tag || '根目录'), 'success');
             return true;
         },
     });
