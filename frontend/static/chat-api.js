@@ -527,7 +527,9 @@ export async function fetchLlmInfo() {
 export async function fetchChatTags(sn) {
     if (!sn) return null;
     try {
-        const response = await fetch('/api/chat/tags?sn=' + encodeURIComponent(sn));
+        const response = await fetch('/api/chat/tags?sn=' + encodeURIComponent(sn), {
+            method: 'POST',
+        });
         if (!response.ok) {
             console.warn('获取话题标签失败:', response.status);
             return null;

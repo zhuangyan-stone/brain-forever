@@ -576,7 +576,11 @@ function showContextMenu(e, chat) {
         closeContextMenu();
         // 开始申请归类，显示提示（5 秒后自动消失，结果返回后会再显示结果 Toast）
         showToast('📑 正在申请归类', 'info', 5000);
+        // 🔍 调试：观察 chat.sn 是否为空
+        console.log('📑 [归类调试] chat:', JSON.stringify(chat, ['id','sn','title','taged','pinned']));
+        console.log('📑 [归类调试] chat.sn:', JSON.stringify(chat.sn), 'typeof:', typeof chat.sn, 'length:', chat.sn ? chat.sn.length : 'N/A');
         const result = await fetchChatTags(chat.sn);
+        console.log('📑 [归类调试] fetchChatTags result:', JSON.stringify(result));
         const title = (result && result.title) || chat.title || '';
         if (result && result.tags && result.tags.length > 0) {
             console.log('📑 [' + title + ']归类：', JSON.stringify(result.tags, null, 2));
@@ -601,7 +605,14 @@ function showContextMenu(e, chat) {
             }
             showToast(msg, 'success', 6000);
         } else {
-            console.log('📑 话题分类 [' + title + ']: 未匹配到分类');
+            // 🔍 调试：区分"未匹配到分类"的具体原因
+            if (!result) {
+                console.log('📑 [归类调试] 未匹配到分类 — result 为 null (chat.sn=' + JSON.stringify(chat.sn) + ')');
+            } else if (!result.tags) {
+                console.log('📑 [归类调试] 未匹配到分类 — result.tags 不存在', JSON.stringify(result));
+            } else {
+                console.log('📑 [归类调试] 未匹配到分类 — result.tags 为空数组', JSON.stringify(result));
+            }
             showToast('📑 未匹配到分类', 'info', 4000);
         }
     });
