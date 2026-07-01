@@ -1,4 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <style>
+    @keyframes earTwitchL {
+      0%, 100% { transform: rotate(0deg); }
+      2% { transform: rotate(10deg); }
+      3.5% { transform: rotate(-4deg); }
+      5% { transform: rotate(3deg); }
+      6.5% { transform: rotate(0deg); }
+    }
+    @keyframes earTwitchR {
+      0%, 100% { transform: rotate(0deg); }
+      2.5% { transform: rotate(-10deg); }
+      4% { transform: rotate(4deg); }
+      5.5% { transform: rotate(-3deg); }
+      7% { transform: rotate(0deg); }
+    }
+    @keyframes whiskerFloatL {
+      0%, 100% { transform: translateY(0px); }
+      25% { transform: translateY(-4px); }
+      50% { transform: translateY(0px); }
+      75% { transform: translateY(-2px); }
+    }
+    @keyframes whiskerFloatR {
+      0%, 100% { transform: translateY(0px); }
+      25% { transform: translateY(4px); }
+      50% { transform: translateY(0px); }
+      75% { transform: translateY(2px); }
+    }
+    .ear-left { transform-origin: 39px 5px; animation: earTwitchL 8s ease-in-out infinite; }
+    .ear-right { transform-origin: 61px 5px; animation: earTwitchR 8s ease-in-out infinite; }
+    .whiskers-left { animation: whiskerFloatL 3s ease-in-out infinite; }
+    .whiskers-right { animation: whiskerFloatR 3.2s ease-in-out infinite; }
+  </style>
   <!-- 猫 + 咖啡机 — 右下角（猫在咖啡机内，杯子在外面） -->
   <g fill="none" stroke="#2a7af5" stroke-linecap="round" stroke-linejoin="round">
 
@@ -31,9 +63,9 @@
         <!-- 头部 -->
         <circle cx="50" cy="18" r="20" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
         <!-- 左耳 -->
-        <path d="M34,6 L28,-8 L44,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
+        <g class="ear-left"><path d="M34,6 L28,-8 L44,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/></g>
         <!-- 右耳 -->
-        <path d="M66,6 L72,-8 L56,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
+        <g class="ear-right"><path d="M66,6 L72,-8 L56,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/></g>
         <!-- 眼睛（主题色 #2a7af5） -->
         <circle cx="42" cy="15" r="7" fill="#2a7af5" fill-opacity="0.50" stroke="none"/>
         <circle cx="58" cy="15" r="7" fill="#2a7af5" fill-opacity="0.50" stroke="none"/>
@@ -43,10 +75,14 @@
         <!-- 鼻子 -->
         <path d="M48,22 L50,24 L52,22" fill="#2a7af5" fill-opacity="0.15" stroke="none"/>
         <!-- 胡须 -->
-        <path d="M25,20 L8,16" stroke-width="1" opacity="0.85"/>
-        <path d="M25,24 L6,24" stroke-width="1" opacity="0.85"/>
-        <path d="M75,20 L92,16" stroke-width="1" opacity="0.85"/>
-        <path d="M75,24 L94,24" stroke-width="1" opacity="0.85"/>
+        <g class="whiskers-left">
+          <path d="M25,20 L8,16" stroke-width="1" opacity="0.85"/>
+          <path d="M25,24 L6,24" stroke-width="1" opacity="0.85"/>
+        </g>
+        <g class="whiskers-right">
+          <path d="M75,20 L92,16" stroke-width="1" opacity="0.85"/>
+          <path d="M75,24 L94,24" stroke-width="1" opacity="0.85"/>
+        </g>
         <!-- 前腿 -->
         <path d="M32,75 L28,100 L38,100" fill="none" stroke="#2a7af5"/>
         <path d="M68,75 L72,100 L62,100" fill="none" stroke="#2a7af5"/>
