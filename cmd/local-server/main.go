@@ -17,6 +17,7 @@ import (
 	"BrainForever/infra/httpx"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
+	"BrainForever/internal/local"
 	"BrainForever/internal/local/agent"
 	"BrainForever/internal/local/config"
 	"BrainForever/internal/local/logger"
@@ -164,53 +165,8 @@ func main() {
 	// CORS middleware -support for frontend-backend separated development
 	srv.Use(httpx.UseCORSMiddleware)
 
-	srv.GET("/api/info/llm/chat", chatHandler.OnGetLLMInfo)
-	srv.GET("/api/session", chatHandler.OnSession)
-	srv.GET("/api/chat/list", chatHandler.OnGetChats)
-	srv.PUT("/api/chat/new", chatHandler.OnNewChat)
-	srv.PUT("/api/chat/pin", chatHandler.OnChatPin)
-	srv.GET("/api/chat/switch", chatHandler.OnSwitchChat)
-	srv.DELETE("/api/chat/messages", chatHandler.OnDeleteMessage)
-	srv.POST("/api/chat/login", chatHandler.OnLogin)
-	srv.POST("/api/chat/logout", chatHandler.OnLogout)
-
-	// Recycle bin (trash) endpoints
-	srv.GET("/api/chat/deleted", chatHandler.OnListDeletedChats)
-	srv.PUT("/api/chat/restore", chatHandler.OnRestoreChat)
-	srv.DELETE("/api/chat/permanent", chatHandler.OnPermanentDelete)
-	srv.DELETE("/api/chat/trash", chatHandler.OnEmptyTrash)
-
-	// Health check endpoint
-	srv.GET("/api/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "ok",
-			"server":  "local-server",
-			"version": "1.0.0",
-		})
-	})
-
-	// /api/chat -POST (new message) + DELETE (delete chat)
-	srv.POST("/api/chat", chatHandler.OnNewMessage)
-	srv.DELETE("/api/chat", chatHandler.OnChatDelete)
-
-	// /api/chat/title -GET (propose title) + PUT (save title)
-	srv.GET("/api/chat/title", chatHandler.OnGetSuggestedChatTitle)
-	srv.PUT("/api/chat/title", chatHandler.OnPutChatTitle)
-
-	// /api/chat/tags -POST (classify a chat)
-	srv.POST("/api/chat/tags", chatHandler.OnGenerateChatTags)
-	// /api/chat/groups -GET (tag-grouped chat list)
-	srv.GET("/api/chat/groups", chatHandler.OnChatGroups)
-
-	// /api/chat/traits -POST (extract personal traits via remote-server)
-	srv.POST("/api/chat/traits", chatHandler.OnExtractTraits)
-
-	// /api/user/portrait -GET (generate user portrait via remote-server, streaming SSE)
-	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
-
-	// /api/doc/title -POST (generate overall title for a document, e.g. portrait)
-	srv.POST("/api/doc/title", chatHandler.OnGetDocTitle)
+	// Initialize all API routes
+	local.InitRouters(srv, chatHandler)
 
 	// ============================================================
 	// Theme management API
