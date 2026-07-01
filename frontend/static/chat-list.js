@@ -759,6 +759,22 @@ async function handleRename(chat) {
 }
 
 /**
+ * 取消收藏：直接从收藏夹移除（用于收藏树内的 chat）。
+ */
+async function handleUnfavorite(chat, customTag) {
+    var ok = await removeFavoriteChat(chat.sn, customTag);
+    if (!ok) {
+        showToast('取消收藏失败', 'error');
+        return;
+    }
+    var chatsStore = window.Alpine.store('chats');
+    if (chatsStore && chatsStore.loadFavorites) {
+        await chatsStore.loadFavorites();
+    }
+    showToast('已取消收藏', 'success');
+}
+
+/**
  * 处理收藏操作：弹出对话框选择目录，添加收藏。
  */
 async function handleToggleFavorite(chat, defaultTag) {
@@ -850,15 +866,28 @@ function showCategoryContextMenu(e, chat, tag) {
     menu.style.left = Math.max(4, left) + 'px';
     menu.style.top = Math.max(4, top) + 'px';
 
-    // 收藏
+    // 从 UI 结构判断当前 chat 是否在收藏夹内
+    var isInFavorites = e.currentTarget.closest('.chat-group-fav-sub') !== null;
+
     const favItem = document.createElement('div');
     favItem.className = 'chat-context-menu-item';
-    favItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_STAR + '</svg> 收藏';
-    var defaultTag = tag ? ('我的' + tag) : '';
-    favItem.addEventListener('click', function() {
-        closeContextMenu();
-        handleToggleFavorite(chat, defaultTag);
-    });
+    if (isInFavorites) {
+        // 收藏夹内的 chat → 取消收藏（传入 customTag 即 tag 参数）
+        favItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_STAR + '</svg> 取消收藏';
+        var favTag = tag || '';
+        favItem.addEventListener('click', function() {
+            closeContextMenu();
+            handleUnfavorite(chat, favTag);
+        });
+    } else {
+        // 普通分类内的 chat → 弹出对话框添加收藏
+        favItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_STAR + '</svg> 收藏';
+        var defaultTag = tag ? ('我的' + tag) : '';
+        favItem.addEventListener('click', function() {
+            closeContextMenu();
+            handleToggleFavorite(chat, defaultTag);
+        });
+    }
     menu.appendChild(favItem);
 
     // 重命名
