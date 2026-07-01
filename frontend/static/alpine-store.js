@@ -313,7 +313,7 @@ document.addEventListener('alpine:init', function() {
         deletedChats: [],        // 回收站中的对话列表（已逻辑删除）
         trashExpanded: false,    // 回收站是否展开
         trashLoaded: false,      // 回收站是否已从服务端全量加载
-        tagsGroups: [],          // 标签统计数据: [{tag: '技术', count: 5}, ...]
+        chatGroups: {},          // 类别 tab 树形分组数据: {tagName: [{sn,title,tag,create_at,update_at}, ...]}
 
         // ---- 计算属性 ----
         get active() {
@@ -377,104 +377,56 @@ document.addEventListener('alpine:init', function() {
          * @param {string} [activeSN] - 当前选中的对话 SN
          */
         /**
-         * 切换侧边栏 tab，切换到 'category' 时自动加载标签数据
+         * 切换侧边栏 tab，切换到 'category' 时自动加载分组数据
          * @param {'timeline'|'category'} tab
          */
         switchSidebarTab: function(tab) {
             this.sidebarTab = tab;
-            if (tab === 'category' && this.tagsGroups.length === 0) {
-                this.loadTagsGroups();
+            if (tab === 'category' && Object.keys(this.chatGroups).length === 0) {
+                this.loadChatGroups();
             }
         },
 
         /**
-         * loadTagsGroups — 从后端加载所有标签及其使用次数，存入 tagsGroups。
-         * 空串 tag 显示为"不知所云"。
-         *
-         * 临时：后端无数据时使用测试数据。
-         * TODO: 后端数据就绪后改回真实数据。
+         * loadChatGroups — 从后端加载按标签分组的对话列表，存入 chatGroups。
+         * 空串 tag 分组排在最后，显示为"不知所云"。
          */
-        loadTagsGroups: async function() {
+        loadChatGroups: async function() {
             try {
-                const { fetchTagsGroups } = await import('/static/chat-api.js');
-                const data = await fetchTagsGroups();
-                var list = [];
-
+                const { fetchChatGroups } = await import('/static/chat-api.js');
+                const data = await fetchChatGroups();
                 if (data && Object.keys(data).length > 0) {
-                    for (var tag in data) {
-                        if (data.hasOwnProperty(tag)) {
-                            var displayTag = tag === '' ? '不知所云' : tag;
-                            list.push({ tag: displayTag, count: data[tag] });
+                    // 重新构造对象：非空 tag 按 key 排序，空串 tag 放在最后
+                    var ordered = {};
+                    var emptyItems = null;
+                    var keys = Object.keys(data).sort();
+                    for (var i = 0; i < keys.length; i++) {
+                        if (keys[i] === '') {
+                            emptyItems = data[''];
+                        } else {
+                            ordered[keys[i]] = data[keys[i]];
                         }
                     }
+                    // 空串 tag 分组追加到最后
+                    if (emptyItems) {
+                        ordered[''] = emptyItems;
+                    }
+                    this.chatGroups = ordered;
+                    // 类别树首次加载时默认全部折叠
+                    var newCollapsed = Object.assign({}, this.collapsedGroups);
+                    for (var tag in ordered) {
+                        if (ordered.hasOwnProperty(tag)) {
+                            newCollapsed['cat_' + tag] = true;
+                        }
+                    }
+                    this.collapsedGroups = newCollapsed;
                 } else {
-                    // 临时测试数据
-                    list = this._buildTestTags();
+                    this.chatGroups = {};
                 }
-
-                list.sort(function(a, b) { return b.count - a.count; });
-                this.tagsGroups = list;
             } catch (e) {
-                console.warn('加载标签云失败:', e);
-                var testList = this._buildTestTags();
-                testList.sort(function(a, b) { return b.count - a.count; });
-                this.tagsGroups = testList;
+                console.warn('加载聊天分组失败:', e);
+                this.chatGroups = {};
             }
-        },
-
-        /**
-         * _buildTestTags — 生成测试标签数据，用于临时展示。
-         * TODO: 后端数据就绪后移除本方法。
-         */
-        _buildTestTags: function() {
-            var words = [
-                '人工智能','机器学习','深度学习','神经网络','大模型','GPT','ChatGPT','自然语言','计算机视觉',
-                '数据挖掘','大数据','云计算','区块链','物联网','5G','前端','后端','全栈','微服务','容器化',
-                'Docker','Kubernetes','DevOps','CI/CD','API','RESTful','GraphQL','WebSocket','SSE','实时通信',
-                'Python','JavaScript','TypeScript','Go','Rust','Java','C++','SQL','NoSQL','Redis',
-                'PostgreSQL','MongoDB','Elasticsearch','Kafka','RabbitMQ','Nginx','Linux','Git','AGPL','开源',
-                '美食','旅行','摄影','音乐','电影','读书','写作','绘画','健身','瑜伽',
-                '冥想','烹饪','烘焙','咖啡','茶道','园艺','手工','DIY','收纳','断舍离',
-                '极简','环保','素食','有机','养生','中医','按摩','SPA','芳香','蜡烛',
-                '哲学','心理学','社会学','经济学','历史','地理','政治','法律','教育','语言学',
-                '人类学','考古学','天文学','物理学','化学','生物学','数学','逻辑','伦理','美学',
-                '产品经理','用户体验','交互设计','视觉设计','品牌','营销','运营','增长','数据分析','A/B测试',
-                '敏捷开发','Scrum','项目管理','远程办公','协作','时间管理','GTD','OKR','KPI','复盘',
-                '创业','投资','融资','商业模式','SaaS','B2B','B2C','增长黑客','转化率','用户留存',
-                '跑步','骑行','游泳','登山','攀岩','滑雪','冲浪','潜水','滑板','街舞',
-                '吉他','钢琴','架子鼓','口琴','小提琴','DJ','电音','嘻哈','爵士','古典',
-                '动漫','漫画','游戏','桌游','剧本杀','密室逃脱','手办','Cosplay','Vlog','播客',
-                '算法','数据结构','设计模式','系统设计','架构','安全','密码学','网络协议','编译原理','操作系统',
-                '科幻','奇幻','悬疑','推理','武侠','言情','历史小说','散文','诗歌','戏剧',
-                '纪录片','综艺','脱口秀','相声','京剧','话剧','芭蕾','歌剧','交响乐','民谣',
-                '正念','MBTI','星座','塔罗','玄学','风水','手相','面相','占星',
-                '足球','篮球','排球','乒乓球','羽毛球','网球','高尔夫','棒球','橄榄球','冰球',
-                '拳击','跆拳道','柔道','击剑','射箭','射击','举重','体操','田径','马拉松',
-                '铁人三项','自行车','滑板','轮滑','单板','花样滑冰','冰壶',
-                'React','Vue','Angular','Svelte','Next.js','Nuxt','Node.js','Deno','Bun','Express',
-                'FastAPI','Flask','Django','Spring','Rails','Laravel','Flutter','React Native','SwiftUI','Jetpack',
-                'Webpack','Vite','Babel','ESBuild','Turbopack',
-                'Figma','Sketch','Photoshop','Illustrator','Blender','Maya','3ds Max','AE','PR','达芬奇',
-                'UI设计','UX研究','设计系统','组件库','动效设计',
-                '股票','基金','债券','期货','期权','数字货币','NFT','DeFi','量化交易','价值投资',
-                '市盈率','现金流','复利','资产配置','风险管理'
-            ];
-            var unique = [];
-            var seen = {};
-            for (var i = 0; i < words.length; i++) {
-                if (!seen[words[i]]) {
-                    seen[words[i]] = true;
-                    unique.push(words[i]);
-                }
-            }
-            var result = [];
-            var total = unique.length;
-            for (var j = 0; j < total; j++) {
-                var base = Math.round(35 * (1 - j / total));
-                var count = Math.max(1, base + Math.floor(Math.random() * 6) - 2);
-                result.push({ tag: unique[j], count: count });
-            }
-            return result;
         },
 
         /**
@@ -649,6 +601,21 @@ document.addEventListener('alpine:init', function() {
         });
 
         this.chatsTimeline = groups;
+
+        // 时间线分组默认折叠：除"今天"外全部折叠
+        var timelineCollapsed = Object.assign({}, this.collapsedGroups);
+        for (var gi = 0; gi < groups.length; gi++) {
+            var gLabel = groups[gi].label;
+            if (gLabel === '今天') continue; // 今天分组默认展开
+            timelineCollapsed[gLabel] = true;
+            // 更早分组下的日期子分组也折叠
+            if (groups[gi].type === 'earlier' && groups[gi].subGroups) {
+                for (var si = 0; si < groups[gi].subGroups.length; si++) {
+                    timelineCollapsed[gLabel + '|' + groups[gi].subGroups[si].dateLabel] = true;
+                }
+            }
+        }
+        this.collapsedGroups = timelineCollapsed;
 
             // ---- 构建分类分组（category tab）- 只保留一级分类 ----
             var catGroups = [];

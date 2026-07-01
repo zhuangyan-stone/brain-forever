@@ -621,3 +621,35 @@ func (s *ChatStore) ListChatTitles(n int) ([]ChatTitle, error) {
 	}
 	return titles, nil
 }
+
+type ChatTitleTag struct {
+	SN    string `db:"sn" json:"sn"`
+	Title string `db:"title" json:"title"`
+	Tag   string `db:"tag" json:"tag"`
+
+	CreateAt time.Time `db:"create_at" json:"create_at"`
+	UpdateAt time.Time `db:"update_at" json:"update_at"`
+}
+
+// SelectChatTitleTagsGroup 查询所有已分类对话，按 tag 分组，
+// 组内先按 update_at 逆序，再按 create_at 逆序。
+// 返回 map[string][]ChatTitleTag，key 为 tag 值。
+func (s *ChatStore) SelectChatTitleTagsGroup() (map[string][]ChatTitleTag, error) {
+	var rows []ChatTitleTag
+	err := s.db.Select(&rows,
+		`SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
+		 FROM chat_sessions cs
+		 JOIN chat_tags ct ON cs.id = ct.chat_id
+		 WHERE cs.deleted = 0
+		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select chat title tag groups. %w", err)
+	}
+
+	result := make(map[string][]ChatTitleTag)
+	for _, r := range rows {
+		result[r.Tag] = append(result[r.Tag], r)
+	}
+	return result, nil
+}

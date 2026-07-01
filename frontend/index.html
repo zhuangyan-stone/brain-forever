@@ -295,9 +295,43 @@
                 </template>
             </div>
 
-            <!-- 类别 Tab 内容 — 留空待后续实现 -->
+            <!-- 类别 Tab 内容 — 树形分组 -->
             <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'category'">
-                <div class="chat-list-empty">暂无分类</div>
+                <!-- 空状态 -->
+                <template x-if="Object.keys($store.chats.chatGroups || {}).length === 0">
+                    <div class="chat-list-empty">暂无分类</div>
+                </template>
+
+                <!-- 分组列表：按 tag 遍历 -->
+                <template x-for="(items, tag) in ($store.chats.chatGroups || {})" :key="tag">
+                    <div class="chat-group">
+                        <div class="chat-group-header"
+                            @click="$store.chats.toggleCollapse('cat_' + tag)"
+                            @mouseenter="$store.chats.closeContextMenu()">
+                            <span class="collapse-arrow"
+                                :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">&#x276F;</span>
+                            <span x-text="tag === '' ? '不知所云' : tag"></span>
+                            <span class="chat-group-count" x-text="'(' + items.length + ')'"></span>
+                        </div>
+                        <div class="chat-group-body"
+                            :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
+                            <template x-for="chat in items" :key="chat.sn">
+                                <div class="chat-item"
+                                    :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                    :data-sn="chat.sn"
+                                    @click="$store.chats.selectChat(chat.sn)"
+                                    @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                    <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
+                                        viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                        x-html="ICON_LOADING">
+                                    </svg>
+                                    <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
             </div>
         </aside>
 

@@ -422,3 +422,11 @@
     color: var(--error-text);
 }
 
+/* ---------- 类别 Tab 分组计数 ---------- */
+.chat-group-count {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: auto;
+    opacity: 0.7;
+}

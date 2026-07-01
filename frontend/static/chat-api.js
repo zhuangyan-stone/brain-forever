@@ -540,19 +540,19 @@ export async function fetchChatTags(sn) {
 }
 
 /**
- * fetchTagsGroups 获取所有标签及其使用次数（包含空标签）。
- * @returns {Promise<Object<string, number>|null>} 如 {"技术": 5, "生活": 3}
+ * fetchChatGroups 获取按标签分组的对话列表。
+ * @returns {Promise<Object<string, Array<{sn: string, title: string, tag: string, create_at: string, update_at: string}>>|null>}
  */
-export async function fetchTagsGroups() {
+export async function fetchChatGroups() {
     try {
-        const response = await fetch('/api/chat/tags/group');
+        const response = await fetch('/api/chat/groups');
         if (!response.ok) {
-            console.warn('获取标签分组失败:', response.status);
+            console.warn('获取聊天分组失败:', response.status);
             return null;
         }
         return await response.json();
     } catch (e) {
-        console.warn('获取标签分组出错:', e);
+        console.warn('获取聊天分组出错:', e);
         return null;
     }
 }

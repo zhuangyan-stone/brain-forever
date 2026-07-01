@@ -14,13 +14,13 @@ import (
 )
 
 // ============================================================
-// Tags group handler -GET /api/chat/tags/group
-// Returns a map of tag -> count for all tags (including empty).
+// Chat groups handler -GET /api/chat/groups
+// Returns a map of tag -> []ChatTitleTag, group内按update_at,create_at逆序。
 // ============================================================
 
-// OnGetTagsGroups handles GET /api/chat/tags/group — returns all tags
-// with their usage counts, including empty-string tags.
-func (h *ChatAgent) OnGetTagsGroups(w http.ResponseWriter, r *http.Request) {
+// OnChatGroups handles GET /api/chat/groups — 返回按标签分组的对话列表，
+// 格式为 map[string][]ChatTitleTag，组内先按 update_at 逆序，再按 create_at 逆序。
+func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -29,15 +29,15 @@ func (h *ChatAgent) OnGetTagsGroups(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	tags, err := session.chatsStore.SelectTagsGroup()
+	groups, err := session.chatsStore.SelectChatTitleTagsGroup()
 	if err != nil {
-		h.logger.Errorf("failed to select tag groups: %v", err)
+		h.logger.Errorf("failed to select chat title tag groups: %v", err)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tags)
+	json.NewEncoder(w).Encode(groups)
 }
 
 // ============================================================
