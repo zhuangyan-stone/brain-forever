@@ -17,7 +17,7 @@ import (
 // Chat Tags handler -GET /api/chat/tags?sn=XXX
 // ============================================================
 
-// OnMakeChatTags handles GET /api/chat/tags -classifies a chat conversation
+// OnGenerateChatTags handles GET /api/chat/tags -classifies a chat conversation
 // into topic categories/tags using the LLM with ToolCall.
 //
 // It loads the chat's title and selected user messages (with smart truncation),
@@ -34,9 +34,9 @@ import (
 //
 //	{
 //	  "sn": "chat-xxx",
-//	  "tags": ["技术", "生活"]
+//	  "tags": ["Technology", "Life"]
 //	}
-func (h *ChatAgent) OnMakeChatTags(w http.ResponseWriter, r *http.Request) {
+func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
