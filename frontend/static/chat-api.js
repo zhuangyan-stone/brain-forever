@@ -540,6 +540,24 @@ export async function fetchChatTags(sn) {
 }
 
 /**
+ * fetchTagsGroups 获取所有标签及其使用次数（包含空标签）。
+ * @returns {Promise<Object<string, number>|null>} 如 {"技术": 5, "生活": 3}
+ */
+export async function fetchTagsGroups() {
+    try {
+        const response = await fetch('/api/chat/tags/group');
+        if (!response.ok) {
+            console.warn('获取标签分组失败:', response.status);
+            return null;
+        }
+        return await response.json();
+    } catch (e) {
+        console.warn('获取标签分组出错:', e);
+        return null;
+    }
+}
+
+/**
  * fetchSession 获取/创建 HTTP session，返回 session 数据（user_no, welcome 等）。
  * @returns {Promise<{user_no?: string, welcome?: string}|null>}
  */
