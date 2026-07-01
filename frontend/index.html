@@ -173,7 +173,7 @@
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
-                                    <span class="chat-group-count" x-text="'(' + group.items.length + ')'"></span>
+                                    <span class="group-count" x-show="group.items.length > 0" x-text="'(' + group.items.length + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
@@ -210,7 +210,7 @@
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
-                                    <span class="chat-group-count" x-text="'(' + group.count + ')'"></span>
+                                    <span class="group-count" x-show="group.count > 0" x-text="'(' + group.count + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
@@ -222,7 +222,7 @@
                                                 <span class="collapse-arrow date-arrow"
                                                     x-text="$store.chats.isCollapsed(group.label + '|' + sub.dateLabel) ? '+' : '−'"></span>
                                                 <span x-text="sub.dateLabel"></span>
-                                                <span class="chat-group-count" x-text="'(' + sub.items.length + ')'"></span>
+                                                <span class="group-count" x-show="sub.items.length > 0" x-text="'(' + sub.items.length + ')'"></span>
                                             </div>
                                             <div class="chat-date-body"
                                                 :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
@@ -262,7 +262,7 @@
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: !$store.chats.trashExpanded }">&#x276F;</span>
                                     <span>回收站</span>
-                                    <span class="trash-count" x-show="group.count > 0"
+                                    <span class="group-count" x-show="group.count > 0"
                                         x-text="'(' + group.count + ')'"></span>
                                     <button class="trash-clear-btn" x-show="group.count > 0"
                                         @click.stop="$store.chats.emptyTrash()"
@@ -321,7 +321,7 @@
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">&#x276F;</span>
                                     <span x-text="customTag === '' ? '默认' : customTag"></span>
-                                    <span class="chat-group-count" x-text="'(' + items.length + ')'"></span>
+                                    <span class="group-count" x-show="items.length > 0" x-text="'(' + items.length + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">
@@ -369,7 +369,7 @@
                             <span class="collapse-arrow"
                                 :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">&#x276F;</span>
                             <span x-text="tag === '' ? '不知所云' : tag"></span>
-                            <span class="chat-group-count" x-text="'(' + items.length + ')'"></span>
+                            <span class="group-count" x-show="items.length > 0" x-text="'(' + items.length + ')'"></span>
                         </div>
                         <div class="chat-group-body"
                             :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
