@@ -20,9 +20,10 @@
  *
  * @param {object} options
  * @param {string[]} options.existingTags - 已有的收藏夹目录名列表
+ * @param {string} [options.defaultTag] - 默认收藏夹目录名
  * @param {(customTag: string) => Promise<boolean>} options.onConfirm - 确认回调，返回是否成功
  */
-export function showFavoriteEditDialog({ existingTags, onConfirm } = {}) {
+export function showFavoriteEditDialog({ existingTags, defaultTag, onConfirm } = {}) {
     if (!Array.isArray(existingTags)) existingTags = [];
 
     const dialogEl = document.getElementById('favoriteEditDialog');
@@ -30,6 +31,7 @@ export function showFavoriteEditDialog({ existingTags, onConfirm } = {}) {
 
     Alpine.$data(dialogEl).open({
         existingTags: existingTags,
+        defaultTag: defaultTag || '',
         onConfirm: onConfirm,
     });
 }

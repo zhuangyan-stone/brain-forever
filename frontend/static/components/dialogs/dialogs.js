@@ -170,7 +170,7 @@ document.addEventListener('alpine:init', function() {
 
         open: function(options) {
             this.existingTags = options.existingTags || [];
-            this.customTag = '';
+            this.customTag = options.defaultTag || '';
             this._onConfirm = options.onConfirm || null;
             this.submitting = false;
             this.show = true;

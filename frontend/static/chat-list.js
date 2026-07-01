@@ -761,7 +761,7 @@ async function handleRename(chat) {
 /**
  * 处理收藏操作：弹出对话框选择目录，添加收藏。
  */
-async function handleToggleFavorite(chat) {
+async function handleToggleFavorite(chat, defaultTag) {
     var chatsStore = window.Alpine.store('chats');
 
     // 收集已有的收藏夹目录名
@@ -772,6 +772,7 @@ async function handleToggleFavorite(chat) {
     }
     showFavoriteEditDialog({
         existingTags: existingTags,
+        defaultTag: defaultTag || '',
         onConfirm: async function(customTag) {
             // 静默去除前后空白
             var tag = (customTag || '').trim();
@@ -807,7 +808,7 @@ async function handleToggleFavorite(chat) {
 /**
  * 显示类别页面的上下文菜单
  */
-function showCategoryContextMenu(e, chat) {
+function showCategoryContextMenu(e, chat, tag) {
     if (contextMenuEl && contextTargetSN === chat.sn) {
         return;
     }
@@ -849,13 +850,14 @@ function showCategoryContextMenu(e, chat) {
     menu.style.left = Math.max(4, left) + 'px';
     menu.style.top = Math.max(4, top) + 'px';
 
-    // 收藏（未收藏→弹出对话框；已收藏→直接取消）
+    // 收藏
     const favItem = document.createElement('div');
     favItem.className = 'chat-context-menu-item';
     favItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_STAR + '</svg> 收藏';
+    var defaultTag = tag ? ('我的' + tag) : '';
     favItem.addEventListener('click', function() {
         closeContextMenu();
-        handleToggleFavorite(chat);
+        handleToggleFavorite(chat, defaultTag);
     });
     menu.appendChild(favItem);
 

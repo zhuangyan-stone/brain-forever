@@ -377,8 +377,8 @@
                                     </svg>
                                     <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                     <button class="chat-item-more-btn"
-                                        @mouseenter="$store.chats.showCategoryContextMenu($event, chat)"
-                                        @click.stop="$store.chats.showCategoryContextMenu($event, chat)">
+                                        @mouseenter="$store.chats.showCategoryContextMenu($event, chat, tag)"
+                                        @click.stop="$store.chats.showCategoryContextMenu($event, chat, tag)">
                                         <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
                                             x-html="ICON_DOTS"></svg>
                                     </button>
