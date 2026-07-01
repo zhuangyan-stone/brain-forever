@@ -132,14 +132,14 @@
       "id": "nanyu-light",
       "mode": "light",
       "name": "Old Man · Cold Day",
-      "name_zh": "南郁·白日犯困"
+      "name_zh": "南郁·犯困"
     },
     {
       "description": "熔炉夜",
       "id": "nanyu-dark",
       "mode": "dark",
       "name": "Old Man · Hot Night",
-      "name_zh": "南郁·夜来无眠"
+      "name_zh": "南郁·无眠"
     }
   ]
 }
