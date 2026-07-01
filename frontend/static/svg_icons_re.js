@@ -31,3 +31,4 @@ export const ICON_LOADING    = window.ICON_LOADING;
 export const ICON_DEEP_THINK = window.ICON_DEEP_THINK;
 export const ICON_USER       = window.ICON_USER;
 export const ICON_TRASH      = window.ICON_TRASH;
+export const ICON_STAR       = window.ICON_STAR;

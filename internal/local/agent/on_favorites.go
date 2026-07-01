@@ -2,7 +2,9 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"BrainForever/internal/local/store"
 )
@@ -43,4 +45,71 @@ func (h *ChatAgent) ListFavoriteChats(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+// AddFavoriteChat handles PUT /api/chat/favorites?sn=xxx&custom_tag=yyy
+// to add a chat session to favorites with an optional custom tag.
+func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
+	sn := r.URL.Query().Get("sn")
+	if sn == "" {
+		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		return
+	}
+	customTag := strings.TrimSpace(r.URL.Query().Get("custom_tag"))
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	session.chatsMu.Lock()
+	chatStore := session.chatsStore
+	session.chatsMu.Unlock()
+
+	// 检查是否已存在相同 (chat_sn, custom_tag) 的收藏
+	exists, err := chatStore.IsExistsFavoriteItem(sn, customTag)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if exists {
+		displayTag := customTag
+		if displayTag == "" {
+			displayTag = "根目录"
+		}
+		http.Error(w, fmt.Sprintf("该对话已在「%s」中收藏", displayTag), http.StatusConflict)
+		return
+	}
+
+	if err := chatStore.InsertFavoriteItem(sn, customTag); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+// RemoveFavoriteChat handles DELETE /api/chat/favorites?sn=xxx&custom_tag=yyy
+// to remove a chat session from favorites. Both sn and custom_tag are required.
+func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
+	sn := r.URL.Query().Get("sn")
+	if sn == "" {
+		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		return
+	}
+	customTag := r.URL.Query().Get("custom_tag")
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	session.chatsMu.Lock()
+	chatStore := session.chatsStore
+	session.chatsMu.Unlock()
+
+	if err := chatStore.DeleteFavoriteItem(sn, customTag); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }

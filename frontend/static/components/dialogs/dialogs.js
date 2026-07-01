@@ -158,4 +158,65 @@ document.addEventListener('alpine:init', function() {
         },
     }));
 
+    // ============================================================
+    // 3. favoriteEditDialog — 收藏夹编辑对话框
+    // ============================================================
+    Alpine.data('favoriteEditDialog', () => ({
+        show: false,
+        customTag: '',
+        existingTags: [],
+        submitting: false,
+        _onConfirm: null,
+
+        open: function(options) {
+            this.existingTags = options.existingTags || [];
+            this.customTag = '';
+            this._onConfirm = options.onConfirm || null;
+            this.submitting = false;
+            this.show = true;
+            var self = this;
+            this.$nextTick(function() {
+                var input = self.$el.querySelector('.fav-edit-combo');
+                if (input) input.focus();
+            });
+        },
+
+        cancel: function() {
+            this.show = false;
+            this._onConfirm = null;
+        },
+
+        confirm: function() {
+            if (this.submitting) return;
+            if (typeof this._onConfirm !== 'function') {
+                this.show = false;
+                return;
+            }
+            this.submitting = true;
+            var tag = this.customTag.trim();
+            var self = this;
+            var result = this._onConfirm(tag);
+            if (result && typeof result.then === 'function') {
+                result.then(function(success) {
+                    if (success) {
+                        self.show = false;
+                        self._onConfirm = null;
+                    } else {
+                        self.submitting = false;
+                    }
+                }).catch(function(e) {
+                    console.error('收藏操作出错:', e);
+                    self.submitting = false;
+                });
+            } else {
+                if (result) {
+                    self.show = false;
+                    self._onConfirm = null;
+                } else {
+                    self.submitting = false;
+                }
+            }
+        },
+    }));
+
 });

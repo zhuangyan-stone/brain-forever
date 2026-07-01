@@ -54,6 +54,7 @@
     <link rel="stylesheet" href="/static/dialogs/dialog.css">
     <link rel="stylesheet" href="/static/dialogs/msg-delete-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/title-edit-dialog.css">
+    <link rel="stylesheet" href="/static/dialogs/favorite-edit-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/portrait-dialog.css">
     <link rel="stylesheet" href="/static/components/wordcloud.css">
     <link rel="stylesheet" href="/static/components/theme-dialog.css">
@@ -172,6 +173,7 @@
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
+                                    <span class="chat-group-count" x-text="'(' + group.items.length + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
@@ -208,6 +210,7 @@
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
+                                    <span class="chat-group-count" x-text="'(' + group.count + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
@@ -219,6 +222,7 @@
                                                 <span class="collapse-arrow date-arrow"
                                                     x-text="$store.chats.isCollapsed(group.label + '|' + sub.dateLabel) ? '+' : '−'"></span>
                                                 <span x-text="sub.dateLabel"></span>
+                                                <span class="chat-group-count" x-text="'(' + sub.items.length + ')'"></span>
                                             </div>
                                             <div class="chat-date-body"
                                                 :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
@@ -328,6 +332,12 @@
                                             @click="$store.chats.selectChat(chat.sn)"
                                             @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                            <button class="chat-item-more-btn"
+                                                @mouseenter="$store.chats.showCategoryContextMenu($event, chat)"
+                                                @click.stop="$store.chats.showCategoryContextMenu($event, chat)">
+                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                                    x-html="ICON_DOTS"></svg>
+                                            </button>
                                         </div>
                                     </template>
                                 </div>
@@ -366,6 +376,12 @@
                                         x-html="ICON_LOADING">
                                     </svg>
                                     <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                    <button class="chat-item-more-btn"
+                                        @mouseenter="$store.chats.showCategoryContextMenu($event, chat)"
+                                        @click.stop="$store.chats.showCategoryContextMenu($event, chat)">
+                                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                            x-html="ICON_DOTS"></svg>
+                                    </button>
                                 </div>
                             </template>
                         </div>
@@ -909,6 +925,39 @@
                     @click="close">
                     关闭
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         收藏夹编辑对话框（Alpine 组件：favoriteEditDialog）
+         ============================================================ -->
+    <div class="fav-edit-overlay" id="favoriteEditDialog"
+        x-data="favoriteEditDialog()"
+        :class="{ show: show }"
+        @click.self="cancel">
+        <div class="fav-edit-box">
+            <div class="fav-edit-header">
+                <h3>添加收藏</h3>
+                <button class="fav-edit-close-btn" @click="cancel" aria-label="关闭">&times;</button>
+            </div>
+            <div class="fav-edit-body">
+                <label class="fav-edit-label">收藏到（留空表示根目录）：</label>
+                <input class="fav-edit-combo" type="text" list="favTagDatalist"
+                    x-model="customTag" placeholder="选择或输入收藏夹目录名"
+                    maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
+                <datalist id="favTagDatalist">
+                    <option value="">根目录</option>
+                    <template x-for="tag in existingTags" :key="tag">
+                        <option :value="tag" x-text="tag || '根目录'"></option>
+                    </template>
+                </datalist>
+            </div>
+            <div class="fav-edit-footer">
+                <button class="fav-edit-btn" @click="cancel">取消</button>
+                <button class="fav-edit-btn fav-edit-btn-confirm" @click="confirm"
+                    :disabled="submitting"
+                    x-text="submitting ? '提交中…' : '确认'">确认</button>
             </div>
         </div>
     </div>

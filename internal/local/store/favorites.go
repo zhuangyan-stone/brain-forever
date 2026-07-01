@@ -106,6 +106,20 @@ func (s *ChatStore) DeleteFavoriteItem(chatSN, customTag string) error {
 	return nil
 }
 
+// DeleteFavoriteItemsByChatSN deletes all favorite records for the given chat SN.
+// Returns the number of rows deleted.
+func (s *ChatStore) DeleteFavoriteItemsByChatSN(chatSN string) (int64, error) {
+	result, err := s.db.Exec(
+		`DELETE FROM chat_favorites WHERE chat_sn = ?`,
+		chatSN,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_favorite_failed"), err)
+	}
+	rows, _ := result.RowsAffected()
+	return rows, nil
+}
+
 // FavoritedChatTitleTag represents a chat session that has been favorited,
 // joined with its custom tag from the chat_favorites table.
 type FavoritedChatTitleTag struct {

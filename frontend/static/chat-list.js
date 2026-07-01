@@ -6,10 +6,11 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits, fetchChatTags } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits, fetchChatTags, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
 import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
+import { showFavoriteEditDialog } from './dialogs/favorite-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE } from './svg_icons_re.js';
+import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { visualLength, truncateByVisualLength, escapeHtml } from './toolsets.js';
@@ -758,6 +759,213 @@ async function handleRename(chat) {
 }
 
 /**
+ * 处理收藏操作：弹出对话框选择目录，添加收藏。
+ */
+async function handleToggleFavorite(chat) {
+    var chatsStore = window.Alpine.store('chats');
+
+    // 收集已有的收藏夹目录名
+    var existingTags = [];
+    if (chatsStore && chatsStore.favoritesGroups) {
+        existingTags = Object.keys(chatsStore.favoritesGroups).filter(function(t) { return t !== ''; });
+        existingTags.sort();
+    }
+    showFavoriteEditDialog({
+        existingTags: existingTags,
+        onConfirm: async function(customTag) {
+            // 静默去除前后空白
+            var tag = (customTag || '').trim();
+            var isDuplicate = false;
+            if (chatsStore && chatsStore.favoritesGroups) {
+                var items = chatsStore.favoritesGroups[tag];
+                if (items && items.some(function(c) { return c.sn === chat.sn; })) {
+                    isDuplicate = true;
+                }
+            }
+            if (isDuplicate) {
+                showToast('该收藏已经存在，请勿重复操作', 'error');
+                return false;
+            }
+            var ok = await addFavoriteChat(chat.sn, tag);
+            if (!ok) {
+                showToast('添加收藏失败', 'error');
+                return false;
+            }
+            if (chatsStore && chatsStore.loadFavorites) {
+                await chatsStore.loadFavorites();
+            }
+            showToast('已收藏', 'success');
+            return true;
+        },
+    });
+}
+
+// ============================================================
+// 类别页面的上下文菜单（收藏、重命名、提取个人特征、删除）
+// ============================================================
+
+/**
+ * 显示类别页面的上下文菜单
+ */
+function showCategoryContextMenu(e, chat) {
+    if (contextMenuEl && contextTargetSN === chat.sn) {
+        return;
+    }
+    closeContextMenu();
+
+    contextTargetSN = chat.sn;
+
+    const menu = document.createElement('div');
+    menu.className = 'chat-context-menu';
+    menu.style.position = 'fixed';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuWidth = 160;
+    const menuHeight = 36 * 4 + 4 + 10; // 4 items + padding + separator
+
+    const isSmallScreen = document.body.classList.contains('small-screen-mode');
+    let left, top;
+
+    if (isSmallScreen) {
+        left = rect.left;
+        top = rect.bottom + 4;
+        if (left + menuWidth > window.innerWidth) {
+            left = window.innerWidth - menuWidth - 8;
+        }
+        if (top + menuHeight > window.innerHeight) {
+            top = rect.top - menuHeight - 4;
+        }
+    } else {
+        left = rect.right + 4;
+        top = rect.top;
+        if (left + menuWidth > window.innerWidth) {
+            left = rect.left - menuWidth - 4;
+        }
+        if (top + menuHeight > window.innerHeight) {
+            top = window.innerHeight - menuHeight - 8;
+        }
+    }
+
+    menu.style.left = Math.max(4, left) + 'px';
+    menu.style.top = Math.max(4, top) + 'px';
+
+    // 收藏（未收藏→弹出对话框；已收藏→直接取消）
+    const favItem = document.createElement('div');
+    favItem.className = 'chat-context-menu-item';
+    favItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_STAR + '</svg> 收藏';
+    favItem.addEventListener('click', function() {
+        closeContextMenu();
+        handleToggleFavorite(chat);
+    });
+    menu.appendChild(favItem);
+
+    // 重命名
+    const renameItem = document.createElement('div');
+    renameItem.className = 'chat-context-menu-item';
+    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名';
+    renameItem.addEventListener('click', function() {
+        closeContextMenu();
+        handleRename(chat);
+    });
+    menu.appendChild(renameItem);
+
+    var chatsStore = window.Alpine.store('chats');
+
+    // 提取个人特征 — 复用 showContextMenu 中的逻辑
+    const traitItem = document.createElement('div');
+    traitItem.className = 'chat-context-menu-item';
+
+    const isActive = chatsStore && chat.sn === chatsStore.activeChatSN;
+    const hasExtracted = !!chat.extracted_at;
+    const hasCount = chat.extracted_count > 0;
+
+    let traitDisabled = false;
+    let traitLabel = '提取个人特征';
+
+    if (hasExtracted) {
+        if (isActive) {
+            const groups = chatsStore.active && chatsStore.active.groups;
+            let lastMsgCreatedAt = null;
+            if (groups && groups.length > 0) {
+                const lastGroup = groups[groups.length - 1];
+                if (lastGroup.assistant && lastGroup.assistant.createdAt) {
+                    lastMsgCreatedAt = lastGroup.assistant.createdAt;
+                } else if (lastGroup.user && lastGroup.user.createdAt) {
+                    lastMsgCreatedAt = lastGroup.user.createdAt;
+                }
+            }
+            if (lastMsgCreatedAt && chat.extracted_at) {
+                const extractedTime = new Date(chat.extracted_at).getTime();
+                const lastMsgTime = new Date(lastMsgCreatedAt).getTime();
+                if (!isNaN(extractedTime) && !isNaN(lastMsgTime) && lastMsgTime > extractedTime) {
+                    traitLabel = '继续提取个人特征';
+                } else {
+                    traitDisabled = true;
+                    traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
+                }
+            } else {
+                traitLabel = '继续提取个人特征';
+            }
+        } else {
+            traitDisabled = true;
+            traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
+        }
+    }
+
+    traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
+
+    if (traitDisabled) {
+        traitItem.classList.add(hasCount ? 'chat-context-menu-item-success' : 'chat-context-menu-item-disabled');
+    } else {
+        traitItem.addEventListener('click', function() {
+            closeContextMenu();
+            handleExtractTraits(chat);
+        });
+    }
+    menu.appendChild(traitItem);
+
+    // 分隔线
+    const separator = document.createElement('div');
+    separator.className = 'chat-context-menu-separator';
+    menu.appendChild(separator);
+
+    // 删除（警告色）
+    const deleteItem = document.createElement('div');
+    deleteItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
+    deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除';
+    deleteItem.addEventListener('click', function() {
+        closeContextMenu();
+        handleDelete(chat);
+    });
+    menu.appendChild(deleteItem);
+
+    document.body.appendChild(menu);
+    contextMenuEl = menu;
+
+    // 大屏 hover 模式
+    if (!isSmallScreen) {
+        menu.addEventListener('mouseenter', function onMenuEnter() {
+            if (hoverMenuTimer) {
+                clearTimeout(hoverMenuTimer);
+                hoverMenuTimer = null;
+            }
+        });
+        menu.addEventListener('mouseleave', function onMenuLeave() {
+            if (hoverMenuTimer) {
+                clearTimeout(hoverMenuTimer);
+            }
+            hoverMenuTimer = setTimeout(function() {
+                closeContextMenu();
+            }, 200);
+        });
+    }
+
+    setTimeout(function() {
+        document.addEventListener('click', closeContextMenu, { once: true });
+    }, 0);
+}
+
+/**
  * 切换置顶状态
  * ★ 迁移后：从 store.chats 获取列表
  */
@@ -1106,6 +1314,7 @@ try {
     if (chats) {
         chats.selectChat = selectChat;
         chats.showContextMenu = showContextMenu;
+        chats.showCategoryContextMenu = showCategoryContextMenu;
         // 当鼠标进入某个对话项时，如果当前有打开的上下文菜单且属于其他对话，立即关闭。
         // 由 Alpine 模板 @mouseenter="$store.chats.maybeCloseContextMenu(chat)" 调用。
         chats.maybeCloseContextMenu = function(chat) {

@@ -1,0 +1,117 @@
+/* ============================================================
+   favorite-edit-dialog.css — 收藏夹编辑对话框样式
+   ============================================================ */
+
+.fav-edit-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.fav-edit-overlay.show {
+    opacity: 1;
+}
+
+.fav-edit-box {
+    background: var(--dialog-bg, #fff);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    width: 360px;
+    max-width: 90vw;
+    overflow: hidden;
+}
+
+.fav-edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 0;
+}
+
+.fav-edit-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+}
+
+.fav-edit-close-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--text-secondary, #888);
+    line-height: 1;
+    padding: 0 4px;
+}
+.fav-edit-close-btn:hover {
+    color: var(--text-primary, #1a1a1a);
+}
+
+.fav-edit-body {
+    padding: 16px 20px;
+}
+
+.fav-edit-label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary, #666);
+    margin-bottom: 8px;
+}
+
+.fav-edit-combo {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--input-bg, #fff);
+    color: var(--text-primary, #1a1a1a);
+    outline: none;
+    box-sizing: border-box;
+    /* combo box 既可选择也可输入 */
+}
+.fav-edit-combo:focus {
+    border-color: var(--accent-color, #4a90d9);
+    box-shadow: 0 0 0 2px var(--accent-shadow, rgba(74, 144, 217, 0.15));
+}
+
+.fav-edit-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0 20px 16px;
+}
+
+.fav-edit-btn {
+    padding: 7px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border-color, #ddd);
+    background: var(--btn-bg, #f5f5f5);
+    color: var(--text-primary, #1a1a1a);
+    transition: background 0.15s;
+}
+.fav-edit-btn:hover {
+    background: var(--btn-hover-bg, #e8e8e8);
+}
+
+.fav-edit-btn-confirm {
+    background: var(--accent-color, #4a90d9);
+    color: #fff;
+    border-color: var(--accent-color, #4a90d9);
+}
+.fav-edit-btn-confirm:hover {
+    opacity: 0.9;
+}
+.fav-edit-btn-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

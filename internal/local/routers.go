@@ -12,6 +12,8 @@ import (
 func InitRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
 	srv.GET("/api/info/llm/chat", chatHandler.OnGetLLMInfo)
 	srv.GET("/api/chat/favorites", chatHandler.ListFavoriteChats)
+	srv.PUT("/api/chat/favorites", chatHandler.AddFavoriteChat)
+	srv.DELETE("/api/chat/favorites", chatHandler.RemoveFavoriteChat)
 	srv.GET("/api/session", chatHandler.OnSession)
 	srv.GET("/api/chat/list", chatHandler.OnGetChats)
 	srv.PUT("/api/chat/new", chatHandler.OnNewChat)

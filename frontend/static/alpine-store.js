@@ -634,13 +634,16 @@ document.addEventListener('alpine:init', function() {
             });
             if (earlierDates.length > 0) {
                 var earlierItems = [];
+                var earlierTotal = 0;
                 for (var j = 0; j < earlierDates.length; j++) {
+                    var dayItems = earlier[earlierDates[j]];
+                    earlierTotal += dayItems.length;
                     earlierItems.push({
                         dateLabel: earlierDates[j],
-                        items: earlier[earlierDates[j]],
+                        items: dayItems,
                     });
                 }
-                groups.push({ label: '更早', type: 'earlier', subGroups: earlierItems });
+                groups.push({ label: '更早', type: 'earlier', subGroups: earlierItems, count: earlierTotal });
             }
 
         // 7. 回收站 — 始终在时间线最底部

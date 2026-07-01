@@ -558,6 +558,44 @@ export async function fetchChatGroups() {
     }
     
     /**
+     * addFavoriteChat 添加指定对话到收藏夹。
+     * @param {string} sn - 对话 SN
+     * @param {string} customTag - 收藏夹目录名（空串表示根目录）
+     * @returns {Promise<boolean>} 是否成功
+     */
+    export async function addFavoriteChat(sn, customTag) {
+        if (!sn) return false;
+        try {
+            const url = '/api/chat/favorites?sn=' + encodeURIComponent(sn) +
+                '&custom_tag=' + encodeURIComponent(customTag || '');
+            const response = await fetch(url, { method: 'PUT' });
+            return response.ok;
+        } catch (e) {
+            console.warn('添加收藏失败:', e);
+            return false;
+        }
+    }
+
+    /**
+     * removeFavoriteChat 从收藏夹移除指定对话。
+     * @param {string} sn - 对话 SN
+     * @param {string} customTag - 收藏夹目录名（空串表示根目录）
+     * @returns {Promise<boolean>} 是否成功
+     */
+    export async function removeFavoriteChat(sn, customTag) {
+        if (!sn) return false;
+        try {
+            const url = '/api/chat/favorites?sn=' + encodeURIComponent(sn) +
+                '&custom_tag=' + encodeURIComponent(customTag || '');
+            const response = await fetch(url, { method: 'DELETE' });
+            return response.ok;
+        } catch (e) {
+            console.warn('取消收藏失败:', e);
+            return false;
+        }
+    }
+
+    /**
      * fetchFavorites 获取已收藏的对话列表（按 custom_tag 分组）。
      * @returns {Promise<Object<string, Array<{sn: string, title: string, custom_tag: string, create_at: string, update_at: string}>>|null>}
      */
