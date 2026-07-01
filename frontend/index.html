@@ -946,13 +946,13 @@
                 <input class="fav-edit-combo" type="text" list="favTagDatalist"
                     x-model="customTag" placeholder="选择或输入收藏夹目录名"
                     maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
-                <datalist id="favTagDatalist">
-                    <option value="">根目录</option>
-                    <template x-for="tag in existingTags" :key="tag">
-                        <option :value="tag" x-text="tag || '根目录'"></option>
-                    </template>
-                </datalist>
             </div>
+            <datalist id="favTagDatalist">
+                <option value="">根目录</option>
+                <template x-for="tag in existingTags" :key="tag">
+                    <option :value="tag" x-text="tag || '根目录'"></option>
+                </template>
+            </datalist>
             <div class="fav-edit-footer">
                 <button class="fav-edit-btn" @click="cancel">取消</button>
                 <button class="fav-edit-btn fav-edit-btn-confirm" @click="confirm"
