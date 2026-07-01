@@ -10,7 +10,7 @@
         <ellipse cx="1300" cy="720" rx="10" ry="3" fill="#8A9A6A" opacity="0.04" stroke="none"/>
         
         <!-- 透明茶汤（明前绿茶，清亮嫩绿） — 八分满，水面微澜 -->
-        <path d="M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z" fill="#B8A050" opacity="0.38" stroke="none">
+        <path d="M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z" fill="#679a4d" opacity="0.28" stroke="none">
           <animate attributeName="d" dur="7s" repeatCount="indefinite"
             values="
               M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z;
@@ -24,7 +24,8 @@
         </path>
         
         <!-- 玻璃光晕 — 杯壁反光 + 水面高光 -->
-        <ellipse cx="1305" cy="740" rx="4" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
+        <ellipse cx="1305" cy="730" rx="3.5" ry="1" fill="#FFFFFF" opacity="0.48" stroke="none"/>
+        <ellipse cx="1296" cy="743" rx="4" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
       </g>
       
       <!-- 茶烟袅袅 — 由浓渐散，3D 逆时针扭转 -->
