@@ -52,3 +52,267 @@ other = "AI："
 [portrait_hot_tags_prefix]
 other = "你和AI最常谈到的领域有："
 
+# ============================================================
+# Database operation error messages —used in internal/local/store/
+# All keys prefixed with db_
+# ============================================================
+
+# scheme.go
+[db_init_chat_tables_failed]
+other = "初始化对话数据表失败"
+
+# chats.go — initialization, insert, delete, query
+[db_create_chat_db_file_failed]
+other = "创建对话数据库文件失败"
+
+[db_open_chat_db_failed]
+other = "打开对话数据库失败"
+
+[db_insert_chat_failed]
+other = "创建对话记录失败"
+
+[db_query_inserted_chat_failed]
+other = "查询新创建的对话失败"
+
+[db_logic_delete_session_failed]
+other = "逻辑删除对话失败"
+
+[db_session_not_found]
+other = "未找到指定对话"
+
+[db_begin_transaction_failed]
+other = "开启数据库事务失败"
+
+[db_check_session_existence_failed]
+other = "检查对话是否存在失败"
+
+[db_delete_tags_of_session_failed]
+other = "删除对话标签失败"
+
+[db_delete_web_sources_of_session_failed]
+other = "删除对话网页资源失败"
+
+[db_delete_messages_of_session_failed]
+other = "删除对话消息失败"
+
+[db_physical_delete_session_failed]
+other = "物理删除对话失败"
+
+[db_commit_transaction_failed]
+other = "提交数据库事务失败"
+
+[db_list_deleted_chats_failed]
+other = "列取已删除对话失败"
+
+[db_restore_chat_failed]
+other = "恢复对话失败"
+
+[db_list_chats_failed]
+other = "列取对话列表失败"
+
+[db_update_chat_title_failed]
+other = "更新对话标题失败"
+
+[db_update_chat_pin_failed]
+other = "更新对话置顶状态失败"
+
+[db_update_chat_tag_failed]
+other = "更新对话分类标记失败"
+
+[db_query_deleted_chats_failed]
+other = "查询已删除对话失败"
+
+[db_delete_tags_for_chat_failed]
+other = "删除对话标签失败"
+
+[db_delete_web_sources_for_chat_failed]
+other = "删除对话网页资源失败"
+
+[db_delete_messages_for_chat_failed]
+other = "删除对话消息失败"
+
+[db_delete_trashed_sessions_failed]
+other = "清空回收站失败"
+
+[db_update_extraction_progress_failed]
+other = "更新特征提取进度失败"
+
+[db_mark_messages_extracted_failed]
+other = "标记消息已提取失败"
+
+[db_touch_chat_update_at_failed]
+other = "更新对话时间戳失败"
+
+[db_list_chat_titles_failed]
+other = "列表对话标题失败"
+
+[db_select_chat_title_tag_groups_failed]
+other = "按分类分组查询对话失败"
+
+# messages.go
+[db_insert_message_failed]
+other = "插入消息失败"
+
+[db_list_messages_failed]
+other = "查询消息列表失败"
+
+[db_list_messages_by_range_failed]
+other = "按范围查询消息失败"
+
+[db_list_unextracted_messages_failed]
+other = "查询未提取消息失败"
+
+[db_count_messages_failed]
+other = "统计消息数量失败"
+
+[db_delete_web_sources_for_message_group_failed]
+other = "删除消息组网页资源失败"
+
+[db_delete_message_group_failed]
+other = "删除消息组失败"
+
+# tags.go
+[db_select_tag_groups_failed]
+other = "查询标签分组失败"
+
+[db_select_non_empty_tag_groups_failed]
+other = "查询非空标签分组失败"
+
+[db_insert_chat_tag_failed]
+other = "插入对话标签失败"
+
+[db_query_inserted_chat_tag_failed]
+other = "查询新插入的标签失败"
+
+[db_list_chat_tags_failed]
+other = "查询对话标签列表失败"
+
+[db_delete_chat_tag_failed]
+other = "删除对话标签失败"
+
+[db_chat_tag_not_found]
+other = "未找到指定标签"
+
+[db_delete_chat_tags_for_chat_failed]
+other = "删除对话的所有标签失败"
+
+# websource.go
+[db_insert_web_source_failed]
+other = "插入网页资源失败"
+
+[db_list_web_sources_failed]
+other = "查询网页资源列表失败"
+
+# users.go
+[db_open_user_db_failed]
+other = "打开用户数据库失败"
+
+[db_init_user_table_failed]
+other = "初始化用户数据表失败"
+
+[db_duplicate_uuid]
+other = "用户唯一标识重复"
+
+[db_create_user_failed]
+other = "创建用户失败"
+
+[db_create_default_role_failed]
+other = "创建默认角色失败"
+
+[db_user_not_found_by_id]
+other = "未找到指定用户"
+
+[db_user_not_found_by_uuid]
+other = "未找到指定用户"
+
+[db_query_user_failed]
+other = "查询用户信息失败"
+
+[db_update_nickname_failed]
+other = "更新用户昵称失败"
+
+[db_update_password_failed]
+other = "更新用户密码失败"
+
+[db_delete_user_roles_failed]
+other = "删除用户角色失败"
+
+[db_delete_user_failed]
+other = "删除用户失败"
+
+[db_list_users_failed]
+other = "查询用户列表失败"
+
+# roles.go
+[db_open_role_db_failed]
+other = "打开角色数据库失败"
+
+[db_init_role_table_failed]
+other = "初始化角色数据表失败"
+
+[db_create_role_failed]
+other = "创建角色失败"
+
+[db_role_not_found]
+other = "未找到指定角色"
+
+[db_query_role_failed]
+other = "查询角色信息失败"
+
+[db_list_roles_failed]
+other = "查询角色列表失败"
+
+[db_list_active_roles_failed]
+other = "查询活跃角色列表失败"
+
+[db_update_role_failed]
+other = "更新角色信息失败"
+
+[db_update_role_active_status_failed]
+other = "更新角色活跃状态失败"
+
+[db_delete_role_failed]
+other = "删除角色失败"
+
+# traits.go (VectorStore)
+[db_open_vector_db_failed]
+other = "打开特征向量数据库失败"
+
+[db_vec_not_loaded]
+other = "向量扩展未正确加载"
+
+[db_insert_trait_failed]
+other = "插入个人特征失败"
+
+[db_insert_trait_vector_failed]
+other = "插入特征向量失败"
+
+[db_insert_keyword_failed]
+other = "插入关键词失败"
+
+[db_vector_search_failed]
+other = "向量搜索失败"
+
+[db_keyword_search_failed]
+other = "关键词搜索失败"
+
+[db_fuzzy_keyword_search_failed]
+other = "模糊关键词搜索失败"
+
+[db_delete_trait_vector_failed]
+other = "删除特征向量失败"
+
+[db_delete_keywords_failed]
+other = "删除关键词失败"
+
+[db_delete_trait_failed]
+other = "删除个人特征失败"
+
+[db_trait_not_found]
+other = "未找到指定特征"
+
+[db_list_traits_by_chat_failed]
+other = "按对话查询特征列表失败"
+
+[db_list_all_traits_failed]
+other = "查询所有特征列表失败"

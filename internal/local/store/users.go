@@ -11,6 +11,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+
+	"BrainForever/infra/i18n"
 )
 
 // ============================================================
@@ -41,7 +43,7 @@ type UserStore struct {
 func NewUserStore(dbPath string) (*UserStore, error) {
 	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open user database. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_user_db_failed"), err)
 	}
 
 	store := &UserStore{db: db}
@@ -73,7 +75,7 @@ func (s *UserStore) initSchema() error {
 	`
 	_, err := s.db.Exec(schema)
 	if err != nil {
-		return fmt.Errorf("failed to initialize user table. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_init_user_table_failed"), err)
 	}
 	return nil
 }
@@ -146,7 +148,7 @@ func (s *UserStore) CreateUser(systemPrefix, luckChars, nickname, rawPassword st
 
 	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("failed to begin transaction. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_begin_transaction_failed"), err)
 	}
 	defer tx.Rollback()
 
@@ -158,9 +160,9 @@ func (s *UserStore) CreateUser(systemPrefix, luckChars, nickname, rawPassword st
 	if err != nil {
 		// Check for uuid duplicate
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return nil, fmt.Errorf("duplicate uuid. %w", err)
+			return nil, fmt.Errorf("%s: %w", i18n.T("db_duplicate_uuid"), err)
 		}
-		return nil, fmt.Errorf("failed to create user. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_create_user_failed"), err)
 	}
 
 	id, _ := result.LastInsertId()
@@ -171,11 +173,11 @@ func (s *UserStore) CreateUser(systemPrefix, luckChars, nickname, rawPassword st
 		0, "self", uuid, 0, 1,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create default role. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_create_default_role_failed"), err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_commit_transaction_failed"), err)
 	}
 
 	return s.GetUserByID(id)
@@ -187,9 +189,9 @@ func (s *UserStore) GetUserByID(id int64) (*User, error) {
 	err := s.db.Get(&u, "SELECT id, nickname, uuid, password, create_at, update_at FROM users WHERE id = ?", id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found (id=%d)", id)
+			return nil, fmt.Errorf("%s (id=%d)", i18n.T("db_user_not_found_by_id"), id)
 		}
-		return nil, fmt.Errorf("failed to query user. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_user_failed"), err)
 	}
 	return &u, nil
 }
@@ -200,9 +202,9 @@ func (s *UserStore) GetUserByUUID(uuid string) (*User, error) {
 	err := s.db.Get(&u, "SELECT id, nickname, uuid, password, create_at, update_at FROM users WHERE uuid = ?", uuid)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found (uuid=%s)", uuid)
+			return nil, fmt.Errorf("%s (uuid=%s)", i18n.T("db_user_not_found_by_uuid"), uuid)
 		}
-		return nil, fmt.Errorf("failed to query user. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_user_failed"), err)
 	}
 	return &u, nil
 }
@@ -228,11 +230,11 @@ func (s *UserStore) UpdateNickname(id int64, newNickname string) error {
 
 	result, err := s.db.Exec("UPDATE users SET nickname = ? WHERE id = ?", newNickname, id)
 	if err != nil {
-		return fmt.Errorf("failed to update nickname. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_update_nickname_failed"), err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("user not found (id=%d)", id)
+		return fmt.Errorf("%s (id=%d)", i18n.T("db_user_not_found_by_id"), id)
 	}
 	return nil
 }
@@ -253,7 +255,7 @@ func (s *UserStore) UpdatePassword(id int64, newRawPassword string) error {
 	newPassword := EncryptPassword(newRawPassword, u.UUID)
 	_, err = s.db.Exec("UPDATE users SET password = ? WHERE id = ?", newPassword, id)
 	if err != nil {
-		return fmt.Errorf("failed to update password. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_update_password_failed"), err)
 	}
 	return nil
 }
@@ -269,24 +271,24 @@ func (s *UserStore) DeleteUser(id int64) error {
 
 	tx, err := s.db.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_begin_transaction_failed"), err)
 	}
 	defer tx.Rollback()
 
 	// First delete all roles for this user
 	_, err = tx.Exec("DELETE FROM roles WHERE uuid = ?", u.UUID)
 	if err != nil {
-		return fmt.Errorf("failed to delete user roles. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_delete_user_roles_failed"), err)
 	}
 
 	// Then delete the user
 	result, err := tx.Exec("DELETE FROM users WHERE id = ?", id)
 	if err != nil {
-		return fmt.Errorf("failed to delete user. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_delete_user_failed"), err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("user not found (id=%d)", id)
+		return fmt.Errorf("%s (id=%d)", i18n.T("db_user_not_found_by_id"), id)
 	}
 
 	return tx.Commit()
@@ -297,7 +299,7 @@ func (s *UserStore) ListUsers() ([]User, error) {
 	var users []User
 	err := s.db.Select(&users, "SELECT id, nickname, uuid, password, create_at, update_at FROM users ORDER BY id")
 	if err != nil {
-		return nil, fmt.Errorf("failed to list users. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_users_failed"), err)
 	}
 	return users, nil
 }

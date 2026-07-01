@@ -52,3 +52,267 @@ other = "AI: "
 [portrait_hot_tags_prefix]
 other = "Topics you and AI talk about most often: "
 
+# ============================================================
+# Database operation error messages —used in internal/local/store/
+# All keys prefixed with db_
+# ============================================================
+
+# scheme.go
+[db_init_chat_tables_failed]
+other = "failed to initialize chat tables"
+
+# chats.go — initialization, insert, delete, query
+[db_create_chat_db_file_failed]
+other = "failed to create chat database file"
+
+[db_open_chat_db_failed]
+other = "failed to open chat database"
+
+[db_insert_chat_failed]
+other = "failed to insert chat"
+
+[db_query_inserted_chat_failed]
+other = "failed to query inserted chat"
+
+[db_logic_delete_session_failed]
+other = "failed to logic delete session"
+
+[db_session_not_found]
+other = "session not found"
+
+[db_begin_transaction_failed]
+other = "failed to begin transaction"
+
+[db_check_session_existence_failed]
+other = "failed to check session existence"
+
+[db_delete_tags_of_session_failed]
+other = "failed to delete tags of session"
+
+[db_delete_web_sources_of_session_failed]
+other = "failed to delete web sources of session"
+
+[db_delete_messages_of_session_failed]
+other = "failed to delete messages of session"
+
+[db_physical_delete_session_failed]
+other = "failed to physical delete session"
+
+[db_commit_transaction_failed]
+other = "failed to commit transaction"
+
+[db_list_deleted_chats_failed]
+other = "failed to list deleted chats"
+
+[db_restore_chat_failed]
+other = "failed to restore chat"
+
+[db_list_chats_failed]
+other = "failed to list chats"
+
+[db_update_chat_title_failed]
+other = "failed to update chat title"
+
+[db_update_chat_pin_failed]
+other = "failed to update chat pin"
+
+[db_update_chat_tag_failed]
+other = "failed to update chat tag"
+
+[db_query_deleted_chats_failed]
+other = "failed to query deleted chats"
+
+[db_delete_tags_for_chat_failed]
+other = "failed to delete tags for chat"
+
+[db_delete_web_sources_for_chat_failed]
+other = "failed to delete web sources for chat"
+
+[db_delete_messages_for_chat_failed]
+other = "failed to delete messages for chat"
+
+[db_delete_trashed_sessions_failed]
+other = "failed to delete trashed sessions"
+
+[db_update_extraction_progress_failed]
+other = "failed to update extraction progress"
+
+[db_mark_messages_extracted_failed]
+other = "failed to mark messages as extracted"
+
+[db_touch_chat_update_at_failed]
+other = "failed to touch chat update_at"
+
+[db_list_chat_titles_failed]
+other = "failed to list chat titles"
+
+[db_select_chat_title_tag_groups_failed]
+other = "failed to select chat title tag groups"
+
+# messages.go
+[db_insert_message_failed]
+other = "failed to insert message"
+
+[db_list_messages_failed]
+other = "failed to list messages"
+
+[db_list_messages_by_range_failed]
+other = "failed to list messages by range"
+
+[db_list_unextracted_messages_failed]
+other = "failed to list un-extracted messages"
+
+[db_count_messages_failed]
+other = "failed to count messages"
+
+[db_delete_web_sources_for_message_group_failed]
+other = "failed to delete web sources for message group"
+
+[db_delete_message_group_failed]
+other = "failed to delete message group"
+
+# tags.go
+[db_select_tag_groups_failed]
+other = "failed to select tag groups"
+
+[db_select_non_empty_tag_groups_failed]
+other = "failed to select non-empty tag groups"
+
+[db_insert_chat_tag_failed]
+other = "failed to insert chat tag"
+
+[db_query_inserted_chat_tag_failed]
+other = "failed to query inserted chat tag"
+
+[db_list_chat_tags_failed]
+other = "failed to list chat tags"
+
+[db_delete_chat_tag_failed]
+other = "failed to delete chat tag"
+
+[db_chat_tag_not_found]
+other = "chat tag not found"
+
+[db_delete_chat_tags_for_chat_failed]
+other = "failed to delete chat tags for chat"
+
+# websource.go
+[db_insert_web_source_failed]
+other = "failed to insert web source"
+
+[db_list_web_sources_failed]
+other = "failed to list web sources"
+
+# users.go
+[db_open_user_db_failed]
+other = "failed to open user database"
+
+[db_init_user_table_failed]
+other = "failed to initialize user table"
+
+[db_duplicate_uuid]
+other = "duplicate uuid"
+
+[db_create_user_failed]
+other = "failed to create user"
+
+[db_create_default_role_failed]
+other = "failed to create default role"
+
+[db_user_not_found_by_id]
+other = "user not found"
+
+[db_user_not_found_by_uuid]
+other = "user not found"
+
+[db_query_user_failed]
+other = "failed to query user"
+
+[db_update_nickname_failed]
+other = "failed to update nickname"
+
+[db_update_password_failed]
+other = "failed to update password"
+
+[db_delete_user_roles_failed]
+other = "failed to delete user roles"
+
+[db_delete_user_failed]
+other = "failed to delete user"
+
+[db_list_users_failed]
+other = "failed to list users"
+
+# roles.go
+[db_open_role_db_failed]
+other = "failed to open role database"
+
+[db_init_role_table_failed]
+other = "failed to initialize role table"
+
+[db_create_role_failed]
+other = "failed to create role"
+
+[db_role_not_found]
+other = "role not found"
+
+[db_query_role_failed]
+other = "failed to query role"
+
+[db_list_roles_failed]
+other = "failed to list roles"
+
+[db_list_active_roles_failed]
+other = "failed to list active roles"
+
+[db_update_role_failed]
+other = "failed to update role"
+
+[db_update_role_active_status_failed]
+other = "failed to update role active status"
+
+[db_delete_role_failed]
+other = "failed to delete role"
+
+# traits.go (VectorStore)
+[db_open_vector_db_failed]
+other = "failed to open database"
+
+[db_vec_not_loaded]
+other = "sqlite-vec not loaded correctly"
+
+[db_insert_trait_failed]
+other = "failed to insert trait"
+
+[db_insert_trait_vector_failed]
+other = "failed to insert trait vector"
+
+[db_insert_keyword_failed]
+other = "failed to insert keyword"
+
+[db_vector_search_failed]
+other = "vector search failed"
+
+[db_keyword_search_failed]
+other = "keyword search failed"
+
+[db_fuzzy_keyword_search_failed]
+other = "fuzzy keyword search failed"
+
+[db_delete_trait_vector_failed]
+other = "failed to delete trait vector"
+
+[db_delete_keywords_failed]
+other = "failed to delete keywords"
+
+[db_delete_trait_failed]
+other = "failed to delete trait"
+
+[db_trait_not_found]
+other = "trait not found"
+
+[db_list_traits_by_chat_failed]
+other = "list traits by chat failed"
+
+[db_list_all_traits_failed]
+other = "list all traits failed"

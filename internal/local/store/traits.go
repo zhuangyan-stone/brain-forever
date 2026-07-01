@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
 
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
@@ -67,7 +68,7 @@ func NewVectorStore(dbPath string, dimension int, logger zylog.Logger) (*VectorS
 
 	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_vector_db_failed"), err)
 	}
 
 	store := &VectorStore{db: db, dimension: dimension, logger: logger}
@@ -82,7 +83,7 @@ func (s *VectorStore) initSchema() error {
 	// Verify sqlite-vec is loaded
 	var vecVersion string
 	if err := s.db.QueryRow("SELECT vec_version()").Scan(&vecVersion); err != nil {
-		return fmt.Errorf("sqlite-vec not loaded correctly. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_vec_not_loaded"), err)
 	}
 	s.logger.Infof("✓sqlite-vec version: %s", vecVersion)
 
@@ -174,7 +175,7 @@ func (s *VectorStore) AddTrait(ctx context.Context, trait *PersonalTrait, embedd
 		trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.ChatSN,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("failed to insert trait. %w", err)
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_insert_trait_failed"), err)
 	}
 
 	traitID, _ := result.LastInsertId()
@@ -188,7 +189,7 @@ func (s *VectorStore) AddTrait(ctx context.Context, trait *PersonalTrait, embedd
 		traitID, string(vecJSON),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("failed to insert trait vector. %w", err)
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_insert_trait_vector_failed"), err)
 	}
 
 	return traitID, tx.Commit()
@@ -205,7 +206,7 @@ func (s *VectorStore) AddKeyword(kw *TraitKeyword) (int64, error) {
 		kw.Word, kw.Kind, kw.TraitID,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("failed to insert keyword. %w", err)
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_insert_keyword_failed"), err)
 	}
 	return result.LastInsertId()
 }
@@ -239,7 +240,7 @@ func (s *VectorStore) Search(query []float32, category int, topK int) ([]Persona
 
 	rows, err := s.db.Query(sqlQuery, args...)
 	if err != nil {
-		return nil, fmt.Errorf("vector search failed. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_vector_search_failed"), err)
 	}
 	defer rows.Close()
 
@@ -323,7 +324,7 @@ func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]Perso
 
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("keyword search failed. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_keyword_search_failed"), err)
 	}
 	defer rows.Close()
 
@@ -383,7 +384,7 @@ func (s *VectorStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]
 
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("fuzzy keyword search failed. %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_fuzzy_keyword_search_failed"), err)
 	}
 	defer rows.Close()
 
@@ -423,23 +424,23 @@ func (s *VectorStore) Delete(id int64) error {
 
 	// Delete from vec0 virtual table (no FK support, must be explicit)
 	if _, err := tx.Exec("DELETE FROM trait_vectors WHERE rowid = ?", id); err != nil {
-		return fmt.Errorf("failed to delete trait vector. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_delete_trait_vector_failed"), err)
 	}
 
 	// Delete keywords (explicit; ON DELETE CASCADE also handles it if FK is enabled)
 	if _, err := tx.Exec("DELETE FROM keywords WHERE trait_id = ?", id); err != nil {
-		return fmt.Errorf("failed to delete keywords. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_delete_keywords_failed"), err)
 	}
 
 	// Delete the trait itself
 	result, err := tx.Exec("DELETE FROM traits WHERE id = ?", id)
 	if err != nil {
-		return fmt.Errorf("failed to delete trait. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_delete_trait_failed"), err)
 	}
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("trait not found: id=%d", id)
+		return fmt.Errorf("%s (id=%d)", i18n.T("db_trait_not_found"), id)
 	}
 
 	return tx.Commit()
@@ -464,7 +465,7 @@ func (s *VectorStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 		chatSN,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("list traits by chat failed: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_traits_by_chat_failed"), err)
 	}
 	defer rows.Close()
 
@@ -500,7 +501,7 @@ func (s *VectorStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
 		 FROM traits
 		 ORDER BY create_at DESC`)
 	if err != nil {
-		return nil, fmt.Errorf("list all traits failed: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_all_traits_failed"), err)
 	}
 	defer rows.Close()
 

@@ -2,7 +2,27 @@ package store
 
 import (
 	"fmt"
+	"time"
+
+	"BrainForever/infra/i18n"
 )
+
+type Message struct {
+	ID     int64  `db:"id"`      // Auto-increment ID
+	ChatSN string `db:"chat_sn"` // Belonging chat SN (chat_sessions.sn)
+
+	GroupIndex int  `db:"group_index"` // Message group index
+	Role       int8 `db:"role"`        // 0: user 1: assistant
+
+	Reasoning *string `db:"reasoning"`
+	Content   string  `db:"content"` // Content
+
+	Extracted   bool `db:"extracted"`   // Whether extracted, default 0
+	Interrupted int  `db:"interrupted"` // 0=done, 1=user-interrupted, 2=backend-error
+
+	CreateAt time.Time `db:"create_at"`
+	UpdateAt time.Time `db:"update_at"`
+}
 
 // InsertMessage records a new message.
 func (s *ChatStore) InsertMessage(chatSN string, groupIndex int, role int,
@@ -13,7 +33,7 @@ func (s *ChatStore) InsertMessage(chatSN string, groupIndex int, role int,
 		chatSN, groupIndex, role, reasoning, content, interrupted,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to insert message. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_insert_message_failed"), err)
 	}
 	return nil
 }
@@ -30,7 +50,7 @@ func (s *ChatStore) ListMessages(chatSN string) ([]Message, error) {
 		chatSN,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list messages: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_messages_failed"), err)
 	}
 	return msgs, nil
 }
@@ -50,7 +70,7 @@ func (s *ChatStore) ListMessagesByRange(chatSN string, startID int64, limit int)
 		chatSN, startID, limit,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list messages by range: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_messages_by_range_failed"), err)
 	}
 	return msgs, nil
 }
@@ -69,7 +89,7 @@ func (s *ChatStore) ListUnExtractMessages(chatSN string) ([]Message, error) {
 		chatSN,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list un-extracted messages: %w", err)
+		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_unextracted_messages_failed"), err)
 	}
 	return msgs, nil
 }
@@ -82,7 +102,7 @@ func (s *ChatStore) CountMessages(chatSN string) (int, error) {
 		chatSN,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("failed to count messages: %w", err)
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_count_messages_failed"), err)
 	}
 	return count, nil
 }
@@ -92,7 +112,7 @@ func (s *ChatStore) CountMessages(chatSN string) (int, error) {
 func (s *ChatStore) DeleteMessageGroup(chatSN string, groupIndex int) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_begin_transaction_failed"), err)
 	}
 	defer tx.Rollback()
 
@@ -102,7 +122,7 @@ func (s *ChatStore) DeleteMessageGroup(chatSN string, groupIndex int) error {
 		chatSN, groupIndex,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete web sources for message group. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_delete_web_sources_for_message_group_failed"), err)
 	}
 
 	// Delete messages
@@ -111,58 +131,8 @@ func (s *ChatStore) DeleteMessageGroup(chatSN string, groupIndex int) error {
 		chatSN, groupIndex,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete message group. %w", err)
+		return fmt.Errorf("%s: %w", i18n.T("db_delete_message_group_failed"), err)
 	}
 
 	return tx.Commit()
-}
-
-// ============================================================
-// WebSources CRUD
-// ============================================================
-
-// InsertWebSources batch-inserts web sources for a given message group.
-// Each source is associated with the chat and message group index.
-func (s *ChatStore) InsertWebSources(chatSN string, msgID int64, sources []WebSource) error {
-	if len(sources) == 0 {
-		return nil
-	}
-
-	for _, src := range sources {
-		_, err := s.db.Exec(
-			`INSERT INTO web_sources(chat_sn, msg_id, title, content, url,
-			                         site_name, site_icon, publish_date, score)
-			 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			chatSN, msgID,
-			src.Title, src.Content, src.URL,
-			src.SiteName, src.SiteIcon, src.PublishDate, src.Score,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to insert web source. %w", err)
-		}
-	}
-	return nil
-}
-
-// ListWebSourcesByChat queries all web sources for a given chat,
-// grouped by msg_id. Returns a map keyed by msg_id (group_index).
-func (s *ChatStore) ListWebSourcesByChat(chatSN string) (map[int64][]WebSource, error) {
-	var sources []WebSource
-	err := s.db.Select(&sources,
-		`SELECT id, chat_sn, msg_id, title, content, url,
-		        site_name, site_icon, publish_date, score, create_at
-		 FROM web_sources
-		 WHERE chat_sn = ?
-		 ORDER BY msg_id ASC, id ASC`,
-		chatSN,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list web sources: %w", err)
-	}
-
-	result := make(map[int64][]WebSource, 8)
-	for _, src := range sources {
-		result[src.MsgID] = append(result[src.MsgID], src)
-	}
-	return result, nil
 }
