@@ -6,28 +6,28 @@
       "id": "verdant-light",
       "mode": "light",
       "name": "Pure Verdant · Clear Sky",
-      "name_zh": "青葱年华·白天"
+      "name_zh": "青爽·夏日有风"
     },
     {
       "description": "冬夜，深灰简洁",
       "id": "verdant-dark",
       "mode": "dark",
       "name": "Pure Verdant · Nightfall",
-      "name_zh": "青葱年华·夜晚"
+      "name_zh": "青爽·冬天暖阳"
     },
     {
       "description": "国风山水，熟宣暖白，墨色氤氲",
       "id": "shanshui-light",
       "mode": "light",
       "name": "Shanshui · Sunny Mist",
-      "name_zh": "水墨·晴岚"
+      "name_zh": "水墨·晴岚飞鸟"
     },
     {
       "description": "国风山水，夜色浓厚，群山层叠",
       "id": "shanshui-dark",
       "mode": "dark",
       "name": "Shanshui · Night Mountain",
-      "name_zh": "水墨·黛山"
+      "name_zh": "水墨·黛山冷月"
     },
     {
       "description": "雨过天青云破处，清雅亮",
@@ -128,18 +128,18 @@
       "name_zh": "彩蝶·睡意酣"
     },
     {
-      "description": "钢铁灰-老男人的冷",
+      "description": "钢铁灰",
       "id": "nanyu-light",
       "mode": "light",
       "name": "Old Man · Cold Day",
-      "name_zh": "NanYu-老登·白日犯困"
+      "name_zh": "南郁·白日犯困"
     },
     {
-      "description": "熔炉夜-老男人的热",
+      "description": "熔炉夜",
       "id": "nanyu-dark",
       "mode": "dark",
       "name": "Old Man · Hot Night",
-      "name_zh": "NanYu-老登·夜来无眠"
+      "name_zh": "南郁·夜来无眠"
     }
   ]
 }
