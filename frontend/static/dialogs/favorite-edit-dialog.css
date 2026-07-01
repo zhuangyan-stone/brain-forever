@@ -3,19 +3,17 @@
    ============================================================ */
 
 .fav-edit-overlay {
+    display: none;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
-    display: flex;
+    z-index: 1070;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.2s ease;
 }
 
 .fav-edit-overlay.show {
-    opacity: 1;
+    display: flex;
 }
 
 .fav-edit-box {
@@ -31,12 +29,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px 0;
+    padding: 14px 18px 0;
 }
 
 .fav-edit-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-primary, #1a1a1a);
 }
@@ -44,30 +42,30 @@
 .fav-edit-close-btn {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: 20px;
     cursor: pointer;
     color: var(--text-secondary, #888);
     line-height: 1;
-    padding: 0 4px;
+    padding: 0 2px;
 }
 .fav-edit-close-btn:hover {
     color: var(--text-primary, #1a1a1a);
 }
 
 .fav-edit-body {
-    padding: 16px 20px;
+    padding: 12px 18px;
 }
 
 .fav-edit-label {
     display: block;
     font-size: 13px;
     color: var(--text-secondary, #666);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .fav-edit-combo {
     width: 100%;
-    padding: 8px 10px;
+    padding: 7px 10px;
     border: 1px solid var(--border-color, #ddd);
     border-radius: 6px;
     font-size: 14px;
@@ -75,29 +73,33 @@
     color: var(--text-primary, #1a1a1a);
     outline: none;
     box-sizing: border-box;
-    /* combo box 既可选择也可输入 */
 }
 .fav-edit-combo:focus {
     border-color: var(--accent-color, #4a90d9);
     box-shadow: 0 0 0 2px var(--accent-shadow, rgba(74, 144, 217, 0.15));
 }
 
+/* datalist 不应占用布局空间 */
+.fav-edit-body datalist {
+    display: none;
+}
+
 .fav-edit-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 0 20px 16px;
+    gap: 8px;
+    padding: 0 18px 14px;
 }
 
 .fav-edit-btn {
-    padding: 7px 18px;
+    padding: 6px 16px;
     border-radius: 6px;
     font-size: 13px;
     cursor: pointer;
     border: 1px solid var(--border-color, #ddd);
     background: var(--btn-bg, #f5f5f5);
     color: var(--text-primary, #1a1a1a);
-    transition: background 0.15s;
+    line-height: 1.4;
 }
 .fav-edit-btn:hover {
     background: var(--btn-hover-bg, #e8e8e8);
