@@ -1,0 +1,218 @@
+// migrate-chat-id-to-sn 数据迁移工具
+// 将 chat_messages、web_sources、chat_tags 三张表的 chat_id (INTEGER FK→chat_sessions.id)
+// 迁移为 chat_sn (TEXT FK→chat_sessions.sn)。
+//
+// 迁移步骤：
+//  1. 为每张表添加 chat_sn 列（若不存在）
+//  2. 通过 JOIN chat_sessions 更新 chat_sn 值
+//  3. 创建基于 chat_sn 的新索引
+//  4. 删除旧的 chat_id 列（需要 SQLite 3.35.0+）
+//  5. 删除旧索引
+//
+// 注意: 需要 CGO_ENABLED=1 编译运行，因为依赖 go-sqlite3。
+// 建议使用 b.bat 中的环境（已配置 MinGW GCC 路径）。
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+// tableMigrateInfo describes the migration steps for one table.
+type tableMigrateInfo struct {
+	name         string // table name
+	oldIndexName string // old index to drop (empty = skip)
+	newIndexDDL  string // SQL to create new index (empty = skip)
+}
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "❌ %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	entries, err := os.ReadDir("localdb")
+	if err != nil {
+		return fmt.Errorf("读取 localdb 目录失败: %w", err)
+	}
+
+	var dbFiles []string
+	for _, e := range entries {
+		name := e.Name()
+		// Skip WAL/SHM files and non-chat DB files
+		if strings.HasSuffix(name, "-shm") || strings.HasSuffix(name, "-wal") {
+			continue
+		}
+		if !strings.HasSuffix(name, ".chats.db") {
+			continue
+		}
+		dbFiles = append(dbFiles, filepath.Join("localdb", name))
+	}
+
+	if len(dbFiles) == 0 {
+		fmt.Println("⚠️  未找到 *.chats.db")
+		return nil
+	}
+
+	for _, path := range dbFiles {
+		fmt.Printf("\n📂 %s\n", path)
+		if err := migrateOne(path); err != nil {
+			fmt.Fprintf(os.Stderr, "  ❌ %v\n", err)
+		}
+	}
+	return nil
+}
+
+func migrateOne(dbPath string) error {
+	// Normalize path: use forward slashes for SQLite
+	normalized := strings.ReplaceAll(dbPath, "\\", "/")
+	db, err := sql.Open("sqlite3", normalized+"?_journal_mode=WAL&_busy_timeout=5000")
+	if err != nil {
+		return fmt.Errorf("打开数据库失败: %w", err)
+	}
+	defer db.Close()
+
+	// Check if chat_sessions table exists
+	var tbl string
+	if err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='chat_sessions'`).Scan(&tbl); err != nil {
+		return fmt.Errorf("chat_sessions 表不存在")
+	}
+
+	tables := []tableMigrateInfo{
+		{
+			name:         "chat_messages",
+			oldIndexName: "",
+			newIndexDDL:  "CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_sn ON chat_messages(chat_sn)",
+		},
+		{
+			name:         "web_sources",
+			oldIndexName: "idx_web_sources_chat_msg",
+			newIndexDDL:  "CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg ON web_sources(chat_sn, msg_id)",
+		},
+		{
+			name:         "chat_tags",
+			oldIndexName: "idx_chat_tags_chat_id",
+			newIndexDDL:  "CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_sn ON chat_tags(chat_sn)",
+		},
+	}
+
+	for _, ti := range tables {
+		if err := migrateTable(db, ti); err != nil {
+			fmt.Fprintf(os.Stderr, "  ❌ 迁移 %s 失败: %v\n", ti.name, err)
+			continue
+		}
+	}
+
+	return nil
+}
+
+// migrateTable performs migration for a single table.
+func migrateTable(db *sql.DB, ti tableMigrateInfo) error {
+	name := ti.name
+	fmt.Printf("  🔄 处理 %s...\n", name)
+
+	// Step 1: Check if chat_id column exists
+	hasChatID, err := hasColumn(db, name, "chat_id")
+	if err != nil {
+		return err
+	}
+	if !hasChatID {
+		fmt.Printf("  ℹ️  %s 没有 chat_id 列，无需迁移\n", name)
+		return nil
+	}
+
+	// Step 2: Add chat_sn column if not present
+	hasChatSN, err := hasColumn(db, name, "chat_sn")
+	if err != nil {
+		return err
+	}
+	if !hasChatSN {
+		fmt.Printf("  ➕ 添加 chat_sn 列...\n")
+		if _, err := db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN chat_sn TEXT NOT NULL DEFAULT ''", name)); err != nil {
+			return fmt.Errorf("添加 chat_sn 列失败: %w", err)
+		}
+		fmt.Println("  ✅ chat_sn 列已添加")
+	} else {
+		fmt.Println("  ℹ️  chat_sn 列已存在")
+	}
+
+	// Step 3: Populate chat_sn from chat_sessions.sn
+	fmt.Println("  🔄 填充 chat_sn 数据...")
+	result, err := db.Exec(fmt.Sprintf(
+		`UPDATE %s SET chat_sn = (SELECT sn FROM chat_sessions WHERE id = %s.chat_id) WHERE chat_sn = ''`,
+		name, name,
+	))
+	if err != nil {
+		return fmt.Errorf("填充 chat_sn 数据失败: %w", err)
+	}
+	affected, _ := result.RowsAffected()
+	fmt.Printf("  ✅ %d 条记录已更新 chat_sn\n", affected)
+
+	// Step 4: Verify no empty chat_sn values remain
+	var emptyCount int
+	err = db.QueryRow(fmt.Sprintf("SELECT COUNT(1) FROM %s WHERE chat_sn = ''", name)).Scan(&emptyCount)
+	if err == nil && emptyCount > 0 {
+		fmt.Printf("  ⚠️  仍有 %d 条记录的 chat_sn 为空（可能 chat_id 在 chat_sessions 中找不到对应记录）\n", emptyCount)
+	}
+
+	// Step 5: Create new index
+	if ti.newIndexDDL != "" {
+		fmt.Println("  🔄 创建新索引...")
+		if _, err := db.Exec(ti.newIndexDDL); err != nil {
+			return fmt.Errorf("创建新索引失败: %w", err)
+		}
+		fmt.Println("  ✅ 新索引已创建")
+	}
+
+	// Step 6: Drop old index
+	if ti.oldIndexName != "" {
+		fmt.Println("  🗑️ 删除旧索引...")
+		if _, err := db.Exec(fmt.Sprintf("DROP INDEX IF EXISTS %s", ti.oldIndexName)); err != nil {
+			fmt.Printf("  ⚠️  删除旧索引 %s 失败: %v\n", ti.oldIndexName, err)
+		} else {
+			fmt.Println("  ✅ 旧索引已删除")
+		}
+	}
+
+	// Step 7: Drop old chat_id column
+	fmt.Println("  🗑️ 删除旧的 chat_id 列...")
+	if _, err := db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN chat_id", name)); err != nil {
+		fmt.Printf("  ⚠️  删除 chat_id 列失败 (需要 SQLite 3.35.0+): %v\n", err)
+		fmt.Println("  ℹ️  旧的 chat_id 列会被新代码忽略（不在 SELECT 列表中）")
+	} else {
+		fmt.Println("  ✅ chat_id 列已删除")
+	}
+
+	fmt.Printf("  ✅ %s 迁移完成\n", name)
+	return nil
+}
+
+// hasColumn checks whether a table has a specific column.
+func hasColumn(db *sql.DB, tableName, columnName string) (bool, error) {
+	rows, err := db.Query(fmt.Sprintf("PRAGMA table_info(%s)", tableName))
+	if err != nil {
+		return false, fmt.Errorf("查询 %s 的列信息失败: %w", tableName, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return false, fmt.Errorf("读取列信息失败: %w", err)
+		}
+		if name == columnName {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
+}
