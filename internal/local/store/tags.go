@@ -58,10 +58,10 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 }
 
 // InsertChatTag creates a new chat tag and returns it.
-func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
+func (s *ChatStore) InsertChatTag(chatSN string, tag string) (*ChatTag, error) {
 	result, err := s.db.Exec(
-		"INSERT INTO chat_tags(chat_id, tag) VALUES(?, ?)",
-		chatID, tag,
+		"INSERT INTO chat_tags(chat_sn, tag) VALUES(?, ?)",
+		chatSN, tag,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert chat tag. %w", err)
@@ -71,7 +71,7 @@ func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 
 	var chatTag ChatTag
 	err = s.db.Get(&chatTag,
-		`SELECT id, chat_id, tag, create_at, update_at
+		`SELECT id, chat_sn, tag, create_at, update_at
 		 FROM chat_tags WHERE id = ?`, id,
 	)
 	if err != nil {
@@ -80,16 +80,16 @@ func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 	return &chatTag, nil
 }
 
-// ListChatTagsByChatID returns all tags for a given chat session,
+// ListChatTagsByChatSN returns all tags for a given chat session,
 // ordered by create_at ascending.
-func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
+func (s *ChatStore) ListChatTagsByChatSN(chatSN string) ([]ChatTag, error) {
 	var tags []ChatTag
 	err := s.db.Select(&tags,
-		`SELECT id, chat_id, tag, create_at, update_at
+		`SELECT id, chat_sn, tag, create_at, update_at
 		 FROM chat_tags
-		 WHERE chat_id = ?
+		 WHERE chat_sn = ?
 		 ORDER BY create_at ASC`,
-		chatID,
+		chatSN,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list chat tags. %w", err)
@@ -113,14 +113,14 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 	return nil
 }
 
-// DeleteChatTagsByChatID deletes all tags for a given chat session.
-func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
+// DeleteChatTagsByChatSN deletes all tags for a given chat session.
+func (s *ChatStore) DeleteChatTagsByChatSN(chatSN string) error {
 	_, err := s.db.Exec(
-		"DELETE FROM chat_tags WHERE chat_id = ?",
-		chatID,
+		"DELETE FROM chat_tags WHERE chat_sn = ?",
+		chatSN,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete chat tags for chat %d: %w", chatID, err)
+		return fmt.Errorf("failed to delete chat tags for chat %s: %w", chatSN, err)
 	}
 	return nil
 }

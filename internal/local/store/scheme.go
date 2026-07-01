@@ -27,7 +27,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS chat_messages (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_sn    TEXT    NOT NULL REFERENCES chat_sessions(sn),
 			group_index INTEGER NOT NULL,
 			role       INTEGER NOT NULL,
 			reasoning    TEXT,
@@ -38,9 +38,12 @@ func (s *ChatStore) initSchema() error {
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
+		CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_sn
+			ON chat_messages(chat_sn);
+
 		CREATE TABLE IF NOT EXISTS web_sources (
 			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_id      INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_sn      TEXT    NOT NULL REFERENCES chat_sessions(sn),
 			msg_id       INTEGER NOT NULL,
 			title        TEXT    NOT NULL DEFAULT '',
 			content      TEXT    NOT NULL DEFAULT '',
@@ -53,18 +56,18 @@ func (s *ChatStore) initSchema() error {
 		);
 
 		CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg
-			ON web_sources(chat_id, msg_id);
+			ON web_sources(chat_sn, msg_id);
 
 		CREATE TABLE IF NOT EXISTS chat_tags (
 			id        INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_id   INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_sn   TEXT    NOT NULL REFERENCES chat_sessions(sn),
 			tag       TEXT    NOT NULL,
 			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_id
-			ON chat_tags(chat_id);
+		CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_sn
+			ON chat_tags(chat_sn);
 
 		CREATE INDEX IF NOT EXISTS idx_chat_tags_tag
 			ON chat_tags(tag);
@@ -120,6 +123,7 @@ func (s *ChatStore) initSchema() error {
 	migrateExtractedMessageCount(s.db)
 	migrateTraitTime(s.db)
 	migrateCategoryToTaged(s.db)
+	migrateChatIDToChatSN(s.db)
 
 	return nil
 }
@@ -175,5 +179,89 @@ func migrateCategoryToTaged(db *sqlx.DB) {
 	if _, err := db.Exec(`ALTER TABLE chat_sessions DROP COLUMN category`); err != nil {
 		// DROP COLUMN requires SQLite 3.35.0+; if it fails, the old column
 		// will just be ignored by the new code (not in SELECT list).
+	}
+}
+
+// migrateChatIDToChatSN migrates chat_messages, web_sources, chat_tags
+// from chat_id (INTEGER FK→chat_sessions.id) to chat_sn (TEXT FK→chat_sessions.sn).
+//
+// Steps per table:
+//  1. Add chat_sn column if not present
+//  2. Populate chat_sn from chat_sessions.sn via chat_id join
+//  3. Create new indexes (chat_sn-based)
+//  4. Drop old chat_id column (SQLite 3.35.0+)
+//  5. Drop old indexes
+func migrateChatIDToChatSN(db *sqlx.DB) {
+	type tableInfo struct {
+		name        string
+		oldIndex    string // old index to drop (empty=none)
+		newIndexDDL string // CREATE INDEX SQL for new index
+	}
+
+	tables := []tableInfo{
+		{
+			name:        "chat_messages",
+			oldIndex:    "", // no old index to drop for chat_messages
+			newIndexDDL: "CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_sn ON chat_messages(chat_sn)",
+		},
+		{
+			name:        "web_sources",
+			oldIndex:    "idx_web_sources_chat_msg",
+			newIndexDDL: "CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg ON web_sources(chat_sn, msg_id)",
+		},
+		{
+			name:        "chat_tags",
+			oldIndex:    "idx_chat_tags_chat_id",
+			newIndexDDL: "CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_sn ON chat_tags(chat_sn)",
+		},
+	}
+
+	for _, tbl := range tables {
+		// Step 1: Check if chat_id column exists (if not, already migrated)
+		var hasChatID int
+		err := db.QueryRow(
+			`SELECT COUNT(1) FROM pragma_table_info(?) WHERE name = 'chat_id'`,
+			tbl.name,
+		).Scan(&hasChatID)
+		if err != nil || hasChatID == 0 {
+			continue // Already migrated or table doesn't exist
+		}
+
+		// Step 2: Check if chat_sn column exists, add if not
+		var hasChatSN int
+		db.QueryRow(
+			`SELECT COUNT(1) FROM pragma_table_info(?) WHERE name = 'chat_sn'`,
+			tbl.name,
+		).Scan(&hasChatSN)
+		if hasChatSN == 0 {
+			if _, err := db.Exec(
+				`ALTER TABLE ` + tbl.name + ` ADD COLUMN chat_sn TEXT NOT NULL DEFAULT ''`,
+			); err != nil {
+				continue
+			}
+		}
+
+		// Step 3: Populate chat_sn from chat_sessions.sn
+		db.Exec(
+			`UPDATE ` + tbl.name + ` SET chat_sn = (
+				SELECT sn FROM chat_sessions WHERE id = ` + tbl.name + `.chat_id
+			) WHERE chat_sn = ''`,
+		)
+
+		// Step 4: Create new index
+		if tbl.newIndexDDL != "" {
+			db.Exec(tbl.newIndexDDL)
+		}
+
+		// Step 5: Drop old index (for tables that had one)
+		if tbl.oldIndex != "" {
+			db.Exec(`DROP INDEX IF EXISTS ` + tbl.oldIndex)
+		}
+
+		// Step 6: Drop old chat_id column
+		if _, err := db.Exec(`ALTER TABLE ` + tbl.name + ` DROP COLUMN chat_id`); err != nil {
+			// DROP COLUMN requires SQLite 3.35.0+; if it fails, the old column
+			// will just be ignored by the new code (not in SELECT list).
+		}
 	}
 }

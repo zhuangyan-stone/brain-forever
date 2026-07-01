@@ -87,13 +87,11 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	// Look up the chat by SN from the session's chat list
-	var dbSessionID int64
 	var chatTitle string
 	var taged bool
 	session.chatsMu.Lock()
 	for _, c := range session.chats {
 		if c.SN == chatSN {
-			dbSessionID = c.ID
 			chatTitle = c.Title
 			taged = c.Taged
 			break
@@ -101,14 +99,14 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 	session.chatsMu.Unlock()
 
-	if dbSessionID == 0 {
+	if chatSN == "" {
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 
 	// If the chat has already been tagged, return existing tags from DB directly
 	if taged {
-		existingTags, listErr := session.chatsStore.ListChatTagsByChatID(dbSessionID)
+		existingTags, listErr := session.chatsStore.ListChatTagsByChatSN(chatSN)
 		var tags []string
 		if listErr == nil {
 			for _, ct := range existingTags {
@@ -122,7 +120,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		}
 
 		totalMessages := 0
-		if count, err := session.chatsStore.CountMessages(dbSessionID); err == nil {
+		if count, err := session.chatsStore.CountMessages(chatSN); err == nil {
 			totalMessages = count
 		}
 
@@ -140,7 +138,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// Count total messages in this chat for tracking how many the LLM views.
 	totalMessages := 0
-	if count, err := session.chatsStore.CountMessages(dbSessionID); err == nil {
+	if count, err := session.chatsStore.CountMessages(chatSN); err == nil {
 		totalMessages = count
 	}
 
@@ -260,33 +258,45 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	// Persist tags to database
 	// ============================================================
 	// 1. Delete any existing tags for this chat (replace semantics)
-	if delErr := session.chatsStore.DeleteChatTagsByChatID(dbSessionID); delErr != nil {
-		h.logger.Errorf("failed to delete old chat tags for chat %d: %v", dbSessionID, delErr)
+	if delErr := session.chatsStore.DeleteChatTagsByChatSN(chatSN); delErr != nil {
+		h.logger.Errorf("failed to delete old chat tags for chat %s: %v", chatSN, delErr)
 	}
 
 	// 2. Insert new tags
 	if len(tags) == 0 {
 		// LLM returned no tags — still save an empty string tag
-		if _, insErr := session.chatsStore.InsertChatTag(dbSessionID, ""); insErr != nil {
-			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", dbSessionID, insErr)
+		if _, insErr := session.chatsStore.InsertChatTag(chatSN, ""); insErr != nil {
+			h.logger.Errorf("failed to insert empty chat tag for chat %s: %v", chatSN, insErr)
 		}
 	} else {
 		for _, tag := range tags {
-			if _, insErr := session.chatsStore.InsertChatTag(dbSessionID, tag); insErr != nil {
-				h.logger.Errorf("failed to insert chat tag %q for chat %d: %v", tag, dbSessionID, insErr)
+			if _, insErr := session.chatsStore.InsertChatTag(chatSN, tag); insErr != nil {
+				h.logger.Errorf("failed to insert chat tag %q for chat %s: %v", tag, chatSN, insErr)
 			}
 		}
 	}
 
 	// 3. Mark this chat as tagged in the database
-	if tagErr := session.chatsStore.UpdateChatTag(dbSessionID, true); tagErr != nil {
-		h.logger.Errorf("failed to update chat taged flag for chat %d: %v", dbSessionID, tagErr)
+	// UpdateChatTag still uses chat_sessions.id, so find the ID from the session's chat list
+	var chatID int64
+	session.chatsMu.Lock()
+	for _, c := range session.chats {
+		if c.SN == chatSN {
+			chatID = c.ID
+			break
+		}
+	}
+	session.chatsMu.Unlock()
+	if chatID > 0 {
+		if tagErr := session.chatsStore.UpdateChatTag(chatID, true); tagErr != nil {
+			h.logger.Errorf("failed to update chat taged flag for chat %s: %v", chatSN, tagErr)
+		}
 	}
 
 	// 4. Update in-memory cache
 	session.chatsMu.Lock()
 	for i := range session.chats {
-		if session.chats[i].ID == dbSessionID {
+		if session.chats[i].SN == chatSN {
 			session.chats[i].Taged = true
 			break
 		}

@@ -28,12 +28,12 @@ func appendNewRequestMessage(session *session, reqMsg *Message) bool {
 	var lastID int64 = 0
 
 	// Load the last message from DB to determine the next ID
-	var dbSessionID int64
+	var dbChatSN string
 	if session.currentChat.dbChat != nil {
-		dbSessionID = session.currentChat.dbChat.ID
+		dbChatSN = session.currentChat.dbChat.SN
 	}
-	if dbSessionID > 0 {
-		dbMessages, err := session.chatsStore.ListMessages(dbSessionID)
+	if dbChatSN != "" {
+		dbMessages, err := session.chatsStore.ListMessages(dbChatSN)
 		if err == nil && len(dbMessages) > 0 {
 			lastMsg := dbMessages[len(dbMessages)-1]
 			lastID = int64(lastMsg.GroupIndex)
@@ -47,8 +47,8 @@ func appendNewRequestMessage(session *session, reqMsg *Message) bool {
 
 	// Persist the user message to DB
 	// session.mu is held, so session.currentChat is stable
-	chatID := session.currentChat.dbChat.ID
-	persistMessageToDB(session, reqMsg, chatID)
+	chatSN := session.currentChat.dbChat.SN
+	persistMessageToDB(session, reqMsg, chatSN)
 
 	return isNewChat
 }
@@ -121,12 +121,12 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		chatCreatedFrontSN = req.FrontSN
 	}
 
-	// 6. 在释放 mu 前捕获当前 Chat 的 DB ID，用于流式完成后 persist assistant 消息
+	// 6. 在释放 mu 前捕获当前 Chat 的 SN，用于流式完成后 persist assistant 消息
 	//    session.mu 在流式期间不持有，OnSwitchChat 可能在此期间改变 currentChat）
 	//    导致 persistMessageToDB 将 assistant 写入错误的 Chat。
-	var msgChatID int64
+	var msgChatSN string
 	if session.currentChat.dbChat != nil {
-		msgChatID = session.currentChat.dbChat.ID
+		msgChatSN = session.currentChat.dbChat.SN
 	}
 
 	// 7. Load messages from DB for the LLM call
@@ -202,12 +202,12 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		lang)
 
 	// 12. Persist the assistant message to DB
-	//  Use the chatID captured when streaming started, not session.currentChat,
+	//  Use the chatSN captured when streaming started, not session.currentChat,
 	//  to avoid persisting to the wrong conversation if the user switches chats
 	//  before the flow completes.
 	if assistantMsg != nil {
 		session.mu.Lock()
-		persistMessageToDB(session, assistantMsg, msgChatID)
+		persistMessageToDB(session, assistantMsg, msgChatSN)
 		session.mu.Unlock()
 	}
 }

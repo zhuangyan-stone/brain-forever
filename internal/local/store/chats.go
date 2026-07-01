@@ -40,8 +40,8 @@ type Chat struct {
 }
 
 type Message struct {
-	ID     int64 `db:"id"`      // Auto-increment ID
-	ChatID int64 `db:"chat_id"` // Belonging chat ID
+	ID     int64  `db:"id"`      // Auto-increment ID
+	ChatSN string `db:"chat_sn"` // Belonging chat SN (chat_sessions.sn)
 
 	GroupIndex int  `db:"group_index"` // Message group index
 	Role       int8 `db:"role"`        // 0: user 1: assistant
@@ -61,7 +61,7 @@ type Message struct {
 // to avoid circular dependencies between store and agent packages.
 type WebSource struct {
 	ID          int64     `db:"id"`      // Auto-increment primary key
-	ChatID      int64     `db:"chat_id"` // References chat_sessions.id
+	ChatSN      string    `db:"chat_sn"` // References chat_sessions.sn
 	MsgID       int64     `db:"msg_id"`  // Message group index (= agent.Message.ID)
 	Title       string    `db:"title"`
 	Content     string    `db:"content"`
@@ -76,7 +76,7 @@ type WebSource struct {
 // ChatTag represents a tag associated with a chat session.
 type ChatTag struct {
 	ID       int64     `db:"id" json:"id"`               // Auto-increment primary key
-	ChatID   int64     `db:"chat_id" json:"chat_id"`     // References chat_sessions.id
+	ChatSN   string    `db:"chat_sn" json:"chat_sn"`     // References chat_sessions.sn
 	Tag      string    `db:"tag" json:"tag"`             // Tag string (topic classification)
 	CreateAt time.Time `db:"create_at" json:"create_at"` // Creation time
 	UpdateAt time.Time `db:"update_at" json:"update_at"` // Last update time
@@ -157,6 +157,7 @@ func (s *ChatStore) LogicDelete(sn string) error {
 
 // PhysicalDelete physically deletes the session identified by id + sn.
 // Also deletes all its messages, web sources, and tags (transaction-safe).
+// Uses sn (chat_sn) for related table deletes since they now reference chat_sessions(sn).
 func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -177,28 +178,28 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 		return fmt.Errorf("session not found (id=%d, sn=%s)", id, sn)
 	}
 
-	// Delete all tags under this session
+	// Delete all tags under this session (using sn)
 	_, err = tx.Exec(
-		"DELETE FROM chat_tags WHERE chat_id = ?",
-		id,
+		"DELETE FROM chat_tags WHERE chat_sn = ?",
+		sn,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to delete tags of session. %w", err)
 	}
 
-	// Delete all web sources under this session
+	// Delete all web sources under this session (using sn)
 	_, err = tx.Exec(
-		"DELETE FROM web_sources WHERE chat_id = ?",
-		id,
+		"DELETE FROM web_sources WHERE chat_sn = ?",
+		sn,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to delete web sources of session. %w", err)
 	}
 
-	// Delete all messages under this session
+	// Delete all messages under this session (using sn)
 	_, err = tx.Exec(
-		"DELETE FROM chat_messages WHERE chat_id = ?",
-		id,
+		"DELETE FROM chat_messages WHERE chat_sn = ?",
+		sn,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to delete messages of session. %w", err)
@@ -346,16 +347,16 @@ func (s *ChatStore) UpdateChatTag(id int64, taged bool) error {
 
 // EmptyTrash permanently deletes all soft-deleted chats (and their messages/web_sources).
 func (s *ChatStore) EmptyTrash() error {
-	// Get all deleted chat IDs first
-	var deletedIDs []int64
-	err := s.db.Select(&deletedIDs,
-		"SELECT id FROM chat_sessions WHERE deleted = 1",
+	// Get all deleted chat SNs first (related tables now use chat_sn)
+	var deletedSNs []string
+	err := s.db.Select(&deletedSNs,
+		"SELECT sn FROM chat_sessions WHERE deleted = 1",
 	)
 	if err != nil {
 		return fmt.Errorf("failed to query deleted chats: %w", err)
 	}
 
-	if len(deletedIDs) == 0 {
+	if len(deletedSNs) == 0 {
 		return nil
 	}
 
@@ -365,23 +366,23 @@ func (s *ChatStore) EmptyTrash() error {
 	}
 	defer tx.Rollback()
 
-	for _, id := range deletedIDs {
+	for _, sn := range deletedSNs {
 		// Delete all tags under this session
-		_, err = tx.Exec("DELETE FROM chat_tags WHERE chat_id = ?", id)
+		_, err = tx.Exec("DELETE FROM chat_tags WHERE chat_sn = ?", sn)
 		if err != nil {
-			return fmt.Errorf("failed to delete tags for chat %d: %w", id, err)
+			return fmt.Errorf("failed to delete tags for chat %s: %w", sn, err)
 		}
 
 		// Delete all web sources under this session
-		_, err = tx.Exec("DELETE FROM web_sources WHERE chat_id = ?", id)
+		_, err = tx.Exec("DELETE FROM web_sources WHERE chat_sn = ?", sn)
 		if err != nil {
-			return fmt.Errorf("failed to delete web sources for chat %d: %w", id, err)
+			return fmt.Errorf("failed to delete web sources for chat %s: %w", sn, err)
 		}
 
 		// Delete all messages under this session
-		_, err = tx.Exec("DELETE FROM chat_messages WHERE chat_id = ?", id)
+		_, err = tx.Exec("DELETE FROM chat_messages WHERE chat_sn = ?", sn)
 		if err != nil {
-			return fmt.Errorf("failed to delete messages for chat %d: %w", id, err)
+			return fmt.Errorf("failed to delete messages for chat %s: %w", sn, err)
 		}
 	}
 
@@ -427,12 +428,12 @@ func (s *ChatStore) UpdateExtractionProgress(chatID int64, increment int) error 
 // successful trait extraction to record which messages have been processed.
 // Using message id (auto-increment PK) as the cutoff ensures that even if
 // group_index is non-contiguous, all messages up to the given point are marked.
-func (s *ChatStore) MarkMessagesExtracted(chatID int64, upToID int64) error {
+func (s *ChatStore) MarkMessagesExtracted(chatSN string, upToID int64) error {
 	_, err := s.db.Exec(
 		`UPDATE chat_messages
 		 SET extracted = 1
-		 WHERE chat_id = ? AND id <= ? AND extracted = 0`,
-		chatID, upToID,
+		 WHERE chat_sn = ? AND id <= ? AND extracted = 0`,
+		chatSN, upToID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to mark messages as extracted: %w", err)
@@ -503,7 +504,7 @@ func (s *ChatStore) SelectChatTitleTagsGroup() (map[string][]ChatTitleTag, error
 	err := s.db.Select(&rows,
 		`SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
 		 FROM chat_sessions cs
-		 JOIN chat_tags ct ON cs.id = ct.chat_id
+		 JOIN chat_tags ct ON cs.sn = ct.chat_sn
 		 WHERE cs.deleted = 0
 		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`,
 	)

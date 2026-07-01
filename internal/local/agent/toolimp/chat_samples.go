@@ -77,9 +77,6 @@ type ChatSamplesToolImp struct {
 	// chatsStore is the store used to query messages from DB.
 	chatsStore *store.ChatStore
 
-	// chatID is the resolved DB ID of the chat (looked up once on first Execute call).
-	chatID int64
-
 	// nextStartMessageID is the message ID cursor for pagination.
 	// Start at 0 so the first query loads messages with id > 0 (i.e., from the beginning).
 	nextStartMessageID int64
@@ -166,21 +163,12 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 		return i18n.Tools.TL(f.lang, chatSamplesI18NKey, "all_messages_loaded"), nil
 	}
 
-	// Resolve chatID on first call if not yet resolved.
-	if f.chatID == 0 && f.chatsStore != nil && f.chatSN != "" {
-		chat, err := f.chatsStore.FindChatBySN(f.chatSN)
-		if err != nil {
-			return "", fmt.Errorf("failed to find chat by SN %s: %w", f.chatSN, err)
-		}
-		f.chatID = chat.ID
+	if f.chatSN == "" {
+		return "", fmt.Errorf("no valid chat SN available")
 	}
 
-	if f.chatID == 0 {
-		return "", fmt.Errorf("no valid chat ID available")
-	}
-
-	// Load the next batch of messages from DB.
-	dbMessages, err := f.chatsStore.ListMessagesByRange(f.chatID, f.nextStartMessageID, pageSize)
+	// Load the next batch of messages from DB using chatSN.
+	dbMessages, err := f.chatsStore.ListMessagesByRange(f.chatSN, f.nextStartMessageID, pageSize)
 	if err != nil {
 		return "", fmt.Errorf("failed to load messages: %w", err)
 	}

@@ -178,7 +178,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	//     unify full and incremental extraction into a single code
 	//     path: only messages where extracted=0 are fetched.
 	// ----------------------------------------------------------
-	dbMessages, err := chatsStore.ListUnExtractMessages(foundChat.ID)
+	dbMessages, err := chatsStore.ListUnExtractMessages(foundChat.SN)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
 		return
@@ -219,7 +219,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		//     since some may have failed embedding/storage).
 		// ----------------------------------------------------------
 		if storedCount > 0 {
-			chatsStore.MarkMessagesExtracted(foundChat.ID, lastMsgID)
+			chatsStore.MarkMessagesExtracted(foundChat.SN, lastMsgID)
 			updateExtractionProgress(foundChat, chatsStore, storedCount)
 		} else {
 			// All traits failed to store → don't mark messages
@@ -404,7 +404,7 @@ func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStor
 		resp.ExtractedAt = &extractedAtStr
 	}
 	// Get total message count for the response
-	if _, err := chatsStore.CountMessages(foundChat.ID); err == nil {
+	if _, err := chatsStore.CountMessages(foundChat.SN); err == nil {
 		resp.ExtractedCount = foundChat.ExtractedCount
 	}
 	w.Header().Set("Content-Type", "application/json")

@@ -52,11 +52,11 @@ func ensureSessionDBForChat(session *session) bool {
 // so active chats float to the top of the sidebar.
 // Must be called with session.mu held.
 //
-// chatID parameter is passed explicitly to avoid race conditions:
+// chatSN parameter is passed explicitly to avoid race conditions:
 // session.currentChat may have been changed by OnSwitchChat while
 // streaming was in progress (session.mu is NOT held during streaming).
-func persistMessageToDB(session *session, msg *Message, chatID int64) {
-	if chatID == 0 {
+func persistMessageToDB(session *session, msg *Message, chatSN string) {
+	if chatSN == "" {
 		return
 	}
 
@@ -81,7 +81,7 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 	}
 
 	if err := session.chatsStore.InsertMessage(
-		chatID,
+		chatSN,
 		groupIndex,
 		role,
 		msg.Content,
@@ -96,7 +96,7 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 		storeSources := make([]store.WebSource, 0, len(msg.Sources))
 		for _, src := range msg.Sources {
 			storeSources = append(storeSources, store.WebSource{
-				ChatID:      chatID,
+				ChatSN:      chatSN,
 				MsgID:       msg.ID,
 				Title:       src.Title,
 				Content:     src.Content,
@@ -107,12 +107,8 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 				Score:       src.Score,
 			})
 		}
-		session.chatsStore.InsertWebSources(chatID, msg.ID, storeSources)
+		session.chatsStore.InsertWebSources(chatSN, msg.ID, storeSources)
 	}
-
-	// Touch the chat session's update_at so it floats to the top
-	// when the list is ordered by update_at DESC.
-	session.chatsStore.TouchChat(chatID)
 
 	// Also move the chat to the front of the in-memory list so that
 	// subsequent GET /api/session calls return the correct order.
@@ -125,7 +121,10 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 	// corrupting session.chats (producing duplicate entries with same ID/SN).
 	session.chatsMu.Lock()
 	for i, c := range session.chats {
-		if c.ID == chatID {
+		if c.SN == chatSN {
+			// Touch the chat session's update_at
+			session.chatsStore.TouchChat(c.ID)
+
 			// Safe removal: copy all elements except index i into a new slice
 			removed := session.chats[i]
 			rest := make([]store.Chat, 0, len(session.chats)-1)
