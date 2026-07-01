@@ -3,11 +3,20 @@
 // ============================================================
 //
 // 移植自 html_demo/word_cloud.html 的椭圆螺旋布局算法，
-// 提取为纯函数组件，供 portrait-dialog.js 等调用。
+// 提取为纯函数组件，供 portrait-dialog.js、sidebar 等调用。
 //
 // 使用方式：
 //   var items = WordCloudLayout.calculate(hot_tags, 600, 200);
 //   // items → [{tag, count, left, top, fontSize, colorClass}, ...]
+//
+// 参数化（options 对象）：
+//   classPrefix  - CSS 类名前缀，默认 'portrait-wordcloud-c'
+//   aspectRatio  - 椭圆 X/Y 半径比，默认根据容器宽高比自动推算
+//   minFontSize  - 最小字号 px，默认 14
+//   maxFontSize  - 最大字号 px，默认 48（实际还受 ch/5 约束）
+//   padding      - 词间间距 px，默认 4
+//
+// 事件处理由渲染层（Alpine 模板 / 调用方）负责，不在本组件中处理。
 //
 // 依赖：无（纯 JS，不需要 Alpine 或其他库）
 // ============================================================
@@ -17,12 +26,14 @@
 window.WordCloudLayout = (function() {
 
     // ============================================================
-    // 配置
+    // 默认配置
     // ============================================================
-    var CONFIG = {
+    var DEFAULTS = {
         minFontSize: 14,
         maxFontSize: 48,         // 上限，实际还会受 ch/5 约束
         padding: 4,
+        classPrefix: 'portrait-wordcloud-c',
+        aspectRatio: null,       // null = 自动根据容器宽高比推算
         spiralStep: 0.35,
         spiralRadiusStep: 1.0,
         maxAttempts: 6000,
@@ -109,12 +120,26 @@ window.WordCloudLayout = (function() {
      * @param {Array<{tag:string, count:number}>} tags  - hot_tags 数组
      * @param {number} cw  - 容器宽度（px）
      * @param {number} ch  - 容器高度（px）
+     * @param {Object} [opts]  - 可选覆盖参数
+     * @param {string} [opts.classPrefix='portrait-wordcloud-c']  - CSS 类名前缀
+     * @param {number} [opts.aspectRatio]  - 椭圆 X/Y 半径比，默认自动推算
+     * @param {number} [opts.minFontSize=14]  - 最小字号 px
+     * @param {number} [opts.maxFontSize=48]  - 最大字号 px（还受 ch/5 约束）
+     * @param {number} [opts.padding=4]  - 词间间距 px
      * @returns {Array<{tag, count, left, top, fontSize, colorClass}>}
      */
-    function calculate(tags, cw, ch) {
+    function calculate(tags, cw, ch, opts) {
         if (!Array.isArray(tags) || tags.length === 0 || cw < 50 || ch < 50) {
             return [];
         }
+
+        // 合并选项
+        opts = opts || {};
+        var classPrefix = opts.classPrefix || DEFAULTS.classPrefix;
+        var minSize = opts.minFontSize || DEFAULTS.minFontSize;
+        var maxSizeUser = opts.maxFontSize || DEFAULTS.maxFontSize;
+        var padding = opts.padding !== undefined ? opts.padding : DEFAULTS.padding;
+        var colors = DEFAULTS.colors;
 
         // 深拷贝并排序
         var sorted = tags.slice().sort(function(a, b) { return b.count - a.count; });
@@ -122,18 +147,18 @@ window.WordCloudLayout = (function() {
         var minCount = sorted[sorted.length - 1].count;
         var maxCount = sorted[0].count;
 
-        // 动态字号范围
-        var minSize = CONFIG.minFontSize;
-        var maxSize = Math.min(CONFIG.maxFontSize, Math.max(22, Math.round(ch / 5)));
+        // 动态字号范围（受 maxSizeUser 和容器高度共同约束）
+        var maxSize = Math.min(maxSizeUser, Math.max(22, Math.round(ch / 5)));
 
-        var padding = CONFIG.padding;
         var cx = cw / 2;
         var cy = ch / 2;
         var placedRects = [];
         var result = [];
 
-        // 椭圆因子：根据容器宽高比自动适配
-        var aspectFactor = (cw / ch) > 1.2 ? 1.8 : 1.2;
+        // 椭圆因子：优先使用传入的 aspectRatio，否则根据容器宽高比自动适配
+        var aspectFactor = opts.aspectRatio !== undefined
+            ? opts.aspectRatio
+            : ((cw / ch) > 1.2 ? 1.8 : 1.2);
 
         for (var i = 0; i < sorted.length; i++) {
             var tag = sorted[i];
@@ -141,7 +166,7 @@ window.WordCloudLayout = (function() {
             var dim = measureText(tag.tag, fontSize);
             var w = dim.width;
             var h = dim.height;
-            var colorIdx = i % CONFIG.colors.length;
+            var colorIdx = i % colors.length;
 
             var px, py;
 
@@ -155,7 +180,7 @@ window.WordCloudLayout = (function() {
                 var angle = Math.random() * 0.5;
                 var radius = 4;
 
-                for (var attempt = 0; attempt < CONFIG.maxAttempts; attempt++) {
+                for (var attempt = 0; attempt < DEFAULTS.maxAttempts; attempt++) {
                     var ox = radius * aspectFactor * Math.cos(angle);
                     var oy = radius * Math.sin(angle);
                     px = cx + ox - w / 2;
@@ -163,8 +188,8 @@ window.WordCloudLayout = (function() {
 
                     // 边界检查
                     if (px < 0 || py < 0 || px + w > cw || py + h > ch) {
-                        angle += CONFIG.spiralStep;
-                        radius += CONFIG.spiralRadiusStep * 0.5;
+                        angle += DEFAULTS.spiralStep;
+                        radius += DEFAULTS.spiralRadiusStep * 0.5;
                         continue;
                     }
 
@@ -183,8 +208,8 @@ window.WordCloudLayout = (function() {
                         break;
                     }
 
-                    angle += CONFIG.spiralStep;
-                    radius += CONFIG.spiralRadiusStep;
+                    angle += DEFAULTS.spiralStep;
+                    radius += DEFAULTS.spiralRadiusStep;
                 }
 
                 if (!found) {
@@ -211,7 +236,7 @@ window.WordCloudLayout = (function() {
                 left: Math.round(px),
                 top: Math.round(py),
                 fontSize: fontSize.toFixed(1) + 'px',
-                colorClass: 'portrait-wordcloud-c' + ((i % 10) + 1)
+                colorClass: classPrefix + ((i % 10) + 1)
             });
         }
 
