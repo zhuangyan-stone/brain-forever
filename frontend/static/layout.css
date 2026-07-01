@@ -250,14 +250,27 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
     background: transparent;
     cursor: pointer;
     overflow: hidden;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    transition: border-color 0.2s;
 }
 
 .user-avatar-btn:hover {
     border: 2px solid var(--accent, #4a9eff);
-    outline: 2px dashed color-mix(in srgb, var(--text-primary) 25%, transparent);
-    outline-offset: 2px;
-    box-shadow: none;
+}
+
+/* 头像 hover 半透明高亮色覆盖层 */
+.user-avatar-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+.user-avatar-btn:hover::after {
+    opacity: 1;
 }
 
 .user-avatar-img {
@@ -329,7 +342,7 @@ body:not(.small-screen-mode) .main-title:not(:empty)::before {
 .dropdown-divider {
     height: 1px;
     margin: 4px 8px;
-    background-color: var(--border-color, #e0e0e0);
+    background-color: var(--border);
 }
 
 /* ============================================================

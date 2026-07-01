@@ -491,6 +491,11 @@ function showContextMenu(e, chat) {
     });
     menu.appendChild(favItem);
 
+    // 收藏与后续操作之间的分隔线
+    const sepAfterFav = document.createElement('div');
+    sepAfterFav.className = 'chat-context-menu-separator';
+    menu.appendChild(sepAfterFav);
+
     // 重命名
     const renameItem = document.createElement('div');
     renameItem.className = 'chat-context-menu-item';
@@ -909,6 +914,11 @@ function showCategoryContextMenu(e, chat, tag) {
     }
     menu.appendChild(favItem);
 
+    // 收藏与后续操作之间的分隔线
+    const sepAfterFav = document.createElement('div');
+    sepAfterFav.className = 'chat-context-menu-separator';
+    menu.appendChild(sepAfterFav);
+
     // 重命名
     const renameItem = document.createElement('div');
     renameItem.className = 'chat-context-menu-item';
@@ -918,61 +928,6 @@ function showCategoryContextMenu(e, chat, tag) {
         handleRename(chat);
     });
     menu.appendChild(renameItem);
-
-    var chatsStore = window.Alpine.store('chats');
-
-    // 提取个人特征 — 复用 showContextMenu 中的逻辑
-    const traitItem = document.createElement('div');
-    traitItem.className = 'chat-context-menu-item';
-
-    const isActive = chatsStore && chat.sn === chatsStore.activeChatSN;
-    const hasExtracted = !!chat.extracted_at;
-    const hasCount = chat.extracted_count > 0;
-
-    let traitDisabled = false;
-    let traitLabel = '提取个人特征';
-
-    if (hasExtracted) {
-        if (isActive) {
-            const groups = chatsStore.active && chatsStore.active.groups;
-            let lastMsgCreatedAt = null;
-            if (groups && groups.length > 0) {
-                const lastGroup = groups[groups.length - 1];
-                if (lastGroup.assistant && lastGroup.assistant.createdAt) {
-                    lastMsgCreatedAt = lastGroup.assistant.createdAt;
-                } else if (lastGroup.user && lastGroup.user.createdAt) {
-                    lastMsgCreatedAt = lastGroup.user.createdAt;
-                }
-            }
-            if (lastMsgCreatedAt && chat.extracted_at) {
-                const extractedTime = new Date(chat.extracted_at).getTime();
-                const lastMsgTime = new Date(lastMsgCreatedAt).getTime();
-                if (!isNaN(extractedTime) && !isNaN(lastMsgTime) && lastMsgTime > extractedTime) {
-                    traitLabel = '继续提取个人特征';
-                } else {
-                    traitDisabled = true;
-                    traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
-                }
-            } else {
-                traitLabel = '继续提取个人特征';
-            }
-        } else {
-            traitDisabled = true;
-            traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
-        }
-    }
-
-    traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
-
-    if (traitDisabled) {
-        traitItem.classList.add(hasCount ? 'chat-context-menu-item-success' : 'chat-context-menu-item-disabled');
-    } else {
-        traitItem.addEventListener('click', function() {
-            closeContextMenu();
-            handleExtractTraits(chat);
-        });
-    }
-    menu.appendChild(traitItem);
 
     // 分隔线
     const separator = document.createElement('div');
