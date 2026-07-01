@@ -968,9 +968,7 @@
             </div>
             <datalist id="favTagDatalist">
                 <option value="">根目录</option>
-                <template x-for="tag in existingTags" :key="tag">
-                    <option :value="tag" x-text="tag || '根目录'"></option>
-                </template>
+                <!-- 其余 option 由 favoriteEditDialog.open() 程序化填充，避免 Alpine x-for 在 datalist 内不可靠 -->
             </datalist>
             <div class="fav-edit-footer">
                 <button class="fav-edit-btn" @click="cancel">取消</button>

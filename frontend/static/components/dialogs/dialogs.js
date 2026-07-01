@@ -178,6 +178,19 @@ document.addEventListener('alpine:init', function() {
             this.$nextTick(function() {
                 var input = self.$el.querySelector('.fav-edit-combo');
                 if (input) input.focus();
+                // 手动填充 datalist 选项（Alpine x-for 在 datalist 内可能不可靠）
+                var datalist = self.$el.querySelector('#favTagDatalist');
+                if (datalist) {
+                    // 保留第一个 option（空值根目录），移除其余
+                    while (datalist.children.length > 1) {
+                        datalist.removeChild(datalist.lastChild);
+                    }
+                    (self.existingTags || []).forEach(function(tag) {
+                        var opt = document.createElement('option');
+                        opt.value = tag;
+                        datalist.appendChild(opt);
+                    });
+                }
             });
         },
 

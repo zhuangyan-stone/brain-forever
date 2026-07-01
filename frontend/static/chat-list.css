@@ -241,7 +241,7 @@
 /* ---------- 次级活跃状态（同一 chat 多分类/收藏时的非主要高亮） ---------- */
 /* 仅标题文字斜体，颜色/字重/背景/边框均无变化 */
 .chat-item.active-sub .chat-item-title {
-    font-style: italic;
+    font-weight: bold;
 }
 
 /* ---------- 对话标题 ---------- */

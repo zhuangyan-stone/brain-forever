@@ -784,6 +784,11 @@ async function handleUnfavorite(chat, customTag) {
 async function handleToggleFavorite(chat, defaultTag) {
     var chatsStore = window.Alpine.store('chats');
 
+    // 确保收藏数据已加载，否则先加载
+    if (chatsStore && !chatsStore.favoritesLoaded && chatsStore.loadFavorites) {
+        await chatsStore.loadFavorites();
+    }
+
     // 收集已有的收藏夹目录名
     var existingTags = [];
     if (chatsStore && chatsStore.favoritesGroups) {
