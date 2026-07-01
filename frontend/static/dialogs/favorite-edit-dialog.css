@@ -88,7 +88,7 @@
 .fav-edit-combo-arrow {
     position: absolute;
     right: 8px;
-    pointer-events: none;
+    cursor: pointer;
     color: var(--text-secondary, #888);
 }
 
