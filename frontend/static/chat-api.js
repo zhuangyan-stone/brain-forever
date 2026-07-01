@@ -554,13 +554,31 @@ export async function fetchChatGroups() {
     } catch (e) {
         console.warn('获取聊天分组出错:', e);
         return null;
+        }
     }
-}
-
-/**
- * fetchSession 获取/创建 HTTP session，返回 session 数据（user_no, welcome 等）。
- * @returns {Promise<{user_no?: string, welcome?: string}|null>}
- */
+    
+    /**
+     * fetchFavorites 获取已收藏的对话列表（按 custom_tag 分组）。
+     * @returns {Promise<Object<string, Array<{sn: string, title: string, custom_tag: string, create_at: string, update_at: string}>>|null>}
+     */
+    export async function fetchFavorites() {
+        try {
+            const response = await fetch('/api/chat/favorites');
+            if (!response.ok) {
+                console.warn('获取收藏列表失败:', response.status);
+                return null;
+            }
+            return await response.json();
+        } catch (e) {
+            console.warn('获取收藏列表出错:', e);
+            return null;
+        }
+    }
+    
+    /**
+     * fetchSession 获取/创建 HTTP session，返回 session 数据（user_no, welcome 等）。
+     * @returns {Promise<{user_no?: string, welcome?: string}|null>}
+     */
 export async function fetchSession() {
     try {
         const response = await fetch('/api/session');

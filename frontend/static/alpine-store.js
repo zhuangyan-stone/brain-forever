@@ -314,6 +314,9 @@ document.addEventListener('alpine:init', function() {
         trashExpanded: false,    // 回收站是否展开
         trashLoaded: false,      // 回收站是否已从服务端全量加载
         chatGroups: {},          // 类别 tab 树形分组数据: {tagName: [{sn,title,tag,create_at,update_at}, ...]}
+        favoritesGroups: {},     // 收藏 tab 树形分组数据: {customTag: [{sn,title,custom_tag,create_at,update_at}, ...]}
+        favoritesExpanded: true, // 收藏根节点是否展开
+        favoritesLoaded: false,  // 收藏数据是否已从服务端全量加载
 
         // ---- 计算属性 ----
         get active() {
@@ -382,8 +385,13 @@ document.addEventListener('alpine:init', function() {
          */
         switchSidebarTab: function(tab) {
             this.sidebarTab = tab;
-            if (tab === 'category' && Object.keys(this.chatGroups).length === 0) {
-                this.loadChatGroups();
+            if (tab === 'category') {
+                if (Object.keys(this.chatGroups).length === 0) {
+                    this.loadChatGroups();
+                }
+                if (!this.favoritesLoaded) {
+                    this.loadFavorites();
+                }
             }
         },
 
@@ -426,6 +434,50 @@ document.addEventListener('alpine:init', function() {
             } catch (e) {
                 console.warn('加载聊天分组失败:', e);
                 this.chatGroups = {};
+            }
+        },
+
+        /**
+         * loadFavorites — 从后端加载已收藏的对话列表，存入 favoritesGroups。
+         * 数据结构: {customTag: [{sn,title,custom_tag,create_at,update_at}, ...]}
+         * 每个 custom_tag 分组内按 update_at DESC, create_at DESC 排序（由后端保证）。
+         */
+        loadFavorites: async function() {
+            try {
+                const { fetchFavorites } = await import('/static/chat-api.js');
+                const data = await fetchFavorites();
+                if (data && Object.keys(data).length > 0) {
+                    // 重新构造对象：非空 tag 按 key 排序，空串 tag 放在最后
+                    var ordered = {};
+                    var emptyItems = null;
+                    var keys = Object.keys(data).sort();
+                    for (var i = 0; i < keys.length; i++) {
+                        if (keys[i] === '') {
+                            emptyItems = data[''];
+                        } else {
+                            ordered[keys[i]] = data[keys[i]];
+                        }
+                    }
+                    if (emptyItems) {
+                        ordered[''] = emptyItems;
+                    }
+                    this.favoritesGroups = ordered;
+                    // 收藏子标签首次加载时默认全部折叠
+                    var newCollapsed = Object.assign({}, this.collapsedGroups);
+                    for (var tag in ordered) {
+                        if (ordered.hasOwnProperty(tag)) {
+                            newCollapsed['fav_' + tag] = true;
+                        }
+                    }
+                    this.collapsedGroups = newCollapsed;
+                } else {
+                    this.favoritesGroups = {};
+                }
+                this.favoritesLoaded = true;
+            } catch (e) {
+                console.warn('加载收藏列表失败:', e);
+                this.favoritesGroups = {};
+                this.favoritesLoaded = true;
             }
         },
 

@@ -297,12 +297,51 @@
 
             <!-- 类别 Tab 内容 — 树形分组 -->
             <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'category'">
-                <!-- 空状态 -->
-                <template x-if="Object.keys($store.chats.chatGroups || {}).length === 0">
+                <!-- ★ 收藏树（独立于分类节点） -->
+                <div class="chat-group chat-group-favorites"
+                    x-show="Object.keys($store.chats.favoritesGroups || {}).length > 0">
+                    <div class="chat-group-header"
+                        @click="$store.chats.favoritesExpanded = !$store.chats.favoritesExpanded"
+                        @mouseenter="$store.chats.closeContextMenu()">
+                        <span class="collapse-arrow"
+                            :class="{ collapsed: !$store.chats.favoritesExpanded }">&#x276F;</span>
+                        <span>&#x2B50; 收藏</span>
+                    </div>
+                    <div class="chat-group-body"
+                        :class="{ collapsed: !$store.chats.favoritesExpanded }">
+                        <template x-for="(items, customTag) in ($store.chats.favoritesGroups || {})" :key="'fav_' + customTag">
+                            <div class="chat-group chat-group-fav-sub">
+                                <div class="chat-group-header"
+                                    @click="$store.chats.toggleCollapse('fav_' + customTag)"
+                                    @mouseenter="$store.chats.closeContextMenu()">
+                                    <span class="collapse-arrow"
+                                        :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">&#x276F;</span>
+                                    <span x-text="customTag === '' ? '默认' : customTag"></span>
+                                    <span class="chat-group-count" x-text="'(' + items.length + ')'"></span>
+                                </div>
+                                <div class="chat-group-body"
+                                    :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">
+                                    <template x-for="chat in items" :key="chat.sn">
+                                        <div class="chat-item"
+                                            :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                            :data-sn="chat.sn"
+                                            @click="$store.chats.selectChat(chat.sn)"
+                                            @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                            <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- 空状态（仅当收藏和分类都为空时显示） -->
+                <template x-if="Object.keys($store.chats.chatGroups || {}).length === 0 && Object.keys($store.chats.favoritesGroups || {}).length === 0">
                     <div class="chat-list-empty">暂无分类</div>
                 </template>
 
-                <!-- 分组列表：按 tag 遍历 -->
+                <!-- 分类分组列表：按 tag 遍历 -->
                 <template x-for="(items, tag) in ($store.chats.chatGroups || {})" :key="tag">
                     <div class="chat-group">
                         <div class="chat-group-header"
