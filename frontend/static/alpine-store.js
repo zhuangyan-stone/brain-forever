@@ -305,6 +305,8 @@ document.addEventListener('alpine:init', function() {
         chatsTimeline: [],       // 时间线 tab 的分组数据（按时间/置顶加工）
         chats: [],               // 原始对话列表（单一数据源，替代 chat-list.js 的 currentChats）
         activeChatSN: null,      // 当前选中的对话 SN，供侧边栏高亮
+        activeChatSource: null,  // 点击来源区间: 'timeline' | 'favorites' | 'category' | null
+        activeSubSource: null,   // 区间内具体分组标识: 'fav_customTag' | 'cat_tag' | null
         sidebarTab: 'timeline',  // 侧边栏当前 tab: 'timeline' | 'category'
         collapsedGroups: {},     // 折叠状态: { 'groupLabel': true/false }
         chatCategories: [],      // 分类 tab 的分组数据
@@ -361,6 +363,8 @@ document.addEventListener('alpine:init', function() {
             this.inputCollapsed = false;
             // 重置侧边栏选中状态
             this.activeChatSN = null;
+            this.activeChatSource = null;
+            this.activeSubSource = null;
             // 重置回收站状态
             this.deletedChats = [];
             this.trashExpanded = false;
@@ -386,6 +390,11 @@ document.addEventListener('alpine:init', function() {
         switchSidebarTab: function(tab) {
             this.sidebarTab = tab;
             if (tab === 'category') {
+                // 从时间线切到分类 tab：清除来源信息，使所有 chat-item 降级为 active-sub
+                if (this.activeChatSource === 'timeline' || this.activeChatSource === null) {
+                    this.activeChatSource = null;
+                    this.activeSubSource = null;
+                }
                 if (Object.keys(this.chatGroups).length === 0) {
                     this.loadChatGroups();
                 }
@@ -504,6 +513,30 @@ document.addEventListener('alpine:init', function() {
          */
         isCollapsed: function(groupKey) {
             return !!this.collapsedGroups[groupKey];
+        },
+
+        /**
+         * getActiveStyle — 判断指定 chat-item 应该使用哪种 active 样式
+         * 用于分类 tab 下同一 chat 可能出现在多个分组（收藏/智能分类）的场景。
+         * 点击来源的位置使用完整 .active 样式，其余出现位置使用淡色 .active-sub 样式。
+         *
+         * @param {string} sn - 对话 SN
+         * @param {'timeline'|'favorites'|'category'} section - 所在区间
+         * @param {string} [subKey] - 区间内分组标识（收藏栏传 customTag，分类传 tag）
+         * @returns {'active'|'active-sub'|null}
+         */
+        getActiveStyle: function(sn, section, subKey) {
+            if (sn !== this.activeChatSN) return null;
+
+            // 时间线 tab — 每个 chat 只出现一次，无歧义，始终用完整 active
+            if (section === 'timeline') return 'active';
+
+            // 分类 tab — 判断是否为点击来源
+            if (this.activeChatSource === section && this.activeSubSource === subKey) {
+                return 'active';       // 来源匹配 → 完整高亮
+            }
+
+            return 'active-sub';       // 其他出现位置 → 淡色高亮
         },
 
         /**
@@ -1042,6 +1075,8 @@ document.addEventListener('alpine:init', function() {
             this.chats = [];
             this.chatCategories = [];
             this.activeChatSN = null;
+            this.activeChatSource = null;
+            this.activeSubSource = null;
             this.deletedChats = [];
             this.trashExpanded = false;
             this.trashLoaded = false;

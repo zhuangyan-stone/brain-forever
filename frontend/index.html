@@ -179,9 +179,9 @@
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
                                     <template x-for="chat in group.items" :key="chat.sn">
                                     <div class="chat-item"
-                                        :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                        :class="{ active: $store.chats.getActiveStyle(chat.sn, 'timeline') === 'active' }"
                                         :data-sn="chat.sn"
-                                        @click="$store.chats.selectChat(chat.sn)"
+                                        @click="$store.chats.selectChat(chat.sn, 'timeline')"
                                         @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                         <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
                                             viewBox="0 0 24 24" width="14" height="14" fill="none"
@@ -228,9 +228,9 @@
                                                 :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
                                                 <template x-for="chat in sub.items" :key="chat.sn">
                                                     <div class="chat-item"
-                                                        :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                                        :class="{ active: $store.chats.getActiveStyle(chat.sn, 'timeline') === 'active' }"
                                                         :data-sn="chat.sn"
-                                                        @click="$store.chats.selectChat(chat.sn)"
+                                                        @click="$store.chats.selectChat(chat.sn, 'timeline')"
                                                         @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                                         <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
                                                             viewBox="0 0 24 24" width="14" height="14" fill="none"
@@ -327,9 +327,12 @@
                                     :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">
                                     <template x-for="chat in items" :key="chat.sn">
                                         <div class="chat-item"
-                                            :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                            :class="{
+                                                active: $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active',
+                                                'active-sub': $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active-sub'
+                                            }"
                                             :data-sn="chat.sn"
-                                            @click="$store.chats.selectChat(chat.sn)"
+                                            @click="$store.chats.selectChat(chat.sn, 'favorites', customTag)"
                                             @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                             <button class="chat-item-more-btn"
@@ -346,9 +349,10 @@
                     </div>
                 </div>
 
-                <!-- 收藏与分类之间的分隔线 -->
-                <div class="category-separator"
+                <!-- 智能分类标题（收藏与普通分类之间的分隔） -->
+                <div class="category-divider-title"
                     x-show="Object.keys($store.chats.favoritesGroups || {}).length > 0 && Object.keys($store.chats.chatGroups || {}).length > 0">
+                    <span class="category-divider-title-text">🤖 智能分类</span>
                 </div>
 
                 <!-- 空状态（仅当收藏和分类都为空时显示） -->
@@ -371,9 +375,12 @@
                             :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
                             <template x-for="chat in items" :key="chat.sn">
                                 <div class="chat-item"
-                                    :class="{ active: chat.sn === $store.chats.activeChatSN }"
+                                    :class="{
+                                        active: $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active',
+                                        'active-sub': $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active-sub'
+                                    }"
                                     :data-sn="chat.sn"
-                                    @click="$store.chats.selectChat(chat.sn)"
+                                    @click="$store.chats.selectChat(chat.sn, 'category', tag)"
                                     @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                     <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
                                         viewBox="0 0 24 24" width="14" height="14" fill="none"

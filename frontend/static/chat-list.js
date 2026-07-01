@@ -149,11 +149,15 @@ export function renderChatList(chats, activeSN) {
  * ★ 迁移后：基于 Alpine store 的 activeChatSN 作为单一数据源判断，
  *   不再依赖模块变量 activeChatSN。第二个防御性条件不再需要。
  */
-async function selectChat(sn) {
+async function selectChat(sn, source, subSource) {
     // 一次性获取 Alpine store 引用，避免函数内反复调用 window.Alpine.store('chats')
     // 如果 store 不可用，继续执行无意义，直接返回
     var chats = window.Alpine.store('chats');
     if (!chats) return;
+
+    // 记录点击来源区间，用于分类 tab 下多实例 active 样式区分
+    chats.activeChatSource = source || null;
+    chats.activeSubSource = subSource || null;
 
     // 基于 Alpine store 作为单一数据源判断是否切换到不同对话
     let hasChanged = chats.activeChatSN !== sn;
@@ -1178,6 +1182,52 @@ async function handleDelete(chat) {
     // 从 items[] 中同步移除 ChatData
     chatsStore.removeChat(chat.sn);
 
+    // ★ 从智能分类树（chatGroups）中同步移除该 chat
+    if (chatsStore.chatGroups) {
+        var catChanged = false;
+        for (var tag in chatsStore.chatGroups) {
+            if (chatsStore.chatGroups.hasOwnProperty(tag)) {
+                var catItems = chatsStore.chatGroups[tag];
+                var catFiltered = catItems.filter(function(c) { return c.sn !== chat.sn; });
+                if (catFiltered.length !== catItems.length) {
+                    catChanged = true;
+                    if (catFiltered.length > 0) {
+                        chatsStore.chatGroups[tag] = catFiltered;
+                    } else {
+                        delete chatsStore.chatGroups[tag];
+                    }
+                }
+            }
+        }
+        if (catChanged) {
+            // 触发 Alpine 响应式更新
+            chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
+        }
+    }
+
+    // ★ 从收藏树（favoritesGroups）中同步移除该 chat
+    if (chatsStore.favoritesGroups) {
+        var favChanged = false;
+        for (var favTag in chatsStore.favoritesGroups) {
+            if (chatsStore.favoritesGroups.hasOwnProperty(favTag)) {
+                var favItems = chatsStore.favoritesGroups[favTag];
+                var favFiltered = favItems.filter(function(c) { return c.sn !== chat.sn; });
+                if (favFiltered.length !== favItems.length) {
+                    favChanged = true;
+                    if (favFiltered.length > 0) {
+                        chatsStore.favoritesGroups[favTag] = favFiltered;
+                    } else {
+                        delete chatsStore.favoritesGroups[favTag];
+                    }
+                }
+            }
+        }
+        if (favChanged) {
+            // 触发 Alpine 响应式更新
+            chatsStore.favoritesGroups = Object.assign({}, chatsStore.favoritesGroups);
+        }
+    }
+
   
     // 如果删除的是当前活动对话，重置状态进入欢迎页
     if (isDeletingActive) {
@@ -1298,6 +1348,50 @@ async function handlePermanentDelete(chat) {
         // 同时清理 items 中可能残留的数据
         chatsStore.removeChat(chat.sn);
 
+        // ★ 从智能分类树（chatGroups）中同步移除该 chat
+        if (chatsStore.chatGroups) {
+            var catChanged = false;
+            for (var tag in chatsStore.chatGroups) {
+                if (chatsStore.chatGroups.hasOwnProperty(tag)) {
+                    var catItems = chatsStore.chatGroups[tag];
+                    var catFiltered = catItems.filter(function(c) { return c.sn !== chat.sn; });
+                    if (catFiltered.length !== catItems.length) {
+                        catChanged = true;
+                        if (catFiltered.length > 0) {
+                            chatsStore.chatGroups[tag] = catFiltered;
+                        } else {
+                            delete chatsStore.chatGroups[tag];
+                        }
+                    }
+                }
+            }
+            if (catChanged) {
+                chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
+            }
+        }
+
+        // ★ 从收藏树（favoritesGroups）中同步移除该 chat
+        if (chatsStore.favoritesGroups) {
+            var favChanged = false;
+            for (var favTag in chatsStore.favoritesGroups) {
+                if (chatsStore.favoritesGroups.hasOwnProperty(favTag)) {
+                    var favItems = chatsStore.favoritesGroups[favTag];
+                    var favFiltered = favItems.filter(function(c) { return c.sn !== chat.sn; });
+                    if (favFiltered.length !== favItems.length) {
+                        favChanged = true;
+                        if (favFiltered.length > 0) {
+                            chatsStore.favoritesGroups[favTag] = favFiltered;
+                        } else {
+                            delete chatsStore.favoritesGroups[favTag];
+                        }
+                    }
+                }
+            }
+            if (favChanged) {
+                chatsStore.favoritesGroups = Object.assign({}, chatsStore.favoritesGroups);
+            }
+        }
+
         // 重新渲染
         renderChatList(chatsStore.chats, chatsStore.activeChatSN);
     }
@@ -1373,7 +1467,7 @@ try {
 
             const rect = e.currentTarget.getBoundingClientRect();
             const menuWidth = 160;
-            const menuHeight = 36 * 2 + 4;
+            const menuHeight = 36 * 2 + 4 + 9;
 
             const isSmallScreen = document.body.classList.contains('small-screen-mode');
             let left, top;
@@ -1410,6 +1504,11 @@ try {
                 handleRestore(chat);
             });
             menu.appendChild(restoreItem);
+
+            // 分割线
+            const separator = document.createElement('div');
+            separator.className = 'chat-context-menu-separator';
+            menu.appendChild(separator);
 
             // 永久删除
             const deleteItem = document.createElement('div');
