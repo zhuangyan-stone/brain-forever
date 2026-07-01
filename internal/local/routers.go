@@ -11,6 +11,7 @@ import (
 // InitRouters registers all API routes on the given server.
 func InitRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
 	srv.GET("/api/info/llm/chat", chatHandler.OnGetLLMInfo)
+	srv.GET("/api/chat/favorites", chatHandler.ListFavoriteChats)
 	srv.GET("/api/session", chatHandler.OnSession)
 	srv.GET("/api/chat/list", chatHandler.OnGetChats)
 	srv.PUT("/api/chat/new", chatHandler.OnNewChat)
@@ -57,4 +58,5 @@ func InitRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
 
 	// /api/doc/title —POST (generate overall title for a document, e.g. portrait)
 	srv.POST("/api/doc/title", chatHandler.OnGetDocTitle)
+
 }
