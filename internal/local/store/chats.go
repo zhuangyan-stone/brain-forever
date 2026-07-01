@@ -79,7 +79,6 @@ type ChatTag struct {
 	ChatSN   string    `db:"chat_sn" json:"chat_sn"`     // References chat_sessions.sn
 	Tag      string    `db:"tag" json:"tag"`             // Tag string (topic classification)
 	CreateAt time.Time `db:"create_at" json:"create_at"` // Creation time
-	UpdateAt time.Time `db:"update_at" json:"update_at"` // Last update time
 }
 
 func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {

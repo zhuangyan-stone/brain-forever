@@ -11,7 +11,7 @@ import (
 // ============================================================
 
 // generateSessionSN generates a globally unique serial number for a chat session.
-// Format: chat-<uuid-v4>
+// Format: chat-<hosthash8>-<timestamp16>-<rand16>
 // Delegates to toolset.GenerateSN with prefix "chat".
 func generateSessionSN() string {
 	return toolset.GenerateSN("chat")

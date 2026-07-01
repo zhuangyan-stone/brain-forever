@@ -71,7 +71,7 @@ func (s *ChatStore) InsertChatTag(chatSN string, tag string) (*ChatTag, error) {
 
 	var chatTag ChatTag
 	err = s.db.Get(&chatTag,
-		`SELECT id, chat_sn, tag, create_at, update_at
+		`SELECT id, chat_sn, tag, create_at
 		 FROM chat_tags WHERE id = ?`, id,
 	)
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *ChatStore) InsertChatTag(chatSN string, tag string) (*ChatTag, error) {
 func (s *ChatStore) ListChatTagsByChatSN(chatSN string) ([]ChatTag, error) {
 	var tags []ChatTag
 	err := s.db.Select(&tags,
-		`SELECT id, chat_sn, tag, create_at, update_at
+		`SELECT id, chat_sn, tag, create_at
 		 FROM chat_tags
 		 WHERE chat_sn = ?
 		 ORDER BY create_at ASC`,

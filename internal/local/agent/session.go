@@ -13,11 +13,12 @@ import (
 // sessionAutoIncID provides thread-safe auto-increment for session ID generation
 var sessionAutoIncID atomic.Uint64
 
-// generateSessionID generates a globally unique session ID.
-// Format: s-<uuid-v4>
-// Delegates to toolset.GenerateSN with prefix "s".
+// generateSessionID generates a locally unique HTTP session ID.
+// Only needs local uniqueness (single-server scope), so uses the lightweight
+// GenerateSNSimple (UUID v4) rather than the three-factor GenerateSN.
+// Format: s-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 func generateSessionID() string {
-	return toolset.GenerateSN("s")
+	return toolset.GenerateSNSimple("s")
 }
 
 // getSessionID gets the sessionID from the request
