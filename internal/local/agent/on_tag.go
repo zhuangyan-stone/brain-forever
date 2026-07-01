@@ -14,6 +14,33 @@ import (
 )
 
 // ============================================================
+// Tags group handler -GET /api/chat/tags/group
+// Returns a map of tag -> count for all tags (including empty).
+// ============================================================
+
+// OnGetTagsGroups handles GET /api/chat/tags/group — returns all tags
+// with their usage counts, including empty-string tags.
+func (h *ChatAgent) OnGetTagsGroups(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
+	tags, err := session.chatsStore.SelectTagsGroup()
+	if err != nil {
+		h.logger.Errorf("failed to select tag groups: %v", err)
+		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tags)
+}
+
+// ============================================================
 // Chat Tags handler -GET /api/chat/tags?sn=XXX
 // ============================================================
 
