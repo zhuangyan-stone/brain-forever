@@ -108,19 +108,5 @@ func (s *ChatStore) initSchema() error {
 		return fmt.Errorf("%s: %w", i18n.T("db_init_chat_tables_failed"), err)
 	}
 
-	// ---- Migration: 删除 chat_favorites 中的重复记录 ----
-	// 旧版本没有 UNIQUE 索引，可能存在 (chat_sn, custom_tag) 重复的行。
-	// 保留 id 最大的那条（即最新插入的），删除其他重复。
-	_, _ = s.db.Exec(`
-		DELETE FROM chat_favorites
-		WHERE id NOT IN (
-			SELECT MAX(id) FROM chat_favorites GROUP BY chat_sn, custom_tag
-		)
-	`)
-
-	// Migration: 删除旧的独立索引，确保唯一索引生效
-	_, _ = s.db.Exec(`DROP INDEX IF EXISTS idx_chat_favorites_chat_sn`)
-	_, _ = s.db.Exec(`DROP INDEX IF EXISTS idx_chat_favorites_custom_tag`)
-
 	return nil
 }
