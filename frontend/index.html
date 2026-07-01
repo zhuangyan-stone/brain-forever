@@ -943,9 +943,14 @@
             </div>
             <div class="fav-edit-body">
                 <label class="fav-edit-label">收藏到（留空表示根目录）：</label>
-                <input class="fav-edit-combo" type="text" list="favTagDatalist"
-                    x-model="customTag" placeholder="选择或输入收藏夹目录名"
-                    maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
+                <div class="fav-edit-combo-wrap">
+                    <input class="fav-edit-combo" type="text" list="favTagDatalist"
+                        x-model="customTag" placeholder="选择或输入收藏夹目录名"
+                        maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
+                    <svg class="fav-edit-combo-arrow" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
             </div>
             <datalist id="favTagDatalist">
                 <option value="">根目录</option>

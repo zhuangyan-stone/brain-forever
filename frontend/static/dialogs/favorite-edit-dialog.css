@@ -63,9 +63,15 @@
     margin-bottom: 6px;
 }
 
+.fav-edit-combo-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .fav-edit-combo {
     width: 100%;
-    padding: 7px 10px;
+    padding: 7px 28px 7px 10px;
     border: 1px solid var(--border-color, #ddd);
     border-radius: 6px;
     font-size: 14px;
@@ -77,6 +83,13 @@
 .fav-edit-combo:focus {
     border-color: var(--accent-color, #4a90d9);
     box-shadow: 0 0 0 2px var(--accent-shadow, rgba(74, 144, 217, 0.15));
+}
+
+.fav-edit-combo-arrow {
+    position: absolute;
+    right: 8px;
+    pointer-events: none;
+    color: var(--text-secondary, #888);
 }
 
 /* datalist 不应占用布局空间 */
