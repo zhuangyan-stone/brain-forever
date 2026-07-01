@@ -9,22 +9,51 @@
         <path d="M1285,750 L1315,750" stroke-width="1.5" opacity="0.08"/>
         <ellipse cx="1300" cy="720" rx="10" ry="3" fill="#8A9A6A" opacity="0.04" stroke="none"/>
         
-        <!-- 透明茶汤（明前绿茶，清亮嫩绿） — 八分满 -->
-        <path d="M1282,744 L1290,720 L1310,720 L1318,744 Z" fill="#A8C868" opacity="0.08" stroke="none"/>
+        <!-- 透明茶汤（明前绿茶，清亮嫩绿） — 八分满，水面微澜 -->
+        <path d="M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z" fill="#B8A050" opacity="0.38" stroke="none">
+          <animate attributeName="d" dur="7s" repeatCount="indefinite"
+            values="
+              M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z;
+              M1282,744 Q1290,746 1300,743 Q1310,744 1318,744 L1310,720 L1290,720 Z;
+              M1282,744 Q1290,744 1300,743 Q1310,746 1318,744 L1310,720 L1290,720 Z;
+              M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z;
+              M1282,744 Q1290,744 1295,745 Q1310,744 1318,744 L1310,720 L1290,720 Z;
+              M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z
+            "
+            keyTimes="0; 0.15; 0.3; 0.5; 0.75; 1"/>
+        </path>
+        
+        <!-- 玻璃光晕 — 杯壁反光 + 水面高光 -->
+        <ellipse cx="1305" cy="740" rx="4" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
       </g>
       
-      <!-- 茶烟袅袅 — 由浓渐散 -->
-      <path d="M1300,715 Q1296,701 1295,688" stroke-width="1.38" opacity="0.12"/>
-      <path d="M1295,688 Q1294,668 1300,650 Q1310,620 1300,590" stroke-width="0.8" opacity="0.06"/>
-      <path d="M1300,590 Q1290,560 1300,530" stroke-width="0.4" opacity="0.03"/>
-      
-      <path d="M1295,715 Q1291,703 1290,691" stroke-width="1.0" opacity="0.1"/>
-      <path d="M1290,691 Q1289,673 1295,655 Q1305,625 1295,595" stroke-width="0.6" opacity="0.06"/>
-      <path d="M1295,595 Q1285,565 1295,540" stroke-width="0.3" opacity="0.03"/>
-      
-      <path d="M1305,715 Q1309,703 1310,691" stroke-width="1.0" opacity="0.08"/>
-      <path d="M1310,691 Q1311,673 1305,655 Q1295,625 1305,595" stroke-width="0.6" opacity="0.05"/>
-      <path d="M1305,595 Q1315,560 1305,540" stroke-width="0.3" opacity="0.03"/>
+      <!-- 茶烟袅袅 — 由浓渐散，3D 逆时针扭转 -->
+      <!-- 左列 — 从左侧绕向前方（向右平移 + 放大） -->
+      <g>
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; 2,0; 0,0; -2,0; 0,0" dur="6s" repeatCount="indefinite"
+          calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1"
+          keyTimes="0; 0.25; 0.5; 0.75; 1"/>
+        <path d="M1295,715 Q1291,703 1290,691" stroke-width="1.0" opacity="0.1"/>
+        <path d="M1290,691 Q1289,673 1295,655 Q1305,625 1295,595" stroke-width="0.6" opacity="0.06"/>
+        <path d="M1295,595 Q1285,565 1295,540" stroke-width="0.3" opacity="0.03"/>
+      </g>
+      <!-- 右列 — 从右侧绕向后方向左平移 + 缩小) -->
+      <g>
+        <animateTransform attributeName="transform" type="translate"
+          values="0,0; -2,0; 0,0; 2,0; 0,0" dur="6s" repeatCount="indefinite"
+          calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1"
+          keyTimes="0; 0.25; 0.5; 0.75; 1"/>
+        <path d="M1305,715 Q1309,703 1310,691" stroke-width="1.0" opacity="0.08"/>
+        <path d="M1310,691 Q1311,673 1305,655 Q1295,625 1305,595" stroke-width="0.6" opacity="0.05"/>
+        <path d="M1305,595 Q1315,560 1305,540" stroke-width="0.3" opacity="0.03"/>
+      </g>
+      <!-- 中列 — 基本不动，作为旋转轴心 -->
+      <g>
+        <path d="M1300,715 Q1296,701 1295,688" stroke-width="1.38" opacity="0.12"/>
+        <path d="M1295,688 Q1294,668 1300,650 Q1310,620 1300,590" stroke-width="0.8" opacity="0.06"/>
+        <path d="M1300,590 Q1290,560 1300,530" stroke-width="0.4" opacity="0.03"/>
+      </g>
     </g>
     
     <!-- 远处茶山层叠 -->
