@@ -68,22 +68,6 @@
     <path d="M50,95 Q55,108 60,105" fill="none" stroke="#E8853D" stroke-width="2.5" stroke-linecap="round"/>
   </g>
 
-  <!-- 铆钉装饰 -->
-  <g opacity="0.15" fill="#E8853D">
-    <circle cx="80" cy="80" r="5"/>
-    <circle cx="200" cy="80" r="5"/>
-    <circle cx="320" cy="80" r="5"/>
-    <circle cx="80" cy="820" r="5"/>
-    <circle cx="200" cy="820" r="5"/>
-    <circle cx="320" cy="820" r="5"/>
-    <circle cx="1120" cy="80" r="5"/>
-    <circle cx="1240" cy="80" r="5"/>
-    <circle cx="1360" cy="80" r="5"/>
-    <circle cx="1120" cy="820" r="5"/>
-    <circle cx="1240" cy="820" r="5"/>
-    <circle cx="1360" cy="820" r="5"/>
-  </g>
-
   <!-- 领带装饰 — 程序员的骄傲 -->
   <g opacity="0.18">
     <!-- 领带结 -->
