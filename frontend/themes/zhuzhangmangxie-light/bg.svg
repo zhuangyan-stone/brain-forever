@@ -80,21 +80,21 @@
   <!-- 题词：苏轼《定风波》左上角 -->
   <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28">
     <!-- 第一行：莫听穿林打叶声 -->
-    <text x="38" y="216" font-size="38">莫</text>
-    <text x="80" y="206" font-size="22">听</text>
-    <text x="104" y="204" font-size="32">穿</text>
-    <text x="130" y="222" font-size="48">林</text>
-    <text x="178" y="216" font-size="28">打</text>
-    <text x="198" y="216" font-size="20">叶</text>
-    <text x="222" y="216" font-size="32">声</text>
+    <text x="34" y="216" font-size="38">莫</text>
+    <text x="76" y="206" font-size="22">听</text>
+    <text x="100" y="204" font-size="32">穿</text>
+    <text x="126" y="222" font-size="48">林</text>
+    <text x="174" y="216" font-size="28">打</text>
+    <text x="194" y="214" font-size="20">叶</text>
+    <text x="218" y="216" font-size="32">声</text>
     <!-- 第二行：何妨吟啸且徐行 -->
-    <text x="38" y="248" font-size="28">何</text>
-    <text x="64" y="245" font-size="34">妨</text>
-    <text x="98" y="238" font-size="26">吟</text>
-    <text x="120" y="256" font-size="28">啸</text>
-    <text x="154" y="248" font-size="30">且</text>
-    <text x="184" y="251" font-size="48">徐</text>
-    <text x="230" y="251" font-size="18">行</text>
+    <text x="34" y="248" font-size="28">何</text>
+    <text x="60" y="245" font-size="34">妨</text>
+    <text x="94" y="238" font-size="26">吟</text>
+    <text x="116" y="256" font-size="28">啸</text>
+    <text x="150" y="248" font-size="30">且</text>
+    <text x="180" y="251" font-size="48">徐</text>
+    <text x="226" y="251" font-size="18">行</text>
   </g>
 
   <!-- 竹林：疏疏落落，远近交错 -->
@@ -102,13 +102,13 @@
     <!-- 近丛（左侧，较大）—— 微风轻摆 -->
     <g>
       <animateTransform attributeName="transform" type="rotate"
-        values="-0.6, 100, 890; 0.6, 100, 890; -0.6, 100, 890"
+        values="-0.6, 106, 890; 0.6, 106, 890; -0.6, 106, 890"
         dur="3.5s" repeatCount="indefinite"
         calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
         keyTimes="0; 0.5; 1"/>
-      <use href="#bamboo" x="40" y="540" transform="scale(1.3)" />
-      <use href="#bamboo2" x="100" y="560" transform="scale(1.1)" />
-      <use href="#bamboo3" x="160" y="580" transform="scale(1.15)" />
+      <use href="#bamboo" x="46" y="540" transform="scale(1.3)" />
+      <use href="#bamboo2" x="106" y="560" transform="scale(1.1)" />
+      <use href="#bamboo3" x="166" y="580" transform="scale(1.15)" />
     </g>
 
     <!-- 更远处 -->
@@ -120,28 +120,28 @@
 
   <!-- 阳光光斑：穿过竹叶缝隙的亮点，带发光效果，大小脉动 -->
   <g opacity="0.85" filter="url(#sun-glow)">
-    <circle cx="80" cy="710" r="5" fill="#FFFFFF">
+    <circle cx="84" cy="710" r="5" fill="#FFFFFF">
       <animate attributeName="r" values="5; 6.5; 5" dur="4s" repeatCount="indefinite"
         calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
     </circle>
-    <circle cx="130" cy="680" r="3.5" fill="#FFFFFF">
+    <circle cx="134" cy="680" r="3.5" fill="#FFFFFF">
       <animate attributeName="r" values="3.5; 2; 3.5" dur="3s" repeatCount="indefinite"
         calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
     </circle>
-    <circle cx="60" cy="760" r="4" fill="#FFFFFF">
+    <circle cx="64" cy="760" r="4" fill="#FFFFFF">
       <animate attributeName="r" values="4; 5.5; 4" dur="5s" repeatCount="indefinite"
         calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
     </circle>
-    <circle cx="180" cy="730" r="2.5" fill="#FFFFFF">
+    <circle cx="184" cy="730" r="2.5" fill="#FFFFFF">
       <animate attributeName="r" values="2.5; 1.5; 2.5" dur="3.5s" repeatCount="indefinite"
         calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
     </circle>
 
-    <circle cx="280" cy="750" r="3" fill="#FFFFFF">
+    <circle cx="284" cy="750" r="3" fill="#FFFFFF">
       <animate attributeName="r" values="3; 4.5; 3" dur="4.5s" repeatCount="indefinite"
         calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
     </circle>
-    <circle cx="350" cy="780" r="2" fill="#FFFFFF">
+    <circle cx="354" cy="780" r="2" fill="#FFFFFF">
       <animate attributeName="r" values="2; 3; 2" dur="3s" repeatCount="indefinite"
         calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>
     </circle>
