@@ -297,7 +297,7 @@
 
             <!-- 类别 Tab 内容 — 树形分组 -->
             <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'category'">
-                <!-- ★ 收藏树（独立于分类节点） -->
+                <!-- ★ 收藏树（独立于分类节点，有数据才显示） -->
                 <div class="chat-group chat-group-favorites"
                     x-show="Object.keys($store.chats.favoritesGroups || {}).length > 0">
                     <div class="chat-group-header"
@@ -305,7 +305,7 @@
                         @mouseenter="$store.chats.closeContextMenu()">
                         <span class="collapse-arrow"
                             :class="{ collapsed: !$store.chats.favoritesExpanded }">&#x276F;</span>
-                        <span>&#x2B50; 收藏</span>
+                        <span>&#x1F516; 收藏</span>
                     </div>
                     <div class="chat-group-body"
                         :class="{ collapsed: !$store.chats.favoritesExpanded }">
