@@ -131,3 +131,13 @@ other = "Months to a year — applies to phased matters that take months to comp
 other = "Years+ — applies to traits stable for a year or more (stable preferences, skills, personality, habits)"
 [trait_halflife_desc_4]
 other = "Never changes — applies only to completed objective historical events (these facts will not change)"
+
+# ============================================================
+# Chat title formatting keys — used by formatChatTitles()
+# ============================================================
+
+[chat_titles_header]
+other = "Recent chat titles (in reverse chronological order):"
+
+[chat_title_item_format]
+other = "{{.Index}}. {{.Title}} ({{.CreateAt}})"

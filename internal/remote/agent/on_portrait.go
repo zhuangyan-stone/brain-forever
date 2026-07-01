@@ -94,12 +94,13 @@ type chatTitleItem struct {
 
 // formatChatTitles converts a slice of chatTitleItem into a natural language
 // string listing the recent chat titles with their creation dates.
-func formatChatTitles(items []chatTitleItem) string {
+func formatChatTitles(items []chatTitleItem, lang string) string {
 	if len(items) == 0 {
 		return ""
 	}
 	var sb strings.Builder
-	sb.WriteString("最近对话标题列表（按时间倒序）：\n")
+	sb.WriteString(i18n.TL(lang, "chat_titles_header"))
+	sb.WriteString("\n")
 	for i, item := range items {
 		if item.Title == "" {
 			continue
@@ -107,7 +108,11 @@ func formatChatTitles(items []chatTitleItem) string {
 		if i > 0 {
 			sb.WriteString("\n")
 		}
-		sb.WriteString(fmt.Sprintf("%d. %s（%s）", i+1, item.Title, item.CrateAt))
+		sb.WriteString(i18n.TL(lang, "chat_title_item_format", map[string]interface{}{
+			"Index":    i + 1,
+			"Title":    item.Title,
+			"CreateAt": item.CrateAt,
+		}))
 	}
 	return sb.String()
 }
@@ -117,7 +122,7 @@ type portraitRequest struct {
 	Lang             string              `json:"lang"`               // e.g. "zh-CN"
 	Retouch          int                 `json:"retouch"`            // 0-5
 	Traits           []portraitTraitItem `json:"traits"`             // user's personal traits
-	TagsInfo         string              `json:"tags_info"`          // "你的话题最热门领域是：技术(5次)、生活(3次)..."
+	TagsInfo         string              `json:"tags_info"`          // e.g. "Your top hot topics: Technology(5 times), Life(3 times)..."
 	RecentChatTitles []chatTitleItem     `json:"recent_chat_titles"` // recent chat titles for LLM context
 }
 
@@ -130,7 +135,7 @@ type portraitRequest struct {
 //	  "lang": "zh-CN",
 //	  "retouch": 3,
 //	  "traits": [
-//	    {"text": "用户25岁", "category": 1, "confidence": 9, "half_life": 3, "create_at": "2026-06-20T10:00:00Z"},
+//	    {"text": "User is 25 years old", "category": 1, "confidence": 9, "half_life": 3, "create_at": "2026-06-20T10:00:00Z"},
 //	    ...
 //	  ]
 //	}
@@ -177,7 +182,7 @@ func OnTripPortrait(w http.ResponseWriter, r *http.Request) {
 	// 2. Build system prompt with i18n
 	// ----------------------------------------------------------
 	traitsDesc := formatTraitItems(req.Traits, req.Lang)
-	chatTitlesStr := formatChatTitles(req.RecentChatTitles)
+	chatTitlesStr := formatChatTitles(req.RecentChatTitles, req.Lang)
 
 	systemContent := i18n.SystemPrompt.TL(req.Lang, "portrait", map[string]interface{}{
 		"Retouch":          req.Retouch,
