@@ -1,4 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <style>
+    @keyframes birdDrift1 {
+      0%, 100% { transform: translate(0px, 0px); }
+      25% { transform: translate(12px, -4px); }
+      50% { transform: translate(24px, 0px); }
+      75% { transform: translate(12px, 3px); }
+    }
+    @keyframes birdDrift2 {
+      0%, 100% { transform: translate(0px, 0px); }
+      25% { transform: translate(-10px, -3px); }
+      50% { transform: translate(-20px, 0px); }
+      75% { transform: translate(-10px, 2px); }
+    }
+    @keyframes birdDrift3 {
+      0%, 100% { transform: translate(0px, 0px); }
+      33% { transform: translate(8px, -2px); }
+      66% { transform: translate(16px, 1px); }
+    }
+    .bird-1 { animation: birdDrift1 6s ease-in-out infinite; }
+    .bird-2 { animation: birdDrift2 7s ease-in-out infinite; }
+    .bird-3 { animation: birdDrift3 5s ease-in-out infinite; }
+  </style>
   <!-- 远山 — 清墨入夜（极淡） -->
   <path d="M0,450 C120,370 200,390 320,350 C400,330 460,350 540,320 
            C620,290 700,330 800,310 C880,290 960,320 1040,300 
@@ -37,12 +59,30 @@
   <!-- 夜月留白 — 墨色中的一抹空灵 -->
   <circle cx="1100" cy="160" r="40" fill="#ffffff" opacity="0.10"/>
   <!-- 飞鸟 — 淡墨点笔于夜色 -->
-  <path d="M850,220 Q860,210 870,220 Q880,210 890,220" 
-        fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.18"/>
-  <path d="M1050,190 Q1060,180 1070,190 Q1080,180 1090,190" 
-        fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.14"/>
-  <path d="M780,250 Q790,240 800,250" 
+  <g class="bird-1">
+    <path fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.18">
+      <animate attributeName="d" dur="2.5s" repeatCount="indefinite"
+        values="M850,220 Q860,210 870,220 Q880,210 890,220;
+                M850,220 Q860,220 870,220 Q880,220 890,220;
+                M850,220 Q860,210 870,220 Q880,210 890,220"/>
+    </path>
+  </g>
+  <g class="bird-2">
+    <path fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.14">
+      <animate attributeName="d" dur="3s" repeatCount="indefinite"
+        values="M1050,190 Q1060,180 1070,190 Q1080,180 1090,190;
+                M1050,190 Q1060,190 1070,190 Q1080,190 1090,190;
+                M1050,190 Q1060,180 1070,190 Q1080,180 1090,190"/>
+    </path>
+  </g>
+  <path d="M780,250 Q790,240 800,250"
         fill="none" stroke="#ffffff" stroke-width="1" opacity="0.12"/>
-  <path d="M920,200 Q930,192 940,200 Q950,192 960,200" 
-        fill="none" stroke="#ffffff" stroke-width="1" opacity="0.10"/>
+  <g class="bird-3">
+    <path fill="none" stroke="#ffffff" stroke-width="1" opacity="0.10">
+      <animate attributeName="d" dur="2.5s" repeatCount="indefinite"
+        values="M920,200 Q930,192 940,200 Q950,192 960,200;
+                M920,200 Q930,200 940,200 Q950,200 960,200;
+                M920,200 Q930,192 940,200 Q950,192 960,200"/>
+    </path>
+  </g>
 </svg>
