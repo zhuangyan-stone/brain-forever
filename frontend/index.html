@@ -142,18 +142,21 @@
             <div class="sidebar-tabs" x-data>
                 <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'timeline' }"
                     :style="{ flex: $store.chats.sidebarTab === 'timeline' ? '1.8' : '1' }"
+                    :data-tooltip="$store.chats.sidebarTab === 'timeline' ? undefined : '时间'"
                     @click="$store.chats.switchSidebarTab('timeline')">
                     <span class="sidebar-tab-icon">&#x1F4C5;</span>
                     <span x-show="$store.chats.sidebarTab === 'timeline'">时间</span>
                 </button>
                 <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'category' }"
                     :style="{ flex: $store.chats.sidebarTab === 'category' ? '1.8' : '1' }"
+                    :data-tooltip="$store.chats.sidebarTab === 'category' ? undefined : '分类'"
                     @click="$store.chats.switchSidebarTab('category')">
                     <span class="sidebar-tab-icon">&#x1F916;</span>
                     <span x-show="$store.chats.sidebarTab === 'category'">分类</span>
                 </button>
                 <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'favorites' }"
                     :style="{ flex: $store.chats.sidebarTab === 'favorites' ? '1.8' : '1' }"
+                    :data-tooltip="$store.chats.sidebarTab === 'favorites' ? undefined : '收藏'"
                     @click="$store.chats.switchSidebarTab('favorites')">
                     <span class="sidebar-tab-icon">&#x2B50;</span>
                     <span x-show="$store.chats.sidebarTab === 'favorites'">收藏</span>
