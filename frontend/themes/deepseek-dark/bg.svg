@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <defs>
+    <style>
+      @keyframes s01 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:-60px 280px;scale:1.1;opacity:0}}
+      @keyframes s02 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:1}100%{translate:-100px 320px;scale:1;opacity:0}}
+      @keyframes s03 {0%{translate:0 0;scale:0.8;opacity:0}58%{opacity:0.8}100%{translate:-150px 260px;scale:1.2;opacity:0}}
+      @keyframes s04 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.95}100%{translate:-200px 350px;scale:0.9;opacity:0}}
+      @keyframes s05 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.85}100%{translate:-250px 300px;scale:1.1;opacity:0}}
+      @keyframes s06 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:1}100%{translate:-300px 250px;scale:1;opacity:0}}
+      @keyframes s07 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.75}100%{translate:-350px 330px;scale:0.9;opacity:0}}
+      @keyframes s08 {0%{translate:0 0;scale:0.8;opacity:0}58%{opacity:0.9}100%{translate:-400px 280px;scale:1.2;opacity:0}}
+      @keyframes s09 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:0.8}100%{translate:-450px 310px;scale:1;opacity:0}}
+      @keyframes s10 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.7}100%{translate:-500px 270px;scale:1.1;opacity:0}}
+      @keyframes s11 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.85}100%{translate:-130px 350px;scale:0.9;opacity:0}}
+      @keyframes s12 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:-320px 290px;scale:1.1;opacity:0}}
+      @keyframes s13 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:60px 280px;scale:1.1;opacity:0}}
+      @keyframes s14 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:1}100%{translate:100px 320px;scale:1;opacity:0}}
+      @keyframes s15 {0%{translate:0 0;scale:0.8;opacity:0}58%{opacity:0.8}100%{translate:150px 260px;scale:1.2;opacity:0}}
+      @keyframes s16 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.95}100%{translate:200px 350px;scale:0.9;opacity:0}}
+      @keyframes s17 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.85}100%{translate:250px 300px;scale:1.1;opacity:0}}
+      @keyframes s18 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:1}100%{translate:300px 250px;scale:1;opacity:0}}
+      @keyframes s19 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.75}100%{translate:350px 330px;scale:0.9;opacity:0}}
+      @keyframes s20 {0%{translate:0 0;scale:0.8;opacity:0}58%{opacity:0.9}100%{translate:400px 280px;scale:1.2;opacity:0}}
+      @keyframes s21 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:0.8}100%{translate:450px 310px;scale:1;opacity:0}}
+      @keyframes s22 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.7}100%{translate:500px 270px;scale:1.1;opacity:0}}
+      @keyframes s23 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.85}100%{translate:130px 350px;scale:0.9;opacity:0}}
+      @keyframes s24 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:320px 290px;scale:1.1;opacity:0}}
+      .c01{animation:s01 2.8s ease-in infinite}.c02{animation:s02 3.2s ease-in infinite;animation-delay:0.1s}
+      .c03{animation:s03 3.5s ease-in infinite;animation-delay:0.2s}.c04{animation:s04 3s ease-in infinite;animation-delay:0.15s}
+      .c05{animation:s05 3.3s ease-in infinite;animation-delay:0.3s}.c06{animation:s06 2.5s ease-in infinite;animation-delay:0.25s}
+      .c07{animation:s07 3.8s ease-in infinite;animation-delay:0.4s}.c08{animation:s08 2.8s ease-in infinite;animation-delay:0.35s}
+      .c09{animation:s09 3.5s ease-in infinite;animation-delay:0.5s}.c10{animation:s10 3s ease-in infinite;animation-delay:0.45s}
+      .c11{animation:s11 3.2s ease-in infinite;animation-delay:0.6s}.c12{animation:s12 3.6s ease-in infinite;animation-delay:0.55s}
+      .c13{animation:s13 2.8s ease-in infinite;animation-delay:0.05s}.c14{animation:s14 3.2s ease-in infinite;animation-delay:0.15s}
+      .c15{animation:s15 3.5s ease-in infinite;animation-delay:0.25s}.c16{animation:s16 3s ease-in infinite;animation-delay:0.2s}
+      .c17{animation:s17 3.3s ease-in infinite;animation-delay:0.35s}.c18{animation:s18 2.5s ease-in infinite;animation-delay:0.3s}
+      .c19{animation:s19 3.8s ease-in infinite;animation-delay:0.45s}.c20{animation:s20 2.8s ease-in infinite;animation-delay:0.4s}
+      .c21{animation:s21 3.5s ease-in infinite;animation-delay:0.55s}.c22{animation:s22 3s ease-in infinite;animation-delay:0.5s}
+      .c23{animation:s23 3.2s ease-in infinite;animation-delay:0.65s}.c24{animation:s24 3.6s ease-in infinite;animation-delay:0.6s}
+      /* 第二批 12 颗，晚 2 秒出发 */
+      .c25{animation:s01 2.8s ease-in infinite;animation-delay:2s}.c26{animation:s02 3.2s ease-in infinite;animation-delay:2.1s}
+      .c27{animation:s03 3.5s ease-in infinite;animation-delay:2.2s}.c28{animation:s04 3s ease-in infinite;animation-delay:2.15s}
+      .c29{animation:s05 3.3s ease-in infinite;animation-delay:2.3s}.c30{animation:s06 2.5s ease-in infinite;animation-delay:2.25s}
+      .c31{animation:s13 2.8s ease-in infinite;animation-delay:2s}.c32{animation:s14 3.2s ease-in infinite;animation-delay:2.1s}
+      .c33{animation:s15 3.5s ease-in infinite;animation-delay:2.2s}.c34{animation:s16 3s ease-in infinite;animation-delay:2.15s}
+      .c35{animation:s17 3.3s ease-in infinite;animation-delay:2.3s}.c36{animation:s18 2.5s ease-in infinite;animation-delay:2.25s}
+    </style>
+  </defs>
+  <rect width="1440" height="900" fill="#070B18"/>
+  <radialGradient id="spaceGlow" cx="50%" cy="30%" r="60%"><stop offset="0%" stop-color="#0E1628" stop-opacity="0.6"/><stop offset="50%" stop-color="#0A0F1E" stop-opacity="0.8"/><stop offset="100%" stop-color="#060A14" stop-opacity="1"/></radialGradient>
+  <rect width="1440" height="900" fill="url(#spaceGlow)"/>
+  <radialGradient id="nebula1" cx="22%" cy="18%" r="22%"><stop offset="0%" stop-color="#3B82F6" stop-opacity="0.68"/><stop offset="100%" stop-color="#070B18" stop-opacity="0.05"/></radialGradient>
+  <rect width="1440" height="900" fill="url(#nebula1)"/>
+  <radialGradient id="nebula2" cx="78%" cy="15%" r="20%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.54"/><stop offset="100%" stop-color="#070B18" stop-opacity="0"/></radialGradient>
+  <rect width="1440" height="900" fill="url(#nebula2)"/>
+
+  <g fill="#D6E8FF">
+    <!-- 左半 12 颗，起始 X 分散 650~735 -->
+    <g transform="translate(640,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c01"/></g>
+    <g transform="translate(690,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c02"/></g>
+    <g transform="translate(630,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c03"/></g>
+    <g transform="translate(680,135)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c04"/></g>
+    <g transform="translate(660,170)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c05"/></g>
+    <g transform="translate(700,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c06"/></g>
+    <g transform="translate(650,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c07"/></g>
+    <g transform="translate(695,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c08"/></g>
+    <g transform="translate(620,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c09"/></g>
+    <g transform="translate(670,130)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c10"/></g>
+    <g transform="translate(708,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c11"/></g>
+    <g transform="translate(655,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c12"/></g>
+    <!-- 右半 12 颗 -->
+    <g transform="translate(780,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c13"/></g>
+    <g transform="translate(740,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c14"/></g>
+    <g transform="translate(800,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c15"/></g>
+    <g transform="translate(750,135)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c16"/></g>
+    <g transform="translate(770,170)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c17"/></g>
+    <g transform="translate(730,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c18"/></g>
+    <g transform="translate(790,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c19"/></g>
+    <g transform="translate(745,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c20"/></g>
+    <g transform="translate(810,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c21"/></g>
+    <g transform="translate(760,130)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c22"/></g>
+    <g transform="translate(735,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c23"/></g>
+    <g transform="translate(775,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c24"/></g>
+    <!-- 第二批 12 颗（晚 2 秒） -->
+    <g transform="translate(635,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c25"/></g>
+    <g transform="translate(685,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c26"/></g>
+    <g transform="translate(625,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c27"/></g>
+    <g transform="translate(675,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c28"/></g>
+    <g transform="translate(665,175)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c29"/></g>
+    <g transform="translate(705,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c30"/></g>
+    <g transform="translate(785,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c31"/></g>
+    <g transform="translate(755,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c32"/></g>
+    <g transform="translate(805,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c33"/></g>
+    <g transform="translate(765,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c34"/></g>
+    <g transform="translate(795,175)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c35"/></g>
+    <g transform="translate(748,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c36"/></g>
+  </g>
+</svg>
