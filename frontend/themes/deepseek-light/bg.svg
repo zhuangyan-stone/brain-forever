@@ -70,9 +70,9 @@
     <line x1="1154" y1="652" x2="1172" y2="652" stroke="#8AA8C8" stroke-width="0.5"/>
     <line x1="1154" y1="642" x2="1172" y2="642" stroke="#8AA8C8" stroke-width="0.5"/>
     <!-- 灯室（顶部的玻璃房） -->
-    <rect x="1155" y="625" width="16" height="7" rx="1" fill="#B0C4DC" stroke="#8AA8C8" stroke-width="0.7"/>
-    <!-- 灯室发光 -->
-    <rect x="1156" y="626" width="14" height="5" rx="0.8" fill="#FFEEBB" opacity="0.82"/>
+    <rect x="1155" y="625" width="16" height="7" rx="1" fill="#D6C8A8" stroke="#8AA8C8" stroke-width="0.7"/>
+    <!-- 灯室发光（更暖） -->
+    <rect x="1156" y="626" width="14" height="5" rx="0.8" fill="#FFE088" opacity="0.90"/>
     <!-- 屋顶 -->
     <path d="M1153,625 L1163,619 L1173,625 Z" fill="#8AA8C8"/>
     <!-- 灯室左侧光晕（光束出口处掺入灯光色） -->
@@ -87,7 +87,7 @@
     <!--    - 旋转角度 ±3 可改为 ±5 等调扫描范围 -->
     <!-- 光束渐变（亮度从近到远递减） -->
     <linearGradient id="beamFade" x1="1" y1="0" x2="0" y2="0">
-      <stop offset="0%" stop-color="#FFEEBB" stop-opacity="0.82"/>
+      <stop offset="0%" stop-color="#FFE088" stop-opacity="0.82"/>
       <stop offset="30%" stop-color="#FFEEBB" stop-opacity="0.30"/>
       <stop offset="60%" stop-color="#FFEEBB" stop-opacity="0.12"/>
       <stop offset="100%" stop-color="#FFEEBB" stop-opacity="0.04"/>
@@ -95,11 +95,11 @@
     <!-- 光束组（独立于灯塔组透明度） -->
     <g opacity="1">
       <animateTransform attributeName="transform" type="rotate"
-        values="-3 1154 630; 3 1154 630; -3 1154 630"
+        values="-5 1154 630; 5 1154 630; -5 1154 630"
         keyTimes="0; 0.5; 1"
         dur="6s" repeatCount="indefinite"/>
       <!-- 单束光柱（渐变淡出，左缘对齐灯室外壁） -->
-      <path d="M1154,627 L820,530 L808,631 L1154,631 Z"
+      <path d="M1154,626 L820,530 L808,631 L1154,631 Z"
             fill="url(#beamFade)"/>
     </g>
   </g>
