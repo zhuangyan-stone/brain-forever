@@ -13,14 +13,16 @@
       75% { transform: translateY(2px); }
     }
     @keyframes eyeBlink {
-      0%, 22% { transform: scaleY(1); }
-      24% { transform: scaleY(0); }
+      0%, 70% { transform: scaleY(0); }
+      72% { transform: scaleY(1); }
+      96% { transform: scaleY(1); }
+      98% { transform: scaleY(0); }
       100% { transform: scaleY(0); }
     }
     .whiskers-left { animation: whiskerFloatL 3s ease-in-out infinite; }
     .whiskers-right { animation: whiskerFloatR 3.2s ease-in-out infinite; }
-    .eye-left { transform-origin: 42px 15px; animation: eyeBlink 8s ease-in-out infinite; }
-    .eye-right { transform-origin: 58px 15px; animation: eyeBlink 8s ease-in-out infinite; }
+    .eye-left { transform-origin: 42px 15px; animation: eyeBlink 8.5s ease-in-out infinite; }
+    .eye-right { transform-origin: 58px 15px; animation: eyeBlink 8.5s ease-in-out infinite; }
   </style>
   <!-- 猫 + 咖啡机 — 右下角（暗色版，Catppuccin Mocha） -->
   <g fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round">
@@ -46,11 +48,11 @@
       <path d="M55,112 Q70,112 70,126 Q70,140 55,140" fill="none" stroke="#cdd6f4"/>
       <!-- 咖啡液面 -->
       <line x1="24" y1="118" x2="56" y2="118" stroke="#cdd6f4" stroke-width="1.5" stroke-dasharray="2,2"/>
-      <!-- 蒸汽 -->
+      <!-- 咖啡香气 -->
       <g opacity="0.5">
-        <path d="M40,8 Q35,0 40,-8 Q45,-16 40,-24" stroke-width="1.2"/>
-        <path d="M48,10 Q43,2 48,-6 Q53,-14 48,-20" stroke-width="1"/>
-        <path d="M35,8 Q30,0 35,-6" stroke-width="0.8"/>
+        <path d="M40,113 Q35,103 40,93 Q45,83 40,73" stroke-width="1.2"/>
+        <path d="M48,115 Q43,105 48,95 Q53,85 48,78" stroke-width="1"/>
+        <path d="M35,113 Q30,103 35,97" stroke-width="0.8"/>
       </g>
       <!-- 调节旋钮 -->
       <circle cx="70" cy="80" r="5" fill="#cdd6f4" fill-opacity="0.04" stroke="#cdd6f4" stroke-width="1"/>

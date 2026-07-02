@@ -2,17 +2,25 @@
   <style>
     @keyframes earTwitchL {
       0%, 100% { transform: rotate(0deg); }
-      2% { transform: rotate(10deg); }
-      3.5% { transform: rotate(-4deg); }
-      5% { transform: rotate(3deg); }
-      6.5% { transform: rotate(0deg); }
+      2%   { transform: rotate(10deg); }
+      3%   { transform: rotate(-4deg); }
+      4%   { transform: rotate(3deg); }
+      5%   { transform: rotate(0deg); }
+      7%   { transform: rotate(10deg); }
+      8%   { transform: rotate(-4deg); }
+      9%   { transform: rotate(3deg); }
+      10%  { transform: rotate(0deg); }
     }
     @keyframes earTwitchR {
       0%, 100% { transform: rotate(0deg); }
       2.5% { transform: rotate(-10deg); }
-      4% { transform: rotate(4deg); }
-      5.5% { transform: rotate(-3deg); }
-      7% { transform: rotate(0deg); }
+      3.5% { transform: rotate(4deg); }
+      4.5% { transform: rotate(-3deg); }
+      5.5% { transform: rotate(0deg); }
+      7.5% { transform: rotate(-10deg); }
+      8.5% { transform: rotate(4deg); }
+      9.5% { transform: rotate(-3deg); }
+      10.5% { transform: rotate(0deg); }
     }
     @keyframes whiskerFloatL {
       0%, 100% { transform: translateY(0px); }
@@ -26,10 +34,20 @@
       50% { transform: translateY(0px); }
       75% { transform: translateY(2px); }
     }
-    .ear-left { transform-origin: 39px 5px; animation: earTwitchL 8s ease-in-out infinite; }
-    .ear-right { transform-origin: 61px 5px; animation: earTwitchR 8s ease-in-out infinite; }
+    @keyframes spinEyeCW {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes spinEyeCCW {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-360deg); }
+    }
+    .ear-left { transform-origin: 39px 5px; animation: earTwitchL 16s ease-in-out infinite; }
+    .ear-right { transform-origin: 61px 5px; animation: earTwitchR 16s ease-in-out infinite; }
     .whiskers-left { animation: whiskerFloatL 3s ease-in-out infinite; }
     .whiskers-right { animation: whiskerFloatR 3.2s ease-in-out infinite; }
+    .eye-spiral-left { transform-origin: 42px 15px; animation: spinEyeCW 6.7s linear infinite; }
+    .eye-spiral-right { transform-origin: 58px 15px; animation: spinEyeCCW 6.7s linear infinite; }
   </style>
   <!-- 猫 + 咖啡机 — 右下角（猫在咖啡机内，杯子在外面） -->
   <g fill="none" stroke="#2a7af5" stroke-linecap="round" stroke-linejoin="round">
@@ -66,12 +84,31 @@
         <g class="ear-left"><path d="M34,6 L28,-8 L44,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/></g>
         <!-- 右耳 -->
         <g class="ear-right"><path d="M66,6 L72,-8 L56,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/></g>
-        <!-- 眼睛（主题色 #2a7af5） -->
-        <circle cx="42" cy="15" r="7" fill="#2a7af5" fill-opacity="0.50" stroke="none"/>
-        <circle cx="58" cy="15" r="7" fill="#2a7af5" fill-opacity="0.50" stroke="none"/>
-        <!-- 瞳孔 -->
-        <circle cx="42" cy="15" r="3.5" fill="#2a7af5" fill-opacity="0.65" stroke="none"/>
-        <circle cx="58" cy="15" r="3.5" fill="#2a7af5" fill-opacity="0.65" stroke="none"/>
+        <!-- 眼睛（蚊香螺旋，持续旋转） -->
+        <path class="eye-spiral-left" d="M 42,15
+          A 0.9,0.9 0 0,1 42.9,15
+          A 1.8,1.8 0 0,1 42.9,16.8
+          A 2.7,2.7 0 0,1 40.2,16.8
+          A 3.6,3.6 0 0,1 40.2,13.2
+          A 4.5,4.5 0 0,1 44.7,13.2
+          A 5.4,5.4 0 0,1 44.7,18.6
+          A 6.3,6.3 0 0,1 38.4,18.6
+          A 7.2,7.2 0 0,1 38.4,11.4
+          A 8.1,8.1 0 0,1 46.5,11.4
+          A 9.0,9.0 0 0,1 46.5,20.4"
+          fill="none" stroke="#2a7af5" stroke-width="1.2" stroke-linecap="round"/>
+        <path class="eye-spiral-right" d="M 58,15
+          A 0.9,0.9 0 0,0 57.1,15
+          A 1.8,1.8 0 0,0 57.1,16.8
+          A 2.7,2.7 0 0,0 59.8,16.8
+          A 3.6,3.6 0 0,0 59.8,13.2
+          A 4.5,4.5 0 0,0 55.3,13.2
+          A 5.4,5.4 0 0,0 55.3,18.6
+          A 6.3,6.3 0 0,0 61.6,18.6
+          A 7.2,7.2 0 0,0 61.6,11.4
+          A 8.1,8.1 0 0,0 53.5,11.4
+          A 9.0,9.0 0 0,0 53.5,20.4"
+          fill="none" stroke="#2a7af5" stroke-width="1.2" stroke-linecap="round"/>
         <!-- 鼻子 -->
         <path d="M48,22 L50,24 L52,22" fill="#2a7af5" fill-opacity="0.15" stroke="none"/>
         <!-- 胡须 -->
