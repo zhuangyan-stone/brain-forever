@@ -338,3 +338,107 @@ other = "按对话查询特征列表失败"
 
 [db_list_all_traits_failed]
 other = "查询所有特征列表失败"
+
+# ============================================================
+# Trait category display names —used in trait_searcher.go
+# Format: 中文名称 (编号)
+# ============================================================
+[trait_category_0]
+other = "其他 (0)"
+
+[trait_category_1]
+other = "人口学特征 (1)"
+
+[trait_category_2]
+other = "关联实体 (2)"
+
+[trait_category_3]
+other = "成就与修为 (3)"
+
+[trait_category_4]
+other = "兴趣爱好 (4)"
+
+[trait_category_5]
+other = "能力技能 (5)"
+
+[trait_category_6]
+other = "偏好/癖好 (6)"
+
+[trait_category_7]
+other = "行为习惯 (7)"
+
+[trait_category_8]
+other = "健康与疾病 (8)"
+
+[trait_category_9]
+other = "近况和状态 (9)"
+
+[trait_category_10]
+other = "人格/性格 (10)"
+
+[trait_category_11]
+other = "价值观与信仰 (11)"
+
+[trait_category_12]
+other = "关系人 (12)"
+
+[trait_category_13]
+other = "人生事件 (13)"
+
+[trait_category_14]
+other = "目标与计划 (14)"
+
+# ============================================================
+# Trait half-life display names —used in trait_searcher.go
+# Format: 中文名称
+# ============================================================
+[trait_halflife_1]
+other = "短期"
+
+[trait_halflife_2]
+other = "中期"
+
+[trait_halflife_3]
+other = "长期"
+
+[trait_halflife_4]
+other = "永久"
+
+# ============================================================
+# Trait confidence display names —used in trait_searcher.go
+# Format: 置信度级别名
+# ============================================================
+[trait_confidence_low]
+other = "低置信度"
+
+[trait_confidence_medium]
+other = "中置信度"
+
+[trait_confidence_high]
+other = "高置信度"
+
+# ============================================================
+# Trait search tool errors —used in internal/local/agent/toolimp/trait_search.go
+# All keys prefixed with trait_search_error_
+# ============================================================
+
+[trait_search_error_unmarshal_args]
+other = "解析特征搜索参数失败"
+
+[trait_search_error_empty_query]
+other = "特征搜索：查询文本为空"
+
+[trait_search_error_empty_keyword]
+other = "特征搜索：关键词为空"
+
+[trait_search_error_searcher_not_init]
+other = "特征搜索：搜索器未初始化"
+
+[trait_search_error_search_failed]
+other = "特征搜索失败"
+
+[trait_search_error_invalid_kind_letter]
+other = "特征搜索：无效的类型字母「{{.Kind}}」，应为 A-F"
+
+[trait_search_error_no_results]
+other = "特征搜索：未找到匹配的特征记录"

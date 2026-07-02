@@ -338,3 +338,107 @@ other = "list traits by chat failed"
 
 [db_list_all_traits_failed]
 other = "list all traits failed"
+
+# ============================================================
+# Trait category display names —used in trait_searcher.go
+# Format: English name (number)
+# ============================================================
+[trait_category_0]
+other = "Unspecified (0)"
+
+[trait_category_1]
+other = "Demographic Attributes (1)"
+
+[trait_category_2]
+other = "Associated Entities (2)"
+
+[trait_category_3]
+other = "Achievements & Attainment (3)"
+
+[trait_category_4]
+other = "Hobbies (4)"
+
+[trait_category_5]
+other = "Abilities/Skills (5)"
+
+[trait_category_6]
+other = "Preferences/Idiosyncrasies (6)"
+
+[trait_category_7]
+other = "Behavioral Habits (7)"
+
+[trait_category_8]
+other = "Health & Illness (8)"
+
+[trait_category_9]
+other = "Situational States (9)"
+
+[trait_category_10]
+other = "Personality/Character Traits (10)"
+
+[trait_category_11]
+other = "Values/Beliefs (11)"
+
+[trait_category_12]
+other = "Related Persons (12)"
+
+[trait_category_13]
+other = "Life Experiences (13)"
+
+[trait_category_14]
+other = "Goals/Plans (14)"
+
+# ============================================================
+# Trait half-life display names —used in trait_searcher.go
+# Format: English name
+# ============================================================
+[trait_halflife_1]
+other = "short"
+
+[trait_halflife_2]
+other = "medium"
+
+[trait_halflife_3]
+other = "long"
+
+[trait_halflife_4]
+other = "permanent"
+
+# ============================================================
+# Trait confidence display names —used in trait_searcher.go
+# Format: confidence level name
+# ============================================================
+[trait_confidence_low]
+other = "Low Confidence"
+
+[trait_confidence_medium]
+other = "Medium Confidence"
+
+[trait_confidence_high]
+other = "High Confidence"
+
+# ============================================================
+# Trait search tool errors —used in internal/local/agent/toolimp/trait_search.go
+# All keys prefixed with trait_search_error_
+# ============================================================
+
+[trait_search_error_unmarshal_args]
+other = "Failed to parse trait search arguments"
+
+[trait_search_error_empty_query]
+other = "Trait Search: empty query text"
+
+[trait_search_error_empty_keyword]
+other = "Trait Search: empty keyword"
+
+[trait_search_error_searcher_not_init]
+other = "Trait Search: searcher not initialized"
+
+[trait_search_error_search_failed]
+other = "Trait Search failed"
+
+[trait_search_error_invalid_kind_letter]
+other = "Trait Search: invalid kind letter 「{{.Kind}}」, expected A-F"
+
+[trait_search_error_no_results]
+other = "Trait Search: no matching trait records found"

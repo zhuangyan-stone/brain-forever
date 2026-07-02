@@ -5,6 +5,7 @@ import (
 	"BrainForever/infra/llm"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -32,7 +33,7 @@ type TraitSource struct {
 	Trait    string `json:"trait"`
 	Category string `json:"category"`
 
-	Confidence int `json:"confidence"`
+	Confidence string `json:"confidence"`
 
 	HalfLife string `json:"half_life"`
 
@@ -129,7 +130,7 @@ func traitSearchByTextArguments(arguments string) (text string, category int, er
 		Category int    `json:"category"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", 0, fmt.Errorf("failed to unmarshal %q arguments: %w", TraitSearchByTextToolName, err)
+		return "", 0, fmt.Errorf("unmarshal arguments: %w", err)
 	}
 	return result.Text, result.Category, nil
 }
@@ -141,7 +142,7 @@ func traitSearchByKeywordArguments(arguments string) (keyword string, kind strin
 		Kind    string `json:"kind"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", "", fmt.Errorf("failed to unmarshal %q arguments: %w", TraitSearchByKeywordToolName, err)
+		return "", "", fmt.Errorf("unmarshal arguments: %w", err)
 	}
 	return result.Keyword, result.Kind, nil
 }
@@ -257,27 +258,30 @@ func (imp *TraitSearchByTextToolImp) GetPendingText() string {
 
 func (imp *TraitSearchByTextToolImp) SetArgument(arguments string) (err error) {
 	imp.q, imp.category, err = traitSearchByTextArguments(arguments)
+	if err != nil {
+		return fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_unmarshal_args", nil), err)
+	}
 	return
 }
 
 func (imp *TraitSearchByTextToolImp) Execute() (result string, err error) {
 	if imp.q == "" {
-		return "", fmt.Errorf("%s: empty query text", TraitSearchByTextToolName)
+		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_empty_query", nil))
 	}
 	if imp.searcher == nil {
-		return "", fmt.Errorf("%s: searcher not initialized", TraitSearchByTextToolName)
+		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_searcher_not_init", nil))
 	}
 
 	var traits []TraitSource
 	traits, err = imp.searcher.SearchByText(imp.ctx, imp.q, imp.category, imp.topK)
 	if err != nil {
-		return "", fmt.Errorf("%s search failed: %w", TraitSearchByTextToolName, err)
+		return "", fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_search_failed", nil), err)
 	}
 
 	// Accumulate results across multiple tool calls in the same reasoning cycle.
 	imp.Traits = append(imp.Traits, traits...)
 
-	result = formatTraitSources(traits)
+	result = formatTraitSources(imp.lang, traits)
 	return
 }
 
@@ -295,41 +299,44 @@ func (imp *TraitSearchByKeywordToolImp) GetPendingText() string {
 
 func (imp *TraitSearchByKeywordToolImp) SetArgument(arguments string) (err error) {
 	imp.keyword, imp.kind, err = traitSearchByKeywordArguments(arguments)
+	if err != nil {
+		return fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_unmarshal_args", nil), err)
+	}
 	return
 }
 
 func (imp *TraitSearchByKeywordToolImp) Execute() (result string, err error) {
 	if imp.keyword == "" {
-		return "", fmt.Errorf("%s: empty keyword", TraitSearchByKeywordToolName)
+		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_empty_keyword", nil))
 	}
 	if imp.searcher == nil {
-		return "", fmt.Errorf("%s: searcher not initialized", TraitSearchByKeywordToolName)
+		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_searcher_not_init", nil))
 	}
 
 	// Convert kind letter (A-F) to integer (1-6) for the searcher interface.
 	kindInt := kindLetterToInt(imp.kind)
 	if kindInt == 0 {
-		return "", fmt.Errorf("%s: invalid kind letter %q, expected A-F", TraitSearchByKeywordToolName, imp.kind)
+		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_invalid_kind_letter", map[string]interface{}{"Kind": imp.kind}))
 	}
 
 	var traits []TraitSource
 	traits, err = imp.searcher.SearchByKeyword(imp.ctx, imp.keyword, kindInt)
 	if err != nil {
-		return "", fmt.Errorf("%s search failed: %w", TraitSearchByKeywordToolName, err)
+		return "", fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_search_failed", nil), err)
 	}
 
 	// Accumulate results across multiple tool calls in the same reasoning cycle.
 	imp.Traits = append(imp.Traits, traits...)
 
-	result = formatTraitSources(traits)
+	result = formatTraitSources(imp.lang, traits)
 	return
 }
 
 // formatTraitSources formats a slice of TraitSource into a human-readable string
 // that can be returned to the LLM as the tool call result.
-func formatTraitSources(traits []TraitSource) string {
+func formatTraitSources(lang string, traits []TraitSource) string {
 	if len(traits) == 0 {
-		return "No matching trait records found."
+		return i18n.TL(lang, "trait_search_error_no_results", nil)
 	}
 
 	var b strings.Builder
@@ -339,7 +346,7 @@ func formatTraitSources(traits []TraitSource) string {
 		b.WriteString(fmt.Sprintf("%d. ", i+1))
 		b.WriteString(fmt.Sprintf("Trait: %s | ", t.Trait))
 		b.WriteString(fmt.Sprintf("Category: %s | ", t.Category))
-		b.WriteString(fmt.Sprintf("Confidence: %d | ", t.Confidence))
+		b.WriteString(fmt.Sprintf("Confidence: %s | ", t.Confidence))
 		b.WriteString(fmt.Sprintf("HalfLife: %s | ", t.HalfLife))
 		if !t.CreateAt.IsZero() {
 			b.WriteString(fmt.Sprintf("Created: %s", t.CreateAt.Format("2006-01-02 15:04:05")))
