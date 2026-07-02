@@ -86,14 +86,14 @@
       "name_zh": "猫布奇诺·摩卡"
     },
     {
-      "description": "挪威的森林，明亮冷静",
+      "description": "Norwegian Wood，明亮冷静",
       "id": "nord-light",
       "mode": "light",
       "name": "Nord Frost Gray",
       "name_zh": "北欧·霜灰"
     },
     {
-      "description": "挪威的森林，优雅沉浸",
+      "description": "This Bird Has Flown，沉浸优雅",
       "id": "nord-dark",
       "mode": "dark",
       "name": "Nord Cold Night",
@@ -132,14 +132,14 @@
       "id": "nanyu-light",
       "mode": "light",
       "name": "Old Man · Cold Day",
-      "name_zh": "南郁·犯困"
+      "name_zh": "NanYu·14:45"
     },
     {
       "description": "熔炉夜",
       "id": "nanyu-dark",
       "mode": "dark",
       "name": "Old Man · Hot Night",
-      "name_zh": "南郁·无眠"
+      "name_zh": "NanYu·22:05"
     }
   ]
 }
