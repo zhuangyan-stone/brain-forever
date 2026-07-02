@@ -37,7 +37,6 @@
       .c19{animation:s19 3.8s ease-in infinite;animation-delay:0.45s}.c20{animation:s20 2.8s ease-in infinite;animation-delay:0.4s}
       .c21{animation:s21 3.5s ease-in infinite;animation-delay:0.55s}.c22{animation:s22 3s ease-in infinite;animation-delay:0.5s}
       .c23{animation:s23 3.2s ease-in infinite;animation-delay:0.65s}.c24{animation:s24 3.6s ease-in infinite;animation-delay:0.6s}
-      /* 第二批 12 颗，晚 2 秒出发 */
       .c25{animation:s01 2.8s ease-in infinite;animation-delay:2s}.c26{animation:s02 3.2s ease-in infinite;animation-delay:2.1s}
       .c27{animation:s03 3.5s ease-in infinite;animation-delay:2.2s}.c28{animation:s04 3s ease-in infinite;animation-delay:2.15s}
       .c29{animation:s05 3.3s ease-in infinite;animation-delay:2.3s}.c30{animation:s06 2.5s ease-in infinite;animation-delay:2.25s}
@@ -45,6 +44,12 @@
       .c33{animation:s15 3.5s ease-in infinite;animation-delay:2.2s}.c34{animation:s16 3s ease-in infinite;animation-delay:2.15s}
       .c35{animation:s17 3.3s ease-in infinite;animation-delay:2.3s}.c36{animation:s18 2.5s ease-in infinite;animation-delay:2.25s}
     </style>
+    <linearGradient id="g01" x1="0" y1="0" x2="5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="g05" x1="0" y1="0" x2="21" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="g09" x1="0" y1="0" x2="38" y2="-26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.4"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="g13" x1="0" y1="0" x2="-5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="g17" x1="0" y1="0" x2="-21" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="g21" x1="0" y1="0" x2="-38" y2="-26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.4"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
   </defs>
   <rect width="1440" height="900" fill="#070B18"/>
   <radialGradient id="spaceGlow" cx="50%" cy="30%" r="60%"><stop offset="0%" stop-color="#0E1628" stop-opacity="0.6"/><stop offset="50%" stop-color="#0A0F1E" stop-opacity="0.8"/><stop offset="100%" stop-color="#060A14" stop-opacity="1"/></radialGradient>
@@ -55,44 +60,41 @@
   <rect width="1440" height="900" fill="url(#nebula2)"/>
 
   <g fill="#D6E8FF">
-    <!-- 左半 12 颗，起始 X 分散 650~735 -->
-    <g transform="translate(640,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c01"/></g>
-    <g transform="translate(690,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c02"/></g>
-    <g transform="translate(630,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c03"/></g>
-    <g transform="translate(680,135)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c04"/></g>
-    <g transform="translate(660,170)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c05"/></g>
-    <g transform="translate(700,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c06"/></g>
-    <g transform="translate(650,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c07"/></g>
-    <g transform="translate(695,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c08"/></g>
-    <g transform="translate(620,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c09"/></g>
-    <g transform="translate(670,130)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c10"/></g>
-    <g transform="translate(708,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c11"/></g>
-    <g transform="translate(655,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c12"/></g>
-    <!-- 右半 12 颗 -->
-    <g transform="translate(780,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c13"/></g>
-    <g transform="translate(740,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c14"/></g>
-    <g transform="translate(800,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c15"/></g>
-    <g transform="translate(750,135)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c16"/></g>
-    <g transform="translate(770,170)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c17"/></g>
-    <g transform="translate(730,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c18"/></g>
-    <g transform="translate(790,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c19"/></g>
-    <g transform="translate(745,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c20"/></g>
-    <g transform="translate(810,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c21"/></g>
-    <g transform="translate(760,130)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c22"/></g>
-    <g transform="translate(735,160)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c23"/></g>
-    <g transform="translate(775,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c24"/></g>
-    <!-- 第二批 12 颗（晚 2 秒） -->
-    <g transform="translate(635,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c25"/></g>
-    <g transform="translate(685,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c26"/></g>
-    <g transform="translate(625,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c27"/></g>
-    <g transform="translate(675,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c28"/></g>
-    <g transform="translate(665,175)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c29"/></g>
-    <g transform="translate(705,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c30"/></g>
-    <g transform="translate(785,155)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c31"/></g>
-    <g transform="translate(755,145)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c32"/></g>
-    <g transform="translate(805,165)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c33"/></g>
-    <g transform="translate(765,140)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c34"/></g>
-    <g transform="translate(795,175)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c35"/></g>
-    <g transform="translate(748,150)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c36"/></g>
+    <g transform="translate(640,158)"><line x1="0" y1="0" x2="5" y2="-23" stroke="url(#g01)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c01"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c01"/></g>
+    <g transform="translate(690,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c02"/></g>
+    <g transform="translate(630,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c03"/></g>
+    <g transform="translate(680,143)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c04"/></g>
+    <g transform="translate(660,178)"><line x1="0" y1="0" x2="21" y2="-25" stroke="url(#g05)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c05"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c05"/></g>
+    <g transform="translate(700,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c06"/></g>
+    <g transform="translate(650,163)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c07"/></g>
+    <g transform="translate(695,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c08"/></g>
+    <g transform="translate(620,148)"><line x1="0" y1="0" x2="38" y2="-26" stroke="url(#g09)" stroke-width="1" stroke-linecap="round" opacity="0" class="c09"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c09"/></g>
+    <g transform="translate(670,138)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c10"/></g>
+    <g transform="translate(708,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c11"/></g>
+    <g transform="translate(655,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c12"/></g>
+    <g transform="translate(780,158)"><line x1="0" y1="0" x2="-5" y2="-23" stroke="url(#g13)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c13"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c13"/></g>
+    <g transform="translate(740,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c14"/></g>
+    <g transform="translate(800,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c15"/></g>
+    <g transform="translate(750,143)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c16"/></g>
+    <g transform="translate(770,178)"><line x1="0" y1="0" x2="-21" y2="-25" stroke="url(#g17)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c17"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c17"/></g>
+    <g transform="translate(730,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c18"/></g>
+    <g transform="translate(790,163)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c19"/></g>
+    <g transform="translate(745,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c20"/></g>
+    <g transform="translate(810,148)"><line x1="0" y1="0" x2="-38" y2="-26" stroke="url(#g21)" stroke-width="1" stroke-linecap="round" opacity="0" class="c21"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c21"/></g>
+    <g transform="translate(760,138)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c22"/></g>
+    <g transform="translate(735,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c23"/></g>
+    <g transform="translate(775,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c24"/></g>
+    <g transform="translate(635,163)"><line x1="0" y1="0" x2="5" y2="-23" stroke="url(#g01)" stroke-width="1" stroke-linecap="round" opacity="0" class="c25"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c25"/></g>
+    <g transform="translate(685,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c26"/></g>
+    <g transform="translate(625,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c27"/></g>
+    <g transform="translate(675,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c28"/></g>
+    <g transform="translate(665,183)"><line x1="0" y1="0" x2="21" y2="-25" stroke="url(#g05)" stroke-width="1" stroke-linecap="round" opacity="0" class="c29"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c29"/></g>
+    <g transform="translate(705,158)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c30"/></g>
+    <g transform="translate(785,163)"><line x1="0" y1="0" x2="-5" y2="-23" stroke="url(#g13)" stroke-width="1" stroke-linecap="round" opacity="0" class="c31"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c31"/></g>
+    <g transform="translate(755,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c32"/></g>
+    <g transform="translate(805,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c33"/></g>
+    <g transform="translate(765,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c34"/></g>
+    <g transform="translate(795,183)"><line x1="0" y1="0" x2="-21" y2="-25" stroke="url(#g17)" stroke-width="1" stroke-linecap="round" opacity="0" class="c35"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c35"/></g>
+    <g transform="translate(748,158)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c36"/></g>
   </g>
 </svg>
