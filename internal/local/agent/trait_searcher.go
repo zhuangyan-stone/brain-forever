@@ -2,6 +2,7 @@ package agent
 
 import (
 	"BrainForever/infra/embedder"
+	"BrainForever/infra/i18n"
 	"BrainForever/internal/local/agent/toolimp"
 	"BrainForever/internal/local/store"
 	"context"
@@ -12,61 +13,38 @@ import (
 type traitSearchAdapter struct {
 	client embedder.Embedder
 	store  *store.VectorStore
+	lang   string
 }
 
-// halfLifeDisplay converts the stored half-life integer (1-4) back to its original
-// English enum label. Mapping: 1=short, 2=medium, 3=long, 4=permanent.
-func halfLifeDisplay(halfLife int) string {
-	switch halfLife {
-	case 1:
-		return "short"
-	case 2:
-		return "medium"
-	case 3:
-		return "long"
-	case 4:
-		return "permanent"
+// halfLifeDisplay returns the localized half-life label for the stored integer (1-4).
+// Mapping: 1=short, 2=medium, 3=long, 4=permanent.
+func halfLifeDisplay(lang string, halfLife int) string {
+	key := fmt.Sprintf("trait_halflife_%d", halfLife)
+	return i18n.TL(lang, key)
+}
+
+// confidenceDisplay returns a localized confidence label for the stored integer (1-10).
+// Levels: 1-3=low, 4-7=medium, 8-10=high.
+func confidenceDisplay(lang string, confidence int) string {
+	var level string
+	switch {
+	case confidence >= 8:
+		level = "high"
+	case confidence >= 4:
+		level = "medium"
 	default:
-		return "medium"
+		level = "low"
 	}
+	label := i18n.TL(lang, "trait_confidence_"+level)
+	return fmt.Sprintf("%s (%d)", label, confidence)
 }
 
-// categoryDisplay converts the stored category integer (1-14) to a label
-// combining the English category name with its numeric ID in parentheses,
+// categoryDisplay converts the stored category integer (0-14) to a localized label
+// combining the translated category name with its numeric ID in parentheses,
 // so the LLM can easily map between display text and the integer parameter.
-func categoryDisplay(cat int) string {
-	switch cat {
-	case 1:
-		return "Demographic Attributes (1)"
-	case 2:
-		return "Associated Entities (2)"
-	case 3:
-		return "Achievements & Attainment (3)"
-	case 4:
-		return "Hobbies (4)"
-	case 5:
-		return "Abilities/Skills (5)"
-	case 6:
-		return "Preferences/Idiosyncrasies (6)"
-	case 7:
-		return "Behavioral Habits (7)"
-	case 8:
-		return "Health & Illness (8)"
-	case 9:
-		return "Situational States (9)"
-	case 10:
-		return "Personality/Character Traits (10)"
-	case 11:
-		return "Values/Beliefs (11)"
-	case 12:
-		return "Related Persons (12)"
-	case 13:
-		return "Life Experiences (13)"
-	case 14:
-		return "Goals/Plans (14)"
-	default:
-		return "Unspecified (0)"
-	}
+func categoryDisplay(lang string, cat int) string {
+	key := fmt.Sprintf("trait_category_%d", cat)
+	return i18n.TL(lang, key)
 }
 
 // SearchByText finds matching personal trait descriptions by the given text.
@@ -92,9 +70,9 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 		result = append(result, toolimp.TraitSource{
 			ID:         pt.ID,
 			Trait:      pt.Trait,
-			Category:   categoryDisplay(pt.Category),
-			Confidence: pt.Confidence,
-			HalfLife:   halfLifeDisplay(pt.HalfLife),
+			Category:   categoryDisplay(a.lang, pt.Category),
+			Confidence: confidenceDisplay(a.lang, pt.Confidence),
+			HalfLife:   halfLifeDisplay(a.lang, pt.HalfLife),
 			CreateAt:   pt.CreateAt,
 			UpdateAt:   pt.UpdateAt,
 		})
@@ -123,9 +101,9 @@ func (a *traitSearchAdapter) SearchByKeyword(ctx context.Context, queryKeyword s
 		result = append(result, toolimp.TraitSource{
 			ID:         pt.ID,
 			Trait:      pt.Trait,
-			Category:   categoryDisplay(pt.Category),
-			Confidence: pt.Confidence,
-			HalfLife:   halfLifeDisplay(pt.HalfLife),
+			Category:   categoryDisplay(a.lang, pt.Category),
+			Confidence: confidenceDisplay(a.lang, pt.Confidence),
+			HalfLife:   halfLifeDisplay(a.lang, pt.HalfLife),
 			CreateAt:   pt.CreateAt,
 			UpdateAt:   pt.UpdateAt,
 		})

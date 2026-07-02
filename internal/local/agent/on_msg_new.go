@@ -165,6 +165,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		traitSearcher := &traitSearchAdapter{
 			client: h.embedder,
 			store:  session.traitsStore,
+			lang:   lang,
 		}
 		traitSearchByTextToolImp := toolimp.MakeTraitSearchByTextTool(r.Context(), traitSearcher, lang)
 		traitSearchByKeywordToolImp := toolimp.MakeTraitSearchByKeywordTool(r.Context(), traitSearcher, lang)
