@@ -1,0 +1,69 @@
+/* ============================================================
+   DeepSeek · 深海之夜 (暗色) — 外源主题
+   文件夹名 deepseek-dark → -dark 后缀表示暗色。
+   灵感源自 DeepSeek 品牌 — 星辰大海，深空秘境。
+   意境：漫天星辰坠入深海，数据如银河般流淌，
+   深邃神秘中蕴藏探索宇宙般的无限可能。
+
+   色彩体系：
+   - 基底灵感：星夜深海，数据银河
+   - 强调色：星辉荧光蓝 #60A5FA
+   - 氛围：沉浸、深邃、探索、科技感
+   ============================================================ */
+
+[data-theme="dark"] {
+    /* 基底 — 星辰大海，深空秘境 */
+    --bg-primary:       #0A0F1E;
+    --bg-image:         url('/themes/deepseek-dark/bg.svg');
+    --bg-secondary:     #111827;
+    --bg-user:          #1E293B;
+    --bg-assistant:     #0A0F1E;
+    --bg-input:         #0D1425;
+    --switch-track-bg:  #1E293B;
+
+    /* 文字 — 月光白，柔和清晰 */
+    --text-primary:     #E2E8F0;
+    --text-secondary:   #94A3B8;
+    --text-muted:       #64748B;
+
+    /* 点缀 — 星辉荧光蓝 */
+    --accent:           #60A5FA;
+    --accent-hover:     #93C5FD;
+
+    /* 边框/阴影 — 星河脉络 */
+    --border:           #1E293B;
+    --shadow:           rgba(0, 0, 0, 0.6);
+    --shadow-inset:     inset 0 1px 2px rgba(96, 165, 250, 0.10);
+
+    /* 代码块 */
+    --bg-code:          #111827;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 深海冷光 */
+    --success-text:     #38BDF8;
+
+    /* 错误 — 暗红荧光 */
+    --error-bg:         rgba(248, 113, 113, 0.12);
+    --error-border:     rgba(248, 113, 113, 0.30);
+    --error-text:       #F87171;
+
+    /* 警告 — 深海琥珀 */
+    --warning-bg:       #1C1600;
+    --warning-border:   #FBBF24;
+    --warning-text:     #FCD34D;
+
+    /* Tooltip */
+    --tooltip-bg:       #1E293B;
+    --tooltip-text:     #E2E8F0;
+
+    --btn-highlight-bg:       var(--accent);
+    --btn-highlight-color:    #fff;
+    --btn-highlight-hover-bg: var(--accent-hover);
+
+    --btn-danger-bg:          #e53935;
+    --btn-danger-color:       #fff;
+    --btn-danger-hover-bg:    #c62828;
+}
