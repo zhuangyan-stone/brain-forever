@@ -296,13 +296,13 @@
       100% { opacity: 0.85; }
     }
 
-    .star-1 { animation: glow-1 70s infinite; }
-    .star-2 { animation: glow-2 70s infinite; }
-    .star-3 { animation: glow-3 70s infinite; }
-    .star-4 { animation: glow-4 70s infinite; }
-    .star-5 { animation: glow-5 70s infinite; }
-    .star-6 { animation: glow-6 70s infinite; }
-    .star-7 { animation: glow-7 70s infinite; }
+    .star-1 { animation: glow-1 70s 5s infinite; }
+    .star-2 { animation: glow-2 70s 5s infinite; }
+    .star-3 { animation: glow-3 70s 5s infinite; }
+    .star-4 { animation: glow-4 70s 5s infinite; }
+    .star-5 { animation: glow-5 70s 5s infinite; }
+    .star-6 { animation: glow-6 70s 5s infinite; }
+    .star-7 { animation: glow-7 70s 5s infinite; }
   </style>
 
   <!-- 北斗七星 — 主星 -->

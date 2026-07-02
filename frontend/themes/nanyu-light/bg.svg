@@ -98,9 +98,11 @@
 
   <!-- 手写邀约 — 老男人的浪漫（写在领带上） -->
   <g opacity="0.50" font-family="KaiTi, STKaiti, 'Noto Serif SC', serif" fill="#FFFFFF">
-    <text x="150" y="240" font-size="16" transform="rotate(-3, 150, 240)">一起</text>
-    <text x="158" y="290" font-size="16" transform="rotate(4, 158, 290)">吃个</text>
-    <text x="145" y="340" font-size="16" transform="rotate(-2, 145, 340)">饭吗</text>
+    <text x="150" y="220" font-size="16" transform="rotate(-3, 150, 220)">今晚</text>
+    <text x="156" y="252" font-size="16" transform="rotate(4, 156, 252)">我们</text>
+    <text x="145" y="284" font-size="16" transform="rotate(-2, 145, 284)">一起</text>
+    <text x="154" y="316" font-size="16" transform="rotate(3, 154, 316)">看</text>
+    <text x="150" y="348" font-size="16" transform="rotate(-1, 150, 348)">星星</text>
   </g>
 
   <!-- 书堆 — 知识的力量 -->
