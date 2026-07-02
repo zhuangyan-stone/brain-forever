@@ -96,13 +96,6 @@
     </g>
   </g>
 
-  <!-- 手写邀约 — 老男人的浪漫（写在领带上） -->
-  <g opacity="0.40" font-family="KaiTi, STKaiti, 'Noto Serif SC', serif" fill="#BF8F9B">
-    <text x="150" y="240" font-size="16" transform="rotate(-3, 150, 240)">不要</text>
-    <text x="158" y="290" font-size="16" transform="rotate(4, 158, 290)">说话</text>
-    <text x="145" y="340" font-size="16" transform="rotate(-2, 145, 340)">好吗</text>
-  </g>
-
   <!-- 书堆 — 知识的力量 -->
   <g transform="translate(200,720) scale(0.88) translate(-200,-700)">
   <g opacity="0.40">
