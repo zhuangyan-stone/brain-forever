@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- ========== 定义区：动画关键帧、渐变等 ========== -->
   <defs>
+    <!-- 粒子上升消散动画：从中心原点向上/侧向飘移，同时放大并淡出 -->
     <style>
       @keyframes s01 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:-60px 280px;scale:1.1;opacity:0}}
       @keyframes s02 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:1}100%{translate:-100px 320px;scale:1;opacity:0}}
@@ -25,41 +27,63 @@
       @keyframes s22 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.7}100%{translate:500px 270px;scale:1.1;opacity:0}}
       @keyframes s23 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.85}100%{translate:130px 350px;scale:0.9;opacity:0}}
       @keyframes s24 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:320px 290px;scale:1.1;opacity:0}}
-      .c01{animation:s01 2.8s ease-in infinite}.c02{animation:s02 3.2s ease-in infinite;animation-delay:0.1s}
-      .c03{animation:s03 3.5s ease-in infinite;animation-delay:0.2s}.c04{animation:s04 3s ease-in infinite;animation-delay:0.15s}
-      .c05{animation:s05 3.3s ease-in infinite;animation-delay:0.3s}.c06{animation:s06 2.5s ease-in infinite;animation-delay:0.25s}
-      .c07{animation:s07 3.8s ease-in infinite;animation-delay:0.4s}.c08{animation:s08 2.8s ease-in infinite;animation-delay:0.35s}
-      .c09{animation:s09 3.5s ease-in infinite;animation-delay:0.5s}.c10{animation:s10 3s ease-in infinite;animation-delay:0.45s}
-      .c11{animation:s11 3.2s ease-in infinite;animation-delay:0.6s}.c12{animation:s12 3.6s ease-in infinite;animation-delay:0.55s}
-      .c13{animation:s13 2.8s ease-in infinite;animation-delay:0.05s}.c14{animation:s14 3.2s ease-in infinite;animation-delay:0.15s}
-      .c15{animation:s15 3.5s ease-in infinite;animation-delay:0.25s}.c16{animation:s16 3s ease-in infinite;animation-delay:0.2s}
-      .c17{animation:s17 3.3s ease-in infinite;animation-delay:0.35s}.c18{animation:s18 2.5s ease-in infinite;animation-delay:0.3s}
-      .c19{animation:s19 3.8s ease-in infinite;animation-delay:0.45s}.c20{animation:s20 2.8s ease-in infinite;animation-delay:0.4s}
-      .c21{animation:s21 3.5s ease-in infinite;animation-delay:0.55s}.c22{animation:s22 3s ease-in infinite;animation-delay:0.5s}
-      .c23{animation:s23 3.2s ease-in infinite;animation-delay:0.65s}.c24{animation:s24 3.6s ease-in infinite;animation-delay:0.6s}
-      .c25{animation:s01 2.8s ease-in infinite;animation-delay:2s}.c26{animation:s02 3.2s ease-in infinite;animation-delay:2.1s}
-      .c27{animation:s03 3.5s ease-in infinite;animation-delay:2.2s}.c28{animation:s04 3s ease-in infinite;animation-delay:2.15s}
-      .c29{animation:s05 3.3s ease-in infinite;animation-delay:2.3s}.c30{animation:s06 2.5s ease-in infinite;animation-delay:2.25s}
-      .c31{animation:s13 2.8s ease-in infinite;animation-delay:2s}.c32{animation:s14 3.2s ease-in infinite;animation-delay:2.1s}
-      .c33{animation:s15 3.5s ease-in infinite;animation-delay:2.2s}.c34{animation:s16 3s ease-in infinite;animation-delay:2.15s}
-      .c35{animation:s17 3.3s ease-in infinite;animation-delay:2.3s}.c36{animation:s18 2.5s ease-in infinite;animation-delay:2.25s}
+      /* 左侧粒子运动轨迹：向左上方飘移（★加速5%：c01 c05 c08 c11） */
+      .c01{animation:s01 2.67s ease-in infinite}.c02{animation:s02 3.52s ease-in infinite;animation-delay:0.1s}
+      .c03{animation:s03 3.85s ease-in infinite;animation-delay:0.2s}.c04{animation:s04 3.3s ease-in infinite;animation-delay:0.15s}
+      .c05{animation:s05 3.14s ease-in infinite;animation-delay:0.3s}.c06{animation:s06 2.75s ease-in infinite;animation-delay:0.25s}
+      .c07{animation:s07 4.18s ease-in infinite;animation-delay:0.4s}.c08{animation:s08 2.67s ease-in infinite;animation-delay:0.35s}
+      .c09{animation:s09 3.85s ease-in infinite;animation-delay:0.5s}.c10{animation:s10 3.3s ease-in infinite;animation-delay:0.45s}
+      .c11{animation:s11 3.05s ease-in infinite;animation-delay:0.6s}.c12{animation:s12 3.96s ease-in infinite;animation-delay:0.55s}
+      /* 右侧粒子运动轨迹：向右上方飘移（★加速5%：c13 c17 c20 c23） */
+      .c13{animation:s13 2.67s ease-in infinite;animation-delay:0.05s}.c14{animation:s14 3.52s ease-in infinite;animation-delay:0.15s}
+      .c15{animation:s15 3.85s ease-in infinite;animation-delay:0.25s}.c16{animation:s16 3.3s ease-in infinite;animation-delay:0.2s}
+      .c17{animation:s17 3.14s ease-in infinite;animation-delay:0.35s}.c18{animation:s18 2.75s ease-in infinite;animation-delay:0.3s}
+      .c19{animation:s19 4.18s ease-in infinite;animation-delay:0.45s}.c20{animation:s20 2.67s ease-in infinite;animation-delay:0.4s}
+      .c21{animation:s21 3.85s ease-in infinite;animation-delay:0.55s}.c22{animation:s22 3.3s ease-in infinite;animation-delay:0.5s}
+      .c23{animation:s23 3.05s ease-in infinite;animation-delay:0.65s}.c24{animation:s24 3.96s ease-in infinite;animation-delay:0.6s}
+      /* 第二波（延迟批次）左侧粒子（★加速5%：c27） */
+      .c25{animation:s01 3.08s ease-in infinite;animation-delay:2s}.c26{animation:s02 3.52s ease-in infinite;animation-delay:2.1s}
+      .c27{animation:s03 3.33s ease-in infinite;animation-delay:2.2s}.c28{animation:s04 3.3s ease-in infinite;animation-delay:2.15s}
+      .c29{animation:s05 3.63s ease-in infinite;animation-delay:2.3s}.c30{animation:s06 2.75s ease-in infinite;animation-delay:2.25s}
+      /* 第二波（延迟批次）右侧粒子（★加速5%：c33） */
+      .c31{animation:s13 3.08s ease-in infinite;animation-delay:2s}.c32{animation:s14 3.52s ease-in infinite;animation-delay:2.1s}
+      .c33{animation:s15 3.33s ease-in infinite;animation-delay:2.2s}.c34{animation:s16 3.3s ease-in infinite;animation-delay:2.15s}
+      .c35{animation:s17 3.63s ease-in infinite;animation-delay:2.3s}.c36{animation:s18 2.75s ease-in infinite;animation-delay:2.25s}
+      /* ===== 流星（垂直下落） ===== */
+      @keyframes f01 {0%{translate:0 0;opacity:0}3%{opacity:1}15%{translate:-15px 280px;opacity:0}100%{translate:-15px 280px;opacity:0}}
+      @keyframes f02 {0%{translate:0 0;opacity:0}3%{opacity:1}17%{translate:12px 310px;opacity:0}100%{translate:12px 310px;opacity:0}}
+      @keyframes f03 {0%{translate:0 0;opacity:0}3%{opacity:1}20%{translate:5px 340px;opacity:0}100%{translate:5px 340px;opacity:0}}
+      /* 流星1（带尾·快速） 流星2（无尾·中速） 流星3（无尾·慢速）—— 总周期拉长约3倍，降低出现频率 */
+      .f01{animation:f01 10s ease-in infinite;animation-delay:4s}.f02{animation:f02 12s ease-in infinite;animation-delay:7s}.f03{animation:f03 15s ease-in infinite;animation-delay:11s}
     </style>
+    <!-- 粒子拖尾渐变（向左飘移的线条渐变） -->
     <linearGradient id="g01" x1="0" y1="0" x2="5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g05" x1="0" y1="0" x2="21" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g09" x1="0" y1="0" x2="38" y2="-26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.4"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <!-- 粒子拖尾渐变（向右飘移的线条渐变） -->
     <linearGradient id="g13" x1="0" y1="0" x2="-5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g17" x1="0" y1="0" x2="-21" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g21" x1="0" y1="0" x2="-38" y2="-26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.4"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <!-- 流星拖尾渐变 -->
+    <linearGradient id="tail1" x1="0" y1="0" x2="0" y2="-40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.9"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="tail2" x1="0" y1="0" x2="0" y2="-30" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.8"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
   </defs>
+
+  <!-- ========== 背景层：深空底色 ========== -->
   <rect width="1440" height="900" fill="#070B18"/>
+  <!-- ========== 背景层：中心柔光晕 ========== -->
   <radialGradient id="spaceGlow" cx="50%" cy="30%" r="60%"><stop offset="0%" stop-color="#0E1628" stop-opacity="0.6"/><stop offset="50%" stop-color="#0A0F1E" stop-opacity="0.8"/><stop offset="100%" stop-color="#060A14" stop-opacity="1"/></radialGradient>
   <rect width="1440" height="900" fill="url(#spaceGlow)"/>
-  <radialGradient id="nebula1" cx="22%" cy="18%" r="22%"><stop offset="0%" stop-color="#3B82F6" stop-opacity="0.68"/><stop offset="100%" stop-color="#070B18" stop-opacity="0.05"/></radialGradient>
+  <!-- ========== 星云层 1：左上方蓝色星云 ========== -->
+  <radialGradient id="nebula1" cx="15%" cy="16%" r="22%"><stop offset="0%" stop-color="#3B82F6" stop-opacity="0.68"/><stop offset="100%" stop-color="#070B18" stop-opacity="0.05"/></radialGradient>
   <rect width="1440" height="900" fill="url(#nebula1)"/>
-  <radialGradient id="nebula2" cx="78%" cy="15%" r="20%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.54"/><stop offset="100%" stop-color="#070B18" stop-opacity="0"/></radialGradient>
+  <!-- ========== 星云层 2：右上方蓝色星云 ========== -->
+  <radialGradient id="nebula2" cx="85%" cy="22%" r="20%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.54"/><stop offset="100%" stop-color="#070B18" stop-opacity="0"/></radialGradient>
   <rect width="1440" height="900" fill="url(#nebula2)"/>
 
+  <!-- ========== 粒子系统：向上的发光线条 + 粒子圆点 ========== -->
   <g fill="#D6E8FF">
+    <!-- 左侧粒子组：向左上方飘移 -->
     <g transform="translate(640,158)"><line x1="0" y1="0" x2="5" y2="-23" stroke="url(#g01)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c01"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c01"/></g>
     <g transform="translate(690,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c02"/></g>
     <g transform="translate(630,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c03"/></g>
@@ -72,6 +96,7 @@
     <g transform="translate(670,138)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c10"/></g>
     <g transform="translate(708,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c11"/></g>
     <g transform="translate(655,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c12"/></g>
+    <!-- 右侧粒子组：向右上方飘移 -->
     <g transform="translate(780,158)"><line x1="0" y1="0" x2="-5" y2="-23" stroke="url(#g13)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c13"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c13"/></g>
     <g transform="translate(740,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c14"/></g>
     <g transform="translate(800,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c15"/></g>
@@ -84,17 +109,36 @@
     <g transform="translate(760,138)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c22"/></g>
     <g transform="translate(735,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c23"/></g>
     <g transform="translate(775,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c24"/></g>
+    <!-- 第二波（延时 2s）左侧粒子 -->
     <g transform="translate(635,163)"><line x1="0" y1="0" x2="5" y2="-23" stroke="url(#g01)" stroke-width="1" stroke-linecap="round" opacity="0" class="c25"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c25"/></g>
     <g transform="translate(685,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c26"/></g>
     <g transform="translate(625,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c27"/></g>
     <g transform="translate(675,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c28"/></g>
     <g transform="translate(665,183)"><line x1="0" y1="0" x2="21" y2="-25" stroke="url(#g05)" stroke-width="1" stroke-linecap="round" opacity="0" class="c29"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c29"/></g>
     <g transform="translate(705,158)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c30"/></g>
+    <!-- 第二波（延时 2s）右侧粒子 -->
     <g transform="translate(785,163)"><line x1="0" y1="0" x2="-5" y2="-23" stroke="url(#g13)" stroke-width="1" stroke-linecap="round" opacity="0" class="c31"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c31"/></g>
     <g transform="translate(755,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c32"/></g>
     <g transform="translate(805,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c33"/></g>
     <g transform="translate(765,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c34"/></g>
     <g transform="translate(795,183)"><line x1="0" y1="0" x2="-21" y2="-25" stroke="url(#g17)" stroke-width="1" stroke-linecap="round" opacity="0" class="c35"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c35"/></g>
     <g transform="translate(748,158)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c36"/></g>
+  </g>
+
+  <!-- ========== 流星组：从 X 轴中心垂直下落 ========== -->
+  <g fill="#D6E8FF">
+    <!-- 流星1（带尾·快速）：起始于 X=720, Y=150（与其他星星 Y 坐标相近） -->
+      <g transform="translate(720,150)">
+        <line x1="0" y1="0" x2="0" y2="-40" stroke="url(#tail1)" stroke-width="1" stroke-linecap="round" opacity="0" class="f01"/>
+        <circle cx="0" cy="0" r="1.5" opacity="0" class="f01"/>
+      </g>
+      <!-- 流星2（无尾·中速）：起始于 X=720, Y=150 -->
+      <g transform="translate(720,150)">
+        <circle cx="0" cy="0" r="1.5" opacity="0" class="f02"/>
+      </g>
+      <!-- 流星3（无尾·慢速）：起始于 X=720, Y=150 -->
+      <g transform="translate(720,150)">
+        <circle cx="0" cy="0" r="1.5" opacity="0" class="f03"/>
+      </g>
   </g>
 </svg>
