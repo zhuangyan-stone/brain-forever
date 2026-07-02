@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- DeepSeek · 星辰大海 — 海天成一色 -->
+
+  <!-- 天空渐变 -->
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#EAF0F8"/>
+    <stop offset="50%" stop-color="#D6E2EE"/>
+    <stop offset="100%" stop-color="#C8D6E8"/>
+  </linearGradient>
+  <rect width="1440" height="900" fill="url(#sky)"/>
+
+  <!-- 大海渐变 -->
+  <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#C8D6E8"/>
+    <stop offset="30%" stop-color="#B0C4DC"/>
+    <stop offset="60%" stop-color="#9AB0CC"/>
+    <stop offset="100%" stop-color="#7A96B8"/>
+  </linearGradient>
+  <rect x="0" y="420" width="1440" height="480" fill="url(#sea)"/>
+
+  <!-- 海天交界柔光 -->
+  <linearGradient id="merge" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#D6E2EE" stop-opacity="0.5"/>
+    <stop offset="50%" stop-color="#C8D6E8" stop-opacity="0.3"/>
+    <stop offset="100%" stop-color="#B0C4DC" stop-opacity="0"/>
+  </linearGradient>
+  <rect x="0" y="380" width="1440" height="80" fill="url(#merge)"/>
+
+  <!-- 海岛 — 右下角 -->
+  <g opacity="0.35">
+    <!-- 岛身渐变（比海水略深） -->
+    <linearGradient id="islandGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5A7AA0"/>
+      <stop offset="100%" stop-color="#3A5A80"/>
+    </linearGradient>
+    <!-- 海岛轮廓：从海面浮现 -->
+    <path d="M1440,900
+             C1300,860 1120,820 1040,770
+             C1010,750 1030,730 1060,710
+             C1090,690 1120,675 1150,665
+             C1170,658 1185,660 1195,668
+             C1210,678 1220,685 1240,690
+             C1300,705 1370,725 1440,750
+             L1440,900 Z"
+          fill="url(#islandGrad)"/>
+    <!-- 岛面深浅变化 — 起伏的山脊线 -->
+    <path d="M1100,750 C1130,730 1160,715 1190,705"
+          fill="none" stroke="#2E4E70" stroke-width="1.5" stroke-linecap="round" opacity="0.40"/>
+    <path d="M1140,780 C1170,758 1210,740 1250,728"
+          fill="none" stroke="#2E4E70" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
+    <path d="M1180,815 C1220,792 1270,770 1320,755"
+          fill="none" stroke="#2E4E70" stroke-width="1" stroke-linecap="round" opacity="0.30"/>
+    <!-- 山顶亮部 -->
+    <path d="M1130,695 C1148,680 1165,675 1178,678"
+          fill="none" stroke="#7A9AC0" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
+  </g>
+
+  <!-- 白色飞沫 — 浪花 -->
+  <g fill="#FFFFFF">
+    <!-- 远浪飞沫 -->
+    <g opacity="0.15">
+      <circle cx="200" cy="510" r="1.5"/><circle cx="206" cy="506" r="1"/><circle cx="194" cy="508" r="1.2"/>
+      <circle cx="600" cy="495" r="1.5"/><circle cx="608" cy="490" r="1"/><circle cx="594" cy="492" r="1.2"/>
+      <circle cx="1000" cy="505" r="1.5"/><circle cx="1008" cy="500" r="1"/><circle cx="994" cy="502" r="1.2"/>
+      <circle cx="1300" cy="515" r="1.3"/><circle cx="1308" cy="510" r="1"/><circle cx="1294" cy="512" r="1"/>
+    </g>
+
+    <!-- 中浪飞沫 -->
+    <g opacity="0.25">
+      <circle cx="100" cy="555" r="2"/><circle cx="110" cy="548" r="1.5"/><circle cx="92" cy="550" r="1.8"/><circle cx="106" cy="544" r="1"/><circle cx="116" cy="552" r="1.2"/>
+      <circle cx="400" cy="540" r="2"/><circle cx="410" cy="534" r="1.5"/><circle cx="392" cy="536" r="1.8"/><circle cx="406" cy="530" r="1"/><circle cx="416" cy="538" r="1.2"/>
+      <circle cx="700" cy="545" r="2"/><circle cx="710" cy="538" r="1.5"/><circle cx="692" cy="540" r="1.8"/><circle cx="706" cy="534" r="1"/><circle cx="716" cy="542" r="1.2"/>
+      <circle cx="1100" cy="550" r="2"/><circle cx="1110" cy="544" r="1.5"/><circle cx="1092" cy="546" r="1.8"/><circle cx="1106" cy="540" r="1"/><circle cx="1116" cy="548" r="1.2"/>
+    </g>
+
+    <!-- 主浪飞沫（最高浪 - 中央） -->
+    <g opacity="0.35">
+      <circle cx="720" cy="530" r="2.5"/><circle cx="730" cy="522" r="2"/><circle cx="710" cy="525" r="2.2"/><circle cx="736" cy="528" r="1.5"/><circle cx="704" cy="530" r="1.8"/><circle cx="726" cy="518" r="1.2"/><circle cx="714" cy="518" r="1.5"/><circle cx="740" cy="534" r="1"/><circle cx="700" cy="522" r="1.3"/>
+    </g>
+
+    <!-- 近浪飞沫 -->
+    <g opacity="0.30">
+      <circle cx="150" cy="610" r="2.5"/><circle cx="162" cy="602" r="1.8"/><circle cx="140" cy="605" r="2"/><circle cx="158" cy="598" r="1.2"/><circle cx="168" cy="608" r="1.5"/>
+      <circle cx="500" cy="600" r="2.5"/><circle cx="510" cy="592" r="1.8"/><circle cx="490" cy="595" r="2"/><circle cx="506" cy="588" r="1.2"/><circle cx="516" cy="598" r="1.5"/>
+      <circle cx="900" cy="605" r="2.5"/><circle cx="910" cy="596" r="1.8"/><circle cx="890" cy="600" r="2"/><circle cx="906" cy="592" r="1.2"/><circle cx="916" cy="602" r="1.5"/>
+      <circle cx="1250" cy="610" r="2.2"/><circle cx="1260" cy="602" r="1.5"/><circle cx="1240" cy="606" r="1.8"/><circle cx="1256" cy="598" r="1"/><circle cx="1266" cy="608" r="1.3"/>
+    </g>
+
+    <!-- 前近浪飞沫 -->
+    <g opacity="0.20">
+      <circle cx="80" cy="680" r="2"/><circle cx="90" cy="672" r="1.5"/><circle cx="72" cy="676" r="1.8"/><circle cx="86" cy="668" r="1"/><circle cx="96" cy="678" r="1.2"/>
+      <circle cx="350" cy="670" r="2"/><circle cx="360" cy="662" r="1.5"/><circle cx="342" cy="666" r="1.8"/><circle cx="356" cy="658" r="1"/><circle cx="366" cy="668" r="1.2"/>
+      <circle cx="650" cy="675" r="2"/><circle cx="660" cy="666" r="1.5"/><circle cx="642" cy="670" r="1.8"/><circle cx="656" cy="662" r="1"/><circle cx="666" cy="672" r="1.2"/>
+    </g>
+
+    <!-- 底部最深处的飞沫 -->
+    <g opacity="0.12">
+      <circle cx="200" cy="760" r="2"/><circle cx="210" cy="754" r="1.5"/><circle cx="192" cy="756" r="1.8"/><circle cx="206" cy="750" r="1.2"/>
+      <circle cx="550" cy="755" r="2"/><circle cx="560" cy="748" r="1.5"/><circle cx="542" cy="752" r="1.8"/><circle cx="556" cy="745" r="1.2"/>
+      <circle cx="850" cy="758" r="2"/><circle cx="860" cy="750" r="1.5"/><circle cx="842" cy="754" r="1.8"/><circle cx="856" cy="748" r="1.2"/>
+    </g>
+  </g>
+</svg>
