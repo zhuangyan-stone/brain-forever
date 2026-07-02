@@ -307,10 +307,10 @@
 
   <!-- 北斗七星 — 主星 -->
   <g>
-    <!-- 摇光 (Alkaid) — 斗柄末 (原点) -->
+    <!-- 瑶光 (Alkaid) — 斗柄末 (原点) -->
     <g class="star star-1">
       <circle cx="710" cy="210" r="3" fill="#F0A05A"/>
-      <text x="710" y="197" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">摇光</text>
+      <text x="710" y="197" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">瑶光</text>
     </g>
     <!-- 开阳 (Mizar)  2.2, -2 -->
     <g class="star star-2">
