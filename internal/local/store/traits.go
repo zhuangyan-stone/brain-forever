@@ -44,7 +44,6 @@ type TraitKeyword struct {
 	Kind     int       `db:"kind"`     // 字母分类: 1=A,2=B,3=C,4=D,5=E,6=F
 	TraitID  int64     `db:"trait_id"` // 关联 traits.id（无外键约束）
 	CreateAt time.Time `db:"create_at"`
-	UpdateAt time.Time `db:"update_at"`
 }
 
 // ============================================================
@@ -112,8 +111,7 @@ func (s *VectorStore) initSchema() error {
 			word      TEXT    NOT NULL,
 			kind      INTEGER NOT NULL,
 			trait_id  INTEGER NOT NULL REFERENCES traits(id) ON DELETE CASCADE,
-			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
 		-- Indexes for traits table
@@ -135,14 +133,6 @@ func (s *VectorStore) initSchema() error {
 		BEGIN
 			UPDATE traits SET update_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 		END;
-
-		-- Trigger: auto-update update_at on keywords
-		CREATE TRIGGER IF NOT EXISTS trg_keywords_update_at
-			BEFORE UPDATE ON keywords
-			FOR EACH ROW
-		BEGIN
-			UPDATE keywords SET update_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-		END;
 	`, s.dimension)
 
 	if _, err := s.db.Exec(schema); err != nil {
@@ -151,6 +141,10 @@ func (s *VectorStore) initSchema() error {
 
 	// Migration: add chat_sn column for existing databases (replacing old chat_id)
 	s.db.Exec("ALTER TABLE traits ADD COLUMN chat_sn TEXT NOT NULL DEFAULT ''")
+
+	// Migration: remove update_at from keywords table (keywords are immutable once created)
+	s.db.Exec("DROP TRIGGER IF EXISTS trg_keywords_update_at")
+	s.db.Exec("ALTER TABLE keywords DROP COLUMN update_at")
 
 	return nil
 }
@@ -212,13 +206,13 @@ func (s *VectorStore) AddKeyword(kw *TraitKeyword) (int64, error) {
 }
 
 // ============================================================
-// Search -vector similarity search with category filter
+// SearchByVector -vector similarity search with category filter
 // ============================================================
 
-// Search performs vector similarity search (using sqlite-vec's HNSW index)
+// SearchByVector performs vector similarity search (using sqlite-vec's HNSW index)
 // with an optional category filter directly in SQL. If category is 0, no filtering is applied.
 // Returns traits ordered by similarity (highest first), each with a Score field populated.
-func (s *VectorStore) Search(query []float32, category int, topK int) ([]PersonalTrait, error) {
+func (s *VectorStore) SearchByVector(query []float32, category int, topK int) ([]PersonalTrait, error) {
 	// Serialize query vector
 	queryJSON, _ := json.Marshal(query)
 

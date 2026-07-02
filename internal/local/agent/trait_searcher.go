@@ -77,8 +77,8 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 		return nil, fmt.Errorf("failed to embed query text: %w", err)
 	}
 
-	// 2. Call store.Search() to perform the query, get []store.PersonalTrait, then convert to []toolimp.TraitSource
-	traits, err := a.store.Search(vector, category, topK)
+	// 2. Call store.SearchByVector() to perform the query, get []store.PersonalTrait, then convert to []toolimp.TraitSource
+	traits, err := a.store.SearchByVector(vector, category, topK)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search traits: %w", err)
 	}
