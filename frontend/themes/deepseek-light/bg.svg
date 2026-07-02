@@ -75,11 +75,31 @@
     <rect x="1156" y="626" width="14" height="5" rx="0.8" fill="#FFEEBB" opacity="0.82"/>
     <!-- 屋顶 -->
     <path d="M1153,625 L1163,619 L1173,625 Z" fill="#8AA8C8"/>
-    <!-- 光束（向左斜射） -->
-    <path d="M1163,627 L1088,590 L1088,610 Z"
-          fill="#FFEEBB" opacity="0.12"/>
-    <path d="M1163,627 L1058,598 L1058,614 Z"
-          fill="#FFEEBB" opacity="0.06"/>
+    <!-- ★ 光束组（绕灯室底部旋转扫描）  【手工调整区】 -->
+    <!-- ★ 旋转中心: (1163, 630) — 光束摆动轴心 -->
+    <!-- ★ 光束形状: M1163,625  L820,530  L808,631  L1163,631  Z -->
+    <!--    - M1163,625 : 出发点上方（灯室顶部） -->
+    <!--    - L820,530  : 上边远端（调X控制长度，调Y控制上边角度） -->
+    <!--    - L808,631  : 下边远端（调X控制长度，调Y控制下边角度） -->
+    <!--    - L1163,631 : 出发点下方（灯室底部） -->
+    <!--    - 旋转角度 ±3 可改为 ±5 等调扫描范围 -->
+    <!-- 光束渐变（亮度从近到远递减） -->
+    <linearGradient id="beamFade" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#FFEEBB" stop-opacity="0.82"/>
+      <stop offset="30%" stop-color="#FFEEBB" stop-opacity="0.30"/>
+      <stop offset="60%" stop-color="#FFEEBB" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FFEEBB" stop-opacity="0.04"/>
+    </linearGradient>
+    <!-- 光束组（独立于灯塔组透明度） -->
+    <g opacity="1">
+      <animateTransform attributeName="transform" type="rotate"
+        values="-3 1154 630; 3 1154 630; -3 1154 630"
+        keyTimes="0; 0.5; 1"
+        dur="6s" repeatCount="indefinite"/>
+      <!-- 单束光柱（渐变淡出，左缘对齐灯室外壁） -->
+      <path d="M1154,628 L820,530 L808,631 L1154,631 Z"
+            fill="url(#beamFade)"/>
+    </g>
   </g>
 
   <!-- 白色飞沫 — 浪花 -->
