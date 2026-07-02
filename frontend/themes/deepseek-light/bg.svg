@@ -38,44 +38,38 @@
   <!-- 海岛 — 右下角 -->
   <g opacity="0.35">
     <!-- 岛身渐变（比海水略深） -->
-    <linearGradient id="islandGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#5A7AA0"/>
-      <stop offset="100%" stop-color="#3A5A80"/>
+    <linearGradient id="islandGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8AA8C8"/>
+      <stop offset="50%" stop-color="#5A7AA0"/>
+      <stop offset="100%" stop-color="#2A4A6A"/>
     </linearGradient>
-    <!-- 海岛轮廓：从海面浮现 -->
-    <path d="M1440,900
-             C1300,860 1120,820 1040,770
+    <!-- 海岛轮廓：四周环海的独立岛屿 -->
+    <path d="M1350,890
+             C1280,870 1120,835 1040,770
              C1010,750 1030,730 1060,710
              C1090,690 1120,675 1150,665
              C1170,658 1185,660 1195,668
              C1210,678 1220,685 1240,690
-             C1300,705 1370,725 1440,750
-             L1440,900 Z"
-          fill="url(#islandGrad)"/>
-    <!-- 岛面深浅变化 — 起伏的山脊线 -->
-    <path d="M1100,750 C1130,730 1160,715 1190,705"
-          fill="none" stroke="#2E4E70" stroke-width="1.5" stroke-linecap="round" opacity="0.40"/>
-    <path d="M1140,780 C1170,758 1210,740 1250,728"
-          fill="none" stroke="#2E4E70" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
-    <path d="M1180,815 C1220,792 1270,770 1320,755"
-          fill="none" stroke="#2E4E70" stroke-width="1" stroke-linecap="round" opacity="0.30"/>
-    <!-- 山顶亮部 -->
-    <path d="M1130,695 C1148,680 1165,675 1178,678"
-          fill="none" stroke="#7A9AC0" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
-  </g>
+             C1260,698 1320,720 1400,750
+             C1400,775 1390,800 1375,818
+             C1390,838 1430,848 1405,868
+             C1380,878 1365,884 1350,890
+             Z"
+           fill="url(#islandGrad)"/>
+ </g>
 
   <!-- 飞机跑道 — 嵌于岛坡之上 -->
-  <!-- 平行四边形：上长边向右拉（x=1080→1085），下长边向左拉（x=1070→1065） -->
+  <!-- 平行四边形：上长边向右拉，下长边向左拉 -->
   <g opacity="0.45">
     <!-- 跑道基面 -->
-    <path d="M1085,722.5 L1065,762.5 L1267,812.9 L1287,772.9 Z"
+    <path d="M1106.1,717.8 L1088.1,753.8 L1323.9,812.6 L1341.9,776.6 Z"
           fill="#7A9AB8"/>
     <!-- 上长边 -->
-    <line x1="1085" y1="722.5" x2="1287" y2="772.9" stroke="#FFFFFF" stroke-width="1.5" opacity="0.70"/>
+    <line x1="1106.1" y1="717.8" x2="1341.9" y2="776.6" stroke="#FFFFFF" stroke-width="1.5" opacity="0.70"/>
     <!-- 下长边 -->
-    <line x1="1065" y1="762.5" x2="1267" y2="812.9" stroke="#FFFFFF" stroke-width="1.5" opacity="0.70"/>
+    <line x1="1088.1" y1="753.8" x2="1323.9" y2="812.6" stroke="#FFFFFF" stroke-width="1.5" opacity="0.70"/>
     <!-- 虚线中心线 -->
-    <line x1="1075" y1="742.5" x2="1277" y2="792.9" stroke="#FFFFFF" stroke-width="0.8" stroke-dasharray="5,5" opacity="0.55"/>
+    <line x1="1097.1" y1="735.8" x2="1332.9" y2="794.6" stroke="#FFFFFF" stroke-width="0.8" stroke-dasharray="5,5" opacity="0.55"/>
   </g>
 
   <!-- 灯塔 — 立于岛顶 -->
