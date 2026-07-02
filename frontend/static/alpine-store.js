@@ -693,15 +693,21 @@ document.addEventListener('alpine:init', function() {
         this.chatsTimeline = groups;
 
         // 时间线分组默认折叠：除"今天"外全部折叠
+        // ★ 仅对尚未记录的分组设置默认折叠，保留用户已展开/折叠的状态
         var timelineCollapsed = Object.assign({}, this.collapsedGroups);
         for (var gi = 0; gi < groups.length; gi++) {
             var gLabel = groups[gi].label;
             if (gLabel === '今天') continue; // 今天分组默认展开
-            timelineCollapsed[gLabel] = true;
+            if (!(gLabel in timelineCollapsed)) {
+                timelineCollapsed[gLabel] = true;
+            }
             // 更早分组下的日期子分组也折叠
             if (groups[gi].type === 'earlier' && groups[gi].subGroups) {
                 for (var si = 0; si < groups[gi].subGroups.length; si++) {
-                    timelineCollapsed[gLabel + '|' + groups[gi].subGroups[si].dateLabel] = true;
+                    var subKey = gLabel + '|' + groups[gi].subGroups[si].dateLabel;
+                    if (!(subKey in timelineCollapsed)) {
+                        timelineCollapsed[subKey] = true;
+                    }
                 }
             }
         }
