@@ -55,6 +55,11 @@
       @keyframes f03 {0%{translate:0 0;opacity:0}3%{opacity:1}20%{translate:5px 340px;opacity:0}100%{translate:5px 340px;opacity:0}}
       /* 流星1（带尾·快速） 流星2（无尾·中速） 流星3（无尾·慢速）—— 总周期拉长约3倍，降低出现频率 */
       .f01{animation:f01 10s ease-in infinite;animation-delay:4s}.f02{animation:f02 12s ease-in infinite;animation-delay:7s}.f03{animation:f03 15s ease-in infinite;animation-delay:11s}
+      /* ===== 斜向流星（从左上向右下） ===== */
+      @keyframes m01 {0%{translate:0 0;opacity:0}1.67%{opacity:1}6.67%{translate:950px 670px;opacity:0}100%{translate:950px 670px;opacity:0}}
+      @keyframes m04 {0%{translate:0 0;opacity:0}1.67%{opacity:1}10%{translate:850px 600px;opacity:0}100%{translate:850px 600px;opacity:0}}
+      .m01{animation:m01 24s ease-in infinite;animation-delay:3s}
+      .m04{animation:m04 30s ease-in infinite;animation-delay:11s}
     </style>
     <!-- 粒子拖尾渐变（向左飘移的线条渐变） -->
     <linearGradient id="g01" x1="0" y1="0" x2="5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
@@ -67,6 +72,9 @@
     <!-- 流星拖尾渐变 -->
     <linearGradient id="tail1" x1="0" y1="0" x2="0" y2="-40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.9"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="tail2" x1="0" y1="0" x2="0" y2="-30" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.8"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <!-- 斜向流星拖尾渐变 -->
+    <linearGradient id="tailM1" x1="0" y1="0" x2="-35" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.9"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="tailM4" x1="0" y1="0" x2="-33" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.75"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
   </defs>
 
   <!-- ========== 背景层：深空底色 ========== -->
@@ -129,7 +137,7 @@
   <g fill="#D6E8FF">
     <!-- 流星1（带尾·快速）：起始于 X=720, Y=150（与其他星星 Y 坐标相近） -->
       <g transform="translate(720,150)">
-        <line x1="0" y1="0" x2="0" y2="-40" stroke="url(#tail1)" stroke-width="1" stroke-linecap="round" opacity="0" class="f01"/>
+        <line x1="0" y1="0" x2="0" y2="-40" stroke="url(#tail1)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="f01"/>
         <circle cx="0" cy="0" r="1.5" opacity="0" class="f01"/>
       </g>
       <!-- 流星2（无尾·中速）：起始于 X=720, Y=150 -->
@@ -140,5 +148,19 @@
       <g transform="translate(720,150)">
         <circle cx="0" cy="0" r="1.5" opacity="0" class="f03"/>
       </g>
+  </g>
+
+  <!-- ========== 斜向流星组：从左上向右下 ========== -->
+  <g fill="#D6E8FF">
+    <!-- 斜向流星1（带尾·快速）：起始于左上(150,80)，向右下飞行 -->
+    <g transform="translate(150,80)">
+      <line x1="0" y1="0" x2="-35" y2="-25" stroke="url(#tailM1)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="m01"/>
+      <circle cx="0" cy="0" r="1.8" opacity="0" class="m01"/>
+    </g>
+    <!-- 斜向流星4（带尾·慢速）：起始于(350,150) -->
+    <g transform="translate(350,150)">
+      <line x1="0" y1="0" x2="-33" y2="-23" stroke="url(#tailM4)" stroke-width="1" stroke-linecap="round" opacity="0" class="m04"/>
+      <circle cx="0" cy="0" r="1.5" opacity="0" class="m04"/>
+    </g>
   </g>
 </svg>
