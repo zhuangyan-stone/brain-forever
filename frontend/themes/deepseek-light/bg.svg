@@ -72,6 +72,25 @@
     <line x1="1097.1" y1="735.8" x2="1332.9" y2="794.6" stroke="#FFFFFF" stroke-width="0.8" stroke-dasharray="5,5" opacity="0.55"/>
   </g>
 
+  <!-- 战斗机 — 跑道右端，机头朝左待起飞 -->
+  <g transform="translate(1288, 781) rotate(14)">
+    <!-- 机身（从三角翼顶角到尾翼基座） -->
+    <rect x="-10" y="-1.8" width="19" height="3.6" rx="1" fill="#E8EEF4" stroke="#8AA8C8" stroke-width="0.4"/>
+    <!-- 机头锥（从顶角到针尖，逐渐收窄） -->
+    <path d="M-10,-1.8 L-15,-0.3 L-17.5,0 L-15,0.3 L-10,1.8 Z" fill="#E8EEF4" stroke="#8AA8C8" stroke-width="0.4"/>
+    <!-- 三角主翼（等腰三角，腰线内凹） -->
+    <path d="M-10,0 Q-5,-2 4,-9 L4,9 Q-5,2 -10,0 Z"
+          fill="#E8EEF4" stroke="#8AA8C8" stroke-width="0.4"/>
+    <!-- 尾翼（缩小版三角翼，直线腰） -->
+    <polygon points="5,0 9,-3.5 9,3.5" fill="#E8EEF4" stroke="#8AA8C8" stroke-width="0.4"/>
+    <!-- 尾部收窄至喷气口 -->
+    <path d="M9,-1.8 L11,-0.6 L11,0.6 L9,1.8 Z" fill="#E8EEF4" stroke="#8AA8C8" stroke-width="0.4"/>
+    <!-- 喷气口 -->
+    <rect x="11" y="-0.5" width="0.8" height="1" rx="0.3" fill="#2A4A6A"/>
+    <!-- 驾驶舱 -->
+    <ellipse cx="-12" cy="0" rx="2.5" ry="1" fill="#8AA8C8" opacity="0.35"/>
+  </g>
+
   <!-- 灯塔 — 立于岛顶 -->
   <g opacity="0.56">
     <!-- 灯塔塔身渐变（底深顶亮，与岛面自然过渡） -->
