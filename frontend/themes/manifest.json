@@ -142,18 +142,18 @@
       "name_zh": "NanYu·22:05"
     },
     {
-      "description": "海天成一色，孤岛灯塔，晨光渐起，静谧而悠远",
+      "description": "海天一色，宝岛灯塔",
       "id": "deepseek-light",
       "mode": "light",
       "name": "DeepSeek · Crystal Morning",
-      "name_zh": "DeepSeek·碧波晨光"
+      "name_zh": "DeepSeek·海天"
     },
     {
-      "description": "深空星尘，幽蓝静谧，深邃的午夜星海",
+      "description": "宇宙无边，星辰流光",
       "id": "deepseek-dark",
       "mode": "dark",
       "name": "DeepSeek · Abyssal Night",
-      "name_zh": "DeepSeek·深海之夜"
+      "name_zh": "DeepSeek·宇宙"
     }
   ]
 }
