@@ -2,18 +2,18 @@
   "description": "第2大脑 主题清单",
   "themes": [
     {
-      "description": "夏日，素白干净",
+      "description": "夏风，青凉素净",
       "id": "verdant-light",
       "mode": "light",
       "name": "Pure Verdant · Clear Sky",
-      "name_zh": "青爽·夏日有风"
+      "name_zh": "青爽·夏风"
     },
     {
-      "description": "冬夜，深灰简洁",
+      "description": "冬日，暖灰简洁",
       "id": "verdant-dark",
       "mode": "dark",
       "name": "Pure Verdant · Nightfall",
-      "name_zh": "青爽·冬天暖阳"
+      "name_zh": "青爽·冬日"
     },
     {
       "description": "熟宣暖白，墨色氤氲",
