@@ -98,9 +98,9 @@
 
   <!-- 手写邀约 — 老男人的浪漫（写在领带上） -->
   <g opacity="0.50" font-family="KaiTi, STKaiti, 'Noto Serif SC', serif" fill="#FFFFFF">
-    <text x="150" y="240" font-size="16" transform="rotate(-3, 150, 240)">我想</text>
-    <text x="158" y="290" font-size="16" transform="rotate(4, 158, 290)">约你</text>
-    <text x="145" y="340" font-size="16" transform="rotate(-2, 145, 340)">吃饭</text>
+    <text x="150" y="240" font-size="16" transform="rotate(-3, 150, 240)">一起</text>
+    <text x="158" y="290" font-size="16" transform="rotate(4, 158, 290)">吃个</text>
+    <text x="145" y="340" font-size="16" transform="rotate(-2, 145, 340)">饭吗</text>
   </g>
 
   <!-- 书堆 — 知识的力量 -->
@@ -218,8 +218,122 @@
       <rect x="742" y="856" width="10" height="6" rx="1.5"/>
       <rect x="754" y="856" width="14" height="6" rx="1.5"/>
     </g>
+  </g>
 
+  <!-- =============================================================
+       打字动画：依次高亮 N a n Y u 键位
+       第一次等 10 秒出现，之后每 60 秒循环一次。
+       N 和 Y 为大写，需同时高亮左 Shift（Shift+字母）。
+       每个字母间隔 800ms，周期 60s。
+       坐标系 = 主 SVG 空间（已从键盘本地坐标 scaled=1.2 转换）
+       ============================================================= -->
+  <style>
+    /* 每个键的高亮脉冲（60s 周期，前 ~13.33% 完成打字序列，其余静默） */
+    @keyframes glow-N {
+       0%, 2% { opacity: 0.75; }
+      2.667%, 100% { opacity: 0; }
+    }
+    @keyframes glow-a {
+       0%, 2.667% { opacity: 0; }
+      3.25%, 4.667% { opacity: 0.75; }
+      5.333%, 100% { opacity: 0; }
+    }
+    @keyframes glow-n {
+       0%, 5.333% { opacity: 0; }
+      6%, 7.333% { opacity: 0.75; }
+      8%, 100% { opacity: 0; }
+    }
+    @keyframes glow-Y {
+       0%, 8% { opacity: 0; }
+      8.667%, 10% { opacity: 0.75; }
+      10.667%, 100% { opacity: 0; }
+    }
+    @keyframes glow-u {
+       0%, 10.667% { opacity: 0; }
+      11.333%, 12.667% { opacity: 0.75; }
+      13.333%, 100% { opacity: 0; }
+    }
+    /* 左 Shift 在 N 和 Y 时各亮一次 */
+    @keyframes glow-Shift {
+       0%, 2% { opacity: 0.75; }
+      2.667%, 8% { opacity: 0; }
+      8.667%, 10% { opacity: 0.75; }
+      10.667%, 100% { opacity: 0; }
+    }
+
+    /* 字母标签淡入淡出 */
+    @keyframes label-N {
+       0%, 2% { opacity: 0.85; }
+      2.667%, 100% { opacity: 0; }
+    }
+    @keyframes label-a {
+       0%, 2.667% { opacity: 0; }
+      3.25%, 4.667% { opacity: 0.85; }
+      5.333%, 100% { opacity: 0; }
+    }
+    @keyframes label-n {
+       0%, 5.333% { opacity: 0; }
+      6%, 7.333% { opacity: 0.85; }
+      8%, 100% { opacity: 0; }
+    }
+    @keyframes label-Y {
+       0%, 8% { opacity: 0; }
+      8.667%, 10% { opacity: 0.85; }
+      10.667%, 100% { opacity: 0; }
+    }
+    @keyframes label-u {
+       0%, 10.667% { opacity: 0; }
+      11.333%, 12.667% { opacity: 0.85; }
+      13.333%, 100% { opacity: 0; }
+    }
+
+    .anim-key {
+      animation-duration: 60s;
+      animation-delay: 10s;
+      animation-timing-function: ease;
+      animation-iteration-count: infinite;
+    }
+    .glow-N    { animation-name: glow-N; }
+    .glow-a    { animation-name: glow-a; }
+    .glow-n    { animation-name: glow-n; }
+    .glow-Y    { animation-name: glow-Y; }
+    .glow-u    { animation-name: glow-u; }
+    .glow-Shift{ animation-name: glow-Shift; }
+
+    .label-N   { animation-name: label-N; }
+    .label-a   { animation-name: label-a; }
+    .label-n   { animation-name: label-n; }
+    .label-Y   { animation-name: label-Y; }
+    .label-u   { animation-name: label-u; }
+  </style>
+
+  <g>
+    <!-- 按键高亮半透明圈（锻铜橙色 #C06A30） -->
+    <!-- N/n 键（Shift 行第7键） -->
+    <rect class="anim-key glow-N" x="744" y="767" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+    <rect class="anim-key glow-n" x="744" y="767" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+
+    <!-- a 键（ASDF 行第1键） -->
+    <rect class="anim-key glow-a" x="635" y="755" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+
+    <!-- Y 键（QWERTY 行第6键） -->
+    <rect class="anim-key glow-Y" x="712" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+
+    <!-- u 键（QWERTY 行第7键） -->
+    <rect class="anim-key glow-u" x="726" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+
+    <!-- 左 Shift 高亮（深灰色，与键盘底座色一致） -->
+    <rect class="anim-key glow-Shift" x="639" y="767" width="26" height="12" rx="3" fill="#3A3E42" opacity="0"/>
+
+    <!-- 字母标签 — 直接写在按键上，垂直居中，白色字 -->
+    <text class="anim-key label-N" x="753" y="776" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">N</text>
+    <text class="anim-key label-a" x="644" y="764" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">a</text>
+    <text class="anim-key label-n" x="753" y="776" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">n</text>
+    <text class="anim-key label-Y" x="721" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">Y</text>
+    <text class="anim-key label-u" x="735" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">u</text>
+
+    <!-- Shift 提示标签（写在左 Shift 键上，白色字） -->
+    <text class="anim-key glow-Shift" x="652" y="776" fill="#FFFFFF" font-size="5" font-family="monospace" text-anchor="middle" opacity="0">Shift</text>
   </g>
 
 </svg>
-

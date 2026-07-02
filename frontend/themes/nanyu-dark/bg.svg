@@ -97,10 +97,10 @@
   </g>
 
   <!-- 手写邀约 — 老男人的浪漫（写在领带上） -->
-  <g opacity="0.40" font-family="KaiTi, STKaiti, 'Noto Serif SC', serif" fill="#FFFFFF">
-    <text x="150" y="240" font-size="16" transform="rotate(-3, 150, 240)">我想</text>
-    <text x="158" y="290" font-size="16" transform="rotate(4, 158, 290)">约你</text>
-    <text x="145" y="340" font-size="16" transform="rotate(-2, 145, 340)">吃饭</text>
+  <g opacity="0.40" font-family="KaiTi, STKaiti, 'Noto Serif SC', serif" fill="#BF8F9B">
+    <text x="150" y="240" font-size="16" transform="rotate(-3, 150, 240)">不要</text>
+    <text x="158" y="290" font-size="16" transform="rotate(4, 158, 290)">说话</text>
+    <text x="145" y="340" font-size="16" transform="rotate(-2, 145, 340)">好吗</text>
   </g>
 
   <!-- 书堆 — 知识的力量 -->
@@ -221,16 +221,126 @@
 
   </g>
 
+  <!-- =============================================================
+       北斗七星累积点亮→逐个熄灭动画：
+         每隔 5 秒多亮一颗星（从左向右，累积），
+         每颗星亮 40 秒后熄灭，
+         总周期 70 秒。
+       ============================================================= -->
+  <style>
+    /* 每颗星的基座可见度 */
+    .star { opacity: 0.30; }
 
-  <!-- 零星火花点缀 — 暗色中的微光 -->
-  <g opacity="0.25">
-    <circle cx="480" cy="350" r="2" fill="#F0A05A"/>
-    <circle cx="680" cy="280" r="1.5" fill="#F0A05A"/>
-    <circle cx="850" cy="420" r="2.5" fill="#F0A05A"/>
-    <circle cx="320" cy="500" r="1.5" fill="#F0A05A"/>
-    <circle cx="950" cy="180" r="2" fill="#E8853D"/>
-    <circle cx="550" cy="650" r="1.5" fill="#E8853D"/>
-    <circle cx="700" cy="520" r="1" fill="#F0A05A"/>
-    <circle cx="420" cy="750" r="2" fill="#E8853D"/>
+    /* ⚠️ 每个过渡点使用独立 keyframe selector，
+       避免百分比冲突导致浏览器从 0% 就开始渐变动画。
+       保持段用前一个百分点，切换段用后一个百分点，
+       确保亮度维持整段时长后瞬间切换。 */
+
+    /* 摇光 — 亮 0s~40s，灭 40s~70s */
+    @keyframes glow-1 {
+      0% { opacity: 0.85; }
+      57.142% { opacity: 0.85; }
+      57.143% { opacity: 0.30; }
+      100% { opacity: 0.30; }
+    }
+    /* 开阳 — 灭 0s~5s，亮 5s~45s，灭 45s~70s */
+    @keyframes glow-2 {
+      0% { opacity: 0.30; }
+      7.142% { opacity: 0.30; }
+      7.143% { opacity: 0.85; }
+      64.285% { opacity: 0.85; }
+      64.286% { opacity: 0.30; }
+      100% { opacity: 0.30; }
+    }
+    /* 玉衡 — 灭 0s~10s，亮 10s~50s，灭 50s~70s */
+    @keyframes glow-3 {
+      0% { opacity: 0.30; }
+      14.285% { opacity: 0.30; }
+      14.286% { opacity: 0.85; }
+      71.428% { opacity: 0.85; }
+      71.429% { opacity: 0.30; }
+      100% { opacity: 0.30; }
+    }
+    /* 天权 — 灭 0s~15s，亮 15s~55s，灭 55s~70s */
+    @keyframes glow-4 {
+      0% { opacity: 0.30; }
+      21.428% { opacity: 0.30; }
+      21.429% { opacity: 0.85; }
+      78.570% { opacity: 0.85; }
+      78.571% { opacity: 0.30; }
+      100% { opacity: 0.30; }
+    }
+    /* 天玑 — 灭 0s~20s，亮 20s~60s，灭 60s~70s */
+    @keyframes glow-5 {
+      0% { opacity: 0.30; }
+      28.570% { opacity: 0.30; }
+      28.571% { opacity: 0.85; }
+      85.713% { opacity: 0.85; }
+      85.714% { opacity: 0.30; }
+      100% { opacity: 0.30; }
+    }
+    /* 天璇 — 灭 0s~25s，亮 25s~65s，灭 65s~70s */
+    @keyframes glow-6 {
+      0% { opacity: 0.30; }
+      35.713% { opacity: 0.30; }
+      35.714% { opacity: 0.85; }
+      92.856% { opacity: 0.85; }
+      92.857% { opacity: 0.30; }
+      100% { opacity: 0.30; }
+    }
+    /* 天枢 — 灭 0s~30s，亮 30s~70s（亮 40s，灭在循环边界） */
+    @keyframes glow-7 {
+      0% { opacity: 0.30; }
+      42.856% { opacity: 0.30; }
+      42.857% { opacity: 0.85; }
+      100% { opacity: 0.85; }
+    }
+
+    .star-1 { animation: glow-1 70s infinite; }
+    .star-2 { animation: glow-2 70s infinite; }
+    .star-3 { animation: glow-3 70s infinite; }
+    .star-4 { animation: glow-4 70s infinite; }
+    .star-5 { animation: glow-5 70s infinite; }
+    .star-6 { animation: glow-6 70s infinite; }
+    .star-7 { animation: glow-7 70s infinite; }
+  </style>
+
+  <!-- 北斗七星 — 主星 -->
+  <g>
+    <!-- 摇光 (Alkaid) — 斗柄末 (原点) -->
+    <g class="star star-1">
+      <circle cx="710" cy="210" r="3" fill="#F0A05A"/>
+      <text x="710" y="197" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">摇光</text>
+    </g>
+    <!-- 开阳 (Mizar)  2.2, -2 -->
+    <g class="star star-2">
+      <circle cx="810" cy="170" r="3" fill="#E8853D"/>
+      <text x="810" y="157" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">开阳</text>
+    </g>
+    <!-- 玉衡 (Alioth)  3.2, -1.8 -->
+    <g class="star star-3">
+      <circle cx="870" cy="172" r="3" fill="#F0A05A"/>
+      <text x="870" y="159" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">玉衡</text>
+    </g>
+    <!-- 天权 (Megrez)  5, -2.2 — 斗中最暗 -->
+    <g class="star star-4">
+      <circle cx="960" cy="170" r="2.5" fill="#E8853D"/>
+      <text x="960" y="157" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">天权</text>
+    </g>
+    <!-- 天玑 (Phecda)  6, -0.4 -->
+    <g class="star star-5">
+      <circle cx="1010" cy="240" r="3" fill="#F0A05A"/>
+      <text x="1010" y="227" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">天玑</text>
+    </g>
+    <!-- 天璇 (Merak)  7.8, -2.4 -->
+    <g class="star star-6">
+      <circle cx="1130" cy="236" r="3" fill="#E8853D"/>
+      <text x="1130" y="223" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">天璇</text>
+    </g>
+    <!-- 天枢 (Dubhe)  8.2, -3 — 斗口最亮 -->
+    <g class="star star-7">
+      <circle cx="1148" cy="162" r="3.5" fill="#F0A05A"/>
+      <text x="1148" y="149" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">天枢</text>
+    </g>
   </g>
 </svg>
