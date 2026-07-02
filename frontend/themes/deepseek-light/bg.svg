@@ -26,6 +26,15 @@
   </linearGradient>
   <rect x="0" y="380" width="1440" height="80" fill="url(#merge)"/>
 
+  <!-- 海鸟 — 天空 -->
+  <g fill="none" stroke="#5A7AA0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.20">
+    <path d="M280,220 Q290,210 300,220 Q310,210 320,220"/>
+    <path d="M340,200 Q348,192 356,200 Q364,192 372,200"/>
+    <path d="M260,240 Q266,233 272,240 Q278,233 284,240"/>
+    <path d="M520,180 Q530,170 540,180 Q550,170 560,180"/>
+    <path d="M480,195 Q485,189 490,195 Q495,189 500,195"/>
+  </g>
+
   <!-- 海岛 — 右下角 -->
   <g opacity="0.35">
     <!-- 岛身渐变（比海水略深） -->
@@ -76,7 +85,7 @@
     <!-- 屋顶 -->
     <path d="M1153,625 L1163,619 L1173,625 Z" fill="#8AA8C8"/>
     <!-- 灯室左侧光晕（光束出口处掺入灯光色） -->
-    <line x1="1155" y1="626" x2="1155" y2="631" stroke="#FFEEBB" stroke-width="0.8" opacity="0.50"/>
+    <line x1="1155" y1="626" x2="1155" y2="631" stroke="#FFE088" stroke-width="0.8" opacity="0.50"/>
     <!-- ★ 光束组（绕灯室底部旋转扫描）  【手工调整区】 -->
     <!-- ★ 旋转中心: (1163, 630) — 光束摆动轴心 -->
     <!-- ★ 光束形状: M1163,625  L820,530  L808,631  L1163,631  Z -->
@@ -88,8 +97,8 @@
     <!-- 光束渐变（亮度从近到远递减） -->
     <linearGradient id="beamFade" x1="1" y1="0" x2="0" y2="0">
       <stop offset="0%" stop-color="#FFE088" stop-opacity="0.82"/>
-      <stop offset="30%" stop-color="#FFEEBB" stop-opacity="0.30"/>
-      <stop offset="60%" stop-color="#FFEEBB" stop-opacity="0.12"/>
+      <stop offset="30%" stop-color="#FFEE99" stop-opacity="0.30"/>
+      <stop offset="60%" stop-color="#FFEEAA" stop-opacity="0.12"/>
       <stop offset="100%" stop-color="#FFEEBB" stop-opacity="0.04"/>
     </linearGradient>
     <!-- 光束组（独立于灯塔组透明度） -->
@@ -131,7 +140,11 @@
     <g opacity="0.30">
       <circle cx="150" cy="610" r="2.5"/><circle cx="162" cy="602" r="1.8"/><circle cx="140" cy="605" r="2"/><circle cx="158" cy="598" r="1.2"/><circle cx="168" cy="608" r="1.5"/>
       <circle cx="500" cy="600" r="2.5"/><circle cx="510" cy="592" r="1.8"/><circle cx="490" cy="595" r="2"/><circle cx="506" cy="588" r="1.2"/><circle cx="516" cy="598" r="1.5"/>
-      <circle cx="900" cy="605" r="2.5"/><circle cx="910" cy="596" r="1.8"/><circle cx="890" cy="600" r="2"/><circle cx="906" cy="592" r="1.2"/><circle cx="916" cy="602" r="1.5"/>
+      <circle cx="900" cy="605" r="2.5"><animate attributeName="cy" values="605;590;605" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.30;0.15;0.30" dur="3s" repeatCount="indefinite"/></circle>
+      <circle cx="910" cy="596" r="1.8"><animate attributeName="cy" values="596;582;596" dur="3.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.30;0.12;0.30" dur="3.5s" repeatCount="indefinite"/></circle>
+      <circle cx="890" cy="600" r="2"><animate attributeName="cy" values="600;586;600" dur="4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.30;0.14;0.30" dur="4s" repeatCount="indefinite"/></circle>
+      <circle cx="906" cy="592" r="1.2"><animate attributeName="cy" values="592;580;592" dur="2.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.30;0.10;0.30" dur="2.8s" repeatCount="indefinite"/></circle>
+      <circle cx="916" cy="602" r="1.5"><animate attributeName="cy" values="602;588;602" dur="3.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.30;0.13;0.30" dur="3.2s" repeatCount="indefinite"/></circle>
       <circle cx="1250" cy="610" r="2.2"/><circle cx="1260" cy="602" r="1.5"/><circle cx="1240" cy="606" r="1.8"/><circle cx="1256" cy="598" r="1"/><circle cx="1266" cy="608" r="1.3"/>
     </g>
 
