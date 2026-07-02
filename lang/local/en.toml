@@ -442,3 +442,17 @@ other = "Trait Search: invalid kind letter 「{{.Kind}}」, expected A-F"
 
 [trait_search_error_no_results]
 other = "Trait Search: no matching trait records found"
+
+# ============================================================
+# Web search tool errors —used in internal/local/agent/toolimp/web_search.go
+# All keys prefixed with web_search_error_
+# ============================================================
+
+[web_search_error_unmarshal_args]
+other = "Failed to parse web search arguments"
+
+[web_search_error_empty_query]
+other = "Web Search: empty query"
+
+[web_search_error_searcher_not_init]
+other = "Web Search: searcher not configured"

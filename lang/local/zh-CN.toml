@@ -442,3 +442,17 @@ other = "特征搜索：无效的类型字母「{{.Kind}}」，应为 A-F"
 
 [trait_search_error_no_results]
 other = "特征搜索：未找到匹配的特征记录"
+
+# ============================================================
+# Web search tool errors —used in internal/local/agent/toolimp/web_search.go
+# All keys prefixed with web_search_error_
+# ============================================================
+
+[web_search_error_unmarshal_args]
+other = "解析联网搜索参数失败"
+
+[web_search_error_empty_query]
+other = "联网搜索：搜索词为空"
+
+[web_search_error_searcher_not_init]
+other = "联网搜索：搜索器未初始化"

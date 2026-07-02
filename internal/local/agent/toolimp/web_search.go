@@ -5,6 +5,7 @@ import (
 	"BrainForever/infra/llm"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -44,16 +45,14 @@ func webSearchArguments(arguments string) (string, error) {
 		SearchQueries string `json:"search_queries"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", fmt.Errorf("json unmarsha fail. %w", err)
+		return "", fmt.Errorf("unmarshal arguments: %w", err)
 	}
 	return result.SearchQueries, nil
 }
 
 // executeWebSearch performs the actual web search and returns the results.
+// Caller must ensure searcher is not nil.
 func executeWebSearch(ctx context.Context, searcher WebSearcher, query string) (searchResultText string, webPages []WebSource, err error) {
-	if searcher == nil {
-		return "", nil, fmt.Errorf("web search client not configured")
-	}
 	if query == "" {
 		return "", nil, nil
 	}
@@ -144,12 +143,18 @@ func (imp *WebSearchToolImp) GetPendingText() string {
 
 func (imp *WebSearchToolImp) SetArgument(arguments string) (err error) {
 	imp.q, err = webSearchArguments(arguments)
+	if err != nil {
+		return fmt.Errorf("%s: %w", i18n.TL(imp.lang, "web_search_error_unmarshal_args", nil), err)
+	}
 	return
 }
 
 func (imp *WebSearchToolImp) Execute() (result string, err error) {
 	if imp.q == "" {
-		return "", fmt.Errorf("call %s with empty query", WebSearchToolName)
+		return "", errors.New(i18n.TL(imp.lang, "web_search_error_empty_query", nil))
+	}
+	if imp.searcher == nil {
+		return "", errors.New(i18n.TL(imp.lang, "web_search_error_searcher_not_init", nil))
 	}
 
 	// Execute the web search
