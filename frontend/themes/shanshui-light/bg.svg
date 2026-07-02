@@ -109,22 +109,10 @@
                 M920,200 Q930,192 940,200 Q950,192 960,200"/>
     </path>
   </g>
-  <!-- 云朵 — 淡墨浮云（在飞鸟上层） -->
-  <g class="cloud-1">
-    <path fill="#000000" fill-opacity="0.06" stroke="#000000" stroke-width="1" stroke-opacity="0.04"
-      d="M950,203
-         Q955,190 968,192
-         Q978,183 993,187
-         Q1005,178 1018,186
-         Q1028,183 1035,193
-         Q1038,202 1028,206
-         Q1012,209 997,206
-         Q978,209 963,205
-         Q953,206 950,203 Z" />
-  </g>
-  <!-- 云朵二 — 淡墨浮云（第一只鸟的右上方） -->
+  <!-- 云朵 — 白色浮云（第一只鸟的右上方） -->
   <g class="cloud-2">
-    <path fill="#000000" fill-opacity="0.06" stroke="#000000" stroke-width="1" stroke-opacity="0.04"
+    <!-- 云朵主体 -->
+    <path fill="#FFFFFF" fill-opacity="0.45" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.2"
       d="M890,185
          Q895,176 905,178
          Q913,172 925,176
@@ -132,5 +120,10 @@
          Q942,188 932,190
          Q915,192 902,189
          Q893,189 890,185 Z" />
+    <!-- 云朵内部勾线 — 增加层次感 -->
+    <path fill="none" stroke="#FFFFFF" stroke-width="0.8" stroke-opacity="0.2"
+      d="M902,181 Q912,178 922,183" />
+    <path fill="none" stroke="#FFFFFF" stroke-width="0.8" stroke-opacity="0.15"
+      d="M910,188 Q920,185 928,187" />
   </g>
 </svg>
