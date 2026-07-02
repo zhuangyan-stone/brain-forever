@@ -81,7 +81,7 @@
     <!-- 灯室（顶部的玻璃房） -->
     <rect x="1155" y="625" width="16" height="7" rx="1" fill="#D6C8A8" stroke="#8AA8C8" stroke-width="0.7"/>
     <!-- 灯室发光（更暖） -->
-    <rect x="1156" y="626" width="14" height="5" rx="0.8" fill="#FFE088" opacity="0.90"/>
+    <rect x="1156" y="626" width="14" height="5" rx="0.8" fill="#FFE088" opacity="0.50"/>
     <!-- 屋顶 -->
     <path d="M1153,625 L1163,619 L1173,625 Z" fill="#8AA8C8"/>
     <!-- 灯室左侧光晕（光束出口处掺入灯光色） -->
