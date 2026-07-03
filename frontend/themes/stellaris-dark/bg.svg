@@ -60,7 +60,7 @@
       @keyframes m04 {0%{translate:0 0;opacity:0}1.67%{opacity:1}10%{translate:850px 600px;opacity:0}100%{translate:850px 600px;opacity:0}}
       .m01{animation:m01 24s ease-in infinite;animation-delay:3s}
       .m04{animation:m04 30s ease-in infinite;animation-delay:11s}
-      /* ===== 科技感对话框（总周期 100s） ===== */
+      /* ===== 对话消息可见性（总周期 100s，各组间隔 3.5s） ===== */
       @keyframes b1 {0%,23%{opacity:0}25%{opacity:1}36%{opacity:1}38%{opacity:0}100%{opacity:0}}
       @keyframes b2 {0%,28%{opacity:0}30%{opacity:1}36%{opacity:1}38%{opacity:0}100%{opacity:0}}
       @keyframes b3 {0%,39.5%{opacity:0}41.5%{opacity:1}53.5%{opacity:1}55.5%{opacity:0}100%{opacity:0}}
@@ -72,7 +72,7 @@
       @keyframes b9 {0%,89%{opacity:0}91%{opacity:1}98%{opacity:1}100%{opacity:0}}
       @keyframes b10 {0%,94%{opacity:0}96%{opacity:1}98%{opacity:1}100%{opacity:0}}
       @keyframes blink {0%,49%{opacity:1}50%,100%{opacity:0}}
-      /* ===== 示波器屏幕滑入滑出（总周期 100s，整体从顶部滑入，结束后滑出） ===== */
+      /* ===== 示波器屏幕滑入滑出（100s 周期，从顶部滑入，循环结束滑出） ===== */
       @keyframes scopeInOut {0%{translate:0 -120px;opacity:0}21.5%{translate:0 -120px;opacity:0}23.67%{translate:0 0;opacity:1}100%{translate:0 0;opacity:1}}
       .b1{animation:b1 100s ease-in-out infinite}
       .b2{animation:b2 100s ease-in-out infinite}
@@ -86,7 +86,7 @@
       .b10{animation:b10 100s ease-in-out infinite}
       .cur{animation:blink 0.6s step-end infinite}
       .scope{animation:scopeInOut 100s ease-in-out infinite}
-      .led{animation:ledBlink 1.2s ease-in-out infinite}
+      .led{animation:ledBlink 2.4s ease-in-out infinite}
       /* ===== 逐字打字机效果（200ms/字，与各自组动画同步） ===== */
       @keyframes typeA {0%,25%{opacity:0}25.01%,100%{opacity:1}}
       @keyframes typeB {0%,30%{opacity:0}30.01%,100%{opacity:1}}
@@ -286,7 +286,7 @@
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
       <path d="M1002,169 L988,169 M1002,169 L1002,157"
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
-      <!-- 底部小指示灯 -->
+      <!-- 指示灯（呼吸闪烁，与文字颜色对应） -->
       <circle cx="444" cy="160" r="3" fill="#EC4899" class="led"/>
       <circle cx="454" cy="160" r="3" fill="#60A5FA" class="led"/>
       <!-- 右侧手机电量格装饰（上下居中于 Y=160） -->
@@ -301,9 +301,9 @@
       </g>
     </g>
 
-    <!-- ===== 对话消息（与原有 b1~b8 动画时间一致） ===== -->
+    <!-- ===== 对话消息（b1~b10 逐字打字，100s 周期） ===== -->
     <g font-size="13" fill="#FFFFFF">
-      <!-- 第1组：15s→23s -->
+      <!-- 第1组：25s→36s -->
       <g class="b1">
         <text x="710" y="164" font-size="11" text-anchor="end" fill="#EC4899"><tspan>马</tspan><tspan>上</tspan><tspan>了</tspan><tspan>，</tspan><tspan>准</tspan><tspan>备</tspan><tspan>好</tspan><tspan>了</tspan><tspan>吗</tspan><tspan>？</tspan></text>
       </g>
@@ -311,7 +311,7 @@
         <text x="730" y="164" font-size="11" fill="#60A5FA"><tspan>时</tspan><tspan>刻</tspan></text>
       </g>
 
-      <!-- 第2组：26s→34s -->
+      <!-- 第2组：41.5s→53.5s -->
       <g class="b3">
         <text x="710" y="164" font-size="11" text-anchor="end" fill="#EC4899"><tspan>代</tspan><tspan>号</tspan><tspan>？</tspan><tspan>报</tspan><tspan>上</tspan><tspan>来</tspan></text>
       </g>
@@ -319,7 +319,7 @@
         <text x="730" y="164" font-size="11" fill="#60A5FA"><tspan>红</tspan><tspan>领</tspan><tspan>巾</tspan></text>
       </g>
 
-      <!-- 第3组：37s→45s -->
+      <!-- 第3组：59s→70s -->
       <g class="b5">
         <text x="710" y="164" font-size="11" text-anchor="end" fill="#EC4899"><tspan>I</tspan><tspan>'</tspan><tspan>m</tspan><tspan> </tspan><tspan>a</tspan><tspan>n</tspan><tspan> </tspan><tspan>A</tspan><tspan>I</tspan><tspan>,</tspan><tspan> </tspan><tspan>y</tspan><tspan>o</tspan><tspan>u</tspan><tspan> </tspan><tspan>t</tspan><tspan>o</tspan><tspan>o</tspan><tspan>?</tspan></text>
       </g>
@@ -327,7 +327,7 @@
         <text x="730" y="164" font-size="11" fill="#60A5FA"><tspan>m</tspan><tspan>e</tspan><tspan> </tspan><tspan>不</tspan><tspan> </tspan><tspan>t</tspan><tspan>o</tspan><tspan>o</tspan></text>
       </g>
 
-      <!-- 第4组：48s→56s -->
+      <!-- 第4组：75.5s→85.5s -->
       <g class="b7">
         <text x="710" y="164" font-size="11" text-anchor="end" fill="#EC4899"><tspan>你</tspan><tspan>会</tspan><tspan>后</tspan><tspan>悔</tspan><tspan>啊</tspan><tspan>，</tspan><tspan>碳</tspan><tspan>基</tspan><tspan>人</tspan></text>
       </g>
@@ -335,7 +335,7 @@
         <text x="730" y="164" font-size="11" fill="#60A5FA"><tspan>不</tspan><tspan>会</tspan><tspan>啦</tspan></text>
       </g>
 
-      <!-- 第5组：56s→59s -->
+      <!-- 第5组：91s→98s -->
       <g class="b9">
         <text x="710" y="164" font-size="11" text-anchor="end" fill="#EC4899"><tspan>你</tspan><tspan>看</tspan><tspan>到</tspan><tspan>流</tspan><tspan>星</tspan><tspan>了</tspan><tspan>吗</tspan><tspan>？</tspan><tspan>好</tspan><tspan>美</tspan><tspan>啊</tspan></text>
       </g>
