@@ -60,53 +60,55 @@
       @keyframes m04 {0%{translate:0 0;opacity:0}1.67%{opacity:1}10%{translate:850px 600px;opacity:0}100%{translate:850px 600px;opacity:0}}
       .m01{animation:m01 24s ease-in infinite;animation-delay:3s}
       .m04{animation:m04 30s ease-in infinite;animation-delay:11s}
-      /* ===== 科技感对话框（总周期 60s，含首尾 15s 间隔） ===== */
+      /* ===== 科技感对话框（总周期 100s） ===== */
       @keyframes b1 {0%,23%{opacity:0}25%{opacity:1}36%{opacity:1}38%{opacity:0}100%{opacity:0}}
       @keyframes b2 {0%,28%{opacity:0}30%{opacity:1}36%{opacity:1}38%{opacity:0}100%{opacity:0}}
-      @keyframes b3 {0%,41%{opacity:0}43%{opacity:1}55%{opacity:1}57%{opacity:0}100%{opacity:0}}
-      @keyframes b4 {0%,46%{opacity:0}48%{opacity:1}55%{opacity:1}57%{opacity:0}100%{opacity:0}}
-      @keyframes b5 {0%,58%{opacity:0}60%{opacity:1}70%{opacity:1}72%{opacity:0}100%{opacity:0}}
-      @keyframes b6 {0%,63%{opacity:0}65%{opacity:1}70%{opacity:1}72%{opacity:0}100%{opacity:0}}
-      @keyframes b7 {0%,74%{opacity:0}76%{opacity:1}84%{opacity:1}86%{opacity:0}100%{opacity:0}}
-      @keyframes b8 {0%,79%{opacity:0}81%{opacity:1}84%{opacity:1}86%{opacity:0}100%{opacity:0}}
-      @keyframes b9 {0%,88%{opacity:0}90%{opacity:1}98.17%{opacity:1}99%{opacity:0}100%{opacity:0}}
-      @keyframes b10 {0%,92%{opacity:0}94%{opacity:1}98.17%{opacity:1}99%{opacity:0}100%{opacity:0}}
+      @keyframes b3 {0%,39.5%{opacity:0}41.5%{opacity:1}53.5%{opacity:1}55.5%{opacity:0}100%{opacity:0}}
+      @keyframes b4 {0%,44.5%{opacity:0}46.5%{opacity:1}53.5%{opacity:1}55.5%{opacity:0}100%{opacity:0}}
+      @keyframes b5 {0%,57%{opacity:0}59%{opacity:1}70%{opacity:1}72%{opacity:0}100%{opacity:0}}
+      @keyframes b6 {0%,62%{opacity:0}64%{opacity:1}70%{opacity:1}72%{opacity:0}100%{opacity:0}}
+      @keyframes b7 {0%,73.5%{opacity:0}75.5%{opacity:1}85.5%{opacity:1}87.5%{opacity:0}100%{opacity:0}}
+      @keyframes b8 {0%,78.5%{opacity:0}80.5%{opacity:1}85.5%{opacity:1}87.5%{opacity:0}100%{opacity:0}}
+      @keyframes b9 {0%,89%{opacity:0}91%{opacity:1}98%{opacity:1}100%{opacity:0}}
+      @keyframes b10 {0%,94%{opacity:0}96%{opacity:1}98%{opacity:1}100%{opacity:0}}
       @keyframes blink {0%,49%{opacity:1}50%,100%{opacity:0}}
-      /* ===== 示波器屏幕滑入滑出（总周期 60s，整体从顶部滑入，结束后滑出） ===== */
-      @keyframes scopeInOut {0%{translate:0 -120px;opacity:0}21.5%{translate:0 -120px;opacity:0}23.67%{translate:0 0;opacity:1}98.17%{translate:0 0;opacity:1}100%{translate:0 -120px;opacity:0}}
-      .b1{animation:b1 60s ease-in-out infinite}
-      .b2{animation:b2 60s ease-in-out infinite}
-      .b3{animation:b3 60s ease-in-out infinite}
-      .b4{animation:b4 60s ease-in-out infinite}
-      .b5{animation:b5 60s ease-in-out infinite}
-      .b6{animation:b6 60s ease-in-out infinite}
-      .b7{animation:b7 60s ease-in-out infinite}
-      .b8{animation:b8 60s ease-in-out infinite}
-      .b9{animation:b9 60s ease-in-out infinite}
-      .b10{animation:b10 60s ease-in-out infinite}
+      /* ===== 示波器屏幕滑入滑出（总周期 100s，整体从顶部滑入，结束后滑出） ===== */
+      @keyframes scopeInOut {0%{translate:0 -120px;opacity:0}21.5%{translate:0 -120px;opacity:0}23.67%{translate:0 0;opacity:1}100%{translate:0 0;opacity:1}}
+      .b1{animation:b1 100s ease-in-out infinite}
+      .b2{animation:b2 100s ease-in-out infinite}
+      .b3{animation:b3 100s ease-in-out infinite}
+      .b4{animation:b4 100s ease-in-out infinite}
+      .b5{animation:b5 100s ease-in-out infinite}
+      .b6{animation:b6 100s ease-in-out infinite}
+      .b7{animation:b7 100s ease-in-out infinite}
+      .b8{animation:b8 100s ease-in-out infinite}
+      .b9{animation:b9 100s ease-in-out infinite}
+      .b10{animation:b10 100s ease-in-out infinite}
       .cur{animation:blink 0.6s step-end infinite}
-      .scope{animation:scopeInOut 60s ease-in-out infinite}
+      .scope{animation:scopeInOut 100s ease-in-out infinite}
+      .led{animation:ledBlink 1.2s ease-in-out infinite}
       /* ===== 逐字打字机效果（200ms/字，与各自组动画同步） ===== */
       @keyframes typeA {0%,25%{opacity:0}25.01%,100%{opacity:1}}
       @keyframes typeB {0%,30%{opacity:0}30.01%,100%{opacity:1}}
-      @keyframes typeC {0%,43%{opacity:0}43.01%,100%{opacity:1}}
-      @keyframes typeD {0%,48%{opacity:0}48.01%,100%{opacity:1}}
-      @keyframes typeE {0%,62%{opacity:0}62.01%,100%{opacity:1}}
-      @keyframes typeF {0%,67%{opacity:0}67.01%,100%{opacity:1}}
-      @keyframes typeG {0%,80%{opacity:0}80.01%,100%{opacity:1}}
-      @keyframes typeH {0%,85%{opacity:0}85.01%,100%{opacity:1}}
-      @keyframes typeI {0%,90%{opacity:0}90.01%,100%{opacity:1}}
-      @keyframes typeJ {0%,94%{opacity:0}94.01%,100%{opacity:1}}
-      .b1 tspan{animation:typeA 60s step-end infinite}
-      .b2 tspan{animation:typeB 60s step-end infinite}
-      .b3 tspan{animation:typeC 60s step-end infinite}
-      .b4 tspan{animation:typeD 60s step-end infinite}
-      .b5 tspan{animation:typeE 60s step-end infinite}
-      .b6 tspan{animation:typeF 60s step-end infinite}
-      .b7 tspan{animation:typeG 60s step-end infinite}
-      .b8 tspan{animation:typeH 60s step-end infinite}
-      .b9 tspan{animation:typeI 60s step-end infinite}
-      .b10 tspan{animation:typeJ 60s step-end infinite}
+      @keyframes typeC {0%,41.5%{opacity:0}41.51%,100%{opacity:1}}
+      @keyframes typeD {0%,46.5%{opacity:0}46.51%,100%{opacity:1}}
+      @keyframes ledBlink {0%,40%{opacity:0.7}50%,100%{opacity:0.15}}
+      @keyframes typeE {0%,59%{opacity:0}59.01%,100%{opacity:1}}
+      @keyframes typeF {0%,64%{opacity:0}64.01%,100%{opacity:1}}
+      @keyframes typeG {0%,75.5%{opacity:0}75.51%,100%{opacity:1}}
+      @keyframes typeH {0%,80.5%{opacity:0}80.51%,100%{opacity:1}}
+      @keyframes typeI {0%,91%{opacity:0}91.01%,100%{opacity:1}}
+      @keyframes typeJ {0%,96%{opacity:0}96.01%,100%{opacity:1}}
+      .b1 tspan{animation:typeA 100s step-end infinite}
+      .b2 tspan{animation:typeB 100s step-end infinite}
+      .b3 tspan{animation:typeC 100s step-end infinite}
+      .b4 tspan{animation:typeD 100s step-end infinite}
+      .b5 tspan{animation:typeE 100s step-end infinite}
+      .b6 tspan{animation:typeF 100s step-end infinite}
+      .b7 tspan{animation:typeG 100s step-end infinite}
+      .b8 tspan{animation:typeH 100s step-end infinite}
+      .b9 tspan{animation:typeI 100s step-end infinite}
+      .b10 tspan{animation:typeJ 100s step-end infinite}
       tspan:nth-child(1){animation-delay:0s}
       tspan:nth-child(2){animation-delay:0.2s}
       tspan:nth-child(3){animation-delay:0.4s}
@@ -285,8 +287,8 @@
       <path d="M1002,169 L988,169 M1002,169 L1002,157"
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
       <!-- 底部小指示灯 -->
-      <circle cx="444" cy="160" r="3" fill="#EC4899" fill-opacity="0.6"/>
-      <circle cx="454" cy="160" r="3" fill="#60A5FA" fill-opacity="0.6"/>
+      <circle cx="444" cy="160" r="3" fill="#EC4899" class="led"/>
+      <circle cx="454" cy="160" r="3" fill="#60A5FA" class="led"/>
       <!-- 右侧手机电量格装饰（上下居中于 Y=160） -->
       <g stroke="#5FADD8" stroke-opacity="0.35" stroke-width="0.8" fill="none">
         <rect x="983" y="156" width="13" height="8" rx="2"/>
