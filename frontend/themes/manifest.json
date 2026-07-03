@@ -143,17 +143,17 @@
     },
     {
       "description": "无际海天，宝岛灯塔",
-      "id": "deepseek-light",
+      "id": "stellaris-light",
       "mode": "light",
-      "name": "DeepSeek · Horizon Gleam",
-      "name_zh": "DeepSeek·大海"
+      "name": "Stellaris · Horizon Gleam",
+      "name_zh": "星海·沧海"
     },
     {
       "description": "深邃太空，星辰流光",
-      "id": "deepseek-dark",
+      "id": "stellaris-dark",
       "mode": "dark",
-      "name": "DeepSeek · Cosmos Gleam",
-      "name_zh": "DeepSeek·星辰"
+      "name": "Stellaris · Cosmos Gleam",
+      "name_zh": "星海·星辰"
     }
   ]
 }

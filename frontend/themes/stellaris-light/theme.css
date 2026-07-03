@@ -1,20 +1,20 @@
 /* ============================================================
-   DeepSeek · 碧波晨光 (亮色) — 外源主题
-   文件夹名 deepseek-light → -light 后缀表示亮色。
-   灵感源自 DeepSeek 品牌 — 星辰大海，晨光初现。
+   Stellaris · 碧波晨光 (亮色) — 外源主题
+   文件夹名 stellaris-light → -light 后缀表示亮色。
+   灵感源自「星辰大海」— 星隐于晨，海天一线。
    意境：星辰隐退于晨光，海天一线间数据如星河流动，
    清澈明亮中透着探索未知的勇气与智慧。
 
    色彩体系：
    - 基底灵感：破晓海天，蓝白交织
-   - 强调色：DeepSeek 标志性蓝色 #3B82F6
+   - 强调色：Stellaris 标志性蓝色 #3B82F6
    - 氛围：通透、探索、静谧、科技感
    ============================================================ */
 
 [data-theme="light"] {
     /* 基底 — 星辰大海，晨光初现 */
     --bg-primary:       #F0F5FE;
-    --bg-image:         url('/themes/deepseek-light/bg.svg');
+    --bg-image:         url('/themes/stellaris-light/bg.svg');
     --bg-secondary:     #E3EBF7;
     --bg-user:          #D5E2F5;
     --bg-assistant:     #F0F5FE;
@@ -26,7 +26,7 @@
     --text-secondary:   #425577;
     --text-muted:       #7A8EA8;
 
-    /* 点缀 — DeepSeek 品牌蓝 */
+    /* 点缀 — Stellaris 品牌蓝 */
     --accent:           #3B82F6;
     --accent-hover:     #2563EB;
 

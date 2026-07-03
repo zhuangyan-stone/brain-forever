@@ -1,7 +1,7 @@
 /* ============================================================
-   DeepSeek · 深海之夜 (暗色) — 外源主题
-   文件夹名 deepseek-dark → -dark 后缀表示暗色。
-   灵感源自 DeepSeek 品牌 — 星辰大海，深空秘境。
+   Stellaris · 深海之夜 (暗色) — 外源主题
+   文件夹名 stellaris-dark → -dark 后缀表示暗色。
+   灵感源自「星辰大海」— 星垂平野，海纳流光。
    意境：漫天星辰坠入深海，数据如银河般流淌，
    深邃神秘中蕴藏探索宇宙般的无限可能。
 
@@ -14,7 +14,7 @@
 [data-theme="dark"] {
     /* 基底 — 星辰大海，深空秘境 */
     --bg-primary:       #0A0F1E;
-    --bg-image:         url('/themes/deepseek-dark/bg.svg');
+    --bg-image:         url('/themes/stellaris-dark/bg.svg');
     --bg-secondary:     #111827;
     --bg-user:          #1E293B;
     --bg-assistant:     #0A0F1E;
