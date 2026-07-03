@@ -60,6 +60,27 @@
       @keyframes m04 {0%{translate:0 0;opacity:0}1.67%{opacity:1}10%{translate:850px 600px;opacity:0}100%{translate:850px 600px;opacity:0}}
       .m01{animation:m01 24s ease-in infinite;animation-delay:3s}
       .m04{animation:m04 30s ease-in infinite;animation-delay:11s}
+      /* ===== 倒计时 10→1（示波器出现前 10s，位于星光流淌中心） ===== */
+      @keyframes cd10 {0%,10.95%{opacity:0}10.96%,11.90%{opacity:1}11.91%,100%{opacity:0}}
+      @keyframes cd9  {0%,11.90%{opacity:0}11.91%,12.86%{opacity:1}12.87%,100%{opacity:0}}
+      @keyframes cd8  {0%,12.86%{opacity:0}12.87%,13.81%{opacity:1}13.82%,100%{opacity:0}}
+      @keyframes cd7  {0%,13.81%{opacity:0}13.82%,14.76%{opacity:1}14.77%,100%{opacity:0}}
+      @keyframes cd6  {0%,14.76%{opacity:0}14.77%,15.71%{opacity:1}15.72%,100%{opacity:0}}
+      @keyframes cd5  {0%,15.71%{opacity:0}15.72%,16.67%{opacity:1}16.68%,100%{opacity:0}}
+      @keyframes cd4  {0%,16.67%{opacity:0}16.68%,17.62%{opacity:1}17.63%,100%{opacity:0}}
+      @keyframes cd3  {0%,17.62%{opacity:0}17.63%,18.57%{opacity:1}18.58%,100%{opacity:0}}
+      @keyframes cd2  {0%,18.57%{opacity:0}18.58%,19.52%{opacity:1}19.53%,100%{opacity:0}}
+      @keyframes cd1  {0%,19.52%{opacity:0}19.53%,20.48%{opacity:1}20.49%,100%{opacity:0}}
+      .cd10{animation:cd10 105s step-end 1;animation-fill-mode:forwards}
+      .cd9 {animation:cd9  105s step-end 1;animation-fill-mode:forwards}
+      .cd8 {animation:cd8  105s step-end 1;animation-fill-mode:forwards}
+      .cd7 {animation:cd7  105s step-end 1;animation-fill-mode:forwards}
+      .cd6 {animation:cd6  105s step-end 1;animation-fill-mode:forwards}
+      .cd5 {animation:cd5  105s step-end 1;animation-fill-mode:forwards}
+      .cd4 {animation:cd4  105s step-end 1;animation-fill-mode:forwards}
+      .cd3 {animation:cd3  105s step-end 1;animation-fill-mode:forwards}
+      .cd2 {animation:cd2  105s step-end 1;animation-fill-mode:forwards}
+      .cd1 {animation:cd1  105s step-end 1;animation-fill-mode:forwards}
       /* ===== 对话消息可见性（总周期 105s，各组间隔 3.5s） ===== */
       @keyframes b1 {0%,21.90%{opacity:0}23.81%{opacity:1}34.29%{opacity:1}36.19%{opacity:0}100%{opacity:0}}
       @keyframes b2 {0%,26.67%{opacity:0}28.57%{opacity:1}34.29%{opacity:1}36.19%{opacity:0}100%{opacity:0}}
@@ -74,18 +95,18 @@
       @keyframes blink {0%,49%{opacity:1}50%,100%{opacity:0}}
       /* ===== 示波器屏幕滑入滑出（105s 周期，从顶部滑入，循环结束滑出） ===== */
       @keyframes scopeInOut {0%{translate:0 -120px;opacity:0}20.48%{translate:0 -120px;opacity:0}22.54%{translate:0 0;opacity:1}96%{translate:0 0;opacity:1}99%{translate:0 -120px;opacity:0}100%{translate:0 -120px;opacity:0}}
-      .b1{animation:b1 105s ease-in-out infinite}
-      .b2{animation:b2 105s ease-in-out infinite}
-      .b3{animation:b3 105s ease-in-out infinite}
-      .b4{animation:b4 105s ease-in-out infinite}
-      .b5{animation:b5 105s ease-in-out infinite}
-      .b6{animation:b6 105s ease-in-out infinite}
-      .b7{animation:b7 105s ease-in-out infinite}
-      .b8{animation:b8 105s ease-in-out infinite}
-      .b9{animation:b9 105s ease-in-out infinite}
-      .b10{animation:b10 105s ease-in-out infinite}
-      .cur{animation:blink 0.6s step-end infinite}
-      .scope{animation:scopeInOut 105s ease-in-out infinite}
+      .b1{animation:b1 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b2{animation:b2 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b3{animation:b3 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b4{animation:b4 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b5{animation:b5 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b6{animation:b6 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b7{animation:b7 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b8{animation:b8 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b9{animation:b9 105s ease-in-out 1;animation-fill-mode:forwards}
+      .b10{animation:b10 105s ease-in-out 1;animation-fill-mode:forwards}
+      .cur{animation:blink 0.6s step-end 1;animation-fill-mode:forwards}
+      .scope{animation:scopeInOut 105s ease-in-out 1;animation-fill-mode:forwards}
       .led{animation:ledBlink 2.4s ease-in-out infinite}
       /* ===== 逐字打字机效果（200ms/字，与各自组动画同步） ===== */
       @keyframes typeA {0%,23.81%{opacity:0}23.82%,100%{opacity:1}}
@@ -99,16 +120,16 @@
       @keyframes typeH {0%,76.67%{opacity:0}76.68%,100%{opacity:1}}
       @keyframes typeI {0%,86.67%{opacity:0}86.68%,100%{opacity:1}}
       @keyframes typeJ {0%,91.43%{opacity:0}91.44%,100%{opacity:1}}
-      .b1 tspan{animation:typeA 105s step-end infinite}
-      .b2 tspan{animation:typeB 105s step-end infinite}
-      .b3 tspan{animation:typeC 105s step-end infinite}
-      .b4 tspan{animation:typeD 105s step-end infinite}
-      .b5 tspan{animation:typeE 105s step-end infinite}
-      .b6 tspan{animation:typeF 105s step-end infinite}
-      .b7 tspan{animation:typeG 105s step-end infinite}
-      .b8 tspan{animation:typeH 105s step-end infinite}
-      .b9 tspan{animation:typeI 105s step-end infinite}
-      .b10 tspan{animation:typeJ 105s step-end infinite}
+      .b1 tspan{animation:typeA 105s step-end 1;animation-fill-mode:forwards}
+      .b2 tspan{animation:typeB 105s step-end 1;animation-fill-mode:forwards}
+      .b3 tspan{animation:typeC 105s step-end 1;animation-fill-mode:forwards}
+      .b4 tspan{animation:typeD 105s step-end 1;animation-fill-mode:forwards}
+      .b5 tspan{animation:typeE 105s step-end 1;animation-fill-mode:forwards}
+      .b6 tspan{animation:typeF 105s step-end 1;animation-fill-mode:forwards}
+      .b7 tspan{animation:typeG 105s step-end 1;animation-fill-mode:forwards}
+      .b8 tspan{animation:typeH 105s step-end 1;animation-fill-mode:forwards}
+      .b9 tspan{animation:typeI 105s step-end 1;animation-fill-mode:forwards}
+      .b10 tspan{animation:typeJ 105s step-end 1;animation-fill-mode:forwards}
       tspan:nth-child(1){animation-delay:0s}
       tspan:nth-child(2){animation-delay:0.2s}
       tspan:nth-child(3){animation-delay:0.4s}
@@ -260,7 +281,21 @@
     </g>
   </g>
 
-  <!-- ========== 示波器科技屏幕 + 对话消息（105s循环，整体滑入滑出） ========== -->
+  <!-- ========== 倒计时 10→1（示波器出现前 10s，位于星光流淌中心） ========== -->
+  <g font-family="'Courier New',monospace" fill="#A0C4FF" text-anchor="middle" dominant-baseline="central" opacity="0.6">
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd10">10</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd9">9</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd8">8</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd7">7</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd6">6</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd5">5</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd4">4</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd3">3</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd2">2</text>
+    <text x="720" y="276" font-size="64" font-weight="bold" class="cd1">1</text>
+  </g>
+
+  <!-- ========== 示波器科技屏幕 + 对话消息（105s，只播放一次，animation-fill-mode:forwards 保持最终状态） ========== -->
   <g font-family="'Courier New',monospace">
     <!-- 示波器屏幕（淡蓝绿色透明 CRT 外壳，带装饰性边框） -->
     <g class="scope">
@@ -286,7 +321,7 @@
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
       <path d="M1002,169 L988,169 M1002,169 L1002,157"
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
-      <!-- 指示灯（呼吸闪烁，与文字颜色对应） -->
+      <!-- 指示灯（呼吸闪烁） -->
       <circle cx="444" cy="160" r="3" fill="#60A5FA" class="led"/>
       <circle cx="454" cy="160" r="3" fill="#EC4899" class="led"/>
       <!-- 右侧手机电量格装饰（上下居中于 Y=160） -->
@@ -301,7 +336,7 @@
       </g>
     </g>
 
-    <!-- ===== 对话消息（b1~b10 逐字打字，105s 周期） ===== -->
+    <!-- ===== 对话消息（b1~b10 逐字打字，105s，只播放一次） ===== -->
     <g font-size="13" fill="#FFFFFF">
       <!-- 第1组：25s→36s -->
       <g class="b1">
