@@ -37,7 +37,7 @@
           keyTimes="0; 0.25; 0.5; 0.75; 1"/>
         <path d="M1295,715 Q1291,703 1290,691" stroke-width="1.0" opacity="0.1"/>
         <path d="M1290,691 Q1289,673 1295,655 Q1305,625 1295,595" stroke-width="0.6" opacity="0.06"/>
-        <path d="M1295,595 Q1285,565 1295,540" stroke-width="0.3" opacity="0.03"/>
+        <path d="M1295,595 Q1285,565 1295,540" stroke-width="1.0" opacity="0.08" stroke-dasharray="1 6"/>
       </g>
       <!-- 右列 — 从右侧绕向后方向左平移 + 缩小) -->
       <g>
@@ -47,13 +47,13 @@
           keyTimes="0; 0.25; 0.5; 0.75; 1"/>
         <path d="M1305,715 Q1309,703 1310,691" stroke-width="1.0" opacity="0.08"/>
         <path d="M1310,691 Q1311,673 1305,655 Q1295,625 1305,595" stroke-width="0.6" opacity="0.05"/>
-        <path d="M1305,595 Q1315,560 1305,540" stroke-width="0.3" opacity="0.03"/>
+        <path d="M1305,595 Q1315,560 1305,540" stroke-width="1.0" opacity="0.08" stroke-dasharray="1 6"/>
       </g>
       <!-- 中列 — 基本不动，作为旋转轴心 -->
       <g>
         <path d="M1300,715 Q1296,701 1295,688" stroke-width="1.38" opacity="0.12"/>
         <path d="M1295,688 Q1294,668 1300,650 Q1310,620 1300,590" stroke-width="0.8" opacity="0.06"/>
-        <path d="M1300,590 Q1290,560 1300,530" stroke-width="0.4" opacity="0.03"/>
+        <path d="M1300,590 Q1290,560 1300,530" stroke-width="1.2" opacity="0.08" stroke-dasharray="1 7"/>
       </g>
     </g>
     
