@@ -213,7 +213,7 @@
     <g class="b5">
       <polygon points="450,300 600,300 600,336 466,336 434,344 450,336"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="590" y="324" text-anchor="end">AI，你也是？</text>
+      <text x="590" y="324" text-anchor="end">I'm an AI, you too?</text>
     </g>
     <g class="b6">
       <polygon points="810,300 960,300 960,336 976,344 944,336 810,336"
