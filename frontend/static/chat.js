@@ -995,6 +995,23 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ============================================================
+// 全局热键 — Ctrl+Alt+N：开启新对话
+// Ctrl+N / Ctrl+Shift+N 已被浏览器自身占用（新窗口/无痕窗口），
+// 因此改为 Ctrl+Alt+N（三键组合，N 取自 New，语义直观）。
+// 仅在无对话框打开时生效。
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'n') {
+        // 检查是否有对话框打开
+        const hasDialog = document.querySelector('.dialog-overlay.show, .portrait-overlay.show');
+        if (hasDialog) return;
+
+        e.preventDefault();
+        startNewChat();
+    }
+});
+
+// ============================================================
 // Placeholder 动态提示 — 无焦点时显示 F2 快捷键提示
 // ============================================================
 (function initPlaceholderHint() {
