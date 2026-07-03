@@ -73,7 +73,7 @@
       @keyframes b10 {0%,94%{opacity:0}96%{opacity:1}98%{opacity:1}100%{opacity:0}}
       @keyframes blink {0%,49%{opacity:1}50%,100%{opacity:0}}
       /* ===== 示波器屏幕滑入滑出（100s 周期，从顶部滑入，循环结束滑出） ===== */
-      @keyframes scopeInOut {0%{translate:0 -120px;opacity:0}21.5%{translate:0 -120px;opacity:0}23.67%{translate:0 0;opacity:1}100%{translate:0 0;opacity:1}}
+      @keyframes scopeInOut {0%{translate:0 -120px;opacity:0}21.5%{translate:0 -120px;opacity:0}23.67%{translate:0 0;opacity:1}96%{translate:0 0;opacity:1}99%{translate:0 -120px;opacity:0}100%{translate:0 -120px;opacity:0}}
       .b1{animation:b1 100s ease-in-out infinite}
       .b2{animation:b2 100s ease-in-out infinite}
       .b3{animation:b3 100s ease-in-out infinite}
@@ -260,7 +260,7 @@
     </g>
   </g>
 
-  <!-- ========== 示波器科技屏幕 + 对话消息（60s循环，整体滑入滑出） ========== -->
+  <!-- ========== 示波器科技屏幕 + 对话消息（100s循环，整体滑入滑出） ========== -->
   <g font-family="'Courier New',monospace">
     <!-- 示波器屏幕（淡蓝绿色透明 CRT 外壳，带装饰性边框） -->
     <g class="scope">
@@ -337,7 +337,7 @@
 
       <!-- 第5组：91s→98s -->
       <g class="b9">
-        <text x="710" y="164" font-size="11" text-anchor="end" fill="#EC4899"><tspan>你</tspan><tspan>看</tspan><tspan>到</tspan><tspan>流</tspan><tspan>星</tspan><tspan>了</tspan><tspan>吗</tspan><tspan>？</tspan><tspan>好</tspan><tspan>美</tspan><tspan>啊</tspan></text>
+        <text x="710" y="164" font-size="11" text-anchor="end" fill="#EC4899"><tspan>你</tspan><tspan>看</tspan><tspan>到</tspan><tspan>流</tspan><tspan>星</tspan><tspan>了</tspan><tspan>吗</tspan><tspan>？</tspan></text>
       </g>
       <g class="b10">
         <text x="730" y="164" font-size="11" fill="#60A5FA"><tspan>看</tspan><tspan>到</tspan><tspan>了</tspan><tspan>，</tspan><tspan>很</tspan><tspan>美</tspan></text>
