@@ -68,23 +68,6 @@
     <path d="M50,95 Q55,108 60,105" fill="none" stroke="#E8853D" stroke-width="2.5" stroke-linecap="round"/>
   </g>
 
-  <!-- 领带装饰 — 程序员的骄傲 -->
-  <g opacity="0.18">
-    <!-- 领带结 -->
-    <polygon points="135,130 175,130 180,180 130,180" fill="#E8853D"/>
-    <!-- 领带主体 -->
-    <path d="M130,180
-             L180,180
-             L190,340
-             Q196,400 205,440
-             L155,500
-             L105,440
-             Q114,400 120,340 Z"
-          fill="#E8853D"/>
-    <!-- 领带内折阴影（竖线保留） -->
-    <path d="M150,180 L155,490" stroke="#1A1C1E" stroke-width="1.5" opacity="0.3" fill="none"/>
-  </g>
-
   <!-- 书堆 — 知识的力量 -->
   <g transform="translate(200,720) scale(0.88) translate(-200,-700)">
   <g opacity="0.40">
