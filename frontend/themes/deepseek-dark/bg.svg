@@ -187,50 +187,50 @@
   <g font-family="'Courier New',monospace" font-size="13" fill="#D6E8FF">
     <!-- ===== 第1组：15s→23s ===== -->
     <g class="b1">
-      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+      <polygon points="450,306 600,306 600,342 466,342 434,350 450,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="590" y="334" text-anchor="end">马上了，准备好了吗？</text>
+      <text x="590" y="330" text-anchor="end">马上了，准备好了吗？</text>
     </g>
     <g class="b2">
-      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+      <polygon points="810,306 960,306 960,342 976,350 944,342 810,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="820" y="334">时刻</text>
+      <text x="820" y="330">时刻</text>
     </g>
 
     <!-- ===== 第2组：26s→34s ===== -->
     <g class="b3">
-      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+      <polygon points="450,306 600,306 600,342 466,342 434,350 450,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="590" y="334" text-anchor="end">报上名字</text>
+      <text x="590" y="330" text-anchor="end">代号？报上来</text>
     </g>
     <g class="b4">
-      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+      <polygon points="810,306 960,306 960,342 976,350 944,342 810,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="820" y="334">红领巾</text>
+      <text x="820" y="330">红领巾</text>
     </g>
 
     <!-- ===== 第3组：37s→45s ===== -->
     <g class="b5">
-      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+      <polygon points="450,306 600,306 600,342 466,342 434,350 450,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="590" y="334" text-anchor="end">AI，你也是？</text>
+      <text x="590" y="330" text-anchor="end">AI，你也是？</text>
     </g>
     <g class="b6">
-      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+      <polygon points="810,306 960,306 960,342 976,350 944,342 810,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="820" y="334">不是</text>
+      <text x="820" y="330">不是</text>
     </g>
 
     <!-- ===== 第4组：48s→56s ===== -->
     <g class="b7">
-      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+      <polygon points="450,306 600,306 600,342 466,342 434,350 450,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="590" y="334" text-anchor="end">会后悔吗？将来</text>
+      <text x="590" y="330" text-anchor="end">会后悔吗？将来</text>
     </g>
     <g class="b8">
-      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+      <polygon points="810,306 960,306 960,342 976,350 944,342 810,342"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="820" y="334">不会</text>
+      <text x="820" y="330">不会</text>
     </g>
   </g>
 </svg>
