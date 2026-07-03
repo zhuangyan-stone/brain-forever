@@ -31,27 +31,27 @@ document.addEventListener('alpine:init', function() {
                 this._initComplete = false;
 
                 this.$watch('selectedLight', function(value) {
-                    // 亮暗联动
+                    // 亮暗联动：同步暗色主题
                     if (self.linkThemes) {
                         var linked = value ? self._getLinkedId(value, 'dark') : '';
                         if (linked !== self.selectedDark) {
                             self.selectedDark = linked;
                         }
                     }
-                    // 初始化完成后，选择亮色主题立即生效
+                    // 初始化完成后，主题选择立即生效
                     if (self._initComplete) {
                         self._applyImmediately();
                     }
                 });
                 this.$watch('selectedDark', function(value) {
-                    // 亮暗联动
+                    // 亮暗联动：同步亮色主题
                     if (self.linkThemes) {
                         var linked = value ? self._getLinkedId(value, 'light') : '';
                         if (linked !== self.selectedLight) {
                             self.selectedLight = linked;
                         }
                     }
-                    // 初始化完成后，选择暗色主题立即生效
+                    // 初始化完成后，主题选择立即生效
                     if (self._initComplete) {
                         self._applyImmediately();
                     }
@@ -192,12 +192,24 @@ document.addEventListener('alpine:init', function() {
             toggleLinkThemes: function() {
                 this.linkThemes = !this.linkThemes;
                 if (this.linkThemes) {
-                    // 开启联动时，根据当前亮色主题自动同步暗色
-                    var linked = this.selectedLight
-                        ? this._getLinkedId(this.selectedLight, 'dark')
-                        : '';
-                    if (linked !== this.selectedDark) {
-                        this.selectedDark = linked;
+                    // 开启联动时，根据当前"立即启用"选中的模式决定同步方向
+                    // 这样联动方向总是跟随用户最后一次操作的主题
+                    if (this.selectedMode === 'dark') {
+                        // 暗色→亮色：取 selectedDark 的联动亮色，覆盖 selectedLight
+                        var linked = this.selectedDark
+                            ? this._getLinkedId(this.selectedDark, 'light')
+                            : '';
+                        if (linked !== this.selectedLight) {
+                            this.selectedLight = linked;
+                        }
+                    } else {
+                        // 亮色→暗色：取 selectedLight 的联动暗色，覆盖 selectedDark
+                        var linked = this.selectedLight
+                            ? this._getLinkedId(this.selectedLight, 'dark')
+                            : '';
+                        if (linked !== this.selectedDark) {
+                            this.selectedDark = linked;
+                        }
                     }
                 }
             },

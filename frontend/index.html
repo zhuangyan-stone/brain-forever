@@ -1004,7 +1004,7 @@
             <div class="dialog-body theme-dialog-body">
                 <div class="theme-select-group">
                     <label for="themeSelectLight">亮色主题</label>
-                    <select id="themeSelectLight" x-model="selectedLight">
+                    <select id="themeSelectLight" x-model="selectedLight" @change="selectedMode='light'">
                         <template x-for="t in availableLight" :key="t.id">
                             <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')"></option>
                         </template>
@@ -1013,7 +1013,7 @@
                 </div>
                 <div class="theme-select-group">
                     <label for="themeSelectDark">暗色主题</label>
-                    <select id="themeSelectDark" x-model="selectedDark">
+                    <select id="themeSelectDark" x-model="selectedDark" @change="selectedMode='dark'">
                         <template x-for="t in availableDark" :key="t.id">
                             <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')"></option>
                         </template>
