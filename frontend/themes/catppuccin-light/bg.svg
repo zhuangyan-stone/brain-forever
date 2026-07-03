@@ -64,12 +64,6 @@
       <path d="M65,38 L85,30 L85,50 L65,46" stroke="#2a7af5" fill="none"/>
       <!-- 蒸汽棒 -->
       <path d="M75,48 Q85,50 82,65 Q80,75 75,78" stroke="#2a7af5" stroke-width="1.5"/>
-      <!-- 蒸汽 -->
-      <g opacity="0.6">
-        <path d="M40,8 Q35,0 40,-8 Q45,-16 40,-24" stroke-width="1.2"/>
-        <path d="M48,10 Q43,2 48,-6 Q53,-14 48,-20" stroke-width="1"/>
-        <path d="M35,8 Q30,0 35,-6" stroke-width="0.8"/>
-      </g>
       <!-- 调节旋钮 -->
       <circle cx="70" cy="80" r="5" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5" stroke-width="1"/>
       <!-- 猫（放在咖啡机内，原杯子的位置） -->
@@ -140,6 +134,14 @@
       <line x1="24" y1="118" x2="56" y2="118" stroke="#2a7af5" stroke-width="1"/>
       <line x1="23" y1="125" x2="57" y2="125" stroke="#2a7af5" stroke-width="1"/>
       <line x1="22" y1="132" x2="58" y2="132" stroke="#2a7af5" stroke-width="1"/>
+    </g>
+    <!-- 香气（从咖啡杯内升起，独立组以避免继承杯子的低透明度） -->
+    <g transform="translate(1300, 684) scale(0.8)" opacity="0.18" stroke-width="2">
+      <g opacity="0.6">
+        <path d="M40,112 Q35,104 40,96 Q45,88 40,80" stroke-width="1.2"/>
+        <path d="M48,114 Q43,106 48,98 Q53,90 48,84" stroke-width="1"/>
+        <path d="M35,112 Q30,104 35,98" stroke-width="0.8"/>
+      </g>
     </g>
   </g>
 </svg>
