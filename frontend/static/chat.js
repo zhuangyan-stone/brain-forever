@@ -1013,6 +1013,7 @@ document.addEventListener('keydown', (e) => {
 
 // ============================================================
 // Placeholder 动态提示 — 无焦点时显示 F2 快捷键提示
+// 小屏模式（无物理键盘）下始终显示 "说点什么？"，不显示 F2 提示
 // ============================================================
 (function initPlaceholderHint() {
     const PLACEHOLDER_FOCUS = '说点什么？';
@@ -1020,14 +1021,24 @@ document.addEventListener('keydown', (e) => {
     const msgInput = document.getElementById('messageInput');
     if (!msgInput) return;
 
-    // 初始状态：无焦点，显示 F2 提示
-    msgInput.placeholder = PLACEHOLDER_BLUR;
+    // 判断是否为小屏模式
+    function isSmallScreen() {
+        return document.body.classList.contains('small-screen-mode');
+    }
+
+    // 获取当前应显示的 placeholder
+    function getPlaceholder() {
+        return isSmallScreen() ? PLACEHOLDER_FOCUS : PLACEHOLDER_BLUR;
+    }
+
+    // 初始状态：无焦点，根据屏幕模式显示对应提示
+    msgInput.placeholder = getPlaceholder();
 
     msgInput.addEventListener('focus', () => {
         msgInput.placeholder = PLACEHOLDER_FOCUS;
     });
 
     msgInput.addEventListener('blur', () => {
-        msgInput.placeholder = PLACEHOLDER_BLUR;
+        msgInput.placeholder = getPlaceholder();
     });
 })();
