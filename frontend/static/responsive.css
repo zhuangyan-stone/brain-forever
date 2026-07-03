@@ -108,7 +108,18 @@ body.small-screen-mode .new-chat-label {
 
 /* 小屏模式下输入面板宽度改为 calc(100% - 4px)，左右各留约 2px 间距 */
 body.small-screen-mode .input-area {
-    width: 100%;
+    width: calc(100% - 4px);
+}
+
+/* 小屏模式下主题对话框的"亮/暗联动"单独一行显示 */
+body.small-screen-mode .dialog-footer {
+    flex-wrap: wrap;
+}
+
+body.small-screen-mode .dialog-footer > .theme-link-toggle {
+    flex: 1 1 100%;
+    order: -1;
+    margin-bottom: 6px;
 }
 
 /* ============================================================
