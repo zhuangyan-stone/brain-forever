@@ -146,14 +146,14 @@
       "id": "stellaris-light",
       "mode": "light",
       "name": "Stellaris · Horizon Gleam",
-      "name_zh": "星海·沧海"
+      "name_zh": "星辰大海·海"
     },
     {
       "description": "深邃太空，星辰流光",
       "id": "stellaris-dark",
       "mode": "dark",
       "name": "Stellaris · Cosmos Gleam",
-      "name_zh": "星海·星辰"
+      "name_zh": "星辰大海·星"
     }
   ]
 }
