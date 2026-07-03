@@ -188,57 +188,49 @@
     <!-- ===== 第1组：15s→23s ===== -->
     <g class="b1">
       <polygon points="430,300 600,300 600,332 446,332 414,340 430,332"
-               fill="none" stroke="#EC4899" stroke-width="1"/>
-      <text x="432" y="297" font-size="11" fill="#EC4899">&#9792;</text>
-      <text x="590" y="322" text-anchor="end" fill="#EC4899">马上了，准备好了吗？</text>
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="590" y="322" text-anchor="end">马上了，准备好了吗？</text>
     </g>
     <g class="b2">
       <polygon points="820,300 910,300 910,332 926,340 894,332 820,332"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="908" y="297" font-size="11" fill="#3B82F6" text-anchor="end">&#9794;</text>
-      <text x="830" y="322" fill="#3B82F6">时刻</text>
+      <text x="830" y="322">时刻</text>
     </g>
 
     <!-- ===== 第2组：26s→34s ===== -->
     <g class="b3">
       <polygon points="470,300 590,300 590,332 486,332 454,340 470,332"
-               fill="none" stroke="#EC4899" stroke-width="1"/>
-      <text x="472" y="297" font-size="11" fill="#EC4899">&#9792;</text>
-      <text x="580" y="322" text-anchor="end" fill="#EC4899">代号？报上来</text>
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="580" y="322" text-anchor="end">代号？报上来</text>
     </g>
     <g class="b4">
       <polygon points="820,300 920,300 920,332 936,340 904,332 820,332"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="918" y="297" font-size="11" fill="#3B82F6" text-anchor="end">&#9794;</text>
-      <text x="830" y="322" fill="#3B82F6">红领巾</text>
+      <text x="830" y="322">红领巾</text>
     </g>
 
     <!-- ===== 第3组：37s→45s ===== -->
     <g class="b5">
       <polygon points="400,300 590,300 590,332 416,332 384,340 400,332"
-               fill="none" stroke="#EC4899" stroke-width="1"/>
-      <text x="402" y="297" font-size="11" fill="#EC4899">&#9792;</text>
-      <text x="580" y="322" text-anchor="end" fill="#EC4899">I'm an AI, you too?</text>
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="580" y="322" text-anchor="end">I'm an AI, you too?</text>
     </g>
     <g class="b6">
       <polygon points="820,300 910,300 910,332 926,340 894,332 820,332"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="908" y="297" font-size="11" fill="#3B82F6" text-anchor="end">&#9794;</text>
-      <text x="830" y="322" fill="#3B82F6">me 不 too</text>
+      <text x="830" y="322">me 不 too</text>
     </g>
 
     <!-- ===== 第4组：48s→56s ===== -->
     <g class="b7">
       <polygon points="450,300 620,300 620,332 466,332 434,340 450,332"
-               fill="none" stroke="#EC4899" stroke-width="1"/>
-      <text x="452" y="297" font-size="11" fill="#EC4899">&#9792;</text>
-      <text x="605" y="322" text-anchor="end" fill="#EC4899">你会后悔啊，碳基人</text>
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="605" y="322" text-anchor="end">你会后悔啊，碳基人</text>
     </g>
     <g class="b8">
       <polygon points="820,300 910,300 910,332 926,340 894,332 820,332"
                fill="none" stroke="#3B82F6" stroke-width="1"/>
-      <text x="908" y="297" font-size="11" fill="#3B82F6" text-anchor="end">&#9794;</text>
-      <text x="830" y="322" fill="#3B82F6">不会</text>
+      <text x="830" y="322">不会</text>
     </g>
   </g>
 </svg>
