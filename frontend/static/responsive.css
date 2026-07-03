@@ -117,7 +117,7 @@ body.small-screen-mode .dialog-footer {
 }
 
 body.small-screen-mode .dialog-footer > .theme-link-toggle {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
     order: -1;
     margin-bottom: 6px;
 }
