@@ -60,6 +60,25 @@
       @keyframes m04 {0%{translate:0 0;opacity:0}1.67%{opacity:1}10%{translate:850px 600px;opacity:0}100%{translate:850px 600px;opacity:0}}
       .m01{animation:m01 24s ease-in infinite;animation-delay:3s}
       .m04{animation:m04 30s ease-in infinite;animation-delay:11s}
+      /* ===== 科技感对话框（总周期 60s，含首尾 15s 间隔） ===== */
+      @keyframes b1 {0%,23%{opacity:0}25%{opacity:1}36%{opacity:1}38%{opacity:0}100%{opacity:0}}
+      @keyframes b2 {0%,28%{opacity:0}30%{opacity:1}36%{opacity:1}38%{opacity:0}100%{opacity:0}}
+      @keyframes b3 {0%,41%{opacity:0}43%{opacity:1}55%{opacity:1}57%{opacity:0}100%{opacity:0}}
+      @keyframes b4 {0%,46%{opacity:0}48%{opacity:1}55%{opacity:1}57%{opacity:0}100%{opacity:0}}
+      @keyframes b5 {0%,60%{opacity:0}62%{opacity:1}73%{opacity:1}75%{opacity:0}100%{opacity:0}}
+      @keyframes b6 {0%,65%{opacity:0}67%{opacity:1}73%{opacity:1}75%{opacity:0}100%{opacity:0}}
+      @keyframes b7 {0%,78%{opacity:0}80%{opacity:1}91%{opacity:1}93%{opacity:0}100%{opacity:0}}
+      @keyframes b8 {0%,83%{opacity:0}85%{opacity:1}91%{opacity:1}93%{opacity:0}100%{opacity:0}}
+      @keyframes blink {0%,49%{opacity:1}50%,100%{opacity:0}}
+      .b1{animation:b1 60s ease-in-out infinite}
+      .b2{animation:b2 60s ease-in-out infinite}
+      .b3{animation:b3 60s ease-in-out infinite}
+      .b4{animation:b4 60s ease-in-out infinite}
+      .b5{animation:b5 60s ease-in-out infinite}
+      .b6{animation:b6 60s ease-in-out infinite}
+      .b7{animation:b7 60s ease-in-out infinite}
+      .b8{animation:b8 60s ease-in-out infinite}
+      .cur{animation:blink 0.6s step-end infinite}
     </style>
     <!-- 粒子拖尾渐变（向左飘移的线条渐变） -->
     <linearGradient id="g01" x1="0" y1="0" x2="5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
@@ -161,6 +180,57 @@
     <g transform="translate(350,150)">
       <line x1="0" y1="0" x2="-33" y2="-23" stroke="url(#tailM4)" stroke-width="1" stroke-linecap="round" opacity="0" class="m04"/>
       <circle cx="0" cy="0" r="1.5" opacity="0" class="m04"/>
+    </g>
+  </g>
+
+  <!-- ========== 科技感对话框（星群流动区域内，60s循环） ========== -->
+  <g font-family="'Courier New',monospace" font-size="13" fill="#D6E8FF">
+    <!-- ===== 第1组：15s→23s ===== -->
+    <g class="b1">
+      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="590" y="334" text-anchor="end">马上了，准备好了吗？</text>
+    </g>
+    <g class="b2">
+      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="820" y="334">时刻</text>
+    </g>
+
+    <!-- ===== 第2组：26s→34s ===== -->
+    <g class="b3">
+      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="590" y="334" text-anchor="end">报上名字</text>
+    </g>
+    <g class="b4">
+      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="820" y="334">红领巾</text>
+    </g>
+
+    <!-- ===== 第3组：37s→45s ===== -->
+    <g class="b5">
+      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="590" y="334" text-anchor="end">AI，你也是？</text>
+    </g>
+    <g class="b6">
+      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="820" y="334">不是</text>
+    </g>
+
+    <!-- ===== 第4组：48s→56s ===== -->
+    <g class="b7">
+      <polygon points="450,310 600,310 600,346 466,346 434,354 450,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="590" y="334" text-anchor="end">会后悔吗？将来</text>
+    </g>
+    <g class="b8">
+      <polygon points="810,310 960,310 960,346 976,354 944,346 810,346"
+               fill="none" stroke="#3B82F6" stroke-width="1"/>
+      <text x="820" y="334">不会</text>
     </g>
   </g>
 </svg>
