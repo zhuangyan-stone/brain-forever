@@ -270,8 +270,8 @@
     .star-7 { animation: glow-7 70s 5s infinite; }
   </style>
 
-  <!-- 北斗七星 — 主星 -->
-  <g>
+  <!-- 北斗七星 — 主星（整体左移 216px 以实现横向居中） -->
+  <g transform="translate(-216, 0)">
     <!-- 瑶光 (Alkaid) — 斗柄末 (原点) -->
     <g class="star star-1">
       <circle cx="710" cy="210" r="3" fill="#F0A05A"/>
