@@ -203,7 +203,7 @@
   <radialGradient id="nebula1" cx="15%" cy="16%" r="22%"><stop offset="0%" stop-color="#3B82F6" stop-opacity="0.68"/><stop offset="100%" stop-color="#070B18" stop-opacity="0.05"/></radialGradient>
   <rect width="1440" height="900" fill="url(#nebula1)"/>
   <!-- ========== 星云层 2：右上方蓝色星云 ========== -->
-  <radialGradient id="nebula2" cx="85%" cy="22%" r="20%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.54"/><stop offset="100%" stop-color="#070B18" stop-opacity="0"/></radialGradient>
+  <radialGradient id="nebula2" cx="85%" cy="22%" r="10%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.32"/><stop offset="100%" stop-color="#070B18" stop-opacity="0"/></radialGradient>
   <rect width="1440" height="900" fill="url(#nebula2)"/>
 
   <!-- ========== 粒子系统：向上的发光线条 + 粒子圆点 ========== -->
