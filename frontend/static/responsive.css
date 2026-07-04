@@ -259,3 +259,14 @@ body.small-screen-mode .main-title:empty {
 body.small-screen-mode .main-title:not(:empty) {
     margin-bottom: 4px;
 }
+
+/* ============================================================
+    中小屏下 Tooltip 完全失效（≤920px）
+    方案一：纯 CSS 隐藏，不侵入 JS 逻辑
+    ============================================================ */
+
+@media (max-width: 920px) {
+    .tooltip {
+        display: none !important;
+    }
+}
