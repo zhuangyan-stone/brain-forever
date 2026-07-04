@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
   <style>
     @keyframes whiskerFloatL {
       0%, 100% { transform: translateY(0px); }

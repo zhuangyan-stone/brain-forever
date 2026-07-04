@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
   <defs>
     <!-- 阳光光斑发光滤镜 -->
     <filter id="sun-glow" x="-80%" y="-80%" width="260%" height="260%">

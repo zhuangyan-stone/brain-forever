@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
   <!-- Klein Blue 夜蓝 — 毕加索晚年风格的几何色块（暗色版） -->
   
   <!-- 底色 — 深蓝黑 -->
@@ -36,4 +37,3 @@
     <circle cx="140" cy="460" r="15" fill="#3A1A28"/>
   </g>
 </svg>
-
