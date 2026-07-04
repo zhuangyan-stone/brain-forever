@@ -81,6 +81,68 @@
 
   </g>
 
+  <!-- ════════════════════════════════════════════ -->
+  <!-- ★ 燃烧的太阳 — 左侧近景                       -->
+  <!-- ════════════════════════════════════════════ -->
+  <defs>
+    <!-- 太阳光晕（大范围雾状辉光） -->
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.50"/>
+      <stop offset="25%" stop-color="#FF8C00" stop-opacity="0.22"/>
+      <stop offset="50%" stop-color="#FF4500" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#FF2200" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 太阳本体渐变（内亮白→外深红） -->
+    <radialGradient id="sunBodyGrad" cx="38%" cy="35%" r="62%">
+      <stop offset="0%" stop-color="#FFFEF0"/>
+      <stop offset="10%" stop-color="#FFD700"/>
+      <stop offset="30%" stop-color="#FF8C00"/>
+      <stop offset="55%" stop-color="#FF4400"/>
+      <stop offset="80%" stop-color="#CC2200"/>
+      <stop offset="100%" stop-color="#881100"/>
+    </radialGradient>
+    <!-- 核心高亮 -->
+    <radialGradient id="sunCore" cx="45%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.50"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 大范围辉光 -->
+  <circle cx="240" cy="280" r="280" fill="url(#sunGlow)"/>
+  <!-- 日冕 — 闭合多边形纯 fill，无 stroke，先画让本体覆盖内部 -->
+  <g>
+    <!-- 外层（太阳风：左侧紧贴球面，右侧拖尾飘散如长发） -->
+    <polygon points="240,178 290,185 340,198 420,215 500,235 460,265 510,295 430,310 390,340 450,370 380,365 310,380 250,382 195,372 148,330 138,280 155,225 195,195"
+             fill="#FF4400" fill-opacity="0.20"/>
+    <!-- 中层（太阳风：左侧紧贴球面，右侧飘散长度中等） -->
+    <polygon points="240,178 285,190 330,205 390,225 440,250 410,275 450,290 400,310 370,340 400,360 350,365 300,375 250,382 195,372 148,330 138,280 155,225 195,195"
+             fill="#FF8800" fill-opacity="0.22"/>
+    <!-- 内层（太阳风：左侧紧贴球面，右侧飘散长度最短） -->
+    <polygon points="240,178 275,195 320,215 360,240 380,260 365,280 380,295 360,315 340,340 355,355 320,360 280,370 250,382 195,372 150,328 142,280 158,230 195,198"
+             fill="#FFCC00" fill-opacity="0.25"/>
+  </g>
+  <!-- 太阳本体（左侧近景，完全露出）r=110→99（90%） -->
+  <circle cx="240" cy="280" r="99" fill="url(#sunBodyGrad)"/>
+  <!-- 核心高亮 -->
+  <circle cx="225" cy="260" r="38" fill="url(#sunCore)"/>
+  <!-- 表面炽热纹理（太阳表面流动感） -->
+  <g fill="none" stroke="#FFCC00" stroke-width="1.2" opacity="0.12">
+    <path d="M177,260 Q199,251 220,264 Q240,276 260,271"/>
+    <path d="M184,291 Q204,280 222,292 Q240,303 256,298"/>
+    <path d="M168,318 Q190,309 211,321 Q231,332 251,327"/>
+  </g>
+  <!-- 表面亮斑（米粒组织） -->
+  <g fill="#FFD700" opacity="0.18">
+    <circle cx="202" cy="253" r="8"/>
+    <circle cx="226" cy="237" r="6"/>
+    <circle cx="181" cy="275" r="9"/>
+    <circle cx="256" cy="257" r="5"/>
+    <circle cx="215" cy="291" r="7"/>
+    <circle cx="170" cy="296" r="5"/>
+    <circle cx="245" cy="300" r="6"/>
+    <circle cx="190" cy="287" r="4"/>
+  </g>
+
   <g transform="translate(0, 20)">
   <!-- 海岛 — 右下角 -->
   <g opacity="0.35" transform="translate(1245, 695) scale(0.90, 1) rotate(-3) translate(-1245, -695)">
@@ -142,6 +204,112 @@
       <rect x="11" y="-0.5" width="0.8" height="1" rx="0.3" fill="#CC3333"/>
       <!-- 驾驶舱 -->
       <ellipse cx="-12" cy="0" rx="2.5" ry="1" fill="#8AA8C8" opacity="0.35"/>
+    </g>
+  </g>
+  <!-- ★ 火球渐变：内红→外橙→边缘微蓝 -->
+  <radialGradient id="fireGrad" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#DD4444" stop-opacity="0.95"/>
+    <stop offset="35%" stop-color="#E08040" stop-opacity="0.80"/>
+    <stop offset="65%" stop-color="#EE9933" stop-opacity="0.45"/>
+    <stop offset="90%" stop-color="#6688AA" stop-opacity="0.08"/>
+    <stop offset="100%" stop-color="#6688AA" stop-opacity="0"/>
+  </radialGradient>
+  <!-- ★ 宏：用 sed 批量替换 r=7→12，尾部路径同步缩放 -->
+  <!-- ★ 火球模板（纯球形，忽略仰角） -->
+  <!-- 火球模板已内联到各位置（避免 use 兼容性问题） -->
+  <!-- ★ 飞行轨迹参考线（黑色） -->
+  <g fill="none" stroke="#000000" stroke-width="1" stroke-dasharray="4,4" opacity="0.30">
+    <path d="M1300,710 Q1200,685 1100,630 Q800,470 400,310 Q100,180 -160,110"/>
+    <circle cx="1300" cy="710" r="3" fill="#000000" stroke="none"/>
+    <circle cx="1200" cy="685" r="3" fill="#000000" stroke="none"/>
+    <circle cx="1100" cy="630" r="3" fill="#000000" stroke="none"/>
+    <circle cx="920" cy="540" r="3" fill="#000000" stroke="none"/>
+    <circle cx="700" cy="450" r="3" fill="#000000" stroke="none"/>
+    <circle cx="500" cy="360" r="3" fill="#000000" stroke="none"/>
+    <circle cx="300" cy="280" r="3" fill="#000000" stroke="none"/>
+  </g>
+  <!-- ══════ 圈① 刚启动 (1300,710) keyTime 0.27 ══════ -->
+  <g transform="translate(1300,710) scale(0.92) rotate(2)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1;1.06;1.12;1" keyTimes="0;0.25;0.27;0.31;0.35;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.25;0.27;0.29;0.35;1" dur="28s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="12" fill="#FFFFFF" opacity="0.15"/>
+      <circle cx="0" cy="0" r="12" fill="url(#fireGrad)"/>
+      <circle cx="0" cy="0" r="13" fill="none" stroke="#FFAA22" stroke-width="1.5" opacity="0.08"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#6688AA" stroke-width="1" opacity="0.04"/>
+      <path d="M12,-5 Q18,-6 24,-3 Q28,-1 31,0 Q28,1 24,3 Q18,6 12,5 Z" fill="url(#fireGrad)" opacity="0.50"/>
+    </g>
+  </g>
+  <!-- ══════ 圈② 第一个油门 (1200,685) keyTime 0.30 ══════ -->
+  <g transform="translate(1200,685) scale(0.92) rotate(4)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1;1.06;1.12;1" keyTimes="0;0.287;0.307;0.347;0.387;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.287;0.307;0.327;0.387;1" dur="28s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="12" fill="#FFFFFF" opacity="0.15"/>
+      <circle cx="0" cy="0" r="12" fill="url(#fireGrad)"/>
+      <circle cx="0" cy="0" r="13" fill="none" stroke="#FFAA22" stroke-width="1.5" opacity="0.08"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#6688AA" stroke-width="1" opacity="0.04"/>
+      <path d="M12,-5 Q18,-6 24,-3 Q28,-1 31,0 Q28,1 24,3 Q18,6 12,5 Z" fill="url(#fireGrad)" opacity="0.50"/>
+    </g>
+  </g>
+  <!-- ══════ 圈③ 抬升瞬间 (1100,630) keyTime 0.35 ══════ -->
+  <g transform="translate(1100,630) scale(0.92) rotate(7)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1;1.05;1.10;1" keyTimes="0;0.337;0.357;0.397;0.437;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.337;0.357;0.377;0.437;1" dur="28s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="12" fill="#FFFFFF" opacity="0.15"/>
+      <circle cx="0" cy="0" r="12" fill="url(#fireGrad)"/>
+      <circle cx="0" cy="0" r="13" fill="none" stroke="#FFAA22" stroke-width="1.5" opacity="0.08"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#6688AA" stroke-width="1" opacity="0.04"/>
+      <path d="M12,-5 Q18,-6 24,-3 Q28,-1 31,0 Q28,1 24,3 Q18,6 12,5 Z" fill="url(#fireGrad)" opacity="0.50"/>
+    </g>
+  </g>
+  <!-- ══════ 圈③ 爬升 (920,540) keyTime 0.40 ══════ -->
+  <g transform="translate(920,540) scale(0.88) rotate(12)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1;1.04;1.08;1" keyTimes="0;0.387;0.407;0.447;0.487;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.387;0.407;0.427;0.487;1" dur="28s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="12" fill="#FFFFFF" opacity="0.15"/>
+      <circle cx="0" cy="0" r="12" fill="url(#fireGrad)"/>
+      <circle cx="0" cy="0" r="13" fill="none" stroke="#FFAA22" stroke-width="1.5" opacity="0.08"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#6688AA" stroke-width="1" opacity="0.04"/>
+      <path d="M12,-5 Q18,-6 24,-3 Q28,-1 31,0 Q28,1 24,3 Q18,6 12,5 Z" fill="url(#fireGrad)" opacity="0.50"/>
+    </g>
+  </g>
+  <!-- ══════ 圈④ 巡航 (700,450) keyTime 0.44 ══════ -->
+  <g transform="translate(700,450) scale(0.85) rotate(15)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1;1.04;1.08;1" keyTimes="0;0.427;0.447;0.487;0.527;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.427;0.447;0.467;0.527;1" dur="28s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="12" fill="#FFFFFF" opacity="0.15"/>
+      <circle cx="0" cy="0" r="12" fill="url(#fireGrad)"/>
+      <circle cx="0" cy="0" r="13" fill="none" stroke="#FFAA22" stroke-width="1.5" opacity="0.08"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#6688AA" stroke-width="1" opacity="0.04"/>
+      <path d="M12,-5 Q18,-6 24,-3 Q28,-1 31,0 Q28,1 24,3 Q18,6 12,5 Z" fill="url(#fireGrad)" opacity="0.50"/>
+    </g>
+  </g>
+  <!-- ══════ 圈⑤ 飞远 (500,360) keyTime 0.48 ══════ -->
+  <g transform="translate(500,360) scale(0.80) rotate(10)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1;1.03;1.06;1" keyTimes="0;0.46;0.48;0.52;0.56;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.46;0.48;0.50;0.56;1" dur="28s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="12" fill="#FFFFFF" opacity="0.15"/>
+      <circle cx="0" cy="0" r="12" fill="url(#fireGrad)"/>
+      <circle cx="0" cy="0" r="13" fill="none" stroke="#FFAA22" stroke-width="1.5" opacity="0.08"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#6688AA" stroke-width="1" opacity="0.04"/>
+      <path d="M12,-5 Q18,-6 24,-3 Q28,-1 31,0 Q28,1 24,3 Q18,6 12,5 Z" fill="url(#fireGrad)" opacity="0.50"/>
+    </g>
+  </g>
+  <!-- ══════ 圈⑥ 消失 (300,280) keyTime 0.52 ══════ -->
+  <g transform="translate(300,280) scale(0.75) rotate(5)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1;1.03;1.05;1" keyTimes="0;0.50;0.52;0.56;0.60;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.50;0.52;0.54;0.60;1" dur="28s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="12" fill="#FFFFFF" opacity="0.15"/>
+      <circle cx="0" cy="0" r="12" fill="url(#fireGrad)"/>
+      <circle cx="0" cy="0" r="13" fill="none" stroke="#FFAA22" stroke-width="1.5" opacity="0.08"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#6688AA" stroke-width="1" opacity="0.04"/>
+      <path d="M12,-5 Q18,-6 24,-3 Q28,-1 31,0 Q28,1 24,3 Q18,6 12,5 Z" fill="url(#fireGrad)" opacity="0.50"/>
     </g>
   </g>
 
