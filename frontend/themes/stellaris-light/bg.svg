@@ -112,6 +112,11 @@
       <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" result="displaced"/>
       <feGaussianBlur in="displaced" stdDeviation="12"/>
     </filter>
+    <!-- 火球渐变：前（球体色）→ 后（火焰色），依仰角旋转 -->
+    <linearGradient id="fireBallGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FF4400"/>
+      <stop offset="100%" stop-color="#FF8800"/>
+    </linearGradient>
   </defs>
   <g transform="translate(0, 20)">
   <!-- 海岛 — 右下角 -->
@@ -155,8 +160,8 @@
       keyTimes="0; 0.25; 0.30; 0.35; 0.48; 0.54; 0.60; 0.78; 0.86; 0.90; 1"
       dur="28s" repeatCount="indefinite"/>
     <animate attributeName="opacity"
-      values="1; 1; 1; 1; 1; 0.5; 0; 1; 1; 1; 1"
-      keyTimes="0; 0.25; 0.30; 0.35; 0.44; 0.48; 0.60; 0.78; 0.86; 0.90; 1"
+      values="1; 1; 1; 1; 1; 0.5; 0; 0; 1; 1; 1; 1"
+      keyTimes="0; 0.25; 0.30; 0.35; 0.44; 0.48; 0.54; 0.60; 0.78; 0.86; 0.90; 1"
       dur="28s" repeatCount="indefinite"/>
     <g transform="translate(1291, 710) scale(0.96) rotate(14)">
       <!-- 机身（从三角翼顶角到尾翼基座） -->
@@ -191,14 +196,14 @@
   <g transform="translate(1100,630) scale(0.92) rotate(14.8)">
     <g>
       <animateTransform attributeName="transform" type="scale" values="1;1;1;1.06;1.10;1" keyTimes="0;0.35;0.351;0.39;0.42;1" dur="28s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.35;0.351;0.39;0.41;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.35;0.351;0.39;0.401;1" dur="28s" repeatCount="indefinite"/>
       <g transform="scale(0.059) translate(-240, -280)">
         <g>
           <polygon points="240,201 195,208 165,235 155,280 168,328 200,352 250,359 300,362 360,378 490,340 430,325 520,312 560,290 510,270 490,228 420,216 340,208 300,212" fill="#FF4400" fill-opacity="0.30"/>
           <polygon points="240,201 200,210 170,238 160,280 172,325 205,350 250,359 295,360 340,372 450,342 410,326 470,312 500,292 460,274 450,238 395,222 335,212 290,216" fill="#FF8800" fill-opacity="0.33"/>
           <polygon points="240,201 205,213 175,242 165,280 178,320 210,347 250,359 285,358 325,365 410,338 385,324 430,312 450,296 420,278 410,245 370,228 315,216 275,220" fill="#FFCC00" fill-opacity="0.36"/>
         </g>
-        <circle cx="240" cy="280" r="68" fill="#FF8800"/>
+        <circle cx="240" cy="280" r="68" fill="url(#fireBallGrad)"/>
       </g>
     </g>
   </g>
@@ -206,14 +211,14 @@
   <g transform="translate(500,360) scale(0.92) rotate(22)">
     <g>
       <animateTransform attributeName="transform" type="scale" values="1;1;1;1.06;1.10;1" keyTimes="0;0.46;0.461;0.50;0.53;1" dur="28s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.46;0.461;0.50;0.52;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.46;0.461;0.50;0.518;1" dur="28s" repeatCount="indefinite"/>
       <g transform="scale(0.059) translate(-240, -280)">
         <g>
           <polygon points="240,201 195,208 165,235 155,280 168,328 200,352 250,359 300,362 360,378 490,340 430,325 520,312 560,290 510,270 490,228 420,216 340,208 300,212" fill="#FF4400" fill-opacity="0.30"/>
           <polygon points="240,201 200,210 170,238 160,280 172,325 205,350 250,359 295,360 340,372 450,342 410,326 470,312 500,292 460,274 450,238 395,222 335,212 290,216" fill="#FF8800" fill-opacity="0.33"/>
           <polygon points="240,201 205,213 175,242 165,280 178,320 210,347 250,359 285,358 325,365 410,338 385,324 430,312 450,296 420,278 410,245 370,228 315,216 275,220" fill="#FFCC00" fill-opacity="0.36"/>
         </g>
-        <circle cx="240" cy="280" r="68" fill="#FF8800"/>
+        <circle cx="240" cy="280" r="68" fill="url(#fireBallGrad)"/>
       </g>
     </g>
   </g>
@@ -221,14 +226,14 @@
   <g transform="translate(300,280) scale(0.92) rotate(15)">
     <g>
       <animateTransform attributeName="transform" type="scale" values="1;1;1;1.06;1.10;1" keyTimes="0;0.49;0.491;0.53;0.56;1" dur="28s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.49;0.491;0.53;0.55;1" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.49;0.491;0.53;0.544;1" dur="28s" repeatCount="indefinite"/>
       <g transform="scale(0.059) translate(-240, -280)">
         <g>
           <polygon points="240,201 195,208 165,235 155,280 168,328 200,352 250,359 300,362 360,378 490,340 430,325 520,312 560,290 510,270 490,228 420,216 340,208 300,212" fill="#FF4400" fill-opacity="0.30"/>
           <polygon points="240,201 200,210 170,238 160,280 172,325 205,350 250,359 295,360 340,372 450,342 410,326 470,312 500,292 460,274 450,238 395,222 335,212 290,216" fill="#FF8800" fill-opacity="0.33"/>
           <polygon points="240,201 205,213 175,242 165,280 178,320 210,347 250,359 285,358 325,365 410,338 385,324 430,312 450,296 420,278 410,245 370,228 315,216 275,220" fill="#FFCC00" fill-opacity="0.36"/>
         </g>
-        <circle cx="240" cy="280" r="68" fill="#FF8800"/>
+        <circle cx="240" cy="280" r="68" fill="url(#fireBallGrad)"/>
       </g>
     </g>
   </g>
