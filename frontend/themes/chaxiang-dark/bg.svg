@@ -3,18 +3,24 @@
   <g fill="none" stroke="#A09070" stroke-linecap="round">
     <!-- 茶杯 + 茶烟（整体放大 180%，移至画面左侧） -->
     <g transform="translate(150, 580) scale(1.8) translate(-1300, -640)">
-      <!-- 茶杯轮廓（上下翻转后底大口小） -->
+      <!-- 中式矮胖玻璃茶杯（杯身微收，小圈足，陈年琥珀） -->
       <g transform="matrix(1 0 0 -1 0 1470)">
-        <path d="M1280,750 L1290,720 L1310,720 L1320,750 Z" stroke-width="1.5" opacity="0.12"/>
-        <path d="M1285,750 L1315,750" stroke-width="1.5" opacity="0.12"/>
-        <ellipse cx="1300" cy="720" rx="10" ry="3" fill="#A09070" opacity="0.06" stroke="none"/>
-        
+        <!-- 杯身轮廓：开口比杯底略宽，矮胖 -->
+        <path d="M1278,750 L1281,730 L1319,730 L1322,750 Z" stroke-width="1.5" opacity="0.12"/>
+        <!-- 杯身底部横线 -->
+        <path d="M1281,730 L1319,730" stroke-width="1.5" opacity="0.12"/>
+        <!-- 圈足（底座） — 明显收窄 -->
+        <path d="M1281,730 L1289,727 L1311,727 L1319,730" stroke-width="1.5" opacity="0.12"/>
+        <path d="M1289,727 L1311,727" stroke-width="1.5" opacity="0.12"/>
+        <!-- 杯口椭圆（透视） -->
+        <ellipse cx="1300" cy="750" rx="22" ry="3.5" fill="#A09070" opacity="0.06" stroke="none"/>
+
         <!-- 透明茶汤（透光琥珀色） — 三分残 -->
-        <path d="M1287,729 L1290,720 L1310,720 L1313,729 Z" fill="#C89050" opacity="0.12" stroke="none"/>
+        <path d="M1281,730 L1319,730 L1321,736 L1279,736 Z" fill="#C89050" opacity="0.12" stroke="none"/>
       </g>
       
       <!-- 暖烟残尽 — 夜深茶凉，袅袅伸展 -->
-      <g transform="translate(1260, 712)">
+      <g transform="translate(1260, 706)">
         <g>
           <!-- 次烟（慢） -->
           <path d="M48,8 Q43,2 48,-6 Q53,-14 48,-20" stroke-width="0.8"

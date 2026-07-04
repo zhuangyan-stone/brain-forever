@@ -3,54 +3,72 @@
   <g fill="none" stroke="#8A9A6A" stroke-linecap="round">
     <!-- 茶杯 + 茶烟（整体放大 180%，移至画面左侧） -->
     <g transform="translate(150, 580) scale(1.8) translate(-1300, -640)">
-      <!-- 茶杯轮廓（上下翻转后底大口小） -->
+      <!-- 中式矮胖玻璃茶杯（杯身微收，小圈足） -->
       <g transform="matrix(1 0 0 -1 0 1470)">
-        <path d="M1280,750 L1290,720 L1310,720 L1320,750 Z" stroke-width="1.5" opacity="0.08"/>
-        <path d="M1285,750 L1315,750" stroke-width="1.5" opacity="0.08"/>
-        <ellipse cx="1300" cy="720" rx="10" ry="3" fill="#8A9A6A" opacity="0.04" stroke="none"/>
-        
-        <!-- 透明茶汤（明前绿茶，清亮嫩绿） — 八分满，水面微澜 -->
-        <path d="M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z" fill="#679a4d" opacity="0.28" stroke="none">
+        <!-- 杯身轮廓：开口比杯底略宽，矮胖 -->
+        <path d="M1278,750 L1281,730 L1319,730 L1322,750 Z" stroke-width="1.5" opacity="0.08"/>
+        <!-- 杯身底部横线 -->
+        <path d="M1281,730 L1319,730" stroke-width="1.5" opacity="0.08"/>
+        <!-- 圈足（底座） — 明显收窄 -->
+        <path d="M1281,730 L1289,727 L1311,727 L1319,730" stroke-width="1.5" opacity="0.08"/>
+        <path d="M1289,727 L1311,727" stroke-width="1.5" opacity="0.08"/>
+        <!-- 杯口椭圆（透视） -->
+        <ellipse cx="1300" cy="750" rx="22" ry="3.5" fill="#8A9A6A" opacity="0.04" stroke="none"/>
+
+        <!-- 透明茶汤 — 八分满，水面微澜 -->
+        <path d="M1278.6,746 Q1286,746 1300,746 Q1314,746 1321.4,746 L1319,730 L1281,730 Z" fill="#9cb87a" opacity="0.28" stroke="none">
           <animate attributeName="d" dur="7s" repeatCount="indefinite"
             values="
-              M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z;
-              M1282,744 Q1290,746 1300,743 Q1310,744 1318,744 L1310,720 L1290,720 Z;
-              M1282,744 Q1290,744 1300,743 Q1310,746 1318,744 L1310,720 L1290,720 Z;
-              M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z;
-              M1282,744 Q1290,744 1295,745 Q1310,744 1318,744 L1310,720 L1290,720 Z;
-              M1282,744 Q1290,744 1300,744 Q1310,744 1318,744 L1310,720 L1290,720 Z
+              M1278.6,746 Q1286,746 1300,746 Q1314,746 1321.4,746 L1319,730 L1281,730 Z;
+              M1278.6,746 Q1286,748 1300,745 Q1314,746 1321.4,746 L1319,730 L1281,730 Z;
+              M1278.6,746 Q1286,746 1300,745 Q1314,748 1321.4,746 L1319,730 L1281,730 Z;
+              M1278.6,746 Q1286,746 1300,746 Q1314,746 1321.4,746 L1319,730 L1281,730 Z;
+              M1278.6,746 Q1286,746 1295,747 Q1314,746 1321.4,746 L1319,730 L1281,730 Z;
+              M1278.6,746 Q1286,746 1300,746 Q1314,746 1321.4,746 L1319,730 L1281,730 Z
             "
             keyTimes="0; 0.15; 0.3; 0.5; 0.75; 1"/>
         </path>
-        
+
         <!-- 玻璃光晕 — 杯壁反光 + 水面高光 -->
-        <ellipse cx="1305" cy="730" rx="3.5" ry="1" fill="#FFFFFF" opacity="0.48" stroke="none"/>
-        <ellipse cx="1296" cy="743" rx="4" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
+        <ellipse cx="1308" cy="742" rx="3" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
+        <ellipse cx="1295" cy="735" rx="3.5" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
       </g>
       
-      <!-- 茶烟袅袅 — 由浓渐散，3D 逆时针扭转 -->
-      <!-- 左列 — 从左侧绕向前方（向右平移 + 放大） -->
-      <g>
-        <animateTransform attributeName="transform" type="translate"
-          values="0,0; 2,0; 0,0; -2,0; 0,0" dur="6s" repeatCount="indefinite"
-          calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1"
-          keyTimes="0; 0.25; 0.5; 0.75; 1"/>
-        <path d="M1295,715 Q1291,703 1290,691" stroke-width="1.0" opacity="0.1"/>
-        <path d="M1290,691 Q1289,673 1295,655 Q1305,625 1295,595" stroke-width="0.6" opacity="0.06"/>
-      </g>
-      <!-- 右列 — 从右侧绕向后方向左平移 + 缩小) -->
-      <g>
-        <animateTransform attributeName="transform" type="translate"
-          values="0,0; -2,0; 0,0; 2,0; 0,0" dur="6s" repeatCount="indefinite"
-          calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1"
-          keyTimes="0; 0.25; 0.5; 0.75; 1"/>
-        <path d="M1305,715 Q1309,703 1310,691" stroke-width="1.0" opacity="0.08"/>
-        <path d="M1310,691 Q1311,673 1305,655 Q1295,625 1305,595" stroke-width="0.6" opacity="0.05"/>
-      </g>
-      <!-- 中列 — 基本不动，作为旋转轴心 -->
-      <g>
-        <path d="M1300,715 Q1296,701 1295,688" stroke-width="1.38" opacity="0.12"/>
-        <path d="M1295,688 Q1294,668 1300,650 Q1310,620 1300,590" stroke-width="0.8" opacity="0.06"/>
+      <!-- 茶烟袅袅 — S 形弯曲飘散（缩短版） -->
+      <g transform="translate(1290, 715)">
+        <!-- 主烟 — 慢速 S 形上升 -->
+        <path d="M10,0 Q4,-10 12,-20 Q20,-30 10,-40"
+              stroke-width="0.8" fill="none"
+              stroke-dasharray="55" stroke-dashoffset="55" opacity="0.15">
+          <animate attributeName="stroke-dashoffset"
+            values="55; 0; 0" keyTimes="0; 0.5; 1"
+            dur="6s" repeatCount="indefinite"/>
+          <animate attributeName="opacity"
+            values="0.15; 0.15; 0; 0" keyTimes="0; 0.55; 0.85; 1"
+            dur="6s" repeatCount="indefinite"/>
+        </path>
+        <!-- 左烟 — 短，稍快 -->
+        <path d="M0,0 Q-6,-8 2,-16"
+              stroke-width="0.6" fill="none"
+              stroke-dasharray="25" stroke-dashoffset="25" opacity="0.12">
+          <animate attributeName="stroke-dashoffset"
+            values="25; 0; 0" keyTimes="0; 0.55; 1"
+            dur="4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity"
+            values="0.12; 0.12; 0; 0" keyTimes="0; 0.60; 0.85; 1"
+            dur="4s" repeatCount="indefinite"/>
+        </path>
+        <!-- 右烟 — 中速 S 形 -->
+        <path d="M18,0 Q24,-10 16,-20 Q10,-28 16,-32"
+              stroke-width="0.7" fill="none"
+              stroke-dasharray="45" stroke-dashoffset="45" opacity="0.13">
+          <animate attributeName="stroke-dashoffset"
+            values="45; 0; 0" keyTimes="0; 0.5; 1"
+            dur="7s" repeatCount="indefinite"/>
+          <animate attributeName="opacity"
+            values="0.13; 0.13; 0; 0" keyTimes="0; 0.55; 0.85; 1"
+            dur="7s" repeatCount="indefinite"/>
+        </path>
       </g>
     </g>
     
