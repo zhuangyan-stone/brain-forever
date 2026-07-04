@@ -187,8 +187,8 @@
   <!-- ★ 宏：用 sed 批量替换 r=7→12，尾部路径同步缩放 -->
   <!-- ★ 火球模板（纯球形，忽略仰角） -->
   <!-- 火球模板已内联到各位置（避免 use 兼容性问题） -->
-  <!-- ★ 1号火球 — 3号参考点 (1100,630) 角度≈28° -->
-  <g transform="translate(1100,630) scale(0.92) rotate(28)">
+  <!-- ★ 1号火球 — 3号参考点 (1100,630) 角度≈14.8°（与飞机仰角一致） -->
+  <g transform="translate(1100,630) scale(0.92) rotate(14.8)">
     <g>
       <animateTransform attributeName="transform" type="scale" values="1;1;1;1.06;1.10;1" keyTimes="0;0.35;0.351;0.39;0.42;1" dur="28s" repeatCount="indefinite"/>
       <animate attributeName="opacity" values="0;0;0.80;0.80;0;0" keyTimes="0;0.35;0.351;0.39;0.41;1" dur="28s" repeatCount="indefinite"/>
