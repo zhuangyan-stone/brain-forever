@@ -261,11 +261,12 @@ body.small-screen-mode .main-title:not(:empty) {
 }
 
 /* ============================================================
-    中小屏下 Tooltip 完全失效（≤920px）
-    方案一：纯 CSS 隐藏，不侵入 JS 逻辑
+    小屏 + 触摸屏 下 Tooltip 完全失效
+    条件：≤920px 且 主输入为触摸（hover:none + pointer:coarse）
+    宽屏或带鼠标的触屏笔记本不受影响
     ============================================================ */
 
-@media (max-width: 920px) {
+@media (max-width: 920px) and (hover: none) and (pointer: coarse) {
     .tooltip {
         display: none !important;
     }
