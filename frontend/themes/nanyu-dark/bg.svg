@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- 南郁老登 · 钢夜 — 工业钢铁风（暗色版）
-       作者：南郁，五十岁老程序员的沉稳与力量 -->
+  <!-- 作者：南郁 -->
   
   <!-- 底色 — 深钢灰 -->
   <rect width="1440" height="900" fill="#1A1C1E"/>
@@ -15,7 +14,7 @@
   </g>
 
   <!-- 古典闹钟 — 时间的力量（原齿轮位） -->
-  <g transform="translate(1150, 700) scale(0.96)" opacity="0.20">
+  <g transform="translate(1200, 700) scale(0.96)" opacity="0.20">
     <!-- 钟体外壳 -->
     <circle cx="0" cy="0" r="100" fill="none" stroke="#E8853D" stroke-width="5"/>
     <circle cx="0" cy="0" r="90" fill="none" stroke="#E8853D" stroke-width="1.5"/>

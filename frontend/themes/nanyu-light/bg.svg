@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- 南郁老登 · 钢昼 — 工业钢铁风（亮色版）
-       作者：南郁，五十岁老程序员的沉稳与力量 -->
+  <!-- 作者：南郁 -->
   
   <!-- 底色 — 不锈钢银 -->
   <rect width="1440" height="900" fill="#E8EAEC"/>
@@ -15,7 +14,7 @@
   </g>
 
   <!-- 古典闹钟 — 时间的力量（原齿轮位） -->
-  <g transform="translate(1150, 700) scale(0.96)" opacity="0.15">
+  <g transform="translate(1200, 700) scale(0.96)" opacity="0.15">
     <!-- 钟体外壳 -->
     <circle cx="0" cy="0" r="100" fill="none" stroke="#C06A30" stroke-width="5"/>
     <circle cx="0" cy="0" r="90" fill="none" stroke="#C06A30" stroke-width="1.5"/>
@@ -147,119 +146,107 @@
   </g>
 
   <!-- =============================================================
-       打字动画：依次高亮 N a n Y u 键位
-       第一次等 10 秒出现，之后每 60 秒循环一次。
-       N 和 Y 为大写，需同时高亮左 Shift（Shift+字母）。
-       每个字母间隔 800ms，周期 60s。
-       坐标系 = 主 SVG 空间（已从键盘本地坐标 scaled=1.2 转换）
+       打字动画：NanYu j rryt C++ r wt ftj（含尾随空格，26键）
        ============================================================= -->
   <style>
-    /* 每个键的高亮脉冲（60s 周期，前 ~13.33% 完成打字序列，其余静默） */
-    @keyframes glow-N {
-       0%, 2% { opacity: 0.75; }
-      2.667%, 100% { opacity: 0; }
+    @keyframes press {
+      0%, 2.4% { opacity: 0.75; }
+      3%, 100% { opacity: 0; }
     }
-    @keyframes glow-a {
-       0%, 2.667% { opacity: 0; }
-      3.25%, 4.667% { opacity: 0.75; }
-      5.333%, 100% { opacity: 0; }
+    @keyframes label {
+      0%, 2.4% { opacity: 0.85; }
+      3%, 100% { opacity: 0; }
     }
-    @keyframes glow-n {
-       0%, 5.333% { opacity: 0; }
-      6%, 7.333% { opacity: 0.75; }
-      8%, 100% { opacity: 0; }
+    /* Shift: N(0%) Y(9%) C(39%) +(42%) +(45%) — 20s周期内百分比 */
+    @keyframes shift-press {
+      0%, 2.4% { opacity: 0.75; }
+      3%, 8% { opacity: 0; }
+      9%, 11.4% { opacity: 0.75; }
+      12%, 38% { opacity: 0; }
+      39%, 41.4% { opacity: 0.75; }
+      42%, 42% { opacity: 0; }
+      43%, 45.4% { opacity: 0.75; }
+      46%, 46% { opacity: 0; }
+      47%, 49.4% { opacity: 0.75; }
+      50%, 100% { opacity: 0; }
     }
-    @keyframes glow-Y {
-       0%, 8% { opacity: 0; }
-      8.667%, 10% { opacity: 0.75; }
-      10.667%, 100% { opacity: 0; }
+    @keyframes shift-label {
+      0%, 2.4% { opacity: 0.85; }
+      3%, 8% { opacity: 0; }
+      9%, 11.4% { opacity: 0.85; }
+      12%, 38% { opacity: 0; }
+      39%, 41.4% { opacity: 0.85; }
+      42%, 42% { opacity: 0; }
+      43%, 45.4% { opacity: 0.85; }
+      46%, 46% { opacity: 0; }
+      47%, 49.4% { opacity: 0.85; }
+      50%, 100% { opacity: 0; }
     }
-    @keyframes glow-u {
-       0%, 10.667% { opacity: 0; }
-      11.333%, 12.667% { opacity: 0.75; }
-      13.333%, 100% { opacity: 0; }
-    }
-    /* 左 Shift 在 N 和 Y 时各亮一次 */
-    @keyframes glow-Shift {
-       0%, 2% { opacity: 0.75; }
-      2.667%, 8% { opacity: 0; }
-      8.667%, 10% { opacity: 0.75; }
-      10.667%, 100% { opacity: 0; }
-    }
-
-    /* 字母标签淡入淡出 */
-    @keyframes label-N {
-       0%, 2% { opacity: 0.85; }
-      2.667%, 100% { opacity: 0; }
-    }
-    @keyframes label-a {
-       0%, 2.667% { opacity: 0; }
-      3.25%, 4.667% { opacity: 0.85; }
-      5.333%, 100% { opacity: 0; }
-    }
-    @keyframes label-n {
-       0%, 5.333% { opacity: 0; }
-      6%, 7.333% { opacity: 0.85; }
-      8%, 100% { opacity: 0; }
-    }
-    @keyframes label-Y {
-       0%, 8% { opacity: 0; }
-      8.667%, 10% { opacity: 0.85; }
-      10.667%, 100% { opacity: 0; }
-    }
-    @keyframes label-u {
-       0%, 10.667% { opacity: 0; }
-      11.333%, 12.667% { opacity: 0.85; }
-      13.333%, 100% { opacity: 0; }
-    }
-
-    .anim-key {
-      animation-duration: 60s;
-      animation-delay: 10s;
-      animation-timing-function: ease;
-      animation-iteration-count: infinite;
-    }
-    .glow-N    { animation-name: glow-N; }
-    .glow-a    { animation-name: glow-a; }
-    .glow-n    { animation-name: glow-n; }
-    .glow-Y    { animation-name: glow-Y; }
-    .glow-u    { animation-name: glow-u; }
-    .glow-Shift{ animation-name: glow-Shift; }
-
-    .label-N   { animation-name: label-N; }
-    .label-a   { animation-name: label-a; }
-    .label-n   { animation-name: label-n; }
-    .label-Y   { animation-name: label-Y; }
-    .label-u   { animation-name: label-u; }
   </style>
 
   <g>
-    <!-- 按键高亮半透明圈（锻铜橙色 #C06A30） -->
-    <!-- N/n 键（Shift 行第7键） -->
-    <rect class="anim-key glow-N" x="744" y="767" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
-    <rect class="anim-key glow-n" x="744" y="767" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+    <!-- NanYu -->
+    <rect x="744" y="767" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 10s infinite"/>
+    <rect x="635" y="755" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 10.6s infinite"/>
+    <rect x="744" y="767" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 11.2s infinite"/>
+    <rect x="712" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 11.8s infinite"/>
+    <rect x="726" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 12.4s infinite"/>
+    <rect x="667" y="780" width="62" height="8" rx="2" fill="#C06A30" opacity="0" style="animation:press 20s 13s infinite"/>
+    <!-- j rryt C++ -->
+    <rect x="719" y="755" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 13.6s infinite"/>
+    <rect x="667" y="780" width="62" height="8" rx="2" fill="#C06A30" opacity="0" style="animation:press 20s 14.2s infinite"/>
+    <rect x="684" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 14.8s infinite"/>
+    <rect x="684" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 15.4s infinite"/>
+    <rect x="712" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 16s infinite"/>
+    <rect x="698" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 16.6s infinite"/>
+    <rect x="667" y="780" width="62" height="8" rx="2" fill="#C06A30" opacity="0" style="animation:press 20s 17.2s infinite"/>
+    <rect x="700" y="767" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 17.8s infinite"/>
+    <rect x="790" y="737" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 18.4s infinite"/>
+    <rect x="790" y="737" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 19s infinite"/>
+    <!-- ' wt ftj ' -->
+    <rect x="667" y="780" width="62" height="8" rx="2" fill="#C06A30" opacity="0" style="animation:press 20s 19.6s infinite"/>
+    <rect x="684" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 20.2s infinite"/>
+    <rect x="667" y="780" width="62" height="8" rx="2" fill="#C06A30" opacity="0" style="animation:press 20s 20.8s infinite"/>
+    <rect x="670" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 21.4s infinite"/>
+    <rect x="698" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 22s infinite"/>
+    <rect x="667" y="780" width="62" height="8" rx="2" fill="#C06A30" opacity="0" style="animation:press 20s 22.6s infinite"/>
+    <rect x="677" y="755" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 23.2s infinite"/>
+    <rect x="698" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 23.8s infinite"/>
+    <rect x="719" y="755" width="18" height="12" rx="3" fill="#C06A30" opacity="0" style="animation:press 20s 24.4s infinite"/>
+    <rect x="667" y="780" width="62" height="8" rx="2" fill="#C06A30" opacity="0" style="animation:press 20s 25s infinite"/>
 
-    <!-- a 键（ASDF 行第1键） -->
-    <rect class="anim-key glow-a" x="635" y="755" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+    <!-- Shift -->
+    <rect x="639" y="767" width="26" height="12" rx="3" fill="#3A3E42" opacity="0" style="animation:shift-press 20s 10s infinite"/>
 
-    <!-- Y 键（QWERTY 行第6键） -->
-    <rect class="anim-key glow-Y" x="712" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
+    <!-- 标签 -->
+    <text x="753" y="776" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 10s infinite">N</text>
+    <text x="644" y="764" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 10.6s infinite">a</text>
+    <text x="753" y="776" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 11.2s infinite">n</text>
+    <text x="721" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 11.8s infinite">Y</text>
+    <text x="735" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 12.4s infinite">u</text>
+    <text x="698" y="790" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 13s infinite"> </text>
+    <text x="728" y="764" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 13.6s infinite">j</text>
+    <text x="698" y="790" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 14.2s infinite"> </text>
+    <text x="693" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 14.8s infinite">r</text>
+    <text x="693" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 15.4s infinite">r</text>
+    <text x="721" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 16s infinite">y</text>
+    <text x="707" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 16.6s infinite">t</text>
+    <text x="698" y="790" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 17.2s infinite"> </text>
+    <text x="709" y="776" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 17.8s infinite">C</text>
+    <text x="799" y="746" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 18.4s infinite">+</text>
+    <text x="799" y="746" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 19s infinite">+</text>
+    <text x="698" y="790" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 19.6s infinite"> </text>
+    <text x="693" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 20.2s infinite">r</text>
+    <text x="698" y="790" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 20.8s infinite"> </text>
+    <text x="679" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 21.4s infinite">w</text>
+    <text x="707" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 22s infinite">t</text>
+    <text x="698" y="790" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 22.6s infinite"> </text>
+    <text x="686" y="764" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 23.2s infinite">f</text>
+    <text x="707" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 23.8s infinite">t</text>
+    <text x="728" y="764" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 24.4s infinite">j</text>
+    <text x="698" y="790" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0" style="animation:label 20s 25s infinite"> </text>
 
-    <!-- u 键（QWERTY 行第7键） -->
-    <rect class="anim-key glow-u" x="726" y="743" width="18" height="12" rx="3" fill="#C06A30" opacity="0"/>
-
-    <!-- 左 Shift 高亮（深灰色，与键盘底座色一致） -->
-    <rect class="anim-key glow-Shift" x="639" y="767" width="26" height="12" rx="3" fill="#3A3E42" opacity="0"/>
-
-    <!-- 字母标签 — 直接写在按键上，垂直居中，白色字 -->
-    <text class="anim-key label-N" x="753" y="776" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">N</text>
-    <text class="anim-key label-a" x="644" y="764" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">a</text>
-    <text class="anim-key label-n" x="753" y="776" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">n</text>
-    <text class="anim-key label-Y" x="721" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">Y</text>
-    <text class="anim-key label-u" x="735" y="752" fill="#FFFFFF" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle" opacity="0">u</text>
-
-    <!-- Shift 提示标签（写在左 Shift 键上，白色字） -->
-    <text class="anim-key glow-Shift" x="652" y="776" fill="#FFFFFF" font-size="5" font-family="monospace" text-anchor="middle" opacity="0">Shift</text>
+    <text x="652" y="776" fill="#FFFFFF" font-size="5" font-family="monospace" text-anchor="middle" opacity="0" style="animation:shift-label 20s 10s infinite">Shift</text>
   </g>
 
 </svg>
