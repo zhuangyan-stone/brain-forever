@@ -1,8 +1,7 @@
-﻿
-  <!-- author: d2school -->
+
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
   <defs>
-    <!-- 绔瑰瓙缁勪欢 v1锛氬彾绋嶄笂浠?-->
+    <!-- 竹子组件 v1：叶稍上仰 -->
     <g id="bamboo">
       <rect x="-3" y="0" width="6" height="300" rx="2" fill="#658055" opacity="0.85"/>
       <rect x="-4" y="40" width="8" height="2" rx="1" fill="#95AE85" opacity="0.7"/>
@@ -24,7 +23,7 @@
       </g>
     </g>
 
-    <!-- 绔瑰瓙缁勪欢 v2锛氬彾绋嶄笅鍨?-->
+    <!-- 竹子组件 v2：叶稍下垂 -->
     <g id="bamboo2">
       <rect x="-3" y="0" width="6" height="300" rx="2" fill="#658055" opacity="0.85"/>
       <rect x="-4" y="40" width="8" height="2" rx="1" fill="#95AE85" opacity="0.7"/>
@@ -46,7 +45,7 @@
       </g>
     </g>
 
-    <!-- 绔瑰瓙缁勪欢 v3锛氬彾绋嶅ぇ瑙掑害 -->
+    <!-- 竹子组件 v3：叶稍大角度 -->
     <g id="bamboo3">
       <rect x="-3" y="0" width="6" height="300" rx="2" fill="#658055" opacity="0.85"/>
       <rect x="-4" y="40" width="8" height="2" rx="1" fill="#95AE85" opacity="0.7"/>
@@ -69,7 +68,7 @@
     </g>
   </defs>
 
-<!-- 褰掑幓锛屼篃鏃犻闆ㄤ篃鏃犳櫞 鈥?宸︿笅绔规灄椤堕儴锛屼笌绔瑰悓鎽?-->
+<!-- 归去，也无风雨也无晴 — 左下竹林顶部，与竹同摆 -->
   <g>
     <animateTransform attributeName="transform" type="rotate"
       values="-0.6, 80, 520; 0.6, 80, 520; -0.6, 80, 520"
@@ -79,24 +78,24 @@
     <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28" font-size="14">
     <text x="35" y="520">
       <tspan x="35" dy="0">
-        <tspan><animate attributeName="font-size" values="14; 15; 14" dur="4.1s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>褰?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>鍘?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 12; 14" dur="4.3s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>锛?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 17; 14" dur="3.8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>涔?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.3s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>鏃?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 16; 14" dur="4.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>椋?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 12; 14" dur="3.7s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>闆?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 17; 14" dur="4.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>涔?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>鏃?/tspan>
-        <tspan><animate attributeName="font-size" values="14; 18; 14" dur="4.0s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>鏅?/tspan>
+        <tspan><animate attributeName="font-size" values="14; 15; 14" dur="4.1s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>归</tspan>
+        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.5s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>去</tspan>
+        <tspan><animate attributeName="font-size" values="14; 12; 14" dur="4.3s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>，</tspan>
+        <tspan><animate attributeName="font-size" values="14; 17; 14" dur="3.8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>也</tspan>
+        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.3s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>无</tspan>
+        <tspan><animate attributeName="font-size" values="14; 16; 14" dur="4.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>风</tspan>
+        <tspan><animate attributeName="font-size" values="14; 12; 14" dur="3.7s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>雨</tspan>
+        <tspan><animate attributeName="font-size" values="14; 17; 14" dur="4.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>也</tspan>
+        <tspan><animate attributeName="font-size" values="14; 11; 14" dur="3.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>无</tspan>
+        <tspan><animate attributeName="font-size" values="14; 18; 14" dur="4.0s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>晴</tspan>
       </tspan>
     </text>
     </g>
   </g>
 
-  <!-- 鏆壊绔瑰奖 -->
+  <!-- 暮色竹影 -->
   <g opacity="0.18">
-    <!-- 杩戜笡 + 涓笡锛堝乏渚э級鈥斺€?寰杞绘憜 -->
+    <!-- 近丛 + 中丛（左侧）—— 微风轻摆 -->
     <g>
       <animateTransform attributeName="transform" type="rotate"
         values="-0.6, 140, 900; 0.6, 140, 900; -0.6, 140, 900"
@@ -109,11 +108,11 @@
       <use href="#bamboo" x="260" y="640" transform="scale(0.9)" />
     </g>
 
-    <!-- 杩滀笡锛堢敾闈㈠彸渚э紝Y杞翠腑闂达級 -->
+    <!-- 远丛（画面右侧，Y轴中间） -->
     <use href="#bamboo2" x="2050" y="580" transform="scale(0.6)" />
     <use href="#bamboo3" x="2390" y="550" transform="scale(0.55)" />
 
-  <!-- 鍓嶆櫙鍏夋枒锛氭ā鎷熺┛杩囩鍙剁殑姗欒壊鍏夌偣锛屽ぇ灏忚剦鍔?-->
+  <!-- 前景光斑：模拟穿过竹叶的橙色光点，大小脉动 -->
   <circle cx="50" cy="600" r="8" fill="#D4903A" opacity="0.5">
     <animate attributeName="r" values="8; 10; 8" dur="4s" repeatCount="indefinite"
       calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" keyTimes="0; 0.5; 1"/>

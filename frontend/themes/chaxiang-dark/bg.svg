@@ -1,29 +1,28 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- author: d2school -->
-  <!-- 闄堝勾鑰佽尪 鈥?澶滄繁鑼舵殩锛岄唶鍘氭俯娑?-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- 陈年老茶 — 夜深茶暖，醇厚温润 -->
   <g fill="none" stroke="#A09070" stroke-linecap="round">
-    <!-- 鑼舵澂 + 鑼剁儫锛堟暣浣撴斁澶?180%锛岀Щ鑷崇敾闈㈠乏渚э級 -->
+    <!-- 茶杯 + 茶烟（整体放大 180%，移至画面左侧） -->
     <g transform="translate(150, 580) scale(1.8) translate(-1300, -640)">
-      <!-- 涓紡鐭儢鐜荤拑鑼舵澂锛堟澂韬井鏀讹紝灏忓湀瓒筹紝闄堝勾鐞ョ弨锛?-->
+      <!-- 中式矮胖玻璃茶杯（杯身微收，小圈足，陈年琥珀） -->
       <g transform="matrix(1 0 0 -1 0 1470)">
-        <!-- 鏉韩杞粨锛氬紑鍙ｆ瘮鏉簳鐣ュ锛岀煯鑳?-->
+        <!-- 杯身轮廓：开口比杯底略宽，矮胖 -->
         <path d="M1278,750 L1281,730 L1319,730 L1322,750 Z" stroke-width="1.5" opacity="0.12"/>
-        <!-- 鏉韩搴曢儴妯嚎 -->
+        <!-- 杯身底部横线 -->
         <path d="M1281,730 L1319,730" stroke-width="1.5" opacity="0.12"/>
-        <!-- 鍦堣冻锛堝簳搴э級 鈥?鏄庢樉鏀剁獎 -->
+        <!-- 圈足（底座） — 明显收窄 -->
         <path d="M1281,730 L1289,727 L1311,727 L1319,730" stroke-width="1.5" opacity="0.12"/>
         <path d="M1289,727 L1311,727" stroke-width="1.5" opacity="0.12"/>
-        <!-- 鏉彛妞渾锛堥€忚锛?-->
+        <!-- 杯口椭圆（透视） -->
         <ellipse cx="1300" cy="750" rx="22" ry="3.5" fill="#A09070" opacity="0.06" stroke="none"/>
 
-        <!-- 閫忔槑鑼舵堡锛堥€忓厜鐞ョ弨鑹诧級 鈥?涓夊垎娈?-->
+        <!-- 透明茶汤（透光琥珀色） — 三分残 -->
         <path d="M1281,730 L1319,730 L1321,736 L1279,736 Z" fill="#C89050" opacity="0.12" stroke="none"/>
       </g>
       
-      <!-- 鏆栫儫娈嬪敖 鈥?澶滄繁鑼跺噳锛岃琚呬几灞?-->
+      <!-- 暖烟残尽 — 夜深茶凉，袅袅伸展 -->
       <g transform="translate(1260, 706)">
         <g>
-          <!-- 娆＄儫锛堟參锛?-->
+          <!-- 次烟（慢） -->
           <path d="M48,8 Q43,2 48,-6 Q53,-14 48,-20" stroke-width="0.8"
                 stroke-dasharray="50" stroke-dashoffset="50" opacity="0.18">
             <animate attributeName="stroke-dashoffset"
@@ -33,7 +32,7 @@
               values="0.18; 0.18; 0; 0" keyTimes="0; 0.50; 0.85; 1"
               dur="10s" repeatCount="indefinite"/>
           </path>
-          <!-- 鐭儫 -->
+          <!-- 短烟 -->
           <path d="M35,7 Q30,0 35,-6" stroke-width="0.6"
                 stroke-dasharray="20" stroke-dashoffset="20" opacity="0.18">
             <animate attributeName="stroke-dashoffset"
@@ -47,7 +46,7 @@
       </g>
     </g>
     
-    <!-- 鑼跺北灞傚彔 鈥?澶滆壊 -->
+    <!-- 茶山层叠 — 夜色 -->
     <path d="M0,580 C200,530 350,600 500,540 C650,480 800,580 1000,530 C1200,480 1400,560 1440,540 L1440,900 L0,900 Z" 
           fill="#6A7A5A" opacity="0.08" stroke="none"/>
     <path d="M0,660 C300,620 500,670 700,620 C900,570 1100,650 1440,610 L1440,900 L0,900 Z" 

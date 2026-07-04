@@ -1,7 +1,6 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- author: d2school -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
   <defs>
-    <!-- 闃冲厜鍏夋枒鍙戝厜婊ら暅 -->
+    <!-- 阳光光斑发光滤镜 -->
     <filter id="sun-glow" x="-80%" y="-80%" width="260%" height="260%">
       <feGaussianBlur stdDeviation="4" result="blur"/>
       <feMerge>
@@ -11,7 +10,7 @@
       </feMerge>
     </filter>
 
-    <!-- 绔瑰瓙缁勪欢 v1锛氬彾绋嶄笂浠?-->
+    <!-- 竹子组件 v1：叶稍上仰 -->
     <g id="bamboo">
       <rect x="-3" y="0" width="6" height="300" rx="2" fill="#5C9E5C" opacity="0.15"/>
       <rect x="-4" y="40" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
@@ -33,7 +32,7 @@
       </g>
     </g>
 
-    <!-- 绔瑰瓙缁勪欢 v2锛氬彾绋嶄笅鍨?-->
+    <!-- 竹子组件 v2：叶稍下垂 -->
     <g id="bamboo2">
       <rect x="-3" y="0" width="6" height="300" rx="2" fill="#5C9E5C" opacity="0.15"/>
       <rect x="-4" y="40" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
@@ -55,7 +54,7 @@
       </g>
     </g>
 
-    <!-- 绔瑰瓙缁勪欢 v3锛氬彾绋嶅ぇ瑙掑害 -->
+    <!-- 竹子组件 v3：叶稍大角度 -->
     <g id="bamboo3">
       <rect x="-3" y="0" width="6" height="300" rx="2" fill="#5C9E5C" opacity="0.15"/>
       <rect x="-4" y="40" width="8" height="2" rx="1" fill="#7E9A74" opacity="0.12"/>
@@ -78,29 +77,29 @@
     </g>
   </defs>
 
-  <!-- 棰樿瘝锛氳嫃杞笺€婂畾椋庢尝銆嬪乏涓婅 -->
+  <!-- 题词：苏轼《定风波》左上角 -->
   <g font-family="'FangSong', 'KaiTi', 'STKaiti', 'SimSun', 'Noto Serif SC', serif" fill="#5C9E5C" opacity="0.28">
-    <!-- 绗竴琛岋細鑾惉绌挎灄鎵撳彾澹?-->
-    <text x="34" y="216" font-size="38">鑾?/text>
-    <text x="76" y="206" font-size="22">鍚?/text>
-    <text x="100" y="204" font-size="32">绌?/text>
-    <text x="126" y="222" font-size="48">鏋?/text>
-    <text x="174" y="216" font-size="28">鎵?/text>
-    <text x="194" y="214" font-size="20">鍙?/text>
-    <text x="218" y="216" font-size="32">澹?/text>
-    <!-- 绗簩琛岋細浣曞Θ鍚熷暩涓斿緪琛?-->
-    <text x="34" y="248" font-size="28">浣?/text>
-    <text x="60" y="245" font-size="34">濡?/text>
-    <text x="94" y="238" font-size="26">鍚?/text>
-    <text x="116" y="256" font-size="28">鍟?/text>
-    <text x="150" y="248" font-size="30">涓?/text>
-    <text x="180" y="251" font-size="48">寰?/text>
-    <text x="226" y="251" font-size="22">琛?/text>
+    <!-- 第一行：莫听穿林打叶声 -->
+    <text x="34" y="216" font-size="38">莫</text>
+    <text x="76" y="206" font-size="22">听</text>
+    <text x="100" y="204" font-size="32">穿</text>
+    <text x="126" y="222" font-size="48">林</text>
+    <text x="174" y="216" font-size="28">打</text>
+    <text x="194" y="214" font-size="20">叶</text>
+    <text x="218" y="216" font-size="32">声</text>
+    <!-- 第二行：何妨吟啸且徐行 -->
+    <text x="34" y="248" font-size="28">何</text>
+    <text x="60" y="245" font-size="34">妨</text>
+    <text x="94" y="238" font-size="26">吟</text>
+    <text x="116" y="256" font-size="28">啸</text>
+    <text x="150" y="248" font-size="30">且</text>
+    <text x="180" y="251" font-size="48">徐</text>
+    <text x="226" y="251" font-size="22">行</text>
   </g>
 
-  <!-- 绔规灄锛氱枏鐤忚惤钀斤紝杩滆繎浜ら敊 -->
+  <!-- 竹林：疏疏落落，远近交错 -->
   <g>
-    <!-- 杩戜笡锛堝乏渚э紝杈冨ぇ锛夆€斺€?寰杞绘憜 -->
+    <!-- 近丛（左侧，较大）—— 微风轻摆 -->
     <g>
       <animateTransform attributeName="transform" type="rotate"
         values="-0.6, 106, 890; 0.6, 106, 890; -0.6, 106, 890"
@@ -112,14 +111,14 @@
       <use href="#bamboo3" x="166" y="580" transform="scale(1.15)" />
     </g>
 
-    <!-- 鏇磋繙澶?-->
+    <!-- 更远处 -->
     <use href="#bamboo" x="3400" y="660" transform="scale(0.4)" />
     <use href="#bamboo2" x="3800" y="640" transform="scale(0.35)" />
     <use href="#bamboo3" x="4250" y="680" transform="scale(0.3)" />
   </g>
 
 
-  <!-- 闃冲厜鍏夋枒锛氱┛杩囩鍙剁紳闅欑殑浜偣锛屽甫鍙戝厜鏁堟灉锛屽ぇ灏忚剦鍔?-->
+  <!-- 阳光光斑：穿过竹叶缝隙的亮点，带发光效果，大小脉动 -->
   <g opacity="0.85" filter="url(#sun-glow)">
     <circle cx="84" cy="710" r="5" fill="#FFFFFF">
       <animate attributeName="r" values="5; 6.5; 5" dur="4s" repeatCount="indefinite"

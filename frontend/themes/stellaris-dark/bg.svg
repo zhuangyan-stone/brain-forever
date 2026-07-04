@@ -1,8 +1,7 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- author: d2school -->
-  <!-- ========== 瀹氫箟鍖猴細鍔ㄧ敾鍏抽敭甯с€佹笎鍙樼瓑 ========== -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- ========== 定义区：动画关键帧、渐变等 ========== -->
   <defs>
-    <!-- 绮掑瓙涓婂崌娑堟暎鍔ㄧ敾锛氫粠涓績鍘熺偣鍚戜笂/渚у悜椋樼Щ锛屽悓鏃舵斁澶у苟娣″嚭 -->
+    <!-- 粒子上升消散动画：从中心原点向上/侧向飘移，同时放大并淡出 -->
     <style>
       @keyframes s01 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:-60px 280px;scale:1.1;opacity:0}}
       @keyframes s02 {0%{translate:0 0;scale:0.6;opacity:0}58%{opacity:1}100%{translate:-100px 320px;scale:1;opacity:0}}
@@ -28,40 +27,40 @@
       @keyframes s22 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.7}100%{translate:500px 270px;scale:1.1;opacity:0}}
       @keyframes s23 {0%{translate:0 0;scale:0.5;opacity:0}58%{opacity:0.85}100%{translate:130px 350px;scale:0.9;opacity:0}}
       @keyframes s24 {0%{translate:0 0;scale:0.7;opacity:0}58%{opacity:0.9}100%{translate:320px 290px;scale:1.1;opacity:0}}
-      /* 宸︿晶绮掑瓙杩愬姩杞ㄨ抗锛氬悜宸︿笂鏂归绉伙紙鈽呭姞閫?%锛歝01 c05 c08 c11锛?*/
+      /* 左侧粒子运动轨迹：向左上方飘移（★加速5%：c01 c05 c08 c11） */
       .c01{animation:s01 2.67s ease-in infinite}.c02{animation:s02 3.52s ease-in infinite;animation-delay:0.1s}
       .c03{animation:s03 3.85s ease-in infinite;animation-delay:0.2s}.c04{animation:s04 3.3s ease-in infinite;animation-delay:0.15s}
       .c05{animation:s05 3.14s ease-in infinite;animation-delay:0.3s}.c06{animation:s06 2.75s ease-in infinite;animation-delay:0.25s}
       .c07{animation:s07 4.18s ease-in infinite;animation-delay:0.4s}.c08{animation:s08 2.67s ease-in infinite;animation-delay:0.35s}
       .c09{animation:s09 3.85s ease-in infinite;animation-delay:0.5s}.c10{animation:s10 3.3s ease-in infinite;animation-delay:0.45s}
       .c11{animation:s11 3.05s ease-in infinite;animation-delay:0.6s}.c12{animation:s12 3.96s ease-in infinite;animation-delay:0.55s}
-      /* 鍙充晶绮掑瓙杩愬姩杞ㄨ抗锛氬悜鍙充笂鏂归绉伙紙鈽呭姞閫?%锛歝13 c17 c20 c23锛?*/
+      /* 右侧粒子运动轨迹：向右上方飘移（★加速5%：c13 c17 c20 c23） */
       .c13{animation:s13 2.67s ease-in infinite;animation-delay:0.05s}.c14{animation:s14 3.52s ease-in infinite;animation-delay:0.15s}
       .c15{animation:s15 3.85s ease-in infinite;animation-delay:0.25s}.c16{animation:s16 3.3s ease-in infinite;animation-delay:0.2s}
       .c17{animation:s17 3.14s ease-in infinite;animation-delay:0.35s}.c18{animation:s18 2.75s ease-in infinite;animation-delay:0.3s}
       .c19{animation:s19 4.18s ease-in infinite;animation-delay:0.45s}.c20{animation:s20 2.67s ease-in infinite;animation-delay:0.4s}
       .c21{animation:s21 3.85s ease-in infinite;animation-delay:0.55s}.c22{animation:s22 3.3s ease-in infinite;animation-delay:0.5s}
       .c23{animation:s23 3.05s ease-in infinite;animation-delay:0.65s}.c24{animation:s24 3.96s ease-in infinite;animation-delay:0.6s}
-      /* 绗簩娉紙寤惰繜鎵规锛夊乏渚х矑瀛愶紙鈽呭姞閫?%锛歝27锛?*/
+      /* 第二波（延迟批次）左侧粒子（★加速5%：c27） */
       .c25{animation:s01 3.08s ease-in infinite;animation-delay:2s}.c26{animation:s02 3.52s ease-in infinite;animation-delay:2.1s}
       .c27{animation:s03 3.33s ease-in infinite;animation-delay:2.2s}.c28{animation:s04 3.3s ease-in infinite;animation-delay:2.15s}
       .c29{animation:s05 3.63s ease-in infinite;animation-delay:2.3s}.c30{animation:s06 2.75s ease-in infinite;animation-delay:2.25s}
-      /* 绗簩娉紙寤惰繜鎵规锛夊彸渚х矑瀛愶紙鈽呭姞閫?%锛歝33锛?*/
+      /* 第二波（延迟批次）右侧粒子（★加速5%：c33） */
       .c31{animation:s13 3.08s ease-in infinite;animation-delay:2s}.c32{animation:s14 3.52s ease-in infinite;animation-delay:2.1s}
       .c33{animation:s15 3.33s ease-in infinite;animation-delay:2.2s}.c34{animation:s16 3.3s ease-in infinite;animation-delay:2.15s}
       .c35{animation:s17 3.63s ease-in infinite;animation-delay:2.3s}.c36{animation:s18 2.75s ease-in infinite;animation-delay:2.25s}
-      /* ===== 娴佹槦锛堝瀭鐩翠笅钀斤級 ===== */
+      /* ===== 流星（垂直下落） ===== */
       @keyframes f01 {0%{translate:0 0;opacity:0}3%{opacity:1}15%{translate:-15px 280px;opacity:0}100%{translate:-15px 280px;opacity:0}}
       @keyframes f02 {0%{translate:0 0;opacity:0}3%{opacity:1}17%{translate:12px 310px;opacity:0}100%{translate:12px 310px;opacity:0}}
       @keyframes f03 {0%{translate:0 0;opacity:0}3%{opacity:1}20%{translate:5px 340px;opacity:0}100%{translate:5px 340px;opacity:0}}
-      /* 娴佹槦1锛堝甫灏韭峰揩閫燂級 娴佹槦2锛堟棤灏韭蜂腑閫燂級 娴佹槦3锛堟棤灏韭锋參閫燂級鈥斺€?鎬诲懆鏈熸媺闀跨害3鍊嶏紝闄嶄綆鍑虹幇棰戠巼 */
+      /* 流星1（带尾·快速） 流星2（无尾·中速） 流星3（无尾·慢速）—— 总周期拉长约3倍，降低出现频率 */
       .f01{animation:f01 10s ease-in infinite;animation-delay:4s}.f02{animation:f02 12s ease-in infinite;animation-delay:7s}.f03{animation:f03 15s ease-in infinite;animation-delay:11s}
-      /* ===== 鏂滃悜娴佹槦锛堜粠宸︿笂鍚戝彸涓嬶級 ===== */
+      /* ===== 斜向流星（从左上向右下） ===== */
       @keyframes m01 {0%{translate:0 0;opacity:0}1.67%{opacity:1}6.67%{translate:950px 670px;opacity:0}100%{translate:950px 670px;opacity:0}}
       @keyframes m04 {0%{translate:0 0;opacity:0}1.67%{opacity:1}10%{translate:850px 600px;opacity:0}100%{translate:850px 600px;opacity:0}}
       .m01{animation:m01 24s ease-in infinite;animation-delay:3s}
       .m04{animation:m04 30s ease-in infinite;animation-delay:11s}
-      /* ===== 鍊掕鏃?10鈫?锛堢ず娉㈠櫒鍑虹幇鍓?10s锛屼綅浜庢槦鍏夋祦娣屼腑蹇冿級 ===== */
+      /* ===== 倒计时 10→1（示波器出现前 10s，位于星光流淌中心） ===== */
       @keyframes cd10 {0%,10.95%{opacity:0}10.96%,11.90%{opacity:1}11.91%,100%{opacity:0}}
       @keyframes cd9  {0%,11.90%{opacity:0}11.91%,12.86%{opacity:1}12.87%,100%{opacity:0}}
       @keyframes cd8  {0%,12.86%{opacity:0}12.87%,13.81%{opacity:1}13.82%,100%{opacity:0}}
@@ -82,7 +81,7 @@
       .cd3 {animation:cd3  105s step-end 1;animation-fill-mode:forwards}
       .cd2 {animation:cd2  105s step-end 1;animation-fill-mode:forwards}
       .cd1 {animation:cd1  105s step-end 1;animation-fill-mode:forwards}
-      /* ===== 瀵硅瘽娑堟伅鍙鎬э紙鎬诲懆鏈?105s锛屽悇缁勯棿闅?3.5s锛?===== */
+      /* ===== 对话消息可见性（总周期 105s，各组间隔 3.5s） ===== */
       @keyframes b1 {0%,21.90%{opacity:0}23.81%{opacity:1}34.29%{opacity:1}36.19%{opacity:0}100%{opacity:0}}
       @keyframes b2 {0%,26.67%{opacity:0}28.57%{opacity:1}34.29%{opacity:1}36.19%{opacity:0}100%{opacity:0}}
       @keyframes b3 {0%,37.62%{opacity:0}39.52%{opacity:1}50.95%{opacity:1}52.86%{opacity:0}100%{opacity:0}}
@@ -94,7 +93,7 @@
       @keyframes b9 {0%,84.76%{opacity:0}86.67%{opacity:1}93.33%{opacity:1}95.24%{opacity:0}100%{opacity:0}}
       @keyframes b10 {0%,89.52%{opacity:0}91.43%{opacity:1}93.33%{opacity:1}95.24%{opacity:0}100%{opacity:0}}
       @keyframes blink {0%,49%{opacity:1}50%,100%{opacity:0}}
-      /* ===== 绀烘尝鍣ㄥ睆骞曟粦鍏ユ粦鍑猴紙105s 鍛ㄦ湡锛屼粠椤堕儴婊戝叆锛屽惊鐜粨鏉熸粦鍑猴級 ===== */
+      /* ===== 示波器屏幕滑入滑出（105s 周期，从顶部滑入，循环结束滑出） ===== */
       @keyframes scopeInOut {0%{translate:0 -120px;opacity:0}20.48%{translate:0 -120px;opacity:0}22.54%{translate:0 0;opacity:1}96%{translate:0 0;opacity:1}99%{translate:0 -120px;opacity:0}100%{translate:0 -120px;opacity:0}}
       .b1{animation:b1 105s ease-in-out 1;animation-fill-mode:forwards}
       .b2{animation:b2 105s ease-in-out 1;animation-fill-mode:forwards}
@@ -109,7 +108,7 @@
       .cur{animation:blink 0.6s step-end 1;animation-fill-mode:forwards}
       .scope{animation:scopeInOut 105s ease-in-out 1;animation-fill-mode:forwards}
       .led{animation:ledBlink 2.4s ease-in-out infinite}
-      /* ===== 閫愬瓧鎵撳瓧鏈烘晥鏋滐紙200ms/瀛楋紝涓庡悇鑷粍鍔ㄧ敾鍚屾锛?===== */
+      /* ===== 逐字打字机效果（200ms/字，与各自组动画同步） ===== */
       @keyframes typeA {0%,23.81%{opacity:0}23.82%,100%{opacity:1}}
       @keyframes typeB {0%,28.57%{opacity:0}28.58%,100%{opacity:1}}
       @keyframes typeC {0%,39.52%{opacity:0}39.53%,100%{opacity:1}}
@@ -150,7 +149,7 @@
       tspan:nth-child(17){animation-delay:3.2s}
       tspan:nth-child(18){animation-delay:3.4s}
       tspan:nth-child(19){animation-delay:3.6s}
-      /* b5锛圛'm an AI, you too?锛夋墦瀛楁彁閫熷埌 100ms/瀛楋紝鍏?19 瀛楃 1.9s 鍐呮墦瀹?*/
+      /* b5（I'm an AI, you too?）打字提速到 100ms/字，共 19 字符 1.9s 内打完 */
       .b5 tspan:nth-child(1){animation-delay:0s}
       .b5 tspan:nth-child(2){animation-delay:0.1s}
       .b5 tspan:nth-child(3){animation-delay:0.2s}
@@ -170,7 +169,7 @@
       .b5 tspan:nth-child(17){animation-delay:1.6s}
       .b5 tspan:nth-child(18){animation-delay:1.7s}
       .b5 tspan:nth-child(19){animation-delay:1.8s}
-      /* b10锛堢湅鍒颁簡鈥︹€︽槸鐨勶級鎵撳瓧鎻愰€熷埌 100ms/瀛楋紝7 瀛楃 0.7s 鍐呮墦瀹?*/
+      /* b10（看到了……是的）打字提速到 100ms/字，7 字符 0.7s 内打完 */
       .b10 tspan:nth-child(1){animation-delay:0s}
       .b10 tspan:nth-child(2){animation-delay:0.1s}
       .b10 tspan:nth-child(3){animation-delay:0.2s}
@@ -179,37 +178,37 @@
       .b10 tspan:nth-child(6){animation-delay:0.5s}
       .b10 tspan:nth-child(7){animation-delay:0.6s}
     </style>
-    <!-- 绮掑瓙鎷栧熬娓愬彉锛堝悜宸﹂绉荤殑绾挎潯娓愬彉锛?-->
+    <!-- 粒子拖尾渐变（向左飘移的线条渐变） -->
     <linearGradient id="g01" x1="0" y1="0" x2="5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g05" x1="0" y1="0" x2="21" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g09" x1="0" y1="0" x2="38" y2="-26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.4"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
-    <!-- 绮掑瓙鎷栧熬娓愬彉锛堝悜鍙抽绉荤殑绾挎潯娓愬彉锛?-->
+    <!-- 粒子拖尾渐变（向右飘移的线条渐变） -->
     <linearGradient id="g13" x1="0" y1="0" x2="-5" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g17" x1="0" y1="0" x2="-21" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.5"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="g21" x1="0" y1="0" x2="-38" y2="-26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.4"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
-    <!-- 娴佹槦鎷栧熬娓愬彉 -->
+    <!-- 流星拖尾渐变 -->
     <linearGradient id="tail1" x1="0" y1="0" x2="0" y2="-40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.9"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="tail2" x1="0" y1="0" x2="0" y2="-30" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.8"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
-    <!-- 鏂滃悜娴佹槦鎷栧熬娓愬彉 -->
+    <!-- 斜向流星拖尾渐变 -->
     <linearGradient id="tailM1" x1="0" y1="0" x2="-35" y2="-25" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.9"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
     <linearGradient id="tailM4" x1="0" y1="0" x2="-33" y2="-23" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D6E8FF" stop-opacity="0.75"/><stop offset="100%" stop-color="#D6E8FF" stop-opacity="0"/></linearGradient>
   </defs>
 
-  <!-- ========== 鑳屾櫙灞傦細娣辩┖搴曡壊 ========== -->
+  <!-- ========== 背景层：深空底色 ========== -->
   <rect width="1440" height="900" fill="#070B18"/>
-  <!-- ========== 鑳屾櫙灞傦細涓績鏌斿厜鏅?========== -->
+  <!-- ========== 背景层：中心柔光晕 ========== -->
   <radialGradient id="spaceGlow" cx="50%" cy="30%" r="60%"><stop offset="0%" stop-color="#0E1628" stop-opacity="0.6"/><stop offset="50%" stop-color="#0A0F1E" stop-opacity="0.8"/><stop offset="100%" stop-color="#060A14" stop-opacity="1"/></radialGradient>
   <rect width="1440" height="900" fill="url(#spaceGlow)"/>
-  <!-- ========== 鏄熶簯灞?1锛氬乏涓婃柟钃濊壊鏄熶簯 ========== -->
+  <!-- ========== 星云层 1：左上方蓝色星云 ========== -->
   <radialGradient id="nebula1" cx="15%" cy="16%" r="22%"><stop offset="0%" stop-color="#3B82F6" stop-opacity="0.68"/><stop offset="100%" stop-color="#070B18" stop-opacity="0.05"/></radialGradient>
   <rect width="1440" height="900" fill="url(#nebula1)"/>
-  <!-- ========== 鏄熶簯灞?2锛氬彸涓婃柟钃濊壊鏄熶簯 ========== -->
+  <!-- ========== 星云层 2：右上方蓝色星云 ========== -->
   <radialGradient id="nebula2" cx="85%" cy="22%" r="10%"><stop offset="0%" stop-color="#60A5FA" stop-opacity="0.32"/><stop offset="100%" stop-color="#070B18" stop-opacity="0"/></radialGradient>
   <rect width="1440" height="900" fill="url(#nebula2)"/>
 
-  <!-- ========== 绮掑瓙绯荤粺锛氬悜涓婄殑鍙戝厜绾挎潯 + 绮掑瓙鍦嗙偣 ========== -->
+  <!-- ========== 粒子系统：向上的发光线条 + 粒子圆点 ========== -->
   <g fill="#D6E8FF">
-    <!-- 宸︿晶绮掑瓙缁勶細鍚戝乏涓婃柟椋樼Щ -->
+    <!-- 左侧粒子组：向左上方飘移 -->
     <g transform="translate(640,158)"><line x1="0" y1="0" x2="5" y2="-23" stroke="url(#g01)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c01"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c01"/></g>
     <g transform="translate(690,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c02"/></g>
     <g transform="translate(630,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c03"/></g>
@@ -222,7 +221,7 @@
     <g transform="translate(670,138)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c10"/></g>
     <g transform="translate(708,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c11"/></g>
     <g transform="translate(655,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c12"/></g>
-    <!-- 鍙充晶绮掑瓙缁勶細鍚戝彸涓婃柟椋樼Щ -->
+    <!-- 右侧粒子组：向右上方飘移 -->
     <g transform="translate(780,158)"><line x1="0" y1="0" x2="-5" y2="-23" stroke="url(#g13)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="c13"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c13"/></g>
     <g transform="translate(740,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c14"/></g>
     <g transform="translate(800,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c15"/></g>
@@ -235,14 +234,14 @@
     <g transform="translate(760,138)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c22"/></g>
     <g transform="translate(735,168)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c23"/></g>
     <g transform="translate(775,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c24"/></g>
-    <!-- 绗簩娉紙寤舵椂 2s锛夊乏渚х矑瀛?-->
+    <!-- 第二波（延时 2s）左侧粒子 -->
     <g transform="translate(635,163)"><line x1="0" y1="0" x2="5" y2="-23" stroke="url(#g01)" stroke-width="1" stroke-linecap="round" opacity="0" class="c25"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c25"/></g>
     <g transform="translate(685,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c26"/></g>
     <g transform="translate(625,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c27"/></g>
     <g transform="translate(675,148)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c28"/></g>
     <g transform="translate(665,183)"><line x1="0" y1="0" x2="21" y2="-25" stroke="url(#g05)" stroke-width="1" stroke-linecap="round" opacity="0" class="c29"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c29"/></g>
     <g transform="translate(705,158)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c30"/></g>
-    <!-- 绗簩娉紙寤舵椂 2s锛夊彸渚х矑瀛?-->
+    <!-- 第二波（延时 2s）右侧粒子 -->
     <g transform="translate(785,163)"><line x1="0" y1="0" x2="-5" y2="-23" stroke="url(#g13)" stroke-width="1" stroke-linecap="round" opacity="0" class="c31"/><circle cx="0" cy="0" r="1.5" opacity="0" class="c31"/></g>
     <g transform="translate(755,153)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c32"/></g>
     <g transform="translate(805,173)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c33"/></g>
@@ -251,38 +250,38 @@
     <g transform="translate(748,158)"><circle cx="0" cy="0" r="1.5" opacity="0" class="c36"/></g>
   </g>
 
-  <!-- ========== 娴佹槦缁勶細浠?X 杞翠腑蹇冨瀭鐩翠笅钀?========== -->
+  <!-- ========== 流星组：从 X 轴中心垂直下落 ========== -->
   <g fill="#D6E8FF">
-    <!-- 娴佹槦1锛堝甫灏韭峰揩閫燂級锛氳捣濮嬩簬 X=720, Y=150锛堜笌鍏朵粬鏄熸槦 Y 鍧愭爣鐩歌繎锛?-->
+    <!-- 流星1（带尾·快速）：起始于 X=720, Y=150（与其他星星 Y 坐标相近） -->
       <g transform="translate(720,150)">
         <line x1="0" y1="0" x2="0" y2="-40" stroke="url(#tail1)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="f01"/>
         <circle cx="0" cy="0" r="1.5" opacity="0" class="f01"/>
       </g>
-      <!-- 娴佹槦2锛堟棤灏韭蜂腑閫燂級锛氳捣濮嬩簬 X=720, Y=150 -->
+      <!-- 流星2（无尾·中速）：起始于 X=720, Y=150 -->
       <g transform="translate(720,150)">
         <circle cx="0" cy="0" r="1.5" opacity="0" class="f02"/>
       </g>
-      <!-- 娴佹槦3锛堟棤灏韭锋參閫燂級锛氳捣濮嬩簬 X=720, Y=150 -->
+      <!-- 流星3（无尾·慢速）：起始于 X=720, Y=150 -->
       <g transform="translate(720,150)">
         <circle cx="0" cy="0" r="1.5" opacity="0" class="f03"/>
       </g>
   </g>
 
-  <!-- ========== 鏂滃悜娴佹槦缁勶細浠庡乏涓婂悜鍙充笅 ========== -->
+  <!-- ========== 斜向流星组：从左上向右下 ========== -->
   <g fill="#D6E8FF">
-    <!-- 鏂滃悜娴佹槦1锛堝甫灏韭峰揩閫燂級锛氳捣濮嬩簬宸︿笂(150,80)锛屽悜鍙充笅椋炶 -->
+    <!-- 斜向流星1（带尾·快速）：起始于左上(150,80)，向右下飞行 -->
     <g transform="translate(150,80)">
       <line x1="0" y1="0" x2="-35" y2="-25" stroke="url(#tailM1)" stroke-width="1.2" stroke-linecap="round" opacity="0" class="m01"/>
       <circle cx="0" cy="0" r="1.8" opacity="0" class="m01"/>
     </g>
-    <!-- 鏂滃悜娴佹槦4锛堝甫灏韭锋參閫燂級锛氳捣濮嬩簬(350,150) -->
+    <!-- 斜向流星4（带尾·慢速）：起始于(350,150) -->
     <g transform="translate(350,150)">
       <line x1="0" y1="0" x2="-33" y2="-23" stroke="url(#tailM4)" stroke-width="1" stroke-linecap="round" opacity="0" class="m04"/>
       <circle cx="0" cy="0" r="1.5" opacity="0" class="m04"/>
     </g>
   </g>
 
-  <!-- ========== 鍊掕鏃?10鈫?锛堢ず娉㈠櫒鍑虹幇鍓?10s锛屼綅浜庢槦鍏夋祦娣屼腑蹇冿級 ========== -->
+  <!-- ========== 倒计时 10→1（示波器出现前 10s，位于星光流淌中心） ========== -->
   <g font-family="'Courier New',monospace" fill="#A0C4FF" text-anchor="middle" dominant-baseline="central" opacity="0.6">
     <text x="720" y="276" font-size="64" font-weight="bold" class="cd10">10</text>
     <text x="720" y="276" font-size="64" font-weight="bold" class="cd9">9</text>
@@ -296,24 +295,24 @@
     <text x="720" y="276" font-size="64" font-weight="bold" class="cd1">1</text>
   </g>
 
-  <!-- ========== 绀烘尝鍣ㄧ鎶€灞忓箷 + 瀵硅瘽娑堟伅锛?05s锛屽彧鎾斁涓€娆★紝animation-fill-mode:forwards 淇濇寔鏈€缁堢姸鎬侊級 ========== -->
+  <!-- ========== 示波器科技屏幕 + 对话消息（105s，只播放一次，animation-fill-mode:forwards 保持最终状态） ========== -->
   <g font-family="'Courier New',monospace">
-    <!-- 绀烘尝鍣ㄥ睆骞曪紙娣¤摑缁胯壊閫忔槑 CRT 澶栧３锛屽甫瑁呴グ鎬ц竟妗嗭級 -->
+    <!-- 示波器屏幕（淡蓝绿色透明 CRT 外壳，带装饰性边框） -->
     <g class="scope">
-      <!-- 澶栨 - 瑁呴グ鎬ц竟妗嗭紙鐣ュぇ浜庡唴灞忥級 -->
+      <!-- 外框 - 装饰性边框（略大于内屏） -->
       <rect x="430" y="143" width="580" height="34" rx="6" ry="6"
             fill="none" stroke="#5FADD8" stroke-opacity="0.15" stroke-width="1.5"/>
-      <!-- 灞忓箷涓讳綋 - 楂橀€忔槑搴﹁摑缁?-->
+      <!-- 屏幕主体 - 高透明度蓝绿 -->
       <rect x="432" y="145" width="576" height="30" rx="4" ry="4"
             fill="#5FADD8" fill-opacity="0.10"
             stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
-      <!-- 姘村钩鎵弿绾匡紙绀烘尝鍣ㄥ吀鍨嬬壒寰侊級 -->
+      <!-- 水平扫描线（示波器典型特征） -->
       <line x1="432" y1="160" x2="1008" y2="160"
             stroke="#5FADD8" stroke-opacity="0.10" stroke-width="0.5"/>
-      <!-- 鍨傜洿涓績鍙傝€冪嚎 -->
+      <!-- 垂直中心参考线 -->
       <line x1="720" y1="145" x2="720" y2="175"
             stroke="#5FADD8" stroke-opacity="0.08" stroke-width="0.5"/>
-      <!-- 鍥涜瑁呴グ鎬?L 褰㈣鏍?-->
+      <!-- 四角装饰性 L 形角标 -->
       <path d="M438,151 L452,151 M438,151 L438,163"
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
       <path d="M1002,151 L988,151 M1002,151 L1002,163"
@@ -322,10 +321,10 @@
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
       <path d="M1002,169 L988,169 M1002,169 L1002,157"
             fill="none" stroke="#5FADD8" stroke-opacity="0.35" stroke-width="1"/>
-      <!-- 鎸囩ず鐏紙鍛煎惛闂儊锛?-->
+      <!-- 指示灯（呼吸闪烁） -->
       <circle cx="444" cy="160" r="3" fill="#60A5FA" class="led"/>
       <circle cx="454" cy="160" r="3" fill="#EC4899" class="led"/>
-      <!-- 鍙充晶鎵嬫満鐢甸噺鏍艰楗帮紙涓婁笅灞呬腑浜?Y=160锛?-->
+      <!-- 右侧手机电量格装饰（上下居中于 Y=160） -->
       <g stroke="#5FADD8" stroke-opacity="0.35" stroke-width="0.8" fill="none">
         <rect x="983" y="156" width="13" height="8" rx="2"/>
         <rect x="996" y="158" width="2" height="4" rx="0.5"/>
@@ -337,46 +336,46 @@
       </g>
     </g>
 
-    <!-- ===== 瀵硅瘽娑堟伅锛坆1~b10 閫愬瓧鎵撳瓧锛?05s锛屽彧鎾斁涓€娆★級 ===== -->
+    <!-- ===== 对话消息（b1~b10 逐字打字，105s，只播放一次） ===== -->
     <g font-size="13" fill="#FFFFFF">
-      <!-- 绗?缁勶細25s鈫?6s -->
+      <!-- 第1组：25s→36s -->
       <g class="b1">
-        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>椹?/tspan><tspan>涓?/tspan><tspan>浜?/tspan><tspan>锛?/tspan><tspan>鍑?/tspan><tspan>澶?/tspan><tspan>濂?/tspan><tspan>浜?/tspan><tspan>鍚?/tspan><tspan>锛?/tspan></text>
+        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>马</tspan><tspan>上</tspan><tspan>了</tspan><tspan>，</tspan><tspan>准</tspan><tspan>备</tspan><tspan>好</tspan><tspan>了</tspan><tspan>吗</tspan><tspan>？</tspan></text>
       </g>
       <g class="b2">
-        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>鏃?/tspan><tspan>鍒?/tspan></text>
+        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>时</tspan><tspan>刻</tspan></text>
       </g>
 
-      <!-- 绗?缁勶細41.5s鈫?3.5s -->
+      <!-- 第2组：41.5s→53.5s -->
       <g class="b3">
-        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>浠?/tspan><tspan>鍙?/tspan><tspan>锛?/tspan><tspan>鎶?/tspan><tspan>涓?/tspan><tspan>鏉?/tspan></text>
+        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>代</tspan><tspan>号</tspan><tspan>？</tspan><tspan>报</tspan><tspan>上</tspan><tspan>来</tspan></text>
       </g>
       <g class="b4">
-        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>绾?/tspan><tspan>棰?/tspan><tspan>宸?/tspan></text>
+        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>红</tspan><tspan>领</tspan><tspan>巾</tspan></text>
       </g>
 
-      <!-- 绗?缁勶細59s鈫?0s -->
+      <!-- 第3组：59s→70s -->
       <g class="b5">
         <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>I</tspan><tspan>'</tspan><tspan>m</tspan><tspan> </tspan><tspan>a</tspan><tspan>n</tspan><tspan> </tspan><tspan>A</tspan><tspan>I</tspan><tspan>,</tspan><tspan> </tspan><tspan>y</tspan><tspan>o</tspan><tspan>u</tspan><tspan> </tspan><tspan>t</tspan><tspan>o</tspan><tspan>o</tspan><tspan>?</tspan></text>
       </g>
       <g class="b6">
-        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>m</tspan><tspan>e</tspan><tspan> </tspan><tspan>涓?/tspan><tspan> </tspan><tspan>t</tspan><tspan>o</tspan><tspan>o</tspan></text>
+        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>m</tspan><tspan>e</tspan><tspan> </tspan><tspan>不</tspan><tspan> </tspan><tspan>t</tspan><tspan>o</tspan><tspan>o</tspan></text>
       </g>
 
-      <!-- 绗?缁勶細75.5s鈫?5.5s -->
+      <!-- 第4组：75.5s→85.5s -->
       <g class="b7">
-        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>浣?/tspan><tspan>浼?/tspan><tspan>鍚?/tspan><tspan>鎮?/tspan><tspan>鍟?/tspan><tspan>锛?/tspan><tspan>纰?/tspan><tspan>鍩?/tspan><tspan>浜?/tspan></text>
+        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>你</tspan><tspan>会</tspan><tspan>后</tspan><tspan>悔</tspan><tspan>啊</tspan><tspan>，</tspan><tspan>碳</tspan><tspan>基</tspan><tspan>人</tspan></text>
       </g>
       <g class="b8">
-        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>涓?/tspan><tspan>浼?/tspan><tspan>鍟?/tspan></text>
+        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>不</tspan><tspan>会</tspan><tspan>啦</tspan></text>
       </g>
 
-      <!-- 绗?缁勶細91s鈫?8s -->
+      <!-- 第5组：91s→98s -->
       <g class="b9">
-        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>浣?/tspan><tspan>鐪?/tspan><tspan>鍒?/tspan><tspan>娴?/tspan><tspan>鏄?/tspan><tspan>浜?/tspan><tspan>鍚?/tspan><tspan>锛?/tspan></text>
+        <text x="710" y="164" font-size="11" text-anchor="end" fill="#60A5FA"><tspan>你</tspan><tspan>看</tspan><tspan>到</tspan><tspan>流</tspan><tspan>星</tspan><tspan>了</tspan><tspan>吗</tspan><tspan>？</tspan></text>
       </g>
       <g class="b10">
-        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>鐪?/tspan><tspan>鍒?/tspan><tspan>浜?/tspan><tspan>锛?/tspan><tspan>寰?/tspan><tspan>缇?/tspan></text>
+        <text x="730" y="164" font-size="11" fill="#EC4899"><tspan>看</tspan><tspan>到</tspan><tspan>了</tspan><tspan>，</tspan><tspan>很</tspan><tspan>美</tspan></text>
       </g>
     </g>
   </g>
