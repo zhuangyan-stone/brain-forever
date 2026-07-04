@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
   <style>
     @keyframes earTwitchL {
       0%, 100% { transform: rotate(0deg); }
@@ -49,36 +50,36 @@
     .eye-spiral-left { transform-origin: 42px 15px; animation: spinEyeCW 6.7s linear infinite; }
     .eye-spiral-right { transform-origin: 58px 15px; animation: spinEyeCCW 6.7s linear infinite; }
   </style>
-  <!-- 猫 + 咖啡机 — 右下角（猫在咖啡机内，杯子在外面） -->
+  <!-- 鐚?+ 鍜栧暋鏈?鈥?鍙充笅瑙掞紙鐚湪鍜栧暋鏈哄唴锛屾澂瀛愬湪澶栭潰锛?-->
   <g fill="none" stroke="#2a7af5" stroke-linecap="round" stroke-linejoin="round">
 
-    <!-- ===== 咖啡机（内部猫） ===== -->
+    <!-- ===== 鍜栧暋鏈猴紙鍐呴儴鐚級 ===== -->
     <g transform="translate(1224, 646)" opacity="0.18" stroke-width="2">
-      <!-- 机身 -->
+      <!-- 鏈鸿韩 -->
       <rect x="0" y="30" width="80" height="120" rx="6" stroke="#2a7af5" fill="#2a7af5" fill-opacity="0.05"/>
-      <!-- 顶部 -->
+      <!-- 椤堕儴 -->
       <rect x="0" y="15" width="80" height="20" rx="4" stroke="#2a7af5" fill="#2a7af5" fill-opacity="0.06"/>
-      <!-- 冲煮头 -->
+      <!-- 鍐茬叜澶?-->
       <rect x="20" y="35" width="40" height="12" rx="2" stroke="#2a7af5"/>
-      <!-- 手柄 -->
+      <!-- 鎵嬫焺 -->
       <path d="M65,38 L85,30 L85,50 L65,46" stroke="#2a7af5" fill="none"/>
-      <!-- 蒸汽棒 -->
+      <!-- 钂告苯妫?-->
       <path d="M75,48 Q85,50 82,65 Q80,75 75,78" stroke="#2a7af5" stroke-width="1.5"/>
-      <!-- 调节旋钮 -->
+      <!-- 璋冭妭鏃嬮挳 -->
       <circle cx="70" cy="80" r="5" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5" stroke-width="1"/>
-      <!-- 猫（放在咖啡机内，原杯子的位置） -->
+      <!-- 鐚紙鏀惧湪鍜栧暋鏈哄唴锛屽師鏉瓙鐨勪綅缃級 -->
       <g transform="translate(4, 69) scale(0.748)" stroke-width="3.0">
-        <!-- 尾巴 -->
+        <!-- 灏惧反 -->
         <path d="M45,110 Q60,100 70,80 Q80,60 68,45" stroke="#2a7af5" fill="none"/>
-        <!-- 身体 -->
+        <!-- 韬綋 -->
         <path d="M20,75 Q10,55 22,36 C35,28 65,28 78,36 Q90,55 80,75 Z" fill="#2a7af5" fill-opacity="0.05" stroke="#2a7af5"/>
-        <!-- 头部 -->
+        <!-- 澶撮儴 -->
         <circle cx="50" cy="18" r="20" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
-        <!-- 左耳 -->
+        <!-- 宸﹁€?-->
         <g class="ear-left"><path d="M34,6 L28,-8 L44,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/></g>
-        <!-- 右耳 -->
+        <!-- 鍙宠€?-->
         <g class="ear-right"><path d="M66,6 L72,-8 L56,4" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/></g>
-        <!-- 眼睛（蚊香螺旋，持续旋转） -->
+        <!-- 鐪肩潧锛堣殜棣欒灪鏃嬶紝鎸佺画鏃嬭浆锛?-->
         <path class="eye-spiral-left" d="M 42,15
           A 0.9,0.9 0 0,1 42.9,15
           A 1.8,1.8 0 0,1 42.9,16.8
@@ -103,9 +104,9 @@
           A 8.1,8.1 0 0,0 53.5,11.4
           A 9.0,9.0 0 0,0 53.5,20.4"
           fill="none" stroke="#2a7af5" stroke-width="1.2" stroke-linecap="round"/>
-        <!-- 鼻子 -->
+        <!-- 榧诲瓙 -->
         <path d="M48,22 L50,24 L52,22" fill="#2a7af5" fill-opacity="0.15" stroke="none"/>
-        <!-- 胡须 -->
+        <!-- 鑳￠』 -->
         <g class="whiskers-left">
           <path d="M25,20 L8,16" stroke-width="1" opacity="0.85"/>
           <path d="M25,24 L6,24" stroke-width="1" opacity="0.85"/>
@@ -114,28 +115,28 @@
           <path d="M75,20 L92,16" stroke-width="1" opacity="0.85"/>
           <path d="M75,24 L94,24" stroke-width="1" opacity="0.85"/>
         </g>
-        <!-- 前腿 -->
+        <!-- 鍓嶈吙 -->
         <path d="M32,75 L28,100 L38,100" fill="none" stroke="#2a7af5"/>
         <path d="M68,75 L72,100 L62,100" fill="none" stroke="#2a7af5"/>
-        <!-- 后腿 -->
+        <!-- 鍚庤吙 -->
         <path d="M22,68 Q15,80 15,95 L22,100" fill="none" stroke="#2a7af5"/>
         <path d="M78,68 Q85,80 85,95 L78,100" fill="none" stroke="#2a7af5"/>
       </g>
     </g>
 
-    <!-- ===== 咖啡杯（放在外面，与咖啡机底部对齐） ===== -->
+    <!-- ===== 鍜栧暋鏉紙鏀惧湪澶栭潰锛屼笌鍜栧暋鏈哄簳閮ㄥ榻愶級 ===== -->
     <g transform="translate(1300, 684) scale(0.8)" opacity="0.10" stroke-width="2">
-      <!-- 咖啡杯 -->
+      <!-- 鍜栧暋鏉?-->
       <path d="M25,105 L20,140 L60,140 L55,105 Z" fill="#2a7af5" fill-opacity="0.04" stroke="#2a7af5"/>
       <path d="M55,112 Q70,112 70,126 Q70,140 55,140" fill="none" stroke="#2a7af5"/>
-      <!-- 咖啡液面 -->
+      <!-- 鍜栧暋娑查潰 -->
       <line x1="24" y1="118" x2="56" y2="118" stroke="#2a7af5" stroke-width="1.5" stroke-dasharray="2,2"/>
-      <!-- 杯内水位线 -->
+      <!-- 鏉唴姘翠綅绾?-->
       <line x1="24" y1="118" x2="56" y2="118" stroke="#2a7af5" stroke-width="1"/>
       <line x1="23" y1="125" x2="57" y2="125" stroke="#2a7af5" stroke-width="1"/>
       <line x1="22" y1="132" x2="58" y2="132" stroke="#2a7af5" stroke-width="1"/>
     </g>
-    <!-- 香气（从咖啡杯内升起，独立组以避免继承杯子的低透明度） -->
+    <!-- 棣欐皵锛堜粠鍜栧暋鏉唴鍗囪捣锛岀嫭绔嬬粍浠ラ伩鍏嶇户鎵挎澂瀛愮殑浣庨€忔槑搴︼級 -->
     <g transform="translate(1300, 684) scale(0.8)" opacity="0.18" stroke-width="2">
       <g opacity="0.6">
         <path d="M40,112 Q35,104 40,96 Q45,88 40,80" stroke-width="1.2"/>

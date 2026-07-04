@@ -1,21 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- 茶烟 — 一盏新茶升起袅袅茶烟（明前绿茶） -->
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
+  <!-- 鑼剁儫 鈥?涓€鐩忔柊鑼跺崌璧疯琚呰尪鐑燂紙鏄庡墠缁胯尪锛?-->
   <g fill="none" stroke="#8A9A6A" stroke-linecap="round">
-    <!-- 茶杯 + 茶烟（整体放大 180%，移至画面左侧） -->
+    <!-- 鑼舵澂 + 鑼剁儫锛堟暣浣撴斁澶?180%锛岀Щ鑷崇敾闈㈠乏渚э級 -->
     <g transform="translate(150, 580) scale(1.8) translate(-1300, -640)">
-      <!-- 中式矮胖玻璃茶杯（杯身微收，小圈足） -->
+      <!-- 涓紡鐭儢鐜荤拑鑼舵澂锛堟澂韬井鏀讹紝灏忓湀瓒筹級 -->
       <g transform="matrix(1 0 0 -1 0 1470)">
-        <!-- 杯身轮廓：开口比杯底略宽，矮胖 -->
+        <!-- 鏉韩杞粨锛氬紑鍙ｆ瘮鏉簳鐣ュ锛岀煯鑳?-->
         <path d="M1278,750 L1281,730 L1319,730 L1322,750 Z" stroke-width="1.5" opacity="0.08"/>
-        <!-- 杯身底部横线 -->
+        <!-- 鏉韩搴曢儴妯嚎 -->
         <path d="M1281,730 L1319,730" stroke-width="1.5" opacity="0.08"/>
-        <!-- 圈足（底座） — 明显收窄 -->
+        <!-- 鍦堣冻锛堝簳搴э級 鈥?鏄庢樉鏀剁獎 -->
         <path d="M1281,730 L1289,727 L1311,727 L1319,730" stroke-width="1.5" opacity="0.08"/>
         <path d="M1289,727 L1311,727" stroke-width="1.5" opacity="0.08"/>
-        <!-- 杯口椭圆（透视） -->
+        <!-- 鏉彛妞渾锛堥€忚锛?-->
         <ellipse cx="1300" cy="750" rx="22" ry="3.5" fill="#8A9A6A" opacity="0.04" stroke="none"/>
 
-        <!-- 透明茶汤 — 八分满，水面微澜 -->
+        <!-- 閫忔槑鑼舵堡 鈥?鍏垎婊★紝姘撮潰寰緶 -->
         <path d="M1278.6,746 Q1286,746 1300,746 Q1314,746 1321.4,746 L1319,730 L1281,730 Z" fill="#9cb87a" opacity="0.28" stroke="none">
           <animate attributeName="d" dur="7s" repeatCount="indefinite"
             values="
@@ -29,14 +30,14 @@
             keyTimes="0; 0.15; 0.3; 0.5; 0.75; 1"/>
         </path>
 
-        <!-- 玻璃光晕 — 杯壁反光 + 水面高光 -->
+        <!-- 鐜荤拑鍏夋檿 鈥?鏉鍙嶅厜 + 姘撮潰楂樺厜 -->
         <ellipse cx="1308" cy="742" rx="3" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
         <ellipse cx="1295" cy="735" rx="3.5" ry="1.2" fill="#FFFFFF" opacity="0.48" stroke="none"/>
       </g>
       
-      <!-- 茶烟袅袅 — S 形弯曲飘散（缩短版） -->
+      <!-- 鑼剁儫琚呰 鈥?S 褰㈠集鏇查鏁ｏ紙缂╃煭鐗堬級 -->
       <g transform="translate(1290, 715)">
-        <!-- 主烟 — 慢速 S 形上升 -->
+        <!-- 涓荤儫 鈥?鎱㈤€?S 褰笂鍗?-->
         <path d="M10,0 Q4,-10 12,-20 Q20,-30 10,-40"
               stroke-width="0.8" fill="none"
               stroke-dasharray="55" stroke-dashoffset="55" opacity="0.15">
@@ -47,7 +48,7 @@
             values="0.15; 0.15; 0; 0" keyTimes="0; 0.55; 0.85; 1"
             dur="6s" repeatCount="indefinite"/>
         </path>
-        <!-- 左烟 — 短，稍快 -->
+        <!-- 宸︾儫 鈥?鐭紝绋嶅揩 -->
         <path d="M0,0 Q-6,-8 2,-16"
               stroke-width="0.6" fill="none"
               stroke-dasharray="25" stroke-dashoffset="25" opacity="0.12">
@@ -58,7 +59,7 @@
             values="0.12; 0.12; 0; 0" keyTimes="0; 0.60; 0.85; 1"
             dur="4s" repeatCount="indefinite"/>
         </path>
-        <!-- 右烟 — 中速 S 形 -->
+        <!-- 鍙崇儫 鈥?涓€?S 褰?-->
         <path d="M18,0 Q24,-10 16,-20 Q10,-28 16,-32"
               stroke-width="0.7" fill="none"
               stroke-dasharray="45" stroke-dashoffset="45" opacity="0.13">
@@ -72,13 +73,13 @@
       </g>
     </g>
     
-    <!-- 远处茶山层叠 -->
+    <!-- 杩滃鑼跺北灞傚彔 -->
     <path d="M0,600 C200,550 350,620 500,560 C650,500 800,600 1000,550 C1200,500 1400,580 1440,560 L1440,900 L0,900 Z"
           fill="#8A9A6A" opacity="0.05" stroke="none"/>
     <path d="M0,680 C300,640 500,690 700,640 C900,590 1100,670 1440,630 L1440,900 L0,900 Z"
           fill="#6A7A4A" opacity="0.03" stroke="none"/>
     
-    <!-- 零星茶叶飘落 -->
+    <!-- 闆舵槦鑼跺彾椋樿惤 -->
     <g opacity="0.06" stroke-width="0.8">
       <path d="M300,400 Q305,395 310,400 Q305,405 300,400 Z" fill="#6A7A4A" stroke="none"/>
       <path d="M550,500 Q555,495 560,500 Q555,505 550,500 Z" fill="#6A7A4A" stroke="none"/>

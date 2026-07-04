@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
   <style>
     @keyframes whiskerFloatL {
       0%, 100% { transform: translateY(0px); }
@@ -24,53 +25,53 @@
     .eye-left { transform-origin: 42px 15px; animation: eyeBlink 8.5s ease-in-out infinite; }
     .eye-right { transform-origin: 58px 15px; animation: eyeBlink 8.5s ease-in-out infinite; }
   </style>
-  <!-- 猫 + 咖啡机 — 右下角（暗色版，Catppuccin Mocha） -->
+  <!-- 鐚?+ 鍜栧暋鏈?鈥?鍙充笅瑙掞紙鏆楄壊鐗堬紝Catppuccin Mocha锛?-->
   <g fill="none" stroke="#cdd6f4" stroke-linecap="round" stroke-linejoin="round">
 
-    <!-- ===== 咖啡机 ===== -->
+    <!-- ===== 鍜栧暋鏈?===== -->
     <g transform="translate(1232, 646)" opacity="0.20" stroke-width="2">
-      <!-- 机身 -->
+      <!-- 鏈鸿韩 -->
       <rect x="0" y="30" width="80" height="120" rx="6" stroke="#cdd6f4" fill="#cdd6f4" fill-opacity="0.05"/>
-      <!-- 顶部 -->
+      <!-- 椤堕儴 -->
       <rect x="0" y="15" width="80" height="20" rx="4" stroke="#cdd6f4" fill="#cdd6f4" fill-opacity="0.06"/>
-      <!-- 冲煮头 -->
+      <!-- 鍐茬叜澶?-->
       <rect x="20" y="35" width="40" height="12" rx="2" stroke="#cdd6f4"/>
-      <!-- 手柄 -->
+      <!-- 鎵嬫焺 -->
       <path d="M65,38 L85,30 L85,50 L65,46" stroke="#cdd6f4" fill="none"/>
-      <!-- 杯内液面线 -->
+      <!-- 鏉唴娑查潰绾?-->
       <line x1="22" y1="118" x2="58" y2="118" stroke="#cdd6f4" stroke-width="1"/>
       <line x1="21" y1="125" x2="59" y2="125" stroke="#cdd6f4" stroke-width="1"/>
       <line x1="20" y1="132" x2="60" y2="132" stroke="#cdd6f4" stroke-width="1"/>
-      <!-- 蒸汽棒 -->
+      <!-- 钂告苯妫?-->
       <path d="M75,48 Q85,50 82,65 Q80,75 75,78" stroke="#cdd6f4" stroke-width="1.5"/>
-      <!-- 咖啡杯 -->
+      <!-- 鍜栧暋鏉?-->
       <path d="M25,105 L20,140 L60,140 L55,105 Z" fill="#cdd6f4" fill-opacity="0.04" stroke="#cdd6f4"/>
       <path d="M55,112 Q70,112 70,126 Q70,140 55,140" fill="none" stroke="#cdd6f4"/>
-      <!-- 咖啡液面 -->
+      <!-- 鍜栧暋娑查潰 -->
       <line x1="24" y1="118" x2="56" y2="118" stroke="#cdd6f4" stroke-width="1.5" stroke-dasharray="2,2"/>
-      <!-- 咖啡香气 -->
+      <!-- 鍜栧暋棣欐皵 -->
       <g opacity="0.5">
         <path d="M40,113 Q35,103 40,93 Q45,83 40,73" stroke-width="1.2"/>
         <path d="M48,115 Q43,105 48,95 Q53,85 48,78" stroke-width="1"/>
         <path d="M35,113 Q30,103 35,97" stroke-width="0.8"/>
       </g>
-      <!-- 调节旋钮 -->
+      <!-- 璋冭妭鏃嬮挳 -->
       <circle cx="70" cy="80" r="5" fill="#cdd6f4" fill-opacity="0.04" stroke="#cdd6f4" stroke-width="1"/>
     </g>
 
-    <!-- ===== 猫 ===== -->
+    <!-- ===== 鐚?===== -->
     <g transform="translate(1324, 718) scale(0.76)" opacity="0.12" stroke-width="2.2">
-      <!-- 尾巴 -->
+      <!-- 灏惧反 -->
       <path d="M45,110 Q60,100 70,80 Q80,60 68,45" stroke="#cdd6f4" fill="none"/>
-      <!-- 身体 -->
+      <!-- 韬綋 -->
       <path d="M20,75 Q10,55 22,36 C35,28 65,28 78,36 Q90,55 80,75 Z" fill="#cdd6f4" fill-opacity="0.05" stroke="#cdd6f4"/>
-      <!-- 头部 -->
+      <!-- 澶撮儴 -->
       <circle cx="50" cy="18" r="20" fill="#cdd6f4" fill-opacity="0.04" stroke="#cdd6f4"/>
-      <!-- 左耳 -->
+      <!-- 宸﹁€?-->
       <path d="M34,6 L28,-8 L44,4" fill="#cdd6f4" fill-opacity="0.04" stroke="#cdd6f4"/>
-      <!-- 右耳 -->
+      <!-- 鍙宠€?-->
       <path d="M66,6 L72,-8 L56,4" fill="#cdd6f4" fill-opacity="0.04" stroke="#cdd6f4"/>
-      <!-- 眼睛 -->
+      <!-- 鐪肩潧 -->
       <g class="eye-left">
         <circle cx="42" cy="15" r="7" fill="#89b4fa" fill-opacity="0.40" stroke="none"/>
         <circle cx="42" cy="15" r="3.5" fill="#0aff0a" fill-opacity="0.98" stroke="none"/>
@@ -79,9 +80,9 @@
         <circle cx="58" cy="15" r="7" fill="#89b4fa" fill-opacity="0.40" stroke="none"/>
         <circle cx="58" cy="15" r="3.5" fill="#0aff0a" fill-opacity="0.98" stroke="none"/>
       </g>
-      <!-- 鼻子 -->
+      <!-- 榧诲瓙 -->
       <path d="M48,22 L50,24 L52,22" fill="#cdd6f4" fill-opacity="0.15" stroke="none"/>
-      <!-- 胡须 -->
+      <!-- 鑳￠』 -->
       <g class="whiskers-left">
         <path d="M25,20 L8,16" stroke-width="1" opacity="0.8"/>
         <path d="M25,24 L6,24" stroke-width="1" opacity="0.8"/>
@@ -90,14 +91,14 @@
         <path d="M75,20 L92,16" stroke-width="1" opacity="0.8"/>
         <path d="M75,24 L94,24" stroke-width="1" opacity="0.8"/>
       </g>
-      <!-- 前腿 -->
+      <!-- 鍓嶈吙 -->
       <path d="M32,75 L28,100 L38,100" fill="none" stroke="#cdd6f4"/>
       <path d="M68,75 L72,100 L62,100" fill="none" stroke="#cdd6f4"/>
-      <!-- 后腿 -->
+      <!-- 鍚庤吙 -->
       <path d="M22,68 Q15,80 15,95 L22,100" fill="none" stroke="#cdd6f4"/>
       <path d="M78,68 Q85,80 85,95 L78,100" fill="none" stroke="#cdd6f4"/>
     </g>
 
-    <!-- ===== 底部装饰线 ===== -->
+    <!-- ===== 搴曢儴瑁呴グ绾?===== -->
   </g>
 </svg>

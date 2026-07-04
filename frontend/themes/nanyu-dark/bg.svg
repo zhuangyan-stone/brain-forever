@@ -1,35 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- 作者：南郁 -->
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
+  <!-- 浣滆€咃細鍗楅儊 -->
   
-  <!-- 底色 — 深钢灰 -->
+  <!-- 搴曡壊 鈥?娣遍挗鐏?-->
   <rect width="1440" height="900" fill="#1A1C1E"/>
 
-  <!-- 底部熔炉红光 — 像是钢厂炉火的余晖 -->
+  <!-- 搴曢儴鐔旂倝绾㈠厜 鈥?鍍忔槸閽㈠巶鐐夌伀鐨勪綑鏅?-->
   <ellipse cx="720" cy="920" rx="800" ry="220" fill="#E8853D" opacity="0.06"/>
 
-  <!-- 工业几何结构 — 两侧垂直钢柱 -->
+  <!-- 宸ヤ笟鍑犱綍缁撴瀯 鈥?涓や晶鍨傜洿閽㈡煴 -->
   <g opacity="0.20">
     <rect x="0" y="0" width="12" height="900" fill="#4A4E53"/>
     <rect x="1428" y="0" width="12" height="900" fill="#4A4E53"/>
   </g>
 
-  <!-- 古典闹钟 — 时间的力量（原齿轮位） -->
+  <!-- 鍙ゅ吀闂归挓 鈥?鏃堕棿鐨勫姏閲忥紙鍘熼娇杞綅锛?-->
   <g transform="translate(1200, 700) scale(0.96)" opacity="0.20">
-    <!-- 钟体外壳 -->
+    <!-- 閽熶綋澶栧３ -->
     <circle cx="0" cy="0" r="100" fill="none" stroke="#E8853D" stroke-width="5"/>
     <circle cx="0" cy="0" r="90" fill="none" stroke="#E8853D" stroke-width="1.5"/>
-    <!-- 钟面内圈 -->
+    <!-- 閽熼潰鍐呭湀 -->
     <circle cx="0" cy="0" r="82" fill="none" stroke="#E8853D" stroke-width="0.8" opacity="0.5"/>
 
-    <!-- 顶部两个铃铛 -->
+    <!-- 椤堕儴涓や釜閾冮摏 -->
     <ellipse cx="-30" cy="-95" rx="28" ry="18" fill="none" stroke="#E8853D" stroke-width="3"/>
     <ellipse cx="30" cy="-95" rx="28" ry="18" fill="none" stroke="#E8853D" stroke-width="3"/>
 
-    <!-- 铃锤 -->
+    <!-- 閾冮敜 -->
     <line x1="0" y1="-95" x2="0" y2="-118" stroke="#E8853D" stroke-width="2.5"/>
     <circle cx="0" cy="-121" r="5" fill="#E8853D"/>
 
-    <!-- 12个钟点刻度 -->
+    <!-- 12涓挓鐐瑰埢搴?-->
     <g stroke="#E8853D" stroke-width="2.5" stroke-linecap="round">
       <g transform="rotate(0)"><line x1="0" y1="-85" x2="0" y2="-77"/></g>
       <g transform="rotate(30)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
@@ -45,11 +46,11 @@
       <g transform="rotate(330)"><line x1="0" y1="-85" x2="0" y2="-80"/></g>
     </g>
 
-    <!-- 时针（短粗，指向约10点） -->
+    <!-- 鏃堕拡锛堢煭绮楋紝鎸囧悜绾?0鐐癸級 -->
     <line x1="0" y1="0" x2="-25" y2="-40" stroke="#E8853D" stroke-width="4" stroke-linecap="round"/>
-    <!-- 分针（细长，指向约2点） -->
+    <!-- 鍒嗛拡锛堢粏闀匡紝鎸囧悜绾?鐐癸級 -->
     <line x1="0" y1="0" x2="35" y2="-55" stroke="#E8853D" stroke-width="2.5" stroke-linecap="round"/>
-    <!-- 秒针（最细，每秒一格，60秒转一圈） -->
+    <!-- 绉掗拡锛堟渶缁嗭紝姣忕涓€鏍硷紝60绉掕浆涓€鍦堬級 -->
     <g>
       <animateTransform attributeName="transform" type="rotate"
         values="0;6;12;18;24;30;36;42;48;54;60;66;72;78;84;90;96;102;108;114;120;126;132;138;144;150;156;162;168;174;180;186;192;198;204;210;216;222;228;234;240;246;252;258;264;270;276;282;288;294;300;306;312;318;324;330;336;342;348;354;360"
@@ -58,84 +59,84 @@
       <line x1="0" y1="0" x2="-20" y2="60" stroke="#E8853D" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
     </g>
 
-    <!-- 中心轴 -->
+    <!-- 涓績杞?-->
     <circle cx="0" cy="0" r="5" fill="#E8853D"/>
     <circle cx="0" cy="0" r="2" fill="#1A1C1E"/>
 
-    <!-- 底部两只脚 -->
+    <!-- 搴曢儴涓ゅ彧鑴?-->
     <path d="M-50,95 Q-55,108 -60,105" fill="none" stroke="#E8853D" stroke-width="2.5" stroke-linecap="round"/>
     <path d="M50,95 Q55,108 60,105" fill="none" stroke="#E8853D" stroke-width="2.5" stroke-linecap="round"/>
   </g>
 
-  <!-- 书堆 — 知识的力量 -->
+  <!-- 涔﹀爢 鈥?鐭ヨ瘑鐨勫姏閲?-->
   <g transform="translate(200,720) scale(0.88) translate(-200,-700)">
   <g opacity="0.40">
-    <!-- 第1本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(100,838) rotate(-2)">
       <rect x="0" y="0" width="210" height="22" rx="2" fill="#7B9DBF"/>
       <rect x="4" y="1" width="3" height="20" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第2本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(108,813) rotate(1.5)">
       <rect x="0" y="0" width="195" height="25" rx="2" fill="#C49A6C"/>
       <rect x="4" y="1" width="3" height="23" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第3本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(95,785) rotate(3)">
       <rect x="0" y="0" width="220" height="20" rx="2" fill="#8FB58F"/>
       <rect x="4" y="1" width="3" height="18" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第4本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(112,758) rotate(-1.5)">
       <rect x="0" y="0" width="190" height="28" rx="2" fill="#BF7C7C"/>
       <rect x="4" y="1" width="3" height="26" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第5本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(102,728) rotate(0.5)">
       <rect x="0" y="0" width="205" height="24" rx="2" fill="#9B8FBF"/>
       <rect x="4" y="1" width="3" height="22" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第6本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(118,700) rotate(-2.5)">
       <rect x="0" y="0" width="185" height="22" rx="2" fill="#BF9B7C"/>
       <rect x="4" y="1" width="3" height="20" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第7本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(105,672) rotate(1.8)">
       <rect x="0" y="0" width="200" height="26" rx="2" fill="#6CBFBF"/>
       <rect x="4" y="1" width="3" height="24" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第8本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(98,644) rotate(-1)">
       <rect x="0" y="0" width="215" height="24" rx="2" fill="#A8A87C"/>
       <rect x="4" y="1" width="3" height="22" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第9本 -->
+    <!-- 绗?鏈?-->
     <g transform="translate(115,618) rotate(2.2)">
       <rect x="0" y="0" width="188" height="22" rx="2" fill="#BF8F9B"/>
       <rect x="4" y="1" width="3" height="20" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第10本 -->
+    <!-- 绗?0鏈?-->
     <g transform="translate(108,592) rotate(-0.8)">
       <rect x="0" y="0" width="200" height="28" rx="2" fill="#7CA8BF"/>
       <rect x="4" y="1" width="3" height="26" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第11本 -->
+    <!-- 绗?1鏈?-->
     <g transform="translate(100,566) rotate(1.2)">
       <rect x="0" y="0" width="210" height="20" rx="2" fill="#8FBF9B"/>
       <rect x="4" y="1" width="3" height="18" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第12本 -->
+    <!-- 绗?2鏈?-->
     <g transform="translate(110,538) rotate(-1.8)">
       <rect x="0" y="0" width="195" height="26" rx="2" fill="#BF7CA8"/>
       <rect x="4" y="1" width="3" height="24" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第13本（斜靠在右侧） -->
+    <!-- 绗?3鏈紙鏂滈潬鍦ㄥ彸渚э級 -->
     <g transform="translate(305,710) rotate(18)">
       <rect x="0" y="0" width="22" height="130" rx="2" fill="#C49A6C"/>
       <rect x="1" y="4" width="20" height="3" fill="#1A1C1E" opacity="0.3"/>
     </g>
-    <!-- 第14本（斜靠在内侧） -->
+    <!-- 绗?4鏈紙鏂滈潬鍦ㄥ唴渚э級 -->
     <g transform="translate(288,740) rotate(12)">
       <rect x="0" y="0" width="20" height="110" rx="2" fill="#7B9DBF"/>
       <rect x="1" y="4" width="18" height="3" fill="#1A1C1E" opacity="0.3"/>
@@ -143,36 +144,36 @@
   </g>
   </g>
 
-  <!-- 机械键盘 — 画面下方中间，程序员的标志 -->
+  <!-- 鏈烘閿洏 鈥?鐢婚潰涓嬫柟涓棿锛岀▼搴忓憳鐨勬爣蹇?-->
   <g transform="translate(720, 755) scale(1.2) translate(-720, -835)" opacity="0.12">
-    <!-- 键盘底座 -->
+    <!-- 閿洏搴曞骇 -->
     <rect x="630" y="808" width="180" height="54" rx="5" fill="#4A4E53"/>
     <rect x="630" y="808" width="180" height="54" rx="5" fill="none" stroke="#6A6E73" stroke-width="0.5"/>
 
-    <!-- ESC 键（熔炉橙强调） -->
+    <!-- ESC 閿紙鐔旂倝姗欏己璋冿級 -->
     <rect x="636" y="811" width="10" height="7" rx="1.5" fill="#E8853D"/>
 
-    <!-- 数字行 — 12 个键 -->
+    <!-- 鏁板瓧琛?鈥?12 涓敭 -->
     <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="9.5,2.3" fill="none">
       <line x1="650" y1="820" x2="798" y2="820"/>
     </g>
 
-    <!-- QWERTY 行 — 12 个键（左偏移，模拟阶梯布局） -->
+    <!-- QWERTY 琛?鈥?12 涓敭锛堝乏鍋忕Щ锛屾ā鎷熼樁姊竷灞€锛?-->
     <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="9.5,2.3" fill="none">
       <line x1="655" y1="830" x2="798" y2="830"/>
     </g>
 
-    <!-- ASDF 行 — 11 个键 -->
+    <!-- ASDF 琛?鈥?11 涓敭 -->
     <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="10.5,2.5" fill="none">
       <line x1="650" y1="840" x2="798" y2="840"/>
     </g>
 
-    <!-- Shift 行 — 10 个键 -->
+    <!-- Shift 琛?鈥?10 涓敭 -->
     <g stroke="#6A6E73" stroke-width="7" stroke-linecap="round" stroke-dasharray="11.5,2.8" fill="none">
       <line x1="654" y1="850" x2="798" y2="850"/>
     </g>
 
-    <!-- 空格行：Ctrl Win Alt [空格] Alt Fn Ctrl -->
+    <!-- 绌烘牸琛岋細Ctrl Win Alt [绌烘牸] Alt Fn Ctrl -->
     <g fill="#6A6E73">
       <rect x="636" y="856" width="14" height="6" rx="1.5"/>
       <rect x="652" y="856" width="10" height="6" rx="1.5"/>
@@ -186,28 +187,28 @@
   </g>
 
   <!-- =============================================================
-       北斗七星累积点亮→逐个熄灭动画：
-         每隔 5 秒多亮一颗星（从左向右，累积），
-         每颗星亮 40 秒后熄灭，
-         总周期 70 秒。
+       鍖楁枟涓冩槦绱Н鐐逛寒鈫掗€愪釜鐔勭伃鍔ㄧ敾锛?
+         姣忛殧 5 绉掑浜竴棰楁槦锛堜粠宸﹀悜鍙筹紝绱Н锛夛紝
+         姣忛鏄熶寒 40 绉掑悗鐔勭伃锛?
+         鎬诲懆鏈?70 绉掋€?
        ============================================================= -->
   <style>
-    /* 每颗星的基座可见度 */
+    /* 姣忛鏄熺殑鍩哄骇鍙搴?*/
     .star { opacity: 0.30; }
 
-    /* ⚠️ 每个过渡点使用独立 keyframe selector，
-       避免百分比冲突导致浏览器从 0% 就开始渐变动画。
-       保持段用前一个百分点，切换段用后一个百分点，
-       确保亮度维持整段时长后瞬间切换。 */
+    /* 鈿狅笍 姣忎釜杩囨浮鐐逛娇鐢ㄧ嫭绔?keyframe selector锛?
+       閬垮厤鐧惧垎姣斿啿绐佸鑷存祻瑙堝櫒浠?0% 灏卞紑濮嬫笎鍙樺姩鐢汇€?
+       淇濇寔娈电敤鍓嶄竴涓櫨鍒嗙偣锛屽垏鎹㈡鐢ㄥ悗涓€涓櫨鍒嗙偣锛?
+       纭繚浜害缁存寔鏁存鏃堕暱鍚庣灛闂村垏鎹€?*/
 
-    /* 摇光 — 亮 0s~40s，灭 40s~70s */
+    /* 鎽囧厜 鈥?浜?0s~40s锛岀伃 40s~70s */
     @keyframes glow-1 {
       0% { opacity: 0.85; }
       57.142% { opacity: 0.85; }
       57.143% { opacity: 0.30; }
       100% { opacity: 0.30; }
     }
-    /* 开阳 — 灭 0s~5s，亮 5s~45s，灭 45s~70s */
+    /* 寮€闃?鈥?鐏?0s~5s锛屼寒 5s~45s锛岀伃 45s~70s */
     @keyframes glow-2 {
       0% { opacity: 0.30; }
       7.142% { opacity: 0.30; }
@@ -216,7 +217,7 @@
       64.286% { opacity: 0.30; }
       100% { opacity: 0.30; }
     }
-    /* 玉衡 — 灭 0s~10s，亮 10s~50s，灭 50s~70s */
+    /* 鐜夎　 鈥?鐏?0s~10s锛屼寒 10s~50s锛岀伃 50s~70s */
     @keyframes glow-3 {
       0% { opacity: 0.30; }
       14.285% { opacity: 0.30; }
@@ -225,7 +226,7 @@
       71.429% { opacity: 0.30; }
       100% { opacity: 0.30; }
     }
-    /* 天权 — 灭 0s~15s，亮 15s~55s，灭 55s~70s */
+    /* 澶╂潈 鈥?鐏?0s~15s锛屼寒 15s~55s锛岀伃 55s~70s */
     @keyframes glow-4 {
       0% { opacity: 0.30; }
       21.428% { opacity: 0.30; }
@@ -234,7 +235,7 @@
       78.571% { opacity: 0.30; }
       100% { opacity: 0.30; }
     }
-    /* 天玑 — 灭 0s~20s，亮 20s~60s，灭 60s~70s */
+    /* 澶╃帒 鈥?鐏?0s~20s锛屼寒 20s~60s锛岀伃 60s~70s */
     @keyframes glow-5 {
       0% { opacity: 0.30; }
       28.570% { opacity: 0.30; }
@@ -243,7 +244,7 @@
       85.714% { opacity: 0.30; }
       100% { opacity: 0.30; }
     }
-    /* 天璇 — 灭 0s~25s，亮 25s~65s，灭 65s~70s */
+    /* 澶╃拠 鈥?鐏?0s~25s锛屼寒 25s~65s锛岀伃 65s~70s */
     @keyframes glow-6 {
       0% { opacity: 0.30; }
       35.713% { opacity: 0.30; }
@@ -252,7 +253,7 @@
       92.857% { opacity: 0.30; }
       100% { opacity: 0.30; }
     }
-    /* 天枢 — 灭 0s~30s，亮 30s~70s（亮 40s，灭在循环边界） */
+    /* 澶╂灑 鈥?鐏?0s~30s锛屼寒 30s~70s锛堜寒 40s锛岀伃鍦ㄥ惊鐜竟鐣岋級 */
     @keyframes glow-7 {
       0% { opacity: 0.30; }
       42.856% { opacity: 0.30; }
@@ -269,42 +270,42 @@
     .star-7 { animation: glow-7 70s 5s infinite; }
   </style>
 
-  <!-- 北斗七星 — 主星（整体左移 216px 以实现横向居中） -->
+  <!-- 鍖楁枟涓冩槦 鈥?涓绘槦锛堟暣浣撳乏绉?216px 浠ュ疄鐜版í鍚戝眳涓級 -->
   <g transform="translate(-216, 0)">
-    <!-- 瑶光 (Alkaid) — 斗柄末 (原点) -->
+    <!-- 鐟跺厜 (Alkaid) 鈥?鏂楁焺鏈?(鍘熺偣) -->
     <g class="star star-1">
       <circle cx="710" cy="210" r="3" fill="#F0A05A"/>
-      <text x="710" y="197" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">瑶光</text>
+      <text x="710" y="197" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">鐟跺厜</text>
     </g>
-    <!-- 开阳 (Mizar)  2.2, -2 -->
+    <!-- 寮€闃?(Mizar)  2.2, -2 -->
     <g class="star star-2">
       <circle cx="810" cy="170" r="3" fill="#E8853D"/>
-      <text x="810" y="157" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">开阳</text>
+      <text x="810" y="157" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">寮€闃?/text>
     </g>
-    <!-- 玉衡 (Alioth)  3.2, -1.8 -->
+    <!-- 鐜夎　 (Alioth)  3.2, -1.8 -->
     <g class="star star-3">
       <circle cx="870" cy="172" r="3" fill="#F0A05A"/>
-      <text x="870" y="159" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">玉衡</text>
+      <text x="870" y="159" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">鐜夎　</text>
     </g>
-    <!-- 天权 (Megrez)  5, -2.2 — 斗中最暗 -->
+    <!-- 澶╂潈 (Megrez)  5, -2.2 鈥?鏂椾腑鏈€鏆?-->
     <g class="star star-4">
       <circle cx="960" cy="170" r="2.5" fill="#E8853D"/>
-      <text x="960" y="157" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">天权</text>
+      <text x="960" y="157" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">澶╂潈</text>
     </g>
-    <!-- 天玑 (Phecda)  6, -0.4 -->
+    <!-- 澶╃帒 (Phecda)  6, -0.4 -->
     <g class="star star-5">
       <circle cx="1010" cy="240" r="3" fill="#F0A05A"/>
-      <text x="1010" y="227" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">天玑</text>
+      <text x="1010" y="227" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">澶╃帒</text>
     </g>
-    <!-- 天璇 (Merak)  7.8, -2.4 -->
+    <!-- 澶╃拠 (Merak)  7.8, -2.4 -->
     <g class="star star-6">
       <circle cx="1130" cy="236" r="3" fill="#E8853D"/>
-      <text x="1130" y="223" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">天璇</text>
+      <text x="1130" y="223" font-size="9" fill="#E8853D" text-anchor="middle" font-family="sans-serif">澶╃拠</text>
     </g>
-    <!-- 天枢 (Dubhe)  8.2, -3 — 斗口最亮 -->
+    <!-- 澶╂灑 (Dubhe)  8.2, -3 鈥?鏂楀彛鏈€浜?-->
     <g class="star star-7">
       <circle cx="1148" cy="162" r="3.5" fill="#F0A05A"/>
-      <text x="1148" y="149" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">天枢</text>
+      <text x="1148" y="149" font-size="9" fill="#F0A05A" text-anchor="middle" font-family="sans-serif">澶╂灑</text>
     </g>
   </g>
 </svg>

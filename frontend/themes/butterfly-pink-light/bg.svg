@@ -1,9 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
-  <!-- 彩蝶粉韵 · 昼 — 只留蝴蝶 -->
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <!-- author: d2school -->
+  <!-- 褰╄澏绮夐煹 路 鏄?鈥?鍙暀铦磋澏 -->
 
   <defs>
     <style>
-      /* 风筝随风飘荡动画 — 左右 ±18px，上下 ±14px，旋转 ±6° */
+      /* 椋庣瓭闅忛椋樿崱鍔ㄧ敾 鈥?宸﹀彸 卤18px锛屼笂涓?卤14px锛屾棆杞?卤6掳 */
       @keyframes kiteFloat {
         0%   { transform: translate(0px, 0px) rotate(0deg); }
         20%  { transform: translate(14px, -10px) rotate(4deg); }
@@ -19,12 +20,12 @@
     </style>
   </defs>
 
-  <!-- 透明底色，CSS background-color 可见 -->
+  <!-- 閫忔槑搴曡壊锛孋SS background-color 鍙 -->
   <rect width="1440" height="900" fill="none"/>
 
-  <!-- 风筝 — 简单菱形风筝，与蝴蝶共享同色调 -->
+  <!-- 椋庣瓭 鈥?绠€鍗曡彵褰㈤绛濓紝涓庤澊铦跺叡浜悓鑹茶皟 -->
   <g opacity="0.20">
-    <!-- 风筝线（SMIL 动画：随风筝摆动牵动控制点与终点） -->
+    <!-- 椋庣瓭绾匡紙SMIL 鍔ㄧ敾锛氶殢椋庣瓭鎽嗗姩鐗靛姩鎺у埗鐐逛笌缁堢偣锛?-->
     <path d="M790,215 Q770,420 720,620 Q690,730 660,830" fill="none" stroke="#D63384" stroke-width="0.8" stroke-dasharray="3,4">
       <animate attributeName="d" dur="9s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1" values="
         M790,215 Q770,420 720,620 Q690,730 660,830;
@@ -35,74 +36,74 @@
         M790,215 Q770,420 720,620 Q690,730 660,830
       "/>
     </path>
-    <!-- 风筝主体（浮动动画组） -->
+    <!-- 椋庣瓭涓讳綋锛堟诞鍔ㄥ姩鐢荤粍锛?-->
     <g class="kite-body">
       <g transform="translate(790, 130) rotate(12) scale(1.8)">
         <path d="M0,-35 L24,0 L0,35 L-24,0 Z" fill="#D63384"/>
         <path d="M0,-35 L24,0 L0,35 L-24,0 Z" fill="none" stroke="#D63384" stroke-width="1.2"/>
-        <!-- 骨架十字 -->
+        <!-- 楠ㄦ灦鍗佸瓧 -->
         <line x1="-24" y1="0" x2="24" y2="0" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
         <line x1="0" y1="-35" x2="0" y2="35" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-        <!-- 尾部飘带结 -->
+        <!-- 灏鹃儴椋樺甫缁?-->
         <circle cx="0" cy="40" r="3" fill="#F5C842"/>
         <circle cx="0" cy="52" r="2.5" fill="#E84393"/>
         <circle cx="0" cy="62" r="2" fill="#D63384"/>
-        <!-- 飘带 -->
+        <!-- 椋樺甫 -->
         <path d="M0,35 Q-8,45 0,55 Q8,65 0,75" fill="none" stroke="#E84393" stroke-width="1.2"/>
       </g>
     </g>
   </g>
 
-  <!-- 蝴蝶剪影组（半透明彩色） -->
+  <!-- 铦磋澏鍓奖缁勶紙鍗婇€忔槑褰╄壊锛?-->
   <g opacity="0.18">
-    <!-- 蝴蝶 1 — 左上粉色 -->
+    <!-- 铦磋澏 1 鈥?宸︿笂绮夎壊 -->
     <g transform="translate(180, 120) scale(0.9)">
       <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#D63384"/>
       <line x1="0" y1="24" x2="0" y2="36" stroke="#D63384" stroke-width="1.5"/>
       <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#D63384" stroke-width="0.8" opacity="0.5"/>
       <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#D63384" stroke-width="0.8" opacity="0.5"/>
     </g>
-    <!-- 蝴蝶 2 — 右上紫色 -->
+    <!-- 铦磋澏 2 鈥?鍙充笂绱壊 -->
     <g transform="translate(1200, 80) scale(0.65) rotate(15)">
       <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#9B59B6"/>
       <line x1="0" y1="24" x2="0" y2="36" stroke="#9B59B6" stroke-width="1.5"/>
       <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#9B59B6" stroke-width="0.8" opacity="0.5"/>
       <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#9B59B6" stroke-width="0.8" opacity="0.5"/>
     </g>
-    <!-- 蝴蝶 3 — 中左金色 -->
+    <!-- 铦磋澏 3 鈥?涓乏閲戣壊 -->
     <g transform="translate(100, 400) scale(0.55) rotate(-10)">
       <path d="M0,0 C-15,-20 -33,-25 -29,-10 C-25,5 -10,10 0,20 C10,10 25,5 29,-10 C33,-25 15,-20 0,0Z" fill="#F5C842"/>
       <line x1="0" y1="20" x2="0" y2="30" stroke="#F5C842" stroke-width="1.5"/>
     </g>
-    <!-- 蝴蝶 4 — 中央粉色 -->
+    <!-- 铦磋澏 4 鈥?涓ぎ绮夎壊 -->
     <g transform="translate(550, 300) scale(0.75) rotate(8)">
       <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#E84393"/>
       <line x1="0" y1="24" x2="0" y2="36" stroke="#E84393" stroke-width="1.5"/>
       <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#E84393" stroke-width="0.8" opacity="0.5"/>
       <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#E84393" stroke-width="0.8" opacity="0.5"/>
     </g>
-    <!-- 蝴蝶 5 — 右中橙色 -->
+    <!-- 铦磋澏 5 鈥?鍙充腑姗欒壊 -->
     <g transform="translate(1050, 380) scale(0.6) rotate(-20)">
       <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#FF8C42"/>
       <line x1="0" y1="24" x2="0" y2="36" stroke="#FF8C42" stroke-width="1.5"/>
       <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#FF8C42" stroke-width="0.8" opacity="0.5"/>
       <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#FF8C42" stroke-width="0.8" opacity="0.5"/>
     </g>
-    <!-- 蝴蝶 6 — 左下青色 -->
+    <!-- 铦磋澏 6 鈥?宸︿笅闈掕壊 -->
     <g transform="translate(180, 680) scale(0.7) rotate(5)">
       <path d="M0,0 C-18,-24 -40,-30 -35,-12 C-30,6 -12,12 0,24 C12,12 30,6 35,-12 C40,-30 18,-24 0,0Z" fill="#0FA88C"/>
       <line x1="0" y1="24" x2="0" y2="36" stroke="#0FA88C" stroke-width="1.5"/>
       <path d="M-8,4 Q-18,-6 -28,-4" fill="none" stroke="#0FA88C" stroke-width="0.8" opacity="0.5"/>
       <path d="M8,4 Q18,-6 28,-4" fill="none" stroke="#0FA88C" stroke-width="0.8" opacity="0.5"/>
     </g>
-    <!-- 蝴蝶 7 — 右下紫色 -->
+    <!-- 铦磋澏 7 鈥?鍙充笅绱壊 -->
     <g transform="translate(1150, 660) scale(0.55) rotate(-12)">
       <path d="M0,0 C-15,-20 -33,-25 -29,-10 C-25,5 -10,10 0,20 C10,10 25,5 29,-10 C33,-25 15,-20 0,0Z" fill="#8E44AD"/>
       <line x1="0" y1="20" x2="0" y2="30" stroke="#8E44AD" stroke-width="1.5"/>
     </g>
   </g>
 
-  <!-- 小光点（花瓣/星光）点缀 -->
+  <!-- 灏忓厜鐐癸紙鑺辩摚/鏄熷厜锛夌偣缂€ -->
   <g opacity="0.10">
     <circle cx="120" cy="250" r="5" fill="#D63384"/>
     <circle cx="650" cy="120" r="4" fill="#F5C842"/>
