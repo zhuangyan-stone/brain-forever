@@ -958,10 +958,10 @@
                 <button class="dialog-close-btn" @click="cancel" aria-label="关闭">&times;</button>
             </div>
             <div class="dialog-body">
-                <label class="fav-edit-label">收藏到：</label>
+                <label class="fav-edit-label" for="fav-tag-input">收藏到：</label>
                 <div class="fav-edit-combo-wrap"
                     @click.outside="closeDropdown">
-                    <input class="fav-edit-combo" type="text"
+                    <input class="fav-edit-combo" type="text" id="fav-tag-input" name="fav-tag-input"
                         x-model="customTag" placeholder="根目录"
                         maxlength="50" @keydown.enter="confirm"
                         @keydown.escape="dropdownOpen ? closeDropdown() : cancel()"
@@ -1021,7 +1021,7 @@
                     <div class="theme-desc" x-show="selectedDark" x-text="selectedDarkDesc"></div>
                 </div>
                 <div class="theme-select-group theme-mode-group">
-                    <label>立即启用</label>
+                    <label>立即启用
                     <div class="theme-mode-radios">
                         <input type="radio" name="themeMode" value="light" id="modeLight" x-model="selectedMode">
                         <input type="radio" name="themeMode" value="dark" id="modeDark" x-model="selectedMode">
@@ -1032,6 +1032,7 @@
                             <label for="modeDark"><span>暗色主题</span></label>
                         </div>
                     </div>
+                    </label>
                 </div>
             </div>
             <div class="dialog-footer">
