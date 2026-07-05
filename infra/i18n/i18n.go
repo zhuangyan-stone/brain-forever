@@ -42,7 +42,7 @@ var (
 )
 
 // Init initializes the i18n system by loading all .toml translation files
-// from the specified directory (e.g., "lang/local" or "lang/remote").
+// from the specified directory (e.g., "lang/local").
 //
 // Translation files are organized as:
 //

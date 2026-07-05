@@ -52,10 +52,10 @@ func InitRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
 	// /api/chat/groups —GET (tag-grouped chat list)
 	srv.GET("/api/chat/groups", chatHandler.OnChatGroups)
 
-	// /api/chat/traits —POST (extract personal traits via remote-server)
+	// /api/chat/traits —POST (extract personal traits via LLM directly)
 	srv.POST("/api/chat/traits", chatHandler.OnExtractTraits)
 
-	// /api/user/portrait —GET (generate user portrait via remote-server, streaming SSE)
+	// /api/user/portrait —GET (generate user portrait, streaming SSE)
 	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
 
 	// /api/doc/title —POST (generate overall title for a document, e.g. portrait)

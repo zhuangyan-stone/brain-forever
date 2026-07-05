@@ -27,7 +27,7 @@ import (
 //	}
 //
 // Flow:
-//  1. Frontend sends the completed portrait text (from remote-server)
+//  1. Frontend sends the completed portrait text
 //  2. Local-server uses LLM with [doc_title] prompt to generate a concise title
 //  3. Returns the title as JSON
 // ============================================================

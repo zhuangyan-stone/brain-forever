@@ -92,7 +92,7 @@ func traitSearchByKeywordToolDefinition(lang string) llm.ToolDefinition {
 // The LLM can directly search the user's personal trait collection by specifying
 // the content it cares about (a specific question or concept) as the 'text' parameter,
 // and optionally a category (1-14) as the 'category' parameter.
-// See the 14 categories in: lang\remote\zh-CN\system_prompt.toml
+// See the 14 categories in: lang\zh-CN\system_prompt.toml
 // If category is set to 0, all categories are searched.
 func traitSearchByTextToolDefinition(lang string) llm.ToolDefinition {
 	schema := map[string]any{
