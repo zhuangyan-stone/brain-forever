@@ -43,6 +43,27 @@ other = "Failed to convert messages: {{.Error}}"
 [api_error_llm_call_failed]
 other = "LLM call failed"
 
+[api_error_internal]
+other = "Internal server error"
+
+[api_error_validation_failed]
+other = "validation failed: {{.Error}}"
+
+[api_error_failed_to_delete_session]
+other = "failed to delete session"
+
+[api_error_failed_to_parse_request]
+other = "failed to parse request: {{.Error}}"
+
+[api_error_login_failed]
+other = "login failed: {{.Error}}"
+
+[api_error_failed_to_open_chat_store_detail]
+other = "failed to open chat store: {{.Error}}"
+
+[api_error_failed_to_load_web_sources]
+other = "failed to load web sources: {{.Error}}"
+
 [label_user]
 other = "User: "
 

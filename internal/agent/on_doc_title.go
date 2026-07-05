@@ -17,13 +17,13 @@ import (
 // Request (JSON):
 //
 //	{
-//	  "content": "（用户画像完整正文）"
+//	  "content": "(full user portrait text)"
 //	}
 //
 // Response (JSON):
 //
 //	{
-//	  "title": "生成的标�?
+//	  "title": "generated title"
 //	}
 //
 // Flow:
@@ -37,7 +37,7 @@ type docTitleRequest struct {
 	Content string `json:"content"`
 }
 
-// OnGetDocTitle handles POST /api/doc/title �?generates a concise
+// OnGetDocTitle handles POST /api/doc/title -- generates a concise
 // overall title for a document (e.g., user portrait) using the local LLM.
 func (h *ChatAgent) OnGetDocTitle(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------

@@ -272,7 +272,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Insert new tags
 	if len(tags) == 0 {
-		// LLM returned no tags �?still save an empty string tag
+		// LLM returned no tags -- still save an empty string tag
 		if _, insErr := chatStore2.InsertChatTag(chatID, ""); insErr != nil {
 			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", chatID, insErr)
 		}
@@ -322,12 +322,12 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 //
 // Example output:
 //
-//   - 技�?5�?
-//   - 生活 3�?
-//   - 娱乐 2�?
+//   - tech 5 times
+//   - life 3 times
+//   - entertainment 2 times
 func formatTagsUsage(tagUsageMap map[string]int) string {
 	if len(tagUsageMap) == 0 {
-		return "（暂无）"
+		return "(none)"
 	}
 
 	type tagCount struct {
@@ -345,7 +345,7 @@ func formatTagsUsage(tagUsageMap map[string]int) string {
 
 	var b strings.Builder
 	for _, tc := range sorted {
-		b.WriteString(fmt.Sprintf("- %s %d次\n", tc.Tag, tc.Count))
+		b.WriteString(fmt.Sprintf("- %s %d times\n", tc.Tag, tc.Count))
 	}
 	return b.String()
 }

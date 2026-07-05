@@ -2,12 +2,12 @@ package agent
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 
+	"BrainForever/infra/i18n"
 	"BrainForever/internal/store"
 )
 
@@ -25,12 +25,12 @@ type LoginRequest struct {
 func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse request: %v", err), http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	if req.UserSN == "" {
-		http.Error(w, "user_sn is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "user_sn"}), http.StatusBadRequest)
 		return
 	}
 
@@ -41,7 +41,7 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	// Load chat data via UserStore.Login
 	chats, err := store.TheUserStore().Login(req.UserSN)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("login failed: %v", err), http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_login_failed", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 

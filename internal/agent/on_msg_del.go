@@ -2,8 +2,9 @@ package agent
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+
+	"BrainForever/infra/i18n"
 )
 
 // ============================================================
@@ -21,12 +22,12 @@ func (h *ChatAgent) OnDeleteMessage(w http.ResponseWriter, r *http.Request) {
 
 	var req DeleteMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse request. %v", err), http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	if req.MsgID == 0 {
-		http.Error(w, "msg_id is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "msg_id"}), http.StatusBadRequest)
 		return
 	}
 

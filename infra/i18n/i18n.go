@@ -117,9 +117,9 @@ func Init(langDir string) {
 //
 // The file path determines the language tag from the directory structure.
 // The expected path format is: {langDir}/{language_tag}/.../{filename}.toml
-// e.g., "lang/en/tools/current_time.toml" �?language tag "en"
+// e.g., "lang/en/tools/current_time.toml" -> language tag "en"
 //
-//	"lang/zh-CN/tools/web_search.toml" �?language tag "zh-CN"
+//	"lang/zh-CN/tools/web_search.toml" -> language tag "zh-CN"
 func loadWithPrefix(filePath string, langDir string) error {
 	// Read the file content
 	data, err := os.ReadFile(filePath)
@@ -130,8 +130,8 @@ func loadWithPrefix(filePath string, langDir string) error {
 	// Determine the language tag from the directory structure.
 	// We use filepath.Rel to get the relative path from langDir,
 	// then extract the first component as the language tag.
-	// e.g., relPath = "en/tools/current_time.toml" �?parts[0] = "en"
-	//        relPath = "zh-CN/tools/web_search.toml" �?parts[0] = "zh-CN"
+	// e.g., relPath = "en/tools/current_time.toml" -> parts[0] = "en"
+	//        relPath = "zh-CN/tools/web_search.toml" -> parts[0] = "zh-CN"
 	relPath, _ := filepath.Rel(langDir, filePath)
 	parts := strings.SplitN(relPath, string(filepath.Separator), 3)
 	var langTag string

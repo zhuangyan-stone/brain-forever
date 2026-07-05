@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -33,7 +32,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 	// Read the new title from query parameter
 	newTitle := r.URL.Query().Get("title")
 	if newTitle == "" {
-		http.Error(w, "title query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "title"}), http.StatusBadRequest)
 		return
 	}
 
@@ -56,7 +55,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 	// Read the required sn parameter -update a specific session from the list
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
@@ -78,7 +77,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 	}
 	if targetIndex == -1 {
 		session.chatsMu.Unlock()
-		http.Error(w, "session not found", http.StatusNotFound)
+		http.Error(w, i18n.T("db_session_not_found"), http.StatusNotFound)
 		return
 	}
 
@@ -88,7 +87,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	chatStore, cerr := h.openChatDB(session)
 	if cerr != nil {
-		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
 	}
 
@@ -99,7 +98,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		int8(titleState),
 	); err != nil {
 		h.closeChatDB(chatStore)
-		http.Error(w, "failed to update session title", http.StatusInternalServerError)
+		http.Error(w, i18n.T("db_update_chat_title_failed"), http.StatusInternalServerError)
 		return
 	}
 	h.closeChatDB(chatStore)
@@ -252,20 +251,20 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	if chatID != 0 {
 		chatStore, cerr := h.openChatDB(session)
 		if cerr != nil {
-			http.Error(w, fmt.Sprintf("failed to open chat store: %v", cerr), http.StatusInternalServerError)
+			http.Error(w, i18n.T("api_error_failed_to_open_chat_store_detail", map[string]any{"Error": cerr.Error()}), http.StatusInternalServerError)
 			return
 		}
 
 		dbMessages, err := chatStore.ListMessages(chatID)
 		if err != nil {
 			h.closeChatDB(chatStore)
-			http.Error(w, fmt.Sprintf("failed to list messages: %v", err), http.StatusInternalServerError)
+			http.Error(w, i18n.T("api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 			return
 		}
 		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, chatStore, chatID)
 		h.closeChatDB(chatStore)
 		if convErr != nil {
-			http.Error(w, fmt.Sprintf("failed to load web sources: %v", convErr), http.StatusInternalServerError)
+			http.Error(w, i18n.T("api_error_failed_to_load_web_sources", map[string]any{"Error": convErr.Error()}), http.StatusInternalServerError)
 			return
 		}
 		msgs = agentMsgs

@@ -52,6 +52,27 @@ other = "转换消息格式失败：{{.Error}}"
 [api_error_llm_call_failed]
 other = "AI 模型调用失败"
 
+[api_error_internal]
+other = "服务内部错误"
+
+[api_error_validation_failed]
+other = "数据验证失败：{{.Error}}"
+
+[api_error_failed_to_delete_session]
+other = "删除会话失败"
+
+[api_error_failed_to_parse_request]
+other = "解析请求失败: {{.Error}}"
+
+[api_error_login_failed]
+other = "登录失败: {{.Error}}"
+
+[api_error_failed_to_open_chat_store_detail]
+other = "打开聊天数据库失败: {{.Error}}"
+
+[api_error_failed_to_load_web_sources]
+other = "加载网页资源失败: {{.Error}}"
+
 [label_user]
 other = "用户："
 

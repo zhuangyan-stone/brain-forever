@@ -10,7 +10,7 @@ import (
 // ============================================================
 
 // OnNewChat handles PUT /api/chat/new -resets currentChat to a "blank chat"
-// (自由指针) state.
+// (free pointer) state.
 //
 // A blank chat has no SN, no DB record, and is NOT in session.chats[].
 // It represents a fresh new conversation that hasn't sent any messages yet.

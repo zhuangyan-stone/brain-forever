@@ -17,11 +17,11 @@ import (
 	"BrainForever/infra/httpx"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
-	local "BrainForever/internal"
 	"BrainForever/internal/agent"
 	"BrainForever/internal/config"
 	"BrainForever/internal/logger"
 	"BrainForever/internal/store"
+	"BrainForever/toolset"
 
 	"github.com/BurntSushi/toml"
 )
@@ -165,7 +165,7 @@ func main() {
 	srv.Use(httpx.UseCORSMiddleware)
 
 	// Initialize all API routes
-	local.InitRouters(srv, chatHandler)
+	initRouters(srv, chatHandler)
 
 	// ============================================================
 	// Theme management API
@@ -237,14 +237,14 @@ func main() {
 		// Read themes list from manifest.json (source code)
 		manifestRaw, err := os.ReadFile("./frontend/themes/manifest.json")
 		if err != nil {
-			http.Error(w, `{"error":"cannot read theme manifest"}`, http.StatusInternalServerError)
+			toolset.WriteJSONError(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 			return
 		}
 		var manifest struct {
 			Themes []any `json:"themes"`
 		}
 		if err := json.Unmarshal(manifestRaw, &manifest); err != nil {
-			http.Error(w, `{"error":"invalid manifest JSON"}`, http.StatusInternalServerError)
+			toolset.WriteJSONError(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 			return
 		}
 
@@ -257,7 +257,7 @@ func main() {
 			"actived":       rt.Theme.Actived,
 			"actived-light": rt.Theme.ActivedLight,
 			"actived-dark":  rt.Theme.ActivedDark,
-			"description":   "第2大脑 外源主题清单",
+			"description":   "BrainGo External Theme List",
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -271,18 +271,18 @@ func main() {
 			ActivedDark  string `json:"actived-dark"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+			toolset.WriteJSONError(w, i18n.T("api_error_failed_to_parse_request"), http.StatusBadRequest)
 			return
 		}
 
-		// Only write to local-server.toml — never touch manifest.json
+		// Only write to local-server.toml -- never touch manifest.json
 		rt := themeRuntime{}
 		rt.Theme.Actived = req.Actived
 		rt.Theme.ActivedLight = req.ActivedLight
 		rt.Theme.ActivedDark = req.ActivedDark
 
 		if err := writeThemeConfig(rt); err != nil {
-			http.Error(w, `{"error":"write error"}`, http.StatusInternalServerError)
+			toolset.WriteJSONError(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 			return
 		}
 
@@ -290,7 +290,7 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 	})
 
-	// ── Static file server -frontend pages ──
+	// -- Static file server -frontend pages --
 	// When CacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
 	// take effect immediately during development.
 	// Production (default) uses http.FileServer's default ETag/Last-Modified caching behavior.

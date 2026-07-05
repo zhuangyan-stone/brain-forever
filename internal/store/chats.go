@@ -305,7 +305,7 @@ func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 // Child rows (messages, web sources, tags, favorites) are automatically
 // removed via ON DELETE CASCADE (SQLite FK enforcement).
 func (s *ChatStore) EmptyTrash() error {
-	// Just delete the sessions — ON DELETE CASCADE handles the rest
+	// Just delete the sessions -- ON DELETE CASCADE handles the rest
 	_, err := s.db.Exec("DELETE FROM chat_sessions WHERE deleted = 1")
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_trashed_sessions_failed"), err)
@@ -415,9 +415,9 @@ type ChatTitleTag struct {
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// SelectChatTitlesGroupByTags 查询所有已分类对话，按 tag 分组，
-// 组内先按 update_at 逆序，再按 create_at 逆序。
-// 返回 map[string][]ChatTitleTag，key 为 tag 值。
+// SelectChatTitlesGroupByTags queries all tagged chats, grouped by tag,
+// ordered by update_at descending, then create_at descending within each group.
+// Returns map[string][]ChatTitleTag, keyed by tag value.
 func (s *ChatStore) SelectChatTitlesGroupByTags() (map[string][]ChatTitleTag, error) {
 	var rows []ChatTitleTag
 	err := s.db.Select(&rows,

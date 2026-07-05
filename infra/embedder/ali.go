@@ -131,6 +131,6 @@ func (d *DashScopeEmbedder) Embed(ctx context.Context, text string) ([]float32, 
 		vec[i] = float32(v)
 	}
 
-	fmt.Printf("  → Embedding complete: %d dims, %d tokens used\n", len(vec), apiResp.Usage.TotalTokens)
+	fmt.Printf("  -> Embedding complete: %d dims, %d tokens used\n", len(vec), apiResp.Usage.TotalTokens)
 	return vec, nil
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // ============================================================
-// trip_highlights tool — extract core traits & key highlights
+// trip_highlights tool -- extract core traits & key highlights
 // from a completed user portrait text.
 //
 // This tool is used in Step 2 of portrait generation:

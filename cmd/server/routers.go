@@ -1,4 +1,4 @@
-package local
+package main
 
 import (
 	"encoding/json"
@@ -8,74 +8,74 @@ import (
 	"BrainForever/internal/agent"
 )
 
-// InitRouters registers all API routes on the given server.
-func InitRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
+// initRouters registers all API routes on the given server.
+func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
 
-	// /api/chat —POST (new message) + DELETE (delete chat)
+	// /api/chat -- POST (new message) + DELETE (delete chat)
 	srv.POST("/api/chat", chatHandler.OnNewMessage)
 	srv.DELETE("/api/chat", chatHandler.OnChatDelete)
 
 	// Recycle bin (trash) endpoints
 	srv.GET("/api/chat/deleted", chatHandler.OnListDeletedChats)
 
-	// /api/chat/favorites —GET + PUT + DELETE
+	// /api/chat/favorites -- GET + PUT + DELETE
 	srv.GET("/api/chat/favorites", chatHandler.ListFavoriteChats)
 	srv.PUT("/api/chat/favorites", chatHandler.AddFavoriteChat)
 	srv.DELETE("/api/chat/favorites", chatHandler.RemoveFavoriteChat)
 
-	// /api/chat/groups —GET (tag-grouped chat list)
+	// /api/chat/groups -- GET (tag-grouped chat list)
 	srv.GET("/api/chat/groups", chatHandler.OnChatGroups)
 
-	// /api/chat/list —GET
+	// /api/chat/list -- GET
 	srv.GET("/api/chat/list", chatHandler.OnGetChats)
 
-	// /api/chat/messages —DELETE
+	// /api/chat/messages -- DELETE
 	srv.DELETE("/api/chat/messages", chatHandler.OnDeleteMessage)
 
-	// /api/chat/new —PUT
+	// /api/chat/new -- PUT
 	srv.PUT("/api/chat/new", chatHandler.OnNewChat)
 
-	// /api/chat/permanent —DELETE
+	// /api/chat/permanent -- DELETE
 	srv.DELETE("/api/chat/permanent", chatHandler.OnPermanentDelete)
 
-	// /api/chat/pin —PUT
+	// /api/chat/pin -- PUT
 	srv.PUT("/api/chat/pin", chatHandler.OnChatPin)
 
-	// /api/chat/restore —PUT
+	// /api/chat/restore -- PUT
 	srv.PUT("/api/chat/restore", chatHandler.OnRestoreChat)
 
-	// /api/chat/switch —GET
+	// /api/chat/switch -- GET
 	srv.GET("/api/chat/switch", chatHandler.OnSwitchChat)
 
-	// /api/chat/tags —POST (classify a chat)
+	// /api/chat/tags -- POST (classify a chat)
 	srv.POST("/api/chat/tags", chatHandler.OnGenerateChatTags)
 
-	// /api/chat/title —GET (propose title) + PUT (save title)
+	// /api/chat/title -- GET (propose title) + PUT (save title)
 	srv.GET("/api/chat/title", chatHandler.OnGetSuggestedChatTitle)
 	srv.PUT("/api/chat/title", chatHandler.OnPutChatTitle)
 
-	// /api/chat/traits —POST (extract personal traits via LLM directly)
+	// /api/chat/traits -- POST (extract personal traits via LLM directly)
 	srv.POST("/api/chat/traits", chatHandler.OnExtractTraits)
 
-	// /api/chat/trash —DELETE
+	// /api/chat/trash -- DELETE
 	srv.DELETE("/api/chat/trash", chatHandler.OnEmptyTrash)
 
-	// /api/info/llm/chat —GET
+	// /api/info/llm/chat -- GET
 	srv.GET("/api/info/llm/chat", chatHandler.OnGetLLMInfo)
 
-	// /api/session —GET
+	// /api/session -- GET
 	srv.GET("/api/session", chatHandler.OnSession)
 
-	// /api/user/login —POST
+	// /api/user/login -- POST
 	srv.POST("/api/user/login", chatHandler.OnLogin)
 
-	// /api/user/logout —POST
+	// /api/user/logout -- POST
 	srv.POST("/api/user/logout", chatHandler.OnLogout)
 
-	// /api/user/portrait —GET (generate user portrait, streaming SSE)
+	// /api/user/portrait -- GET (generate user portrait, streaming SSE)
 	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
 
-	// /api/user/portrait/title —POST (generate overall title for a document, e.g. portrait)
+	// /api/user/portrait/title -- POST (generate overall title for a document, e.g. portrait)
 	srv.POST("/api/user/portrait/title", chatHandler.OnGetDocTitle)
 
 	// Health check endpoint

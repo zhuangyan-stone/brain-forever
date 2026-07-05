@@ -106,32 +106,27 @@ func keywordTypeToInt(t string) int {
 	}
 }
 
-// userTraitsDBPath returns the traits database path for the given user.
-// Anonymous users get "localdb/anonymous.brain.db".
-// Logged-in users get "localdb/{userNo}.brain.db".
-func userTraitsDBPath(userNo string) string {
-	if userNo == "" {
-		return "localdb/anonymous.brain.db"
-	}
-	return "localdb/" + userNo + ".brain.db"
-}
-
-// OnExtractTraits handles POST /api/chat/traits �� accepts a chat SN,
+// OnExtractTraits handles POST /api/chat/traits -- accepts a chat SN,
 // reads the chat messages from the local database, then calls the LLM
 // directly with the trip_traits tool, embeds and stores the results,
 // and returns the features to the frontend.
 func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
+	// 0. Determine language upfront
+	// ----------------------------------------------------------
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+
+	// ----------------------------------------------------------
 	// 1. Parse request body
 	// ----------------------------------------------------------
 	var req traitsFrontendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"invalid JSON: %v"}`, err), http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	if req.SN == "" {
-		http.Error(w, `{"error":"missing 'sn' field"}`, http.StatusBadRequest)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
@@ -143,7 +138,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	foundChat := session.findChatBySN(req.SN)
 	if foundChat == nil {
-		http.Error(w, fmt.Sprintf(`{"error":"chat not found (sn=%s)"}`, req.SN), http.StatusNotFound)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 
@@ -152,14 +147,14 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	chatStore, cerr := h.openChatDB(session)
 	if cerr != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"failed to open chat store: %v"}`, cerr), http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
 	}
 	defer h.closeChatDB(chatStore)
 
 	dbMessages, err := chatStore.ListUnExtractMessages(foundChat.ID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
@@ -171,12 +166,9 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 4. Convert messages and call LLM directly
 	// ----------------------------------------------------------
-	acceptLang := r.Header.Get("Accept-Language")
-	lang := i18n.GetAcceptLanguage(acceptLang)
-
 	remoteResp, err := h.callTraitsLLM(r.Context(), req.SN, foundChat.Title, dbMessages, lang)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusInternalServerError)
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 

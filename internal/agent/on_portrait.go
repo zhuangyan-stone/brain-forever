@@ -164,7 +164,7 @@ type PortraitHighlights struct {
 }
 
 // ============================================================
-// OnGetUserPortrait �?GET /api/user/portrait handler
+// OnGetUserPortrait -- GET /api/user/portrait handler
 // ============================================================
 
 func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
@@ -418,7 +418,7 @@ func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, por
 }
 
 // ============================================================
-// portraitInfo �?extra metadata sent as 'info' SSE event
+// portraitInfo -- extra metadata sent as 'info' SSE event
 // ============================================================
 
 type portraitInfo struct {

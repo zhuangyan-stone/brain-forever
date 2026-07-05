@@ -59,15 +59,15 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 	// Parse request
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse request. %v", err), http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return nil
 	}
 
 	if req.Message.Content == "" {
-		http.Error(w, "message content cannot be empty", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_validation_failed", map[string]any{"Error": "message content cannot be empty"}), http.StatusBadRequest)
 		return nil
 	} else if req.Message.ID != 0 {
-		http.Error(w, "new message's id  must be zero", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_validation_failed", map[string]any{"Error": "new message's id must be zero"}), http.StatusBadRequest)
 		return nil
 	}
 
@@ -89,7 +89,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// Open chatStore on-demand for DB operations during this request
 	chatStore, err := h.openChatDB(session)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to open chat store: %v", err), http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_failed_to_open_chat_store_detail", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 	defer h.closeChatDB(chatStore)
@@ -135,7 +135,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	session.mu.Unlock()
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to load messages: %v", err), http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
@@ -184,7 +184,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 10. Only send chat_created event if a new DB chat was actually created by this request.
-	//     �?Fix: Use the isNewChat flag to decide, instead of re-reading currentChat without holding the lock.
+	//     -- Fix: Use the isNewChat flag to decide, instead of re-reading currentChat without holding the lock.
 	//     The old code re-read currentChat under lock after streaming had started, at which point
 	//     currentChat might have been modified by other handlers (e.g., OnSwitchChat, OnNewChat), causing:
 	//       a) Every message in an existing chat erroneously sends a chat_created event (wasteful but harmless)
