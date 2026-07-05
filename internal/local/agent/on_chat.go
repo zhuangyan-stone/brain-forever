@@ -295,9 +295,12 @@ func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Close releases underlying resources held by the ChatHandler.
+// Close releases all underlying resources held by the ChatAgent.
+// Closes all database stores (ChatStore, VectorStore) in all sessions,
+// including the shared anonymous store.
 func (h *ChatAgent) Close() error {
-	return nil // No global VectorStore to close; per-user traits stores are closed per session.
+	h.sessionManager.Close()
+	return nil
 }
 
 // NewChatHandler creates a ChatHandler

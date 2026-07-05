@@ -187,13 +187,25 @@ func (s *session) SetTitle(newTitle string, newState TitleState) {
 // it is created once at startup and shared across all anonymous sessions,
 // while user stores are created per-user on login.
 func (s *session) switchToUser(sn string) {
+	// Phase 0: close old per-user stores before replacing them.
+	// We capture the old state under mu to determine what to close.
+	s.mu.Lock()
+	oldUserNo := s.userNo
+	oldTraitsStore := s.traitsStore
+	s.mu.Unlock()
+
+	// Close old traits store (each session has its own, always safe to close).
+	if oldTraitsStore != nil {
+		oldTraitsStore.Close()
+	}
+
 	// Phase 1: IO operations (no lock needed -DB creation + query)
 	var dbFile string
 	if sn == "" {
 		// Anonymous user: use the same DB filename as the initial anonymousStore
-		// (localdb/anonymous.chats.db), NOT "localdb/anonymous.chats.db". The initial
-		// anonymous store is created with "localdb/anonymous.chats.db" in InitAgent,
-		// and all anonymous chat data is persisted there.
+		// (localdb/anonymous.chats.db). The initial anonymous store is created
+		// with "localdb/anonymous.chats.db" in InitAgent, and all anonymous chat
+		// data is persisted there.
 		dbFile = "localdb/anonymous.chats.db"
 	} else {
 		dbFile = "localdb/" + sn + ".chats.db"
@@ -209,8 +221,14 @@ func (s *session) switchToUser(sn string) {
 		return
 	}
 
-	// Phase 2: lock and set state
+	// Phase 2: lock, close old per-user chatsStore (if any), and set new state
 	s.chatsMu.Lock()
+	// If the session was previously a logged-in user (oldUserNo != ""),
+	// its chatsStore is a per-user store (not the shared anonymousStore),
+	// so we must close it to avoid leaking the connection pool.
+	if oldUserNo != "" && s.chatsStore != nil {
+		s.chatsStore.Close()
+	}
 	s.chatsStore = chatStore
 	s.chats = chats
 	s.chatsMu.Unlock()
@@ -273,6 +291,32 @@ type SessionManager struct {
 	anonymousStore *store.ChatStore // ChatStore for anonymous users (localdb/anonymous.chats.db)
 	embedderDim    int              // Embedding dimension for VectorStore creation
 	logger         zylog.Logger     // Logger for VectorStore creation
+}
+
+// Close closes all database stores held by the SessionManager.
+// This includes the shared anonymous store and all per-session stores.
+// Called during server graceful shutdown.
+func (sm *SessionManager) Close() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	// Close all per-session stores
+	for id, s := range sm.sessions {
+		// Close the chat store if it's not the shared anonymous store
+		if s.chatsStore != sm.anonymousStore {
+			s.chatsStore.Close()
+		}
+		// Close the traits store
+		if s.traitsStore != nil {
+			s.traitsStore.Close()
+		}
+		delete(sm.sessions, id)
+	}
+
+	// Close the shared anonymous store last
+	if sm.anonymousStore != nil {
+		sm.anonymousStore.Close()
+	}
 }
 
 // NewSessionManager creates a SessionManager
