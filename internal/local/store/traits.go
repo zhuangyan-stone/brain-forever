@@ -445,6 +445,84 @@ func (s *VectorStore) Delete(id int64) error {
 // ============================================================
 
 // ============================================================
+// DeleteByChatSN -delete all traits, vectors, and keywords for a chat SN
+// ============================================================
+
+// DeleteByChatSN permanently deletes all traits belonging to the given chat SN,
+// along with their vector embeddings (from trait_vectors) and all associated
+// keywords (via FK ON DELETE CASCADE on keywords.trait_id).
+// All operations run in a single transaction.
+// Returns the number of traits deleted.
+func (s *VectorStore) DeleteByChatSN(chatSN string) (int, error) {
+	if chatSN == "" {
+		return 0, fmt.Errorf("%s", i18n.T("db_empty_chat_sn"))
+	}
+
+	// Get all trait IDs for this chat SN
+	var traitIDs []int64
+	if err := s.db.Select(&traitIDs, "SELECT id FROM traits WHERE chat_sn = ?", chatSN); err != nil {
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_list_traits_by_chat_failed"), err)
+	}
+
+	if len(traitIDs) == 0 {
+		return 0, nil // No traits to delete
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	// Delete from vec0 virtual table (no FK support, must be explicit)
+	// vec0 may not support subqueries, so we delete one by one
+	for _, id := range traitIDs {
+		if _, err := tx.Exec("DELETE FROM trait_vectors WHERE rowid = ?", id); err != nil {
+			return 0, fmt.Errorf("%s (rowid=%d): %w", i18n.T("db_delete_trait_vector_failed"), id, err)
+		}
+	}
+
+	// Delete keywords explicitly (safety net; ON DELETE CASCADE also handles this)
+	if _, err := tx.Exec("DELETE FROM keywords WHERE trait_id IN (SELECT id FROM traits WHERE chat_sn = ?)", chatSN); err != nil {
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_keywords_failed"), err)
+	}
+
+	// Delete the traits themselves
+	result, err := tx.Exec("DELETE FROM traits WHERE chat_sn = ?", chatSN)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_trait_failed"), err)
+	}
+
+	rows, _ := result.RowsAffected()
+	_ = rows // unused but available for logging
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("%s: %w", i18n.T("db_commit_transaction_failed"), err)
+	}
+
+	return len(traitIDs), nil
+}
+
+// ============================================================
+// DeleteTraitsByChatSNs -delete all traits for multiple chat SNs in batch
+// ============================================================
+
+// DeleteTraitsByChatSNs permanently deletes all traits belonging to the given
+// list of chat SNs (typically all trashed chats). Internally calls DeleteByChatSN
+// for each SN. Returns the total number of traits deleted.
+func (s *VectorStore) DeleteTraitsByChatSNs(chatSNs []string) (int, error) {
+	total := 0
+	for _, sn := range chatSNs {
+		n, err := s.DeleteByChatSN(sn)
+		if err != nil {
+			return total, fmt.Errorf("failed to delete traits for chat_sn=%s: %w", sn, err)
+		}
+		total += n
+	}
+	return total, nil
+}
+
+// ============================================================
 // ListTraitsByChat -list all traits for a specific chat
 // ============================================================
 

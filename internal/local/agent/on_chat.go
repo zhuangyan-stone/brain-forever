@@ -173,6 +173,7 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 
 // OnPermanentDelete handles DELETE /api/chat/permanent -permanently deletes
 // a soft-deleted chat (physical delete from DB).
+// Also removes all associated traits, vectors, and keywords from the brain DB.
 func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -201,6 +202,23 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 
 	chatID := chat.ID
 
+	// Phase 1: Delete traits from brain DB (cross-table) BEFORE deleting the chat.
+	// This removes all personal traits associated with this chat SN,
+	// along with their vector embeddings (trait_vectors) and keywords (via FK cascade).
+	session.mu.Lock()
+	traitsStore := session.traitsStore
+	session.mu.Unlock()
+
+	if traitsStore != nil {
+		if _, err := traitsStore.DeleteByChatSN(sn); err != nil {
+			h.logger.Errorf("failed to delete traits for chat %s: %v", sn, err)
+			// Non-fatal: continue with chat deletion even if trait deletion fails
+		}
+	}
+
+	// Phase 2: Delete the chat session from chats DB.
+	// Child rows (chat_messages, web_sources, chat_tags, chat_favorites)
+	// are automatically removed via ON DELETE CASCADE.
 	if err := chatStore.PhysicalDelete(int(chatID), sn); err != nil {
 		http.Error(w, "failed to delete session", http.StatusInternalServerError)
 		return
@@ -218,6 +236,8 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 
 // OnEmptyTrash handles DELETE /api/chat/empty-trash -permanently deletes
 // all soft-deleted chats (clears the recycle bin).
+// Also removes all associated traits, vectors, and keywords from the brain DB
+// for every trashed chat.
 func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -231,6 +251,36 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	chatStore := session.chatsStore
 	session.chatsMu.Unlock()
 
+	// Phase 1: Collect all trashed chat SNs.
+	deletedChats, err := chatStore.ListDeletedChats(1000)
+	if err != nil {
+		http.Error(w, "failed to list deleted chats", http.StatusInternalServerError)
+		return
+	}
+
+	// Phase 2: Delete traits from brain DB for each trashed chat (cross-table).
+	session.mu.Lock()
+	traitsStore := session.traitsStore
+	session.mu.Unlock()
+
+	if traitsStore != nil {
+		sns := make([]string, 0, len(deletedChats))
+		for _, c := range deletedChats {
+			if c.SN != "" {
+				sns = append(sns, c.SN)
+			}
+		}
+		if len(sns) > 0 {
+			if _, err := traitsStore.DeleteTraitsByChatSNs(sns); err != nil {
+				h.logger.Errorf("failed to delete traits for trashed chats: %v", err)
+				// Non-fatal: continue with trash emptying even if trait deletion fails
+			}
+		}
+	}
+
+	// Phase 3: Delete all trashed chat sessions from chats DB.
+	// Child rows (chat_messages, web_sources, chat_tags, chat_favorites)
+	// are automatically removed via ON DELETE CASCADE.
 	if err := chatStore.EmptyTrash(); err != nil {
 		http.Error(w, "failed to empty trash", http.StatusInternalServerError)
 		return

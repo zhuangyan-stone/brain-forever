@@ -339,6 +339,9 @@ other = "按对话查询特征列表失败"
 [db_list_all_traits_failed]
 other = "查询所有特征列表失败"
 
+[db_empty_chat_sn]
+other = "对话序列号为空"
+
 # ============================================================
 # Trait category display names —used in trait_searcher.go
 # Format: 中文名称 (编号)

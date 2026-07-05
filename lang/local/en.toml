@@ -339,6 +339,9 @@ other = "list traits by chat failed"
 [db_list_all_traits_failed]
 other = "list all traits failed"
 
+[db_empty_chat_sn]
+other = "empty chat SN"
+
 # ============================================================
 # Trait category display names —used in trait_searcher.go
 # Format: English name (number)
