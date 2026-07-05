@@ -104,7 +104,7 @@ func migrateOne(dbPath string) error {
 		},
 		{
 			name:         "web_sources",
-			oldIndexName: "", // idx_web_sources_chat_msg 是 (chat_sn, msg_id) 复合索引，稍后重建
+			oldIndexName: "idx_web_sources_chat_msg", // 旧索引在 (chat_sn, msg_id) 上，需先删除才能 DROP chat_sn
 			newIndexDDL:  "CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg ON web_sources(chat_id, msg_id)",
 		},
 		{
@@ -114,7 +114,7 @@ func migrateOne(dbPath string) error {
 		},
 		{
 			name:         "chat_favorites",
-			oldIndexName: "", // idx_chat_favorites_unique 是 (chat_sn, custom_tag) 复合索引，稍后重建
+			oldIndexName: "idx_chat_favorites_unique", // 旧索引在 (chat_sn, custom_tag) 上，需先删除才能 DROP chat_sn
 			newIndexDDL:  "CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_favorites_unique ON chat_favorites(chat_id, custom_tag)",
 		},
 	}
