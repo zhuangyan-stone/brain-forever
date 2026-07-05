@@ -27,7 +27,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS chat_messages (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 			group_index INTEGER NOT NULL,
 			role       INTEGER NOT NULL,
 			reasoning    TEXT,
@@ -43,7 +43,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS web_sources (
 			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_id      INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_id      INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 			msg_id       INTEGER NOT NULL,
 			title        TEXT    NOT NULL DEFAULT '',
 			content      TEXT    NOT NULL DEFAULT '',
@@ -60,7 +60,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS chat_tags (
 			id        INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_id   INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_id   INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 			tag       TEXT    NOT NULL,
 			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
@@ -73,7 +73,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS chat_favorites (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id),
+			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 			custom_tag TEXT    NOT NULL DEFAULT '',
 			create_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

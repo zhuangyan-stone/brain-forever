@@ -41,7 +41,7 @@ type UserStore struct {
 // NewUserStore creates a new UserStore.
 // dbPath is the path to user.db (e.g., "./user.db").
 func NewUserStore(dbPath string) (*UserStore, error) {
-	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
+	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_user_db_failed"), err)
 	}

@@ -39,7 +39,7 @@ type RoleStore struct {
 // NewRoleStore creates a new RoleStore.
 // dbPath is the path to user.db (e.g., "./user.db").
 func NewRoleStore(dbPath string) (*RoleStore, error) {
-	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
+	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_role_db_failed"), err)
 	}
@@ -58,7 +58,7 @@ func (s *RoleStore) initSchema() error {
 			id        INTEGER PRIMARY KEY AUTOINCREMENT,
 			role_no   INTEGER NOT NULL,
 			role_name TEXT    NOT NULL CHECK(length(role_name) <= 60),
-			uuid      TEXT    NOT NULL REFERENCES users(uuid),
+			uuid      TEXT    NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
 			is_public INTEGER NOT NULL DEFAULT 0,
 			is_active INTEGER NOT NULL DEFAULT 1,
 			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

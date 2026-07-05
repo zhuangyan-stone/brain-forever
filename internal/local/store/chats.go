@@ -58,7 +58,7 @@ func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
 	}
 
 	// Open the database (WAL mode for better concurrent performance)
-	db, err := sqlx.Open("sqlite3", dbFile+"?_journal_mode=WAL&_busy_timeout=5000")
+	db, err := sqlx.Open("sqlite3", dbFile+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_chat_db_failed"), err)
 	}
@@ -115,8 +115,8 @@ func (s *ChatStore) LogicDelete(sn string) error {
 }
 
 // PhysicalDelete physically deletes the session identified by id + sn.
-// Also deletes all its messages, web sources, and tags (transaction-safe).
-// Uses id (chat_id) for related table deletes since they now reference chat_sessions(id).
+// Related rows (messages, web sources, tags, favorites) are automatically
+// removed via ON DELETE CASCADE (SQLite FK enforcement).
 func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -137,34 +137,8 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 		return fmt.Errorf("%s (id=%d, sn=%s)", i18n.T("db_session_not_found"), id, sn)
 	}
 
-	// Delete all tags under this session (using id)
-	_, err = tx.Exec(
-		"DELETE FROM chat_tags WHERE chat_id = ?",
-		id,
-	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_tags_of_session_failed"), err)
-	}
-
-	// Delete all web sources under this session (using id)
-	_, err = tx.Exec(
-		"DELETE FROM web_sources WHERE chat_id = ?",
-		id,
-	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_web_sources_of_session_failed"), err)
-	}
-
-	// Delete all messages under this session (using id)
-	_, err = tx.Exec(
-		"DELETE FROM chat_messages WHERE chat_id = ?",
-		id,
-	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_messages_of_session_failed"), err)
-	}
-
-	// Delete the session itself
+	// Delete the session itself; child rows (chat_messages, web_sources,
+	// chat_tags, chat_favorites) are cascade-deleted by SQLite.
 	_, err = tx.Exec(
 		"DELETE FROM chat_sessions WHERE id = ? AND sn = ?",
 		id, sn,
@@ -304,55 +278,14 @@ func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 	return nil
 }
 
-// EmptyTrash permanently deletes all soft-deleted chats (and their messages/web_sources).
+// EmptyTrash permanently deletes all soft-deleted chats.
+// Child rows (messages, web sources, tags, favorites) are automatically
+// removed via ON DELETE CASCADE (SQLite FK enforcement).
 func (s *ChatStore) EmptyTrash() error {
-	// Get all deleted chat IDs first (related tables now use chat_id)
-	var deletedIDs []int64
-	err := s.db.Select(&deletedIDs,
-		"SELECT id FROM chat_sessions WHERE deleted = 1",
-	)
-	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_query_deleted_chats_failed"), err)
-	}
-
-	if len(deletedIDs) == 0 {
-		return nil
-	}
-
-	tx, err := s.db.Beginx()
-	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_begin_transaction_failed"), err)
-	}
-	defer tx.Rollback()
-
-	for _, id := range deletedIDs {
-		// Delete all tags under this session
-		_, err = tx.Exec("DELETE FROM chat_tags WHERE chat_id = ?", id)
-		if err != nil {
-			return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_tags_for_chat_failed"), id, err)
-		}
-
-		// Delete all web sources under this session
-		_, err = tx.Exec("DELETE FROM web_sources WHERE chat_id = ?", id)
-		if err != nil {
-			return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_web_sources_for_chat_failed"), id, err)
-		}
-
-		// Delete all messages under this session
-		_, err = tx.Exec("DELETE FROM chat_messages WHERE chat_id = ?", id)
-		if err != nil {
-			return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_messages_for_chat_failed"), id, err)
-		}
-	}
-
-	// Delete all deleted sessions
-	_, err = tx.Exec("DELETE FROM chat_sessions WHERE deleted = 1")
+	// Just delete the sessions — ON DELETE CASCADE handles the rest
+	_, err := s.db.Exec("DELETE FROM chat_sessions WHERE deleted = 1")
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_trashed_sessions_failed"), err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_commit_transaction_failed"), err)
 	}
 	return nil
 }

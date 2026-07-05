@@ -65,7 +65,7 @@ func NewVectorStore(dbPath string, dimension int, logger zylog.Logger) (*VectorS
 	// Enable sqlite-vec (global effect)
 	sqlite_vec.Auto()
 
-	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
+	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_vector_db_failed"), err)
 	}
