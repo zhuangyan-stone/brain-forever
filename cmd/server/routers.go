@@ -12,72 +12,84 @@ import (
 // initRouters registers all API routes on the given server.
 func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *theme.Handler) {
 
+	// ============================================================
+	// 需要认证的路由
+	// ============================================================
+
 	// /api/chat -- POST (new message) + DELETE (delete chat)
-	srv.POST("/api/chat", chatHandler.OnNewMessage)
-	srv.DELETE("/api/chat", chatHandler.OnChatDelete)
+	srv.POST("/api/chat", chatHandler.RequireAuth(chatHandler.OnNewMessage))
+	srv.DELETE("/api/chat", chatHandler.RequireAuth(chatHandler.OnChatDelete))
 
 	// Recycle bin (trash) endpoints
-	srv.GET("/api/chat/deleted", chatHandler.OnListDeletedChats)
+	srv.GET("/api/chat/deleted", chatHandler.RequireAuth(chatHandler.OnListDeletedChats))
 
 	// /api/chat/favorites -- GET + PUT + DELETE
-	srv.GET("/api/chat/favorites", chatHandler.ListFavoriteChats)
-	srv.PUT("/api/chat/favorites", chatHandler.AddFavoriteChat)
-	srv.DELETE("/api/chat/favorites", chatHandler.RemoveFavoriteChat)
+	srv.GET("/api/chat/favorites", chatHandler.RequireAuth(chatHandler.ListFavoriteChats))
+	srv.PUT("/api/chat/favorites", chatHandler.RequireAuth(chatHandler.AddFavoriteChat))
+	srv.DELETE("/api/chat/favorites", chatHandler.RequireAuth(chatHandler.RemoveFavoriteChat))
 
 	// /api/chat/groups -- GET (tag-grouped chat list)
-	srv.GET("/api/chat/groups", chatHandler.OnChatGroups)
+	srv.GET("/api/chat/groups", chatHandler.RequireAuth(chatHandler.OnChatGroups))
 
 	// /api/chat/list -- GET
-	srv.GET("/api/chat/list", chatHandler.OnGetChats)
+	srv.GET("/api/chat/list", chatHandler.RequireAuth(chatHandler.OnGetChats))
 
 	// /api/chat/messages -- DELETE
-	srv.DELETE("/api/chat/messages", chatHandler.OnDeleteMessage)
+	srv.DELETE("/api/chat/messages", chatHandler.RequireAuth(chatHandler.OnDeleteMessage))
 
 	// /api/chat/new -- PUT
-	srv.PUT("/api/chat/new", chatHandler.OnNewChat)
+	srv.PUT("/api/chat/new", chatHandler.RequireAuth(chatHandler.OnNewChat))
 
 	// /api/chat/permanent -- DELETE
-	srv.DELETE("/api/chat/permanent", chatHandler.OnPermanentDelete)
+	srv.DELETE("/api/chat/permanent", chatHandler.RequireAuth(chatHandler.OnPermanentDelete))
 
 	// /api/chat/pin -- PUT
-	srv.PUT("/api/chat/pin", chatHandler.OnChatPin)
+	srv.PUT("/api/chat/pin", chatHandler.RequireAuth(chatHandler.OnChatPin))
 
 	// /api/chat/restore -- PUT
-	srv.PUT("/api/chat/restore", chatHandler.OnRestoreChat)
+	srv.PUT("/api/chat/restore", chatHandler.RequireAuth(chatHandler.OnRestoreChat))
 
 	// /api/chat/switch -- GET
-	srv.GET("/api/chat/switch", chatHandler.OnSwitchChat)
+	srv.GET("/api/chat/switch", chatHandler.RequireAuth(chatHandler.OnSwitchChat))
 
 	// /api/chat/tags -- POST (classify a chat)
-	srv.POST("/api/chat/tags", chatHandler.OnGenerateChatTags)
+	srv.POST("/api/chat/tags", chatHandler.RequireAuth(chatHandler.OnGenerateChatTags))
 
 	// /api/chat/title -- GET (propose title) + PUT (save title)
-	srv.GET("/api/chat/title", chatHandler.OnGetSuggestedChatTitle)
-	srv.PUT("/api/chat/title", chatHandler.OnPutChatTitle)
+	srv.GET("/api/chat/title", chatHandler.RequireAuth(chatHandler.OnGetSuggestedChatTitle))
+	srv.PUT("/api/chat/title", chatHandler.RequireAuth(chatHandler.OnPutChatTitle))
 
 	// /api/chat/traits -- POST (extract personal traits via LLM directly)
-	srv.POST("/api/chat/traits", chatHandler.OnExtractTraits)
+	srv.POST("/api/chat/traits", chatHandler.RequireAuth(chatHandler.OnExtractTraits))
 
 	// /api/chat/trash -- DELETE
-	srv.DELETE("/api/chat/trash", chatHandler.OnEmptyTrash)
+	srv.DELETE("/api/chat/trash", chatHandler.RequireAuth(chatHandler.OnEmptyTrash))
 
 	// /api/info/llm/chat -- GET
-	srv.GET("/api/info/llm/chat", chatHandler.OnGetLLMInfo)
+	srv.GET("/api/info/llm/chat", chatHandler.RequireAuth(chatHandler.OnGetLLMInfo))
 
-	// /api/session -- GET
-	srv.GET("/api/session", chatHandler.OnSession)
+	// /api/user/logout -- POST
+	srv.POST("/api/user/logout", chatHandler.RequireAuth(chatHandler.OnLogout))
+
+	// /api/user/portrait -- GET (generate user portrait, streaming SSE)
+	srv.GET("/api/user/portrait", chatHandler.RequireAuth(chatHandler.OnGetUserPortrait))
+
+	// /api/user/portrait/title -- POST (generate overall title for a document, e.g. portrait)
+	srv.POST("/api/user/portrait/title", chatHandler.RequireAuth(chatHandler.OnGetPortraitTitle))
+
+	// /api/themes -- GET (list themes) + POST (update active theme)
+	srv.GET("/api/themes", chatHandler.RequireAuth(themeHandler.GetThemes))
+	srv.POST("/api/themes", chatHandler.RequireAuth(themeHandler.SetThemes))
+
+	// ============================================================
+	// 不需要认证的路由
+	// ============================================================
 
 	// /api/user/login -- POST
 	srv.POST("/api/user/login", chatHandler.OnLogin)
 
-	// /api/user/logout -- POST
-	srv.POST("/api/user/logout", chatHandler.OnLogout)
-
-	// /api/user/portrait -- GET (generate user portrait, streaming SSE)
-	srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
-
-	// /api/user/portrait/title -- POST (generate overall title for a document, e.g. portrait)
-	srv.POST("/api/user/portrait/title", chatHandler.OnGetDocTitle)
+	// /api/session -- GET
+	srv.GET("/api/session", chatHandler.OnSession)
 
 	// Health check endpoint
 	srv.GET("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -88,10 +100,6 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 			"version": "1.0.0",
 		})
 	})
-
-	// /api/themes -- GET (list themes) + POST (update active theme)
-	srv.GET("/api/themes", themeHandler.GetThemes)
-	srv.POST("/api/themes", themeHandler.SetThemes)
 }
 
 // initStaticFileServer sets up the static file server for frontend pages.

@@ -32,18 +32,18 @@ import (
 //  3. Returns the title as JSON
 // ============================================================
 
-// docTitleRequest is the JSON body for POST /api/doc/title.
-type docTitleRequest struct {
+// portraitTitleRequest is the JSON body for POST /api/user/portrait/title.
+type portraitTitleRequest struct {
 	Content string `json:"content"`
 }
 
-// OnGetDocTitle handles POST /api/doc/title -- generates a concise
+// OnGetPortraitTitle handles POST /api/user/portrait/title -- generates a concise
 // overall title for a document (e.g., user portrait) using the local LLM.
-func (h *ChatAgent) OnGetDocTitle(w http.ResponseWriter, r *http.Request) {
+func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 1. Parse request body
 	// ----------------------------------------------------------
-	var req docTitleRequest
+	var req portraitTitleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		toolset.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
 		return
