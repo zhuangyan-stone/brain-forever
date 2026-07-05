@@ -17,11 +17,11 @@ import (
 	"BrainForever/infra/httpx"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
-	"BrainForever/internal/local"
-	"BrainForever/internal/local/agent"
-	"BrainForever/internal/local/config"
-	"BrainForever/internal/local/logger"
-	"BrainForever/internal/local/store"
+	local "BrainForever/internal"
+	"BrainForever/internal/agent"
+	"BrainForever/internal/config"
+	"BrainForever/internal/logger"
+	"BrainForever/internal/store"
 
 	"github.com/BurntSushi/toml"
 )
@@ -107,7 +107,7 @@ func main() {
 	// ============================================================
 	// Initialize i18n with local language resources
 	// ============================================================
-	i18n.Init("lang/local")
+	i18n.Init("lang")
 
 	// ============================================================
 	// Determine default language for i18n from environment variable

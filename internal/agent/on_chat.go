@@ -10,8 +10,8 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/infra/zylog"
-	"BrainForever/internal/local/agent/toolimp"
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/store"
 )
 
 // ============================================================

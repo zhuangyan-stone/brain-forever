@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/store"
 )
 
 // ============================================================

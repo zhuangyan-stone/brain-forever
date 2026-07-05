@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"BrainForever/infra/searcher"
-	"BrainForever/internal/local/agent/toolimp"
+	"BrainForever/internal/agent/toolimp"
 )
 
 // ============================================================

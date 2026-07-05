@@ -3,7 +3,7 @@ package toolimp
 import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/store"
 	"encoding/json"
 	"fmt"
 	"strings"

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"BrainForever/infra/httpx"
-	"BrainForever/internal/local/agent"
+	"BrainForever/internal/agent"
 )
 
 // InitRouters registers all API routes on the given server.

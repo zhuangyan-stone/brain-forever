@@ -2,7 +2,7 @@ package agent
 
 import (
 	"BrainForever/infra/llm"
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/store"
 	"BrainForever/toolset"
 )
 

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/store"
 )
 
 // ============================================================

@@ -3,8 +3,8 @@ package agent
 import (
 	"BrainForever/infra/embedder"
 	"BrainForever/infra/i18n"
-	"BrainForever/internal/local/agent/toolimp"
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/store"
 	"context"
 	"fmt"
 )

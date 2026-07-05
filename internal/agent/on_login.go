@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/store"
 	"encoding/json"
 	"fmt"
 	"math/rand"

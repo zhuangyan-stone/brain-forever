@@ -15,8 +15,8 @@ import (
 	"BrainForever/infra/httpx/sse"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
-	"BrainForever/internal/local/agent/toolimp"
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/store"
 	"BrainForever/toolset"
 )
 

@@ -9,9 +9,9 @@ import (
 	"BrainForever/infra/llm"
 	"BrainForever/infra/searcher"
 	"BrainForever/infra/zylog"
-	"BrainForever/internal/local/agent/toolimp"
-	"BrainForever/internal/local/config"
-	"BrainForever/internal/local/store"
+	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/config"
+	"BrainForever/internal/store"
 )
 
 // ============================================================

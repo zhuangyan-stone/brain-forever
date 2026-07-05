@@ -42,7 +42,7 @@ var (
 )
 
 // Init initializes the i18n system by loading all .toml translation files
-// from the specified directory (e.g., "lang/local").
+// from the specified directory (e.g., "lang").
 //
 // Translation files are organized as:
 //
@@ -117,9 +117,9 @@ func Init(langDir string) {
 //
 // The file path determines the language tag from the directory structure.
 // The expected path format is: {langDir}/{language_tag}/.../{filename}.toml
-// e.g., "lang/local/en/tools/current_time.toml" �?language tag "en"
+// e.g., "lang/en/tools/current_time.toml" �?language tag "en"
 //
-//	"lang/local/zh-CN/tools/web_search.toml" �?language tag "zh-CN"
+//	"lang/zh-CN/tools/web_search.toml" �?language tag "zh-CN"
 func loadWithPrefix(filePath string, langDir string) error {
 	// Read the file content
 	data, err := os.ReadFile(filePath)

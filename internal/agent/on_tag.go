@@ -9,7 +9,7 @@ import (
 
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
-	"BrainForever/internal/local/agent/toolimp"
+	"BrainForever/internal/agent/toolimp"
 	"BrainForever/toolset"
 )
 
