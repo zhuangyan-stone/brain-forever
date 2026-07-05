@@ -1309,7 +1309,7 @@ async function handleRestore(chat) {
  * 从回收站永久删除对话
  */
 async function handlePermanentDelete(chat) {
-    const result = await msgbox.warning(`永久删除〔${truncateTitle(chat.title)}〕吗？\n此操作不可恢复`);
+    const result = await msgbox.warning(`永久删除〔${truncateTitle(chat.title)}〕吗？\n此操作不可恢复\n对应用户特征也将被永久删除`);
     if (result !== 1) {
         return;
     }
@@ -1388,7 +1388,7 @@ async function handleEmptyTrash() {
     var count = chatsStore && chatsStore.deletedChats ? chatsStore.deletedChats.length : 0;
     if (count === 0) return;
 
-    const result = await msgbox.warning(`确认清空回收站（含 ${count} 个对话）吗？\n此操作不可恢复`);
+    const result = await msgbox.warning(`确认清空回收站（含 ${count} 个对话）吗？\n此操作不可恢复\n对应用户特征也将被永久删除`);
     if (result !== 1) {
         return;
     }
