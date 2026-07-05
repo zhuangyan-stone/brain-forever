@@ -198,7 +198,7 @@ localdb/
 | `internal/local/agent/on_traits.go` | 特征提取 handler（userTraitsDBPath等） | 修改 |
 | `internal/local/agent/on_chat.go` | ChatAgent 结构体、NewChatHandler | 轻微修改 |
 | `internal/local/config/config.go` | 配置结构体（添加 PG 连接配置） | 新增字段 |
-| `cmd/local-server/main.go` | 初始化流程 | 修改 |
+| `cmd/server/main.go` | 初始化流程 | 修改 |
 | `go.mod` | 依赖管理 | 替换 SQLite 依赖，添加 PG 驱动 |
 
 ---
@@ -548,7 +548,7 @@ store.GlobalDB().ListMessages(ctx, s.userNo, chatSN)
 
 ### 第 6 步：更新主启动流程
 
-**文件：** [`cmd/local-server/main.go`](cmd/local-server/main.go)
+**文件：** [`cmd/server/main.go`](cmd/server/main.go)
 
 ```go
 // 之前
@@ -611,7 +611,7 @@ flowchart LR
 [ ] 第 10 步：重构 agent/types.go —— 移除 per-user stores，改为 user_uuid 隔离
 [ ] 第 11 步：重构 agent/init.go —— 传递 DBStore 而非 anonymousStore
 [ ] 第 12 步：修改 agent/on_traits.go —— 移除 userTraitsDBPath，改用 DBStore
-[ ] 第 13 步：修改 cmd/local-server/main.go —— 初始化 DBStore 替代多文件
+[ ] 第 13 步：修改 cmd/server/main.go —— 初始化 DBStore 替代多文件
 [ ] 第 14 步：创建 cmd/tools/migrate-sqlite-to-pg —— 数据迁移脚本
 [ ] 第 15 步：更新 deploy/local-server.toml.example —— 添加 PG DSN 配置说明
 [ ] 第 16 步：运行数据迁移，端到端测试

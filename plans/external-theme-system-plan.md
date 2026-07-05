@@ -70,7 +70,7 @@ flowchart TD
 | 9 | [`frontend/static/alpine-store.js`](frontend/static/alpine-store.js) | settings store 新增 `activedLight`/`activedDark` + `setThemeSelection()` |
 | 10 | [`frontend/static/chat.js`](frontend/static/chat.js) | `applyTheme()` 调用 `ThemeLoader.apply()` |
 | 11 | [`frontend/index.html`](frontend/index.html) | ② 中增加 document.write 注入脚本；引入 theme-loader.js；添加主题选择入口 |
-| 12 | [`cmd/local-server/main.go`](cmd/local-server/main.go) | 新增 `GET /api/themes`、`POST /api/themes` |
+| 12 | [`cmd/server/main.go`](cmd/server/main.go) | 新增 `GET /api/themes`、`POST /api/themes` |
 
 ---
 
@@ -387,7 +387,7 @@ document.addEventListener('alpine:init', function() {
 </div>
 ```
 
-### 4.7 [`cmd/local-server/main.go`](cmd/local-server/main.go) — 新增 API
+### 4.7 [`cmd/server/main.go`](cmd/server/main.go) — 新增 API
 
 **`GET /api/themes`** — 读取 manifest.json 返回
 
@@ -489,7 +489,7 @@ flowchart LR
 | 1 | [`frontend/themes/manifest.json`](frontend/themes/manifest.json) | 补充 `actived`、`actived-light`、`actived-dark` |
 | 2 | 4× `theme.css` | 创建示例主题（catppuccin-light/dark, nord-light/dark） |
 | 3 | [`frontend/static/theme-loader.js`](frontend/static/theme-loader.js) | ThemeLoader 全局对象 |
-| 4 | [`cmd/local-server/main.go`](cmd/local-server/main.go) | `GET /api/themes` + `POST /api/themes` |
+| 4 | [`cmd/server/main.go`](cmd/server/main.go) | `GET /api/themes` + `POST /api/themes` |
 | 5 | [`frontend/static/components/theme-dialog.js`](frontend/static/components/theme-dialog.js) + `theme-dialog.css` | Alpine 对话框组件 |
 | 6 | [`frontend/static/alpine-store.js`](frontend/static/alpine-store.js) | `activedLight`/`activedDark` + `setThemeSelection()` |
 | 7 | [`frontend/index.html`](frontend/index.html) | document.write 注入脚本 + 引入 loader + 对话框 HTML + 用户菜单入口 |

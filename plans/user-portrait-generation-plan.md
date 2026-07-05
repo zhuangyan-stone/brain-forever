@@ -138,7 +138,7 @@ srv.POST("/api/portrait", agent.OnPortrait)
 5. 调用 remote-server 的 `POST /api/portrait`（SSE 流式）
 6. 将 remote-server 的 SSE 流代理写回前端的 ResponseWriter
 
-**路由注册**: [`cmd/local-server/main.go`](cmd/local-server/main.go) 添加：
+**路由注册**: [`cmd/server/main.go`](cmd/server/main.go) 添加：
 ```go
 srv.GET("/api/user/portrait", chatHandler.OnGetUserPortrait)
 ```
@@ -273,7 +273,7 @@ window.onOpenUserTraits = function() {
 | 3 | [`internal/remote/agent/on_portrait.go`](internal/remote/agent/on_portrait.go) | **新建** | 远程画像 handler（流式） |
 | 4 | [`cmd/remote-server/main.go`](cmd/remote-server/main.go) | 修改 | 注册 `POST /api/portrait` 路由 |
 | 5 | [`internal/local/agent/on_portrait.go`](internal/local/agent/on_portrait.go) | **新建** | 本地画像 handler（读 DB + SSE 代理） |
-| 6 | [`cmd/local-server/main.go`](cmd/local-server/main.go) | 修改 | 注册 `GET /api/user/portrait` 路由 |
+| 6 | [`cmd/server/main.go`](cmd/server/main.go) | 修改 | 注册 `GET /api/user/portrait` 路由 |
 | 7 | [`frontend/static/dialogs/portrait-dialog.css`](frontend/static/dialogs/portrait-dialog.css) | **新建** | 对话框样式 |
 | 8 | [`frontend/static/dialogs/portrait-dialog.js`](frontend/static/dialogs/portrait-dialog.js) | **新建** | 对话框 Alpine 组件 |
 | 9 | [`frontend/index.html`](frontend/index.html) | 修改 | 引入 CSS/JS、添加对话框模板 |

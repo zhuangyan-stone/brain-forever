@@ -18,7 +18,7 @@ go mod tidy
 
 # Build
 echo "[2/3] Building brain-forever..."
-go build -o brain-forever ./cmd/local-server/
+go build -o brain-forever ./cmd/server/
 
 echo "[3/3] Build success!"
 echo "  - brain-forever"

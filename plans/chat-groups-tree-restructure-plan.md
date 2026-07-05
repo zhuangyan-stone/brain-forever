@@ -96,7 +96,7 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 
 ### 1.3 路由注册
 
-**文件**: [`cmd/local-server/main.go`](cmd/local-server/main.go)
+**文件**: [`cmd/server/main.go`](cmd/server/main.go)
 
 ```go
 // 删除（或注释掉）旧路由：
@@ -301,7 +301,7 @@ sequenceDiagram
 |---|------|------|------|
 | 1 | [`internal/local/store/chats.go`](internal/local/store/chats.go) | 新增方法 + 修改结构体 | 添加 `SelectChatTitleTagsGroup()`；`ChatTitleTag` 增加 `UpdateAt` 字段 |
 | 2 | [`internal/local/agent/on_tag.go`](internal/local/agent/on_tag.go) | 新增 + 删除 | 新增 `OnChatGroups`，可删除 `OnGetTagsGroups` |
-| 3 | [`cmd/local-server/main.go`](cmd/local-server/main.go) | 修改路由 | 替换路由注册 |
+| 3 | [`cmd/server/main.go`](cmd/server/main.go) | 修改路由 | 替换路由注册 |
 | 4 | [`frontend/static/chat-api.js`](frontend/static/chat-api.js) | 新增 + 删除 | 新增 `fetchChatGroups`，删除 `fetchTagsGroups` |
 | 5 | [`frontend/static/alpine-store.js`](frontend/static/alpine-store.js) | 修改 | 替换 `tagsGroups`/`loadTagsGroups`/`_buildTestTags` 为 `chatGroups`/`loadChatGroups` |
 | 6 | [`frontend/index.html`](frontend/index.html) | 修改 | 类别 Tab 占位替换为树形模板 |

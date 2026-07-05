@@ -148,7 +148,7 @@ remote-server 部署结构：
 
 | # | 操作 | 文件 |
 |---|------|------|
-| 1 | 创建 `cmd/local-server/main.go` | 从当前 `main.go` 提取，import 改为 `internal/local/*` |
+| 1 | 创建 `cmd/server/main.go` | 从当前 `main.go` 提取，import 改为 `internal/local/*` |
 | 2 | 反向代理 `/api/*` → remote-server | 同上 |
 | 3 | 前端文件服务 | 同上 |
 | 4 | TOML 配置加载 | 同上 |
@@ -174,7 +174,7 @@ remote-server 部署结构：
 
 | # | 验证项 |
 |---|--------|
-| 1 | `go build ./cmd/local-server/` 编译通过 |
+| 1 | `go build ./cmd/server/` 编译通过 |
 | 2 | `go build ./cmd/remote-server/` 编译通过 |
 | 3 | local-server 浏览器可访问，前端正常加载 |
 | 4 | remote-server `GET /api/health` 返回正常 |

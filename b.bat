@@ -28,7 +28,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM Build
 echo [2/3] Building brain-forever...
-go build -o brain-forever.exe .\cmd\local-server\
+go build -o brain-forever.exe .\cmd\server\
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] brain-forever build failed
     exit /b %ERRORLEVEL%

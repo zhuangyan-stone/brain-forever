@@ -33,7 +33,7 @@
 
 1. **local-server 已有 `charLLMClient`**（DeepSeek 客户端），在 [`ChatAgent`](internal/local/agent/on_chat.go:254) 中，已在聊天功能中直接使用。
 2. **remote-server 的工具实现是纯逻辑** - [`trip_traits.go`](internal/remote/agent/toolimp/trip_traits.go) 和 [`trip_highlights.go`](internal/remote/agent/toolimp/trip_highlights.go) 只依赖 `infra/llm` 和 `infra/i18n`，无 remote-server 特有依赖，可移植。
-3. **i18n 加载机制** - [`i18n.Init("lang/local")`](cmd/local-server/main.go:110) 递归加载 `lang/local/` 下所有 `.toml` 文件。remote 的 system prompt 和工具翻译文件需要移到 `lang/local/` 下。
+3. **i18n 加载机制** - [`i18n.Init("lang/local")`](cmd/server/main.go:110) 递归加载 `lang/local/` 下所有 `.toml` 文件。remote 的 system prompt 和工具翻译文件需要移到 `lang/local/` 下。
 4. **Portrait 的 SSE 格式与 Chat 不同** - portrait 使用 `{"event":"text", "data":"..."}` 格式，chat 使用 `{"type":"text", "content":"..."}` 格式，需要独立实现。
 
 ## 2. 合并方案

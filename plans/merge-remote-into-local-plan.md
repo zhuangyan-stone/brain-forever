@@ -98,7 +98,7 @@
 
 ### Step 6: 构建验证
 
-- 确保 `go build ./cmd/local-server/...` 编译通过
+- 确保 `go build ./cmd/server/...` 编译通过
 - 确保 `go build ./cmd/remote-server/...` 仍然编译通过（remote-server 保留）
 - 检查所有导入路径正确
 
