@@ -66,15 +66,15 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	defer h.closeChatDB(chatStore)
 
 	// Resolve sn to chat ID
-	session.chatsMu.Lock()
+	session.user.chatsMu.Lock()
 	var chatID int64
-	for _, c := range session.chats {
+	for _, c := range session.user.chats {
 		if c.SN == sn {
 			chatID = c.ID
 			break
 		}
 	}
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Unlock()
 
 	if chatID == 0 {
 		http.Error(w, i18n.T("api_error_chat_not_found"), http.StatusNotFound)
@@ -126,15 +126,15 @@ func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	defer h.closeChatDB(chatStore)
 
 	// Resolve sn to chat ID
-	session.chatsMu.Lock()
+	session.user.chatsMu.Lock()
 	var chatID int64
-	for _, c := range session.chats {
+	for _, c := range session.user.chats {
 		if c.SN == sn {
 			chatID = c.ID
 			break
 		}
 	}
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Unlock()
 
 	if chatID == 0 {
 		http.Error(w, i18n.T("api_error_chat_not_found"), http.StatusNotFound)

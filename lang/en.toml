@@ -247,25 +247,25 @@ other = "failed to insert web source"
 other = "failed to list web sources"
 
 # users.go
+[err_nickname_too_long]
+other = "nickname too long, max {{.Max}} characters, got {{.Got}}"
+
+[err_nickname_empty]
+other = "nickname cannot be empty"
+
+[err_password_empty]
+other = "password cannot be empty"
+
 [db_open_user_db_failed]
 other = "failed to open user database"
 
 [db_init_user_table_failed]
 other = "failed to initialize user table"
 
-[db_duplicate_uuid]
-other = "duplicate uuid"
-
 [db_create_user_failed]
 other = "failed to create user"
 
-[db_create_default_role_failed]
-other = "failed to create default role"
-
 [db_user_not_found_by_id]
-other = "user not found"
-
-[db_user_not_found_by_uuid]
 other = "user not found"
 
 [db_query_user_failed]
@@ -277,47 +277,13 @@ other = "failed to update nickname"
 [db_update_password_failed]
 other = "failed to update password"
 
-[db_delete_user_roles_failed]
-other = "failed to delete user roles"
-
 [db_delete_user_failed]
 other = "failed to delete user"
 
 [db_list_users_failed]
 other = "failed to list users"
 
-# roles.go
-[db_open_role_db_failed]
-other = "failed to open role database"
-
-[db_init_role_table_failed]
-other = "failed to initialize role table"
-
-[db_create_role_failed]
-other = "failed to create role"
-
-[db_role_not_found]
-other = "role not found"
-
-[db_query_role_failed]
-other = "failed to query role"
-
-[db_list_roles_failed]
-other = "failed to list roles"
-
-[db_list_active_roles_failed]
-other = "failed to list active roles"
-
-[db_update_role_failed]
-other = "failed to update role"
-
-[db_update_role_active_status_failed]
-other = "failed to update role active status"
-
-[db_delete_role_failed]
-other = "failed to delete role"
-
-# traits.go (VectorStore)
+# traits.go (BrainStore)
 [db_open_vector_db_failed]
 other = "failed to open database"
 

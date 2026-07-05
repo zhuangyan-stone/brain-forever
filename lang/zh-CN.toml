@@ -256,25 +256,25 @@ other = "插入网页资源失败"
 other = "查询网页资源列表失败"
 
 # users.go
+[err_nickname_too_long]
+other = "昵称过长，最长 {{.Max}} 个字符，当前 {{.Got}} 个字符"
+
+[err_nickname_empty]
+other = "昵称不能为空"
+
+[err_password_empty]
+other = "密码不能为空"
+
 [db_open_user_db_failed]
 other = "打开用户数据库失败"
 
 [db_init_user_table_failed]
 other = "初始化用户数据表失败"
 
-[db_duplicate_uuid]
-other = "用户唯一标识重复"
-
 [db_create_user_failed]
 other = "创建用户失败"
 
-[db_create_default_role_failed]
-other = "创建默认角色失败"
-
 [db_user_not_found_by_id]
-other = "未找到指定用户"
-
-[db_user_not_found_by_uuid]
 other = "未找到指定用户"
 
 [db_query_user_failed]
@@ -286,47 +286,13 @@ other = "更新用户昵称失败"
 [db_update_password_failed]
 other = "更新用户密码失败"
 
-[db_delete_user_roles_failed]
-other = "删除用户角色失败"
-
 [db_delete_user_failed]
 other = "删除用户失败"
 
 [db_list_users_failed]
 other = "查询用户列表失败"
 
-# roles.go
-[db_open_role_db_failed]
-other = "打开角色数据库失败"
-
-[db_init_role_table_failed]
-other = "初始化角色数据表失败"
-
-[db_create_role_failed]
-other = "创建角色失败"
-
-[db_role_not_found]
-other = "未找到指定角色"
-
-[db_query_role_failed]
-other = "查询角色信息失败"
-
-[db_list_roles_failed]
-other = "查询角色列表失败"
-
-[db_list_active_roles_failed]
-other = "查询活跃角色列表失败"
-
-[db_update_role_failed]
-other = "更新角色信息失败"
-
-[db_update_role_active_status_failed]
-other = "更新角色活跃状态失败"
-
-[db_delete_role_failed]
-other = "删除角色失败"
-
-# traits.go (VectorStore)
+# traits.go (BrainStore)
 [db_open_vector_db_failed]
 other = "打开特征向量数据库失败"
 

@@ -12,12 +12,12 @@ import (
 // OnNewChat handles PUT /api/chat/new -resets currentChat to a "blank chat"
 // (free pointer) state.
 //
-// A blank chat has no SN, no DB record, and is NOT in session.chats[].
+// A blank chat has no SN, no DB record, and is NOT in session.user.chats[].
 // It represents a fresh new conversation that hasn't sent any messages yet.
 // The SN is only generated later when ensureDBSession is called (on first message).
 //
 // Logic:
-//  1. If currentChat is nil or points into session.chats[] (a historical chat),
+//  1. If currentChat is nil or points into session.user.chats[] (a historical chat),
 //     reset it to &chat{} (blank, no SN).
 //  2. If currentChat is already a blank chat (dbChat == nil or SN == ""),
 //     this is a no-op -it's already blank.
@@ -30,7 +30,7 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 	session.mu.Lock()
 
 	// Check if currentChat is already a blank chat
-	if session.currentChat.dbChat == nil || session.currentChat.dbChat.SN == "" {
+	if session.user.currentChat.dbChat == nil || session.user.currentChat.dbChat.SN == "" {
 		// Already blank -no-op
 		session.mu.Unlock()
 
@@ -43,8 +43,8 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// currentChat points into session.chats[] (a historical chat) -reset to blank
-	session.currentChat = &chat{}
+	// currentChat points into session.user.chats[] (a historical chat) -reset to blank
+	session.user.currentChat = &chat{}
 
 	session.mu.Unlock()
 

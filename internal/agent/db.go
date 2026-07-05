@@ -23,19 +23,19 @@ func generateSessionSN() string {
 // Must be called with session.mu held.
 // Returns true if a new DB session was created, false if one already existed.
 func ensureSessionDBForChat(session *session, chatStore *store.ChatStore) bool {
-	if session.currentChat.dbChat != nil && session.currentChat.dbChat.ID != 0 {
+	if session.user.currentChat.dbChat != nil && session.user.currentChat.dbChat.ID != 0 {
 		return false // Already has a DB session
 	}
 
 	sn := generateSessionSN()
-	title := session.currentChat.title
+	title := session.user.currentChat.title
 
 	dbChat, err := chatStore.InsertChat(sn, 0, title, 0)
 	if err != nil {
 		return false
 	}
 
-	session.currentChat.dbChat = dbChat
+	session.user.currentChat.dbChat = dbChat
 
 	// Add the new chat to the in-memory list so it immediately appears
 	// in the left sidebar's chat list (without requiring a page refresh).
@@ -119,23 +119,23 @@ func persistMessageToDB(session *session, msg *Message, chatID int64, chatStore 
 	// session.chats[:i] shares the same underlying array as session.chats.
 	// When there's spare capacity, the inner append mutates the shared array,
 	// corrupting session.chats (producing duplicate entries with same ID/SN).
-	session.chatsMu.Lock()
-	for i, c := range session.chats {
+	session.user.chatsMu.Lock()
+	for i, c := range session.user.chats {
 		if c.ID == chatID {
 			// Touch the chat session's update_at
 			chatStore.TouchChat(c.ID)
 
 			// Safe removal: copy all elements except index i into a new slice
-			removed := session.chats[i]
-			rest := make([]store.Chat, 0, len(session.chats)-1)
-			rest = append(rest, session.chats[:i]...)
-			rest = append(rest, session.chats[i+1:]...)
+			removed := session.user.chats[i]
+			rest := make([]store.Chat, 0, len(session.user.chats)-1)
+			rest = append(rest, session.user.chats[:i]...)
+			rest = append(rest, session.user.chats[i+1:]...)
 			// Prepend the removed element
-			session.chats = append([]store.Chat{removed}, rest...)
+			session.user.chats = append([]store.Chat{removed}, rest...)
 			break
 		}
 	}
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Unlock()
 }
 
 // deduplicateChats removes duplicate entries from the in-memory chat list

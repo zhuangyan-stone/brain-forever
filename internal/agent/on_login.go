@@ -9,6 +9,7 @@ import (
 
 	"BrainForever/infra/i18n"
 	"BrainForever/internal/store"
+	"BrainForever/internal/store/dbc"
 )
 
 // ============================================================
@@ -17,11 +18,12 @@ import (
 
 // LoginRequest is the login request body
 type LoginRequest struct {
-	UserSN string `json:"user_sn"` // User serial number
+	No       string `json:"no"`       // User number (6 chars)
+	Password string `json:"password"` // Raw password
 }
 
-// OnLogin handles POST /api/user/login -loads user's chat data
-// and switches the session to the logged-in user.
+// OnLogin handles POST /api/user/login -authenticates by no+password,
+// loads user's chat data and switches the session to the logged-in user.
 func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -29,8 +31,12 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UserSN == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "user_sn"}), http.StatusBadRequest)
+	if req.No == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "no"}), http.StatusBadRequest)
+		return
+	}
+	if req.Password == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "password"}), http.StatusBadRequest)
 		return
 	}
 
@@ -38,20 +44,27 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Load chat data via UserStore.Login
-	chats, err := store.TheUserStore().Login(req.UserSN)
+	// Authenticate user
+	user, err := store.TheUserStore().LoginByPassword(req.No, req.Password)
 	if err != nil {
-		http.Error(w, i18n.T("api_error_login_failed", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_login_failed", map[string]any{"Error": err.Error()}), http.StatusUnauthorized)
 		return
 	}
 
-	// Ensure chats is not nil
-	if chats == nil {
+	// Load chat list (creates chat DB if first login)
+	var chats []store.Chat
+	cs, bs, err := dbc.InitUserDB(user.ID, user.SN)
+	if err == nil {
+		chats, err = cs.ListChats(100)
+		dbc.CloseLocalChatDB(cs)
+		dbc.CloseLocalBrainDB(bs)
+	}
+	if err != nil || chats == nil {
 		chats = []store.Chat{}
 	}
 
 	// Switch session to logged-in user
-	session.switchToUser(req.UserSN, chats)
+	session.switchToUser(user.ID, user.SN, chats)
 
 	// Randomly pick an avatar
 	avatar := pickRandomAvatar(h.avatarDir)
@@ -59,7 +72,8 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "ok",
-		"user_sn": req.UserSN,
+		"user_sn": user.SN,
+		"no":      user.No,
 		"avatar":  avatar,
 		"chats":   chats,
 	})

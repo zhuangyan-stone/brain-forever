@@ -65,25 +65,25 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Update a specific session from the user's session list (e.g., rename from sidebar).
 	// Uses chatsMu (independent of session.mu) to avoid blocking streaming.
-	session.chatsMu.Lock()
+	session.user.chatsMu.Lock()
 
 	// Find the session by SN (under lock)
 	var targetIndex = -1
-	for i := range session.chats {
-		if session.chats[i].SN == sn {
+	for i := range session.user.chats {
+		if session.user.chats[i].SN == sn {
 			targetIndex = i
 			break
 		}
 	}
 	if targetIndex == -1 {
-		session.chatsMu.Unlock()
+		session.user.chatsMu.Unlock()
 		http.Error(w, i18n.T("db_session_not_found"), http.StatusNotFound)
 		return
 	}
 
 	// Capture needed data under lock, then release immediately
-	targetID := session.chats[targetIndex].ID
-	session.chatsMu.Unlock()
+	targetID := session.user.chats[targetIndex].ID
+	session.user.chatsMu.Unlock()
 
 	chatStore, cerr := h.openChatDB(session)
 	if cerr != nil {
@@ -104,15 +104,15 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 	h.closeChatDB(chatStore)
 
 	// Re-acquire lock briefly to update in-memory cache
-	session.chatsMu.Lock()
-	for i := range session.chats {
-		if session.chats[i].SN == sn {
-			session.chats[i].Title = newTitle
-			session.chats[i].TitleState = int8(titleState)
+	session.user.chatsMu.Lock()
+	for i := range session.user.chats {
+		if session.user.chats[i].SN == sn {
+			session.user.chats[i].Title = newTitle
+			session.user.chats[i].TitleState = int8(titleState)
 			break
 		}
 	}
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Unlock()
 
 	// Return simple 200 OK
 	w.Header().Set("Content-Type", "application/json")
@@ -216,16 +216,16 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	// Resolve which chat's messages to use
 	if chatSN != "" {
 		// Verify the chat exists by SN and get its ID
-		session.chatsMu.Lock()
+		session.user.chatsMu.Lock()
 		var found bool
-		for _, c := range session.chats {
+		for _, c := range session.user.chats {
 			if c.SN == chatSN {
 				found = true
 				chatID = c.ID
 				break
 			}
 		}
-		session.chatsMu.Unlock()
+		session.user.chatsMu.Unlock()
 
 		if !found {
 			// Chat not found (may have been deleted) -return original title
@@ -240,9 +240,9 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	} else {
 		// No sn provided: use the current active chat (backward compatible)
 		session.mu.Lock()
-		if session.currentChat.dbChat != nil {
-			chatSN = session.currentChat.dbChat.SN
-			chatID = session.currentChat.dbChat.ID
+		if session.user.currentChat.dbChat != nil {
+			chatSN = session.user.currentChat.dbChat.SN
+			chatID = session.user.currentChat.dbChat.ID
 		}
 		session.mu.Unlock()
 	}

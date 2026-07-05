@@ -30,8 +30,8 @@ func appendNewRequestMessage(session *session, reqMsg *Message, chatStore *store
 
 	// Load the last message from DB to determine the next ID
 	var dbChatID int64
-	if session.currentChat.dbChat != nil {
-		dbChatID = session.currentChat.dbChat.ID
+	if session.user.currentChat.dbChat != nil {
+		dbChatID = session.user.currentChat.dbChat.ID
 	}
 	if dbChatID != 0 {
 		dbMessages, err := chatStore.ListMessages(dbChatID)
@@ -46,8 +46,8 @@ func appendNewRequestMessage(session *session, reqMsg *Message, chatStore *store
 	// Ensure a DB session record exists
 	isNewChat := ensureSessionDBForChat(session, chatStore)
 	// Persist the user message to DB
-	// session.mu is held, so session.currentChat is stable
-	chatID := session.currentChat.dbChat.ID
+	// session.mu is held, so session.user.currentChat is stable
+	chatID := session.user.currentChat.dbChat.ID
 	persistMessageToDB(session, reqMsg, chatID, chatStore)
 
 	return isNewChat
@@ -117,8 +117,8 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	//    session.mu is not held during streaming, other handlers may change currentChat.
 	var chatCreatedSN string
 	var chatCreatedFrontSN string
-	if isNewChat && session.currentChat.dbChat != nil && session.currentChat.dbChat.SN != "" {
-		chatCreatedSN = session.currentChat.dbChat.SN
+	if isNewChat && session.user.currentChat.dbChat != nil && session.user.currentChat.dbChat.SN != "" {
+		chatCreatedSN = session.user.currentChat.dbChat.SN
 		chatCreatedFrontSN = req.FrontSN
 	}
 
@@ -126,8 +126,8 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	//    session.mu is not held during streaming, OnSwitchChat may change currentChat,
 	//    causing persistMessageToDB to write assistant to wrong chat.
 	var msgChatID int64
-	if session.currentChat.dbChat != nil {
-		msgChatID = session.currentChat.dbChat.ID
+	if session.user.currentChat.dbChat != nil {
+		msgChatID = session.user.currentChat.dbChat.ID
 	}
 
 	// 7. Load messages from DB for the LLM call
@@ -214,7 +214,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		lang)
 
 	// 12. Persist the assistant message to DB
-	//  Use the chatID captured when streaming started, not session.currentChat,
+	//  Use the chatID captured when streaming started, not session.user.currentChat,
 	//  to avoid persisting to the wrong conversation if the user switches chats
 	//  before the flow completes.
 	if assistantMsg != nil {

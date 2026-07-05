@@ -88,8 +88,8 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	var chatTitle string
 	var taged bool
 	var chatID int64
-	session.chatsMu.Lock()
-	for _, c := range session.chats {
+	session.user.chatsMu.Lock()
+	for _, c := range session.user.chats {
 		if c.SN == chatSN {
 			chatTitle = c.Title
 			taged = c.Taged
@@ -97,7 +97,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Unlock()
 
 	if chatID == 0 {
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
@@ -292,14 +292,14 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. Update in-memory cache
-	session.chatsMu.Lock()
-	for i := range session.chats {
-		if session.chats[i].SN == chatSN {
-			session.chats[i].Taged = true
+	session.user.chatsMu.Lock()
+	for i := range session.user.chats {
+		if session.user.chats[i].SN == chatSN {
+			session.user.chats[i].Taged = true
 			break
 		}
 	}
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Unlock()
 
 	// Read LLM message viewing stats from the samples tool.
 	viewedCount := samplesTool.GetViewedMessageCount()

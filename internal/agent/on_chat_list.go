@@ -23,28 +23,28 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 	session := h.sessionManager.GetOrCreate(sessionID)
 
 	// Read the in-memory chat list under chatsMu lock
-	session.chatsMu.Lock()
-	chats := session.chats
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Lock()
+	chats := session.user.chats
+	session.user.chatsMu.Unlock()
 
 	// If the in-memory list is empty, try loading from DB
 	if len(chats) == 0 {
 		session.mu.Lock()
-		userSN := session.userSN
+		userSN := session.user.SN
 		session.mu.Unlock()
 
 		if userSN != "" {
-			// Logged-in user: load chats from DB via UserStore.Login
-			if loadedChats, err := store.TheUserStore().Login(userSN); err == nil {
+			// Logged-in user: load chats from DB via UserStore.LoadChats
+			if loadedChats, err := store.TheUserStore().LoadChats(userSN); err == nil {
 				chats = loadedChats
-				session.switchToUser(userSN, chats)
+				session.switchToUser(session.user.ID, userSN, chats)
 			}
 		}
 
 		// Re-read after potential load
-		session.chatsMu.Lock()
-		chats = session.chats
-		session.chatsMu.Unlock()
+		session.user.chatsMu.Lock()
+		chats = session.user.chats
+		session.user.chatsMu.Unlock()
 	}
 
 	// Ensure we never return nil -return empty array instead

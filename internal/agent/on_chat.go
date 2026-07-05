@@ -11,7 +11,7 @@ import (
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/store"
-	"BrainForever/internal/store/dbcfg"
+	"BrainForever/internal/store/dbc"
 )
 
 // ============================================================
@@ -33,19 +33,19 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Phase 1: Find the chat by SN and remove from in-memory list (under chatsMu lock)
 	var chatID int64
-	session.chatsMu.Lock()
+	session.user.chatsMu.Lock()
 
 	var found bool
-	for i := range session.chats {
-		if session.chats[i].SN == sn {
-			chatID = session.chats[i].ID
+	for i := range session.user.chats {
+		if session.user.chats[i].SN == sn {
+			chatID = session.user.chats[i].ID
 			// Remove from in-memory list (normal chats)
-			session.chats = append(session.chats[:i], session.chats[i+1:]...)
+			session.user.chats = append(session.user.chats[:i], session.user.chats[i+1:]...)
 			found = true
 			break
 		}
 	}
-	session.chatsMu.Unlock()
+	session.user.chatsMu.Unlock()
 
 	if !found {
 		http.Error(w, i18n.T("db_session_not_found"), http.StatusNotFound)
@@ -65,8 +65,8 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 	//   Moving reset before LogicDelete + immediately after chatsMu unlock
 	//   reduces the race window from millisecond-level I/O duration to a few nanoseconds of CPU instruction gap.
 	session.mu.Lock()
-	if session.currentChat != nil && session.currentChat.dbChat != nil && session.currentChat.dbChat.ID == chatID {
-		session.currentChat = &chat{}
+	if session.user.currentChat != nil && session.user.currentChat.dbChat != nil && session.user.currentChat.dbChat.ID == chatID {
+		session.user.currentChat = &chat{}
 	}
 	session.mu.Unlock()
 
@@ -154,9 +154,9 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 	// Reload the restored chat from DB and add back to in-memory list
 	chats, err := chatStore.ListChats(100)
 	if err == nil {
-		session.chatsMu.Lock()
-		session.chats = chats
-		session.chatsMu.Unlock()
+		session.user.chatsMu.Lock()
+		session.user.chats = chats
+		session.user.chatsMu.Unlock()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -373,30 +373,35 @@ func NewChatHandler(
 
 // resolveUserSN returns the session's userSN (no fallback).
 func resolveUserSN(s *session) string {
-	return s.userSN
+	return s.user.SN
+}
+
+// resolveUserID returns the session's userID (0 = anonymous).
+func resolveUserID(s *session) int64 {
+	return s.user.ID
 }
 
 // openChatDB opens the user's chat database (no schema check, for performance).
-// Schema is ensured by UserStore.Login() called during login.
+// Schema is ensured by dbc.InitUserDB() called during login.
 // Caller MUST call closeChatDB when done.
 func (h *ChatAgent) openChatDB(s *session) (*store.ChatStore, error) {
-	return dbcfg.OpenLocalChatDB(resolveUserSN(s))
+	return dbc.OpenLocalChatDB(resolveUserID(s), resolveUserSN(s))
 }
 
 // openBrainDB opens the user's brain database (no schema check).
 // Caller MUST call closeBrainDB when done.
 func (h *ChatAgent) openBrainDB(s *session) (*store.BrainStore, error) {
-	return dbcfg.OpenLocalBrainDB(resolveUserSN(s))
+	return dbc.OpenLocalBrainDB(resolveUserID(s), resolveUserSN(s))
 }
 
 // closeChatDB safely closes a ChatStore (nil-safe).
 func (h *ChatAgent) closeChatDB(cs *store.ChatStore) {
-	dbcfg.CloseLocalChatDB(cs)
+	dbc.CloseLocalChatDB(cs)
 }
 
 // closeBrainDB safely closes a BrainStore (nil-safe).
 func (h *ChatAgent) closeBrainDB(vs *store.BrainStore) {
-	dbcfg.CloseLocalBrainDB(vs)
+	dbc.CloseLocalBrainDB(vs)
 }
 
 func makeAssistantBrokenMessage(lang string, id int64) Message {
@@ -442,7 +447,7 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 
 	// Load messages from DB (no in-memory storage)
 	session.mu.Lock()
-	chatID := session.currentChat.dbChat.ID
+	chatID := session.user.currentChat.dbChat.ID
 	session.mu.Unlock()
 
 	var msgs []Message
@@ -477,8 +482,8 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	msgs = ensureAssistantForOrphanUser(msgs, lang)
 
 	session.mu.Lock()
-	title := session.currentChat.title
-	titleState := int(session.currentChat.titleState)
+	title := session.user.currentChat.title
+	titleState := int(session.user.currentChat.titleState)
 	session.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -496,7 +501,7 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 // ============================================================
 
 // OnChatPin handles PUT /api/chat/pin -toggles the pinned state of a chat.
-// Uses chatsMu because it operates on session.chats (independent of streaming).
+// Uses chatsMu because it operates on session.user.chats (independent of streaming).
 func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
@@ -510,14 +515,14 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	session.chatsMu.Lock()
-	defer session.chatsMu.Unlock()
+	session.user.chatsMu.Lock()
+	defer session.user.chatsMu.Unlock()
 
 	// Find the session by SN
 	var targetChat *store.Chat
-	for i := range session.chats {
-		if session.chats[i].SN == sn {
-			targetChat = &session.chats[i]
+	for i := range session.user.chats {
+		if session.user.chats[i].SN == sn {
+			targetChat = &session.user.chats[i]
 			break
 		}
 	}

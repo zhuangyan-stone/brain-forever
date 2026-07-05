@@ -10,7 +10,7 @@ import (
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/config"
-	"BrainForever/internal/store/dbcfg"
+	"BrainForever/internal/store/dbc"
 )
 
 // ============================================================
@@ -153,8 +153,8 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// 3. Initialize Web Search Client
 	webSearchClient := InitWebSearchClient(cfg.WebSearch, logger)
 
-	// 4. Initialize dbcfg (global on-demand database manager)
-	dbcfg.InitDBConfig("localdb", embeddingClient.Dimension(), logger)
+	// 4. Initialize dbc (global on-demand database manager)
+	dbc.InitDBConfig("localdb", embeddingClient.Dimension(), logger)
 
 	// 5. Determine the avatar directory path (relative to the frontend directory)
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
