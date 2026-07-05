@@ -12,6 +12,7 @@ import (
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/store"
+	"BrainForever/internal/store/dbcfg"
 )
 
 // ============================================================
@@ -22,14 +23,9 @@ import (
 // Also removes it from the in-memory chat list. If the deleted chat is the
 // current active chat, resets the current chat to nil.
 func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
@@ -76,10 +72,17 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 	session.mu.Unlock()
 
 	// Phase 3: Soft-delete (logic delete) -move to trash
-	if err := session.chatsStore.LogicDelete(sn); err != nil {
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		return
+	}
+	if err := chatStore.LogicDelete(sn); err != nil {
+		h.closeChatDB(chatStore)
 		http.Error(w, "failed to delete session", http.StatusInternalServerError)
 		return
 	}
+	h.closeChatDB(chatStore)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -94,17 +97,15 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 // OnListDeletedChats handles GET /api/chat/deleted -returns the list of
 // soft-deleted (trashed) chats for the current session's user.
 func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	session.chatsMu.Lock()
-	chatStore := session.chatsStore
-	session.chatsMu.Unlock()
+	chatStore, err := h.openChatDB(session)
+	if err != nil {
+		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
 
 	deletedChats, err := chatStore.ListDeletedChats(100)
 	if err != nil {
@@ -129,37 +130,35 @@ func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 // OnRestoreChat handles PUT /api/chat/restore -restores a soft-deleted chat
 // and adds it back to the in-memory chat list.
 func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Restore in DB
-	session.chatsMu.Lock()
-	chatStore := session.chatsStore
-	session.chatsMu.Unlock()
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
 
+	// Restore in DB
 	if err := chatStore.RestoreChat(sn); err != nil {
 		http.Error(w, "failed to restore chat", http.StatusInternalServerError)
 		return
 	}
 
 	// Reload the restored chat from DB and add back to in-memory list
-	session.chatsMu.Lock()
-	chats, err := session.chatsStore.ListChats(100)
+	chats, err := chatStore.ListChats(100)
 	if err == nil {
+		session.chatsMu.Lock()
 		session.chats = chats
+		session.chatsMu.Unlock()
 	}
-	session.chatsMu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -175,24 +174,21 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 // a soft-deleted chat (physical delete from DB).
 // Also removes all associated traits, vectors, and keywords from the brain DB.
 func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Find the chat from DB (regardless of deleted status)
-	session.chatsMu.Lock()
-	chatStore := session.chatsStore
-	session.chatsMu.Unlock()
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
 
 	chat, err := chatStore.FindChatBySN(sn)
 	if err != nil {
@@ -205,15 +201,15 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	// Phase 1: Delete traits from brain DB (cross-table) BEFORE deleting the chat.
 	// This removes all personal traits associated with this chat SN,
 	// along with their vector embeddings (trait_vectors) and keywords (via FK cascade).
-	session.mu.Lock()
-	traitsStore := session.traitsStore
-	session.mu.Unlock()
-
-	if traitsStore != nil {
+	traitsStore, terr := h.openBrainDB(session)
+	if terr != nil {
+		h.logger.Errorf("failed to open traits store for chat %s: %v", sn, terr)
+	} else {
 		if _, err := traitsStore.DeleteByChatSN(sn); err != nil {
 			h.logger.Errorf("failed to delete traits for chat %s: %v", sn, err)
 			// Non-fatal: continue with chat deletion even if trait deletion fails
 		}
+		h.closeBrainDB(traitsStore)
 	}
 
 	// Phase 2: Delete the chat session from chats DB.
@@ -239,17 +235,15 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 // Also removes all associated traits, vectors, and keywords from the brain DB
 // for every trashed chat.
 func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	session.chatsMu.Lock()
-	chatStore := session.chatsStore
-	session.chatsMu.Unlock()
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
 
 	// Phase 1: Collect all trashed chat SNs.
 	deletedChats, err := chatStore.ListDeletedChats(1000)
@@ -259,11 +253,10 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Phase 2: Delete traits from brain DB for each trashed chat (cross-table).
-	session.mu.Lock()
-	traitsStore := session.traitsStore
-	session.mu.Unlock()
-
-	if traitsStore != nil {
+	traitsStore, terr := h.openBrainDB(session)
+	if terr != nil {
+		h.logger.Errorf("failed to open traits store: %v", terr)
+	} else {
 		sns := make([]string, 0, len(deletedChats))
 		for _, c := range deletedChats {
 			if c.SN != "" {
@@ -276,6 +269,7 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 				// Non-fatal: continue with trash emptying even if trait deletion fails
 			}
 		}
+		h.closeBrainDB(traitsStore)
 	}
 
 	// Phase 3: Delete all trashed chat sessions from chats DB.
@@ -332,11 +326,6 @@ type LLMInfo struct {
 // OnGetLLMInfo handles GET /api/info/llm/chat requests.
 // Returns the current chat LLM provider name, model name, and official website URL as JSON.
 func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LLMInfo{
 		Name:    h.charLLMClient.Name(),
@@ -346,25 +335,21 @@ func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // Close releases all underlying resources held by the ChatAgent.
-// Closes all database stores (ChatStore, VectorStore) in all sessions,
-// including the shared anonymous store.
 func (h *ChatAgent) Close() error {
 	h.sessionManager.Close()
 	return nil
 }
 
-// NewChatHandler creates a ChatHandler
+// NewChatHandler creates a ChatAgent.
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
-// anonymousStore: the ChatStore for anonymous users (data/anonymous.db), must not be nil.
 func NewChatHandler(
 	embedder embedder.Embedder,
 	webSearcher toolimp.WebSearcher,
 	chatLLMClient llm.Client,
 	cookieName string,
 	defaultLang string,
-	anonymousStore *store.ChatStore,
 	avatarDir string,
 	logger zylog.Logger,
 ) *ChatAgent {
@@ -375,12 +360,44 @@ func NewChatHandler(
 		embedder:       embedder,
 		webSearcher:    webSearcher,
 		charLLMClient:  chatLLMClient,
-		sessionManager: NewSessionManager(anonymousStore, embedder.Dimension(), logger),
+		sessionManager: NewSessionManager(),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
 		avatarDir:      avatarDir,
 		logger:         logger,
 	}
+}
+
+// ============================================================
+// Database connection helpers (via dbcfg global)
+// ============================================================
+
+// resolveUserSN returns the session's userSN (no fallback).
+func resolveUserSN(s *session) string {
+	return s.userSN
+}
+
+// openChatDB opens the user's chat database (no schema check, for performance).
+// Schema is ensured by UserStore.Login() called during login.
+// Caller MUST call closeChatDB when done.
+func (h *ChatAgent) openChatDB(s *session) (*store.ChatStore, error) {
+	return dbcfg.OpenLocalChatDB(resolveUserSN(s))
+}
+
+// openBrainDB opens the user's brain database (no schema check).
+// Caller MUST call closeBrainDB when done.
+func (h *ChatAgent) openBrainDB(s *session) (*store.BrainStore, error) {
+	return dbcfg.OpenLocalBrainDB(resolveUserSN(s))
+}
+
+// closeChatDB safely closes a ChatStore (nil-safe).
+func (h *ChatAgent) closeChatDB(cs *store.ChatStore) {
+	dbcfg.CloseLocalChatDB(cs)
+}
+
+// closeBrainDB safely closes a BrainStore (nil-safe).
+func (h *ChatAgent) closeBrainDB(vs *store.BrainStore) {
+	dbcfg.CloseLocalBrainDB(vs)
 }
 
 func makeAssistantBrokenMessage(lang string, id int64) Message {
@@ -404,14 +421,9 @@ func makeAssistantBrokenMessage(lang string, id int64) Message {
 // its messages from the database. Returns the chat's
 // messages, title, and title state.
 func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
@@ -436,12 +448,20 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 
 	var msgs []Message
 	if chatID != 0 {
-		dbMessages, err := session.chatsStore.ListMessages(chatID)
+		chatStore, cerr := h.openChatDB(session)
+		if cerr != nil {
+			http.Error(w, fmt.Sprintf("failed to open chat store: %v", cerr), http.StatusInternalServerError)
+			return
+		}
+
+		dbMessages, err := chatStore.ListMessages(chatID)
 		if err != nil {
+			h.closeChatDB(chatStore)
 			http.Error(w, fmt.Sprintf("failed to list messages: %v", err), http.StatusInternalServerError)
 			return
 		}
-		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, chatID)
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, chatStore, chatID)
+		h.closeChatDB(chatStore)
 		if convErr != nil {
 			http.Error(w, fmt.Sprintf("failed to load web sources: %v", convErr), http.StatusInternalServerError)
 			return
@@ -479,14 +499,9 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 // OnChatPin handles PUT /api/chat/pin -toggles the pinned state of a chat.
 // Uses chatsMu because it operates on session.chats (independent of streaming).
 func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
@@ -512,10 +527,18 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := session.chatsStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		return
+	}
+
+	if err := chatStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
+		h.closeChatDB(chatStore)
 		http.Error(w, "failed to update chat pin", http.StatusInternalServerError)
 		return
 	}
+	h.closeChatDB(chatStore)
 
 	// Update in-memory cache
 	targetChat.Pinned = pinned

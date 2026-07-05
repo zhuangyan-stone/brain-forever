@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"BrainForever/infra/llm"
-	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/store"
+	"BrainForever/internal/store/dbcfg"
 )
 
 // ============================================================
@@ -140,20 +140,15 @@ type chat struct {
 
 // session represents an individual user's session
 type session struct {
-	mu      sync.Mutex // protects: currentChat, userNo, lastActivity
-	chatsMu sync.Mutex // protects: chats, chatsStore
+	mu      sync.Mutex // protects: currentChat, userSN, lastActivity
+	chatsMu sync.Mutex // protects: chats
 
 	lastActivity time.Time // Last activity time, used by GC for cleanup
 
-	id          string             // HTTP cookie session ID (e.g., "s-<32hex>-<digits>"), set at creation time
-	currentChat *chat              // Current active chat (messages, title, titleState)
-	chats       []store.Chat       // User's chat list from the database
-	userNo      string             // Global unique user serial number; empty string for anonymous users
-	chatsStore  *store.ChatStore   // Chat database store; never nil after Phase A
-	traitsStore *store.VectorStore // Traits database store; created eagerly on session creation or user switch
-
-	embedderDim int          // Embedding dimension, used to create VectorStore
-	logger      zylog.Logger // Logger, used to create VectorStore
+	id          string       // HTTP cookie session ID
+	currentChat *chat        // Current active chat (messages, title, titleState)
+	chats       []store.Chat // User's chat list from the database
+	userSN      string       // User serial number; empty = not logged in
 }
 
 // GetTitle returns the current title and its modification state atomically.
@@ -174,75 +169,21 @@ func (s *session) SetTitle(newTitle string, newState TitleState) {
 	}
 }
 
-// switchToUser switches the session to a logged-in user.
-// Since anonymous users now have their own DB (localdb/anonymous.chats.db),
-// there is no need to migrate anonymous messages -they stay in anonymous.db.
-// This simply opens the user's DB file and loads their chat list.
-//
-// NOTE: The database filename pattern differs between anonymous and logged-in users:
-//   - Anonymous: localdb/anonymous.chats.db  (matches the initial anonymousStore in InitAgent)
-//   - Logged-in: localdb/{userNo}.chats.db
-//
-// This is intentional -the anonymous store uses a different filename because
-// it is created once at startup and shared across all anonymous sessions,
-// while user stores are created per-user on login.
-func (s *session) switchToUser(sn string) {
-	// Phase 0: close old per-user stores before replacing them.
-	// We capture the old state under mu to determine what to close.
-	s.mu.Lock()
-	oldUserNo := s.userNo
-	oldTraitsStore := s.traitsStore
-	s.mu.Unlock()
-
-	// Close old traits store (each session has its own, always safe to close).
-	if oldTraitsStore != nil {
-		oldTraitsStore.Close()
+// switchToUser sets the session's user state.
+// For login: sn is non-empty, chats are pre-loaded by UserStore.Login().
+// For logout: sn is empty, chats is nil (clears session).
+func (s *session) switchToUser(sn string, chats []store.Chat) {
+	if chats == nil {
+		chats = []store.Chat{}
 	}
-
-	// Phase 1: IO operations (no lock needed -DB creation + query)
-	var dbFile string
-	if sn == "" {
-		// Anonymous user: use the same DB filename as the initial anonymousStore
-		// (localdb/anonymous.chats.db). The initial anonymous store is created
-		// with "localdb/anonymous.chats.db" in InitAgent, and all anonymous chat
-		// data is persisted there.
-		dbFile = "localdb/anonymous.chats.db"
-	} else {
-		dbFile = "localdb/" + sn + ".chats.db"
-	}
-	chatStore, err := store.CreateLocalChatScheme(dbFile)
-	if err != nil {
-		return
-	}
-
-	// Load the user's chat list (latest 100)
-	chats, err := chatStore.ListChats(100)
-	if err != nil {
-		return
-	}
-
-	// Phase 2: lock, close old per-user chatsStore (if any), and set new state
 	s.chatsMu.Lock()
-	// If the session was previously a logged-in user (oldUserNo != ""),
-	// its chatsStore is a per-user store (not the shared anonymousStore),
-	// so we must close it to avoid leaking the connection pool.
-	if oldUserNo != "" && s.chatsStore != nil {
-		s.chatsStore.Close()
-	}
-	s.chatsStore = chatStore
 	s.chats = chats
 	s.chatsMu.Unlock()
 
 	s.mu.Lock()
 	s.currentChat = &chat{}
-	s.userNo = sn
+	s.userSN = sn
 	s.mu.Unlock()
-
-	// Phase 3: eagerly create the traits store for the (possibly new) user
-	dbPath := userTraitsDBPath(sn)
-	if vs, err := store.NewVectorStore(dbPath, s.embedderDim, s.logger); err == nil {
-		s.traitsStore = vs
-	}
 }
 
 // switchToChat switches the current active chat to a historical session
@@ -251,7 +192,7 @@ func (s *session) switchToUser(sn string) {
 // Returns an error if the session is not found.
 func (s *session) switchToChat(sn string) error {
 	// Phase 1: Find the chat by SN (internally locks chatsMu)
-	foundChat, _ := s.findChatBySN(sn)
+	foundChat := s.findChatBySN(sn)
 	if foundChat == nil {
 		return fmt.Errorf("session not found: %s", sn)
 	}
@@ -270,66 +211,48 @@ func (s *session) switchToChat(sn string) error {
 
 // findChatBySN finds a chat by its serial number (SN) in the session's chat list.
 // It locks chatsMu internally, so the caller does not need to hold it.
-// Returns the chat pointer and the chatsStore reference.
 // Returns nil for the chat pointer if not found.
-func (s *session) findChatBySN(sn string) (*store.Chat, *store.ChatStore) {
+// NOTE: The returned chat pointer points into the internal slice and should
+// not be modified. The caller must open a ChatStore separately for DB operations.
+func (s *session) findChatBySN(sn string) *store.Chat {
 	s.chatsMu.Lock()
 	defer s.chatsMu.Unlock()
 
 	for i := range s.chats {
 		if s.chats[i].SN == sn {
-			return &s.chats[i], s.chatsStore
+			return &s.chats[i]
 		}
 	}
-	return nil, s.chatsStore
+	return nil
 }
 
-// SessionManager manages all user sessions
+// SessionManager manages all user sessions.
+// It does not hold any database connections; databases are accessed
+// via the global dbcfg package or theUserStore singleton.
 type SessionManager struct {
-	mu             sync.RWMutex
-	sessions       map[string]*session
-	anonymousStore *store.ChatStore // ChatStore for anonymous users (localdb/anonymous.chats.db)
-	embedderDim    int              // Embedding dimension for VectorStore creation
-	logger         zylog.Logger     // Logger for VectorStore creation
+	mu       sync.RWMutex
+	sessions map[string]*session
 }
 
-// Close closes all database stores held by the SessionManager.
-// This includes the shared anonymous store and all per-session stores.
-// Called during server graceful shutdown.
+// Close releases all sessions. No database stores to close since
+// they are opened on-demand and closed after use.
 func (sm *SessionManager) Close() {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	// Close all per-session stores
-	for id, s := range sm.sessions {
-		// Close the chat store if it's not the shared anonymous store
-		if s.chatsStore != sm.anonymousStore {
-			s.chatsStore.Close()
-		}
-		// Close the traits store
-		if s.traitsStore != nil {
-			s.traitsStore.Close()
-		}
-		delete(sm.sessions, id)
-	}
-
-	// Close the shared anonymous store last
-	if sm.anonymousStore != nil {
-		sm.anonymousStore.Close()
-	}
+	// Clear all sessions. No long-lived DB stores to close.
+	sm.sessions = make(map[string]*session)
 }
 
-// NewSessionManager creates a SessionManager
-func NewSessionManager(anonymousStore *store.ChatStore, embedderDim int, logger zylog.Logger) *SessionManager {
+// NewSessionManager creates a SessionManager.
+func NewSessionManager() *SessionManager {
 	return &SessionManager{
-		sessions:       make(map[string]*session),
-		anonymousStore: anonymousStore,
-		embedderDim:    embedderDim,
-		logger:         logger,
+		sessions: make(map[string]*session),
 	}
 }
 
-// GetOrCreate gets or creates a session for the given sessionID
+// GetOrCreate gets or creates a session for the given sessionID.
+// No database stores are opened at creation time.
 func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	sm.mu.RLock()
 	s, ok := sm.sessions[sessionID]
@@ -356,16 +279,8 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	s = &session{
 		id:           sessionID,
 		lastActivity: time.Now(),
-		userNo:       "",
-		chatsStore:   sm.anonymousStore,
+		userSN:       "",
 		currentChat:  &chat{},
-		embedderDim:  sm.embedderDim,
-		logger:       sm.logger,
-	}
-
-	// Eagerly create the anonymous traits store
-	if vs, err := store.NewVectorStore("localdb/anonymous.brain.db", sm.embedderDim, sm.logger); err == nil {
-		s.traitsStore = vs
 	}
 
 	sm.sessions[sessionID] = s
@@ -404,15 +319,22 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 		return fmt.Errorf("no DB session")
 	}
 
+	// Open chat store on-demand via dbcfg, delete, close
+	chatStore, err := dbcfg.OpenLocalChatDB(s.userSN)
+	if err != nil {
+		return fmt.Errorf("failed to open chat store: %w", err)
+	}
+	defer dbcfg.CloseLocalChatDB(chatStore)
+
 	// Delete messages and their web sources from DB
-	return s.chatsStore.DeleteMessageGroup(chatID, int(msgID))
+	return chatStore.DeleteMessageGroup(chatID, int(msgID))
 }
 
-// isBlankChat checks whether currentChat is a "blank chat" (自由指针) -
+// isBlankChat checks whether currentChat is a "blank chat" -
 // a new chat that has NOT yet been added to session.chats[] and has no SN.
 //
 // A blank chat is created by OnNewChat (PUT /api/chat/new) when the user
-// clicks "新对误. It has no SN, no DB record, and is NOT in session.chats[].
+// starts a new conversation. It has no SN, no DB record, and is NOT in session.chats[].
 // The SN is only generated later when ensureDBSession is called (on first message).
 //
 // Detection: a blank chat has dbChat == nil or dbChat.SN == "".
@@ -542,9 +464,10 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 	return msgs, nil
 }
 
-// loadMessagesAsLLMMessages loads messages from DB and converts to llm.Message slice.
+// loadMessagesAsLLMMessages loads messages from DB via the given chatStore
+// and converts to llm.Message slice.
 // Caller must hold session.mu.
-func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
+func loadMessagesAsLLMMessages(s *session, chatStore *store.ChatStore) ([]llm.Message, error) {
 	if s.currentChat.dbChat == nil {
 		return nil, fmt.Errorf("no DB session")
 	}
@@ -552,7 +475,7 @@ func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 	if chatID == 0 {
 		return nil, fmt.Errorf("no DB session")
 	}
-	dbMessages, err := s.chatsStore.ListMessages(chatID)
+	dbMessages, err := chatStore.ListMessages(chatID)
 	if err != nil {
 		return nil, err
 	}

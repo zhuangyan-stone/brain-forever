@@ -1,3 +1,9 @@
+[favorites_root_directory]
+other = "根目录"
+
+[favorites_already_in_tag]
+other = "该对话已在「{{.Tag}}」中收藏"
+
 [tool_execution_failed]
 other = "工具执行失败：{{.Error}}"
 
@@ -29,11 +35,17 @@ other = "列取最近对话标题信息失败：{{.Error}}"
 [api_error_portrait_service_unavailable]
 other = "画像服务暂时不可用：{{.Error}}"
 
-[api_error_sn_required]
-other = "缺少 sn 查询参数"
+[api_error_method_not_allowed]
+other = "不支持的请求方法"
+
+[api_error_failed_to_open_chat_store]
+other = "打开聊天数据库失败"
+
+[api_error_parameter_required]
+other = "缺少参数：{{.Param}}"
 
 [api_error_chat_not_found]
-other = "未找到指定对话"
+other = "对话不存在"
 
 [api_error_failed_to_list_messages]
 other = "读取消息列表失败：{{.Error}}"

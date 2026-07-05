@@ -22,7 +22,7 @@ func generateSessionSN() string {
 // record and sets dbChat.
 // Must be called with session.mu held.
 // Returns true if a new DB session was created, false if one already existed.
-func ensureSessionDBForChat(session *session) bool {
+func ensureSessionDBForChat(session *session, chatStore *store.ChatStore) bool {
 	if session.currentChat.dbChat != nil && session.currentChat.dbChat.ID != 0 {
 		return false // Already has a DB session
 	}
@@ -30,7 +30,7 @@ func ensureSessionDBForChat(session *session) bool {
 	sn := generateSessionSN()
 	title := session.currentChat.title
 
-	dbChat, err := session.chatsStore.InsertChat(sn, 0, title, 0)
+	dbChat, err := chatStore.InsertChat(sn, 0, title, 0)
 	if err != nil {
 		return false
 	}
@@ -55,7 +55,7 @@ func ensureSessionDBForChat(session *session) bool {
 // chatID parameter is passed explicitly to avoid race conditions:
 // session.currentChat may have been changed by OnSwitchChat while
 // streaming was in progress (session.mu is NOT held during streaming).
-func persistMessageToDB(session *session, msg *Message, chatID int64) {
+func persistMessageToDB(session *session, msg *Message, chatID int64, chatStore *store.ChatStore) {
 	if chatID == 0 {
 		return
 	}
@@ -80,7 +80,7 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 		reasoning = &msg.Reasoning
 	}
 
-	if err := session.chatsStore.InsertMessage(
+	if err := chatStore.InsertMessage(
 		chatID,
 		groupIndex,
 		role,
@@ -107,7 +107,7 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 				Score:       src.Score,
 			})
 		}
-		session.chatsStore.InsertWebSources(chatID, msg.ID, storeSources)
+		chatStore.InsertWebSources(chatID, msg.ID, storeSources)
 	}
 
 	// Also move the chat to the front of the in-memory list so that
@@ -123,7 +123,7 @@ func persistMessageToDB(session *session, msg *Message, chatID int64) {
 	for i, c := range session.chats {
 		if c.ID == chatID {
 			// Touch the chat session's update_at
-			session.chatsStore.TouchChat(c.ID)
+			chatStore.TouchChat(c.ID)
 
 			// Safe removal: copy all elements except index i into a new slice
 			removed := session.chats[i]

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,14 +39,14 @@ type UserStore struct {
 	db *sqlx.DB
 }
 
-// NewUserStore creates a new UserStore.
-// dbPath is the path to user.db (e.g., "./user.db").
-func NewUserStore(dbPath string) (*UserStore, error) {
+// OpenUserStore opens the users database and ensures its schema.
+// The first actual connection is established lazily on the first query.
+// Caller MUST call Close when done.
+func OpenUserStore(dbPath string) (*UserStore, error) {
 	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_user_db_failed"), err)
 	}
-
 	store := &UserStore{db: db}
 	if err := store.initSchema(); err != nil {
 		return nil, err
@@ -53,7 +54,15 @@ func NewUserStore(dbPath string) (*UserStore, error) {
 	return store, nil
 }
 
-// initSchema initializes the user table schema
+// NewUserStore creates a new UserStore.
+// dbPath is the path to user.db (e.g., "./user.db").
+// Deprecated: Use OpenUserStore instead for on-demand open/close pattern.
+func NewUserStore(dbPath string) (*UserStore, error) {
+	return OpenUserStore(dbPath)
+}
+
+// initSchema initializes the user table schema (including roles table).
+// Both users and roles tables live in the same users.db file.
 func (s *UserStore) initSchema() error {
 	schema := `
 		CREATE TABLE IF NOT EXISTS users (
@@ -65,12 +74,32 @@ func (s *UserStore) initSchema() error {
 			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		-- Automatically set update_at to current time when a row in users is updated
 		CREATE TRIGGER IF NOT EXISTS trg_users_update_at
 			BEFORE UPDATE ON users
 			FOR EACH ROW
 		BEGIN
 			UPDATE users SET update_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+		END;
+
+		CREATE TABLE IF NOT EXISTS roles (
+			id        INTEGER PRIMARY KEY AUTOINCREMENT,
+			role_no   INTEGER NOT NULL,
+			role_name TEXT    NOT NULL CHECK(length(role_name) <= 60),
+			uuid      TEXT    NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
+			is_public INTEGER NOT NULL DEFAULT 0,
+			is_active INTEGER NOT NULL DEFAULT 1,
+			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_roles_uuid
+			ON roles(uuid);
+
+		CREATE TRIGGER IF NOT EXISTS trg_roles_update_at
+			BEFORE UPDATE ON roles
+			FOR EACH ROW
+		BEGIN
+			UPDATE roles SET update_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 		END;
 	`
 	_, err := s.db.Exec(schema)
@@ -302,6 +331,27 @@ func (s *UserStore) ListUsers() ([]User, error) {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_users_failed"), err)
 	}
 	return users, nil
+}
+
+// ============================================================
+// Login / Logout
+// ============================================================
+
+// Login loads a user's chat list and ensures their databases exist.
+// Called when a user logs in.
+func (s *UserStore) Login(userSN string) ([]Chat, error) {
+	dbPath := filepath.Join(theDBDir, userSN+".chats.db")
+	chatStore, err := CreateLocalChatScheme(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("login failed for %s: %w", userSN, err)
+	}
+	defer chatStore.Close()
+	return chatStore.ListChats(100)
+}
+
+// Logout is called when a user logs out. Currently a placeholder.
+func (s *UserStore) Logout(userSN string) {
+	_ = userSN // Future: update last_logout timestamp, etc.
 }
 
 // Close closes the database connection

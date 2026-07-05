@@ -17,11 +17,6 @@ type DeleteMessageRequest struct {
 
 // OnDeleteMessage handles DELETE /api/chat/messages -deletes a user+assistant message pair by msg_id
 func (h *ChatAgent) OnDeleteMessage(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sessionID := h.resolveSessionID(w, r)
 
 	var req DeleteMessageRequest

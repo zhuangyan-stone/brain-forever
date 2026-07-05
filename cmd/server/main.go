@@ -94,15 +94,14 @@ func main() {
 	}
 
 	// ============================================================
-	// Initialize user store (separate user.db)
+	// Initialize global UserStore singleton (localdb/users.db)
+	// Opens before HTTP server starts, closes after it stops
 	// ============================================================
-	userStore, err := store.NewUserStore("./localdb/users.db")
-	if err != nil {
+	if err := store.InitTheUserStore("./localdb"); err != nil {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
-	} else {
-		theLogger.Infof("users storage created.")
 	}
-	defer userStore.Close()
+	defer store.CloseTheUserStore()
+	theLogger.Infof("user store (users.db) initialized")
 
 	// ============================================================
 	// Initialize i18n with local language resources

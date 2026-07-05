@@ -12,7 +12,7 @@ import (
 // traitSearchAdapter adapts searcher.WebSearcher to implement the toolimp.TraitSearcher interface
 type traitSearchAdapter struct {
 	client embedder.Embedder
-	store  *store.VectorStore
+	store  *store.BrainStore
 	lang   string
 }
 

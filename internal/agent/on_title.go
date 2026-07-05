@@ -30,11 +30,6 @@ import (
 //
 // Returns HTTP 200 on success.
 func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	// Read the new title from query parameter
 	newTitle := r.URL.Query().Get("title")
 	if newTitle == "" {
@@ -89,8 +84,13 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 
 	// Capture needed data under lock, then release immediately
 	targetID := session.chats[targetIndex].ID
-	chatStore := session.chatsStore
 	session.chatsMu.Unlock()
+
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, "failed to open chat store", http.StatusInternalServerError)
+		return
+	}
 
 	// DB write outside lock (different session_id, no conflict with streaming)
 	if err := chatStore.UpdateChatTitle(
@@ -98,9 +98,11 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		newTitle,
 		int8(titleState),
 	); err != nil {
+		h.closeChatDB(chatStore)
 		http.Error(w, "failed to update session title", http.StatusInternalServerError)
 		return
 	}
+	h.closeChatDB(chatStore)
 
 	// Re-acquire lock briefly to update in-memory cache
 	session.chatsMu.Lock()
@@ -194,12 +196,6 @@ func extractMessagesForTitle(msgs []Message) []Message {
 // The title is only saved when the user explicitly accepts it via PUT /api/session/title.
 // This ensures the backend does not modify session state before user confirmation.
 func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Request) {
-	// Only accept GET
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	// Read the original title from query parameter
 	originalTitle := r.URL.Query().Get("title")
 
@@ -254,12 +250,20 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 
 	var msgs []Message
 	if chatID != 0 {
-		dbMessages, err := session.chatsStore.ListMessages(chatID)
+		chatStore, cerr := h.openChatDB(session)
+		if cerr != nil {
+			http.Error(w, fmt.Sprintf("failed to open chat store: %v", cerr), http.StatusInternalServerError)
+			return
+		}
+
+		dbMessages, err := chatStore.ListMessages(chatID)
 		if err != nil {
+			h.closeChatDB(chatStore)
 			http.Error(w, fmt.Sprintf("failed to list messages: %v", err), http.StatusInternalServerError)
 			return
 		}
-		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, chatID)
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, chatStore, chatID)
+		h.closeChatDB(chatStore)
 		if convErr != nil {
 			http.Error(w, fmt.Sprintf("failed to load web sources: %v", convErr), http.StatusInternalServerError)
 			return

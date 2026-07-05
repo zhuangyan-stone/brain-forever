@@ -12,7 +12,7 @@ import (
 )
 
 // ============================================================
-// Document title generation handler — POST /api/doc/title
+// Document title generation handler -POST /api/doc/title
 //
 // Request (JSON):
 //
@@ -23,7 +23,7 @@ import (
 // Response (JSON):
 //
 //	{
-//	  "title": "生成的标题"
+//	  "title": "生成的标�?
 //	}
 //
 // Flow:
@@ -37,14 +37,9 @@ type docTitleRequest struct {
 	Content string `json:"content"`
 }
 
-// OnGetDocTitle handles POST /api/doc/title — generates a concise
+// OnGetDocTitle handles POST /api/doc/title �?generates a concise
 // overall title for a document (e.g., user portrait) using the local LLM.
 func (h *ChatAgent) OnGetDocTitle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	// ----------------------------------------------------------
 	// 1. Parse request body
 	// ----------------------------------------------------------

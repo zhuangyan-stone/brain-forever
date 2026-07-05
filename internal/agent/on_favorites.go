@@ -2,10 +2,10 @@ package agent
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
+	"BrainForever/infra/i18n"
 	"BrainForever/internal/store"
 )
 
@@ -20,17 +20,15 @@ import (
 // is an array of favorited chat summaries (sn, title, custom_tag,
 // create_at, update_at) sorted by update_at DESC, create_at DESC.
 func (h *ChatAgent) ListFavoriteChats(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	session.chatsMu.Lock()
-	chatStore := session.chatsStore
-	session.chatsMu.Unlock()
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
 
 	result, err := chatStore.SelectFavoritedChatTitlesGroupByTags()
 	if err != nil {
@@ -52,7 +50,7 @@ func (h *ChatAgent) ListFavoriteChats(w http.ResponseWriter, r *http.Request) {
 func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 	customTag := strings.TrimSpace(r.URL.Query().Get("custom_tag"))
@@ -60,9 +58,15 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
+
 	// Resolve sn to chat ID
 	session.chatsMu.Lock()
-	chatStore := session.chatsStore
 	var chatID int64
 	for _, c := range session.chats {
 		if c.SN == sn {
@@ -73,11 +77,11 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	session.chatsMu.Unlock()
 
 	if chatID == 0 {
-		http.Error(w, "chat not found", http.StatusNotFound)
+		http.Error(w, i18n.T("api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 
-	// 检查是否已存在相同 (chat_id, custom_tag) 的收藏
+	// Check if the same (chat_id, custom_tag) already exists
 	exists, err := chatStore.IsExistsFavoriteItem(chatID, customTag)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -86,9 +90,9 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	if exists {
 		displayTag := customTag
 		if displayTag == "" {
-			displayTag = "根目录"
+			displayTag = i18n.T("favorites_root_directory")
 		}
-		http.Error(w, fmt.Sprintf("该对话已在「%s」中收藏", displayTag), http.StatusConflict)
+		http.Error(w, i18n.T("favorites_already_in_tag", map[string]any{"Tag": displayTag}), http.StatusConflict)
 		return
 	}
 
@@ -106,7 +110,7 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
-		http.Error(w, "sn query parameter is required", http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 	customTag := r.URL.Query().Get("custom_tag")
@@ -114,9 +118,15 @@ func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
+
 	// Resolve sn to chat ID
 	session.chatsMu.Lock()
-	chatStore := session.chatsStore
 	var chatID int64
 	for _, c := range session.chats {
 		if c.SN == sn {
@@ -127,7 +137,7 @@ func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	session.chatsMu.Unlock()
 
 	if chatID == 0 {
-		http.Error(w, "chat not found", http.StatusNotFound)
+		http.Error(w, i18n.T("api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 

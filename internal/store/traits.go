@@ -18,16 +18,16 @@ import (
 // PersonalTrait -personal trait (feature) entity
 // ============================================================
 
-// PersonalTrait represents a single personal trait (特征条目) stored in the traits table.
-// Score is only populated during search results and not persisted to the database.
+// PersonalTrait represents a personal trait stored in the traits table.
+// Score is only populated during search results, not persisted to DB.
 type PersonalTrait struct {
 	ID         int64     `db:"id"`
-	Trait      string    `db:"trait"`      // 特征条目文本（原 item，建议改为trait）
-	Category   int       `db:"category"`   // 特征分类 1~14
-	Confidence int       `db:"confidence"` // 置信度（整数）
-	HalfLife   int       `db:"half_life"`  // 半衰期 1-短期,2-中期,3-长期,4-永久
-	ChatSN     string    `db:"chat_sn"`    // 来源 chat SN (chat_sessions.sn)，全局唯一
-	Score      float64   `db:"-"`          // 相似度分数（仅搜索结果使用，不持久化）
+	Trait      string    `db:"trait"`      // trait text
+	Category   int       `db:"category"`   // category 1~14
+	Confidence int       `db:"confidence"` // confidence (integer)
+	HalfLife   int       `db:"half_life"`  // half-life: 1=short,2=medium,3=long,4=permanent
+	ChatSN     string    `db:"chat_sn"`    // source chat SN, globally unique
+	Score      float64   `db:"-"`          // similarity score (search only, not persisted)
 	CreateAt   time.Time `db:"create_at"`
 	UpdateAt   time.Time `db:"update_at"`
 }
@@ -40,37 +40,51 @@ type PersonalTrait struct {
 // Kind corresponds to A-F letter categories mapped as 1-6.
 type TraitKeyword struct {
 	ID       int64     `db:"id"`
-	Word     string    `db:"word"`     // 关键词文期
-	Kind     int       `db:"kind"`     // 字母分类: 1=A,2=B,3=C,4=D,5=E,6=F
-	TraitID  int64     `db:"trait_id"` // 关联 traits.id（无外键约束）
+	Word     string    `db:"word"`     // keyword text
+	Kind     int       `db:"kind"`     // letter category: 1=A,2=B,3=C,4=D,5=E,6=F
+	TraitID  int64     `db:"trait_id"` // references traits.id (no FK)
 	CreateAt time.Time `db:"create_at"`
 }
 
 // ============================================================
-// VectorStore (based on sqlite-vec)
+// BrainStore (based on sqlite-vec, stores personal traits)
 // ============================================================
 
-// VectorStore manages personal trait storage with vector similarity search
+// BrainStore manages personal trait storage with vector similarity search
 // (based on sqlite-vec) and keyword-based retrieval.
-type VectorStore struct {
+type BrainStore struct {
 	db        *sqlx.DB
 	dimension int
 	logger    zylog.Logger
 }
 
-// NewVectorStore creates a new VectorStore.
-// dimension specifies the vector dimension used for the HNSW index,
-// which must match the embedding model's output dimension.
-func NewVectorStore(dbPath string, dimension int, logger zylog.Logger) (*VectorStore, error) {
-	// Enable sqlite-vec (global effect)
-	sqlite_vec.Auto()
-
+// OpenBrainStore opens an existing brain database WITHOUT running DDL/migrations.
+// Use this for on-demand open/close patterns where the schema is already created.
+// sqlite_vec.Auto() is called once globally; the caller should ensure it is called
+// at process startup before using any BrainStore.
+func OpenBrainStore(dbPath string, dimension int, logger zylog.Logger) (*BrainStore, error) {
 	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_vector_db_failed"), err)
 	}
+	return &BrainStore{db: db, dimension: dimension, logger: logger}, nil
+}
 
-	store := &VectorStore{db: db, dimension: dimension, logger: logger}
+// EnsureSchema ensures the brain store schema exists (idempotent).
+func (s *BrainStore) EnsureSchema() error {
+	return s.initSchema()
+}
+
+// NewBrainStore creates a new BrainStore with full schema initialization.
+// dimension specifies the vector dimension used for the HNSW index,
+// which must match the embedding model's output dimension.
+func NewBrainStore(dbPath string, dimension int, logger zylog.Logger) (*BrainStore, error) {
+	sqlite_vec.Auto()
+
+	store, err := OpenBrainStore(dbPath, dimension, logger)
+	if err != nil {
+		return nil, err
+	}
 	if err := store.initSchema(); err != nil {
 		return nil, err
 	}
@@ -78,22 +92,19 @@ func NewVectorStore(dbPath string, dimension int, logger zylog.Logger) (*VectorS
 }
 
 // initSchema initializes the traits, keywords, and vector index tables.
-func (s *VectorStore) initSchema() error {
-	// Verify sqlite-vec is loaded
+func (s *BrainStore) initSchema() error {
 	var vecVersion string
 	if err := s.db.QueryRow("SELECT vec_version()").Scan(&vecVersion); err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_vec_not_loaded"), err)
 	}
-	s.logger.Infof("✓sqlite-vec version: %s", vecVersion)
+	s.logger.Infof("sqlite-vec version: %s", vecVersion)
 
 	schema := fmt.Sprintf(`
-		-- vec0 virtual table: HNSW vector index for traits
 		CREATE VIRTUAL TABLE IF NOT EXISTS trait_vectors
 		USING vec0(
 			embedding float[%d] distance_metric=cosine
 		);
 
-		-- Personal traits table
 		CREATE TABLE IF NOT EXISTS traits (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
 			trait      TEXT    NOT NULL,
@@ -105,7 +116,6 @@ func (s *VectorStore) initSchema() error {
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		-- Keywords extracted from traits
 		CREATE TABLE IF NOT EXISTS keywords (
 			id        INTEGER PRIMARY KEY AUTOINCREMENT,
 			word      TEXT    NOT NULL,
@@ -114,19 +124,16 @@ func (s *VectorStore) initSchema() error {
 			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		-- Indexes for traits table
 		CREATE INDEX IF NOT EXISTS idx_traits_category   ON traits(category);
 		CREATE INDEX IF NOT EXISTS idx_traits_half_life  ON traits(half_life);
 		CREATE INDEX IF NOT EXISTS idx_traits_create_at  ON traits(create_at);
 		CREATE INDEX IF NOT EXISTS idx_traits_chat_sn    ON traits(chat_sn);
 
-		-- Indexes for keywords table
 		CREATE INDEX IF NOT EXISTS idx_keywords_trait_id ON keywords(trait_id);
 		CREATE INDEX IF NOT EXISTS idx_keywords_word     ON keywords(word);
 		CREATE INDEX IF NOT EXISTS idx_keywords_kind     ON keywords(kind);
 		CREATE INDEX IF NOT EXISTS idx_keywords_trait_kind ON keywords(trait_id, kind);
 
-		-- Trigger: auto-update update_at on traits
 		CREATE TRIGGER IF NOT EXISTS trg_traits_update_at
 			BEFORE UPDATE ON traits
 			FOR EACH ROW
@@ -139,31 +146,23 @@ func (s *VectorStore) initSchema() error {
 		return err
 	}
 
-	// Migration: add chat_sn column for existing databases (replacing old chat_id)
 	s.db.Exec("ALTER TABLE traits ADD COLUMN chat_sn TEXT NOT NULL DEFAULT ''")
-
-	// Migration: remove update_at from keywords table (keywords are immutable once created)
 	s.db.Exec("DROP TRIGGER IF EXISTS trg_keywords_update_at")
 	s.db.Exec("ALTER TABLE keywords DROP COLUMN update_at")
 
 	return nil
 }
 
-// ============================================================
-// AddTrait -insert a trait and its vector embedding
-// ============================================================
-
 // AddTrait inserts a personal trait into the traits table and its vector embedding
 // into the vec0 virtual table. The embedding must be pre-computed externally.
 // Returns the new trait ID.
-func (s *VectorStore) AddTrait(ctx context.Context, trait *PersonalTrait, embedding []float32) (int64, error) {
+func (s *BrainStore) AddTrait(ctx context.Context, trait *PersonalTrait, embedding []float32) (int64, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
-	// Insert trait (including chat_sn)
 	result, err := tx.Exec(
 		"INSERT INTO traits(trait, category, confidence, half_life, chat_sn) VALUES(?, ?, ?, ?, ?)",
 		trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.ChatSN,
@@ -174,10 +173,8 @@ func (s *VectorStore) AddTrait(ctx context.Context, trait *PersonalTrait, embedd
 
 	traitID, _ := result.LastInsertId()
 
-	// Serialize vector as JSON (sqlite-vec accepts JSON format vectors)
 	vecJSON, _ := json.Marshal(embedding)
 
-	// Insert vector into trait_vectors virtual table
 	_, err = tx.Exec(
 		"INSERT INTO trait_vectors(rowid, embedding) VALUES(?, ?)",
 		traitID, string(vecJSON),
@@ -189,12 +186,8 @@ func (s *VectorStore) AddTrait(ctx context.Context, trait *PersonalTrait, embedd
 	return traitID, tx.Commit()
 }
 
-// ============================================================
-// AddKeyword -insert a keyword for a trait
-// ============================================================
-
 // AddKeyword inserts a keyword associated with a trait.
-func (s *VectorStore) AddKeyword(kw *TraitKeyword) (int64, error) {
+func (s *BrainStore) AddKeyword(kw *TraitKeyword) (int64, error) {
 	result, err := s.db.Exec(
 		"INSERT INTO keywords(word, kind, trait_id) VALUES(?, ?, ?)",
 		kw.Word, kw.Kind, kw.TraitID,
@@ -205,18 +198,10 @@ func (s *VectorStore) AddKeyword(kw *TraitKeyword) (int64, error) {
 	return result.LastInsertId()
 }
 
-// ============================================================
-// SearchByVector -vector similarity search with category filter
-// ============================================================
-
-// SearchByVector performs vector similarity search (using sqlite-vec's HNSW index)
-// with an optional category filter directly in SQL. If category is 0, no filtering is applied.
-// Returns traits ordered by similarity (highest first), each with a Score field populated.
-func (s *VectorStore) SearchByVector(query []float32, category int, topK int) ([]PersonalTrait, error) {
-	// Serialize query vector
+// SearchByVector performs vector similarity search with an optional category filter.
+func (s *BrainStore) SearchByVector(query []float32, category int, topK int) ([]PersonalTrait, error) {
 	queryJSON, _ := json.Marshal(query)
 
-	// Build query -category filter is pushed into SQL WHERE for efficiency
 	sqlQuery := "SELECT v.rowid, v.distance, " +
 		"t.id, t.trait, t.category, t.confidence, t.half_life, " +
 		"t.chat_sn, t.create_at, t.update_at\n" +
@@ -241,23 +226,16 @@ func (s *VectorStore) SearchByVector(query []float32, category int, topK int) ([
 	var results []PersonalTrait
 	for rows.Next() {
 		var (
-			rowid      int64
-			distance   float64
-			traitID    int64
-			traitText  string
-			traitCat   int64
-			confidence int64
-			halfLife   int64
-			chatSN     string
-			createAt   time.Time
-			updateAt   time.Time
+			rowid, traitID                           int64
+			distance, traitCat, confidence, halfLife int64
+			traitText, chatSN                        string
+			createAt, updateAt                       time.Time
 		)
 		if err := rows.Scan(&rowid, &distance, &traitID, &traitText, &traitCat, &confidence, &halfLife, &chatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 
-		// Convert cosine distance to similarity (distance = 1 - similarity)
-		score := 1.0 - distance
+		score := 1.0 - float64(distance)
 
 		pt := PersonalTrait{
 			ID:         traitID,
@@ -270,7 +248,6 @@ func (s *VectorStore) SearchByVector(query []float32, category int, topK int) ([
 			CreateAt:   createAt,
 			UpdateAt:   updateAt,
 		}
-
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
@@ -280,16 +257,8 @@ func (s *VectorStore) SearchByVector(query []float32, category int, topK int) ([
 	return results, nil
 }
 
-// ============================================================
-// SearchByKeyword -keyword-based trait search (no vector matching)
-// ============================================================
-
 // SearchByKeyword finds traits by matching keywords.
-// word uses exact match; kind uses exact match.
-// If kind is 0, no kind filtering is applied (match keyword only).
-// Uses idx_keywords_word + idx_keywords_kind indexes for fast lookup.
-// Returns distinct traits matching the criteria, ordered by trait ID descending.
-func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]PersonalTrait, error) {
+func (s *BrainStore) SearchByKeyword(word string, kind int, limit int) ([]PersonalTrait, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -340,16 +309,8 @@ func (s *VectorStore) SearchByKeyword(word string, kind int, limit int) ([]Perso
 	return results, nil
 }
 
-// ============================================================
-// SearchByKeywordFuzzy -fuzzy keyword-based trait search (LIKE %word%)
-// ============================================================
-
-// SearchByKeywordFuzzy finds traits by fuzzy matching keywords using LIKE '%word%'.
-// kind uses exact match. This is a fallback when exact SearchByKeyword returns no results.
-// If kind is 0, no kind filtering is applied (match keyword only).
-// Uses idx_keywords_word + idx_keywords_kind indexes for fast lookup.
-// Returns distinct traits matching the criteria, ordered by trait ID descending.
-func (s *VectorStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]PersonalTrait, error) {
+// SearchByKeywordFuzzy finds traits by fuzzy matching keywords using LIKE.
+func (s *BrainStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]PersonalTrait, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -400,33 +361,22 @@ func (s *VectorStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]
 	return results, nil
 }
 
-// ============================================================
-// Delete -delete a trait, its vector embedding, and all keywords
-// ============================================================
-
-// Delete removes a personal trait by ID, along with its vector embedding
-// (from trait_vectors) and all associated keywords.
-// If the trait has a foreign key constraint (ON DELETE CASCADE) on keywords,
-// keywords are deleted automatically; otherwise they are deleted explicitly.
-// All operations run in a single transaction.
-func (s *VectorStore) Delete(id int64) error {
+// Delete removes a personal trait by ID, along with its vector embedding and keywords.
+func (s *BrainStore) Delete(id int64) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	// Delete from vec0 virtual table (no FK support, must be explicit)
 	if _, err := tx.Exec("DELETE FROM trait_vectors WHERE rowid = ?", id); err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_trait_vector_failed"), err)
 	}
 
-	// Delete keywords (explicit; ON DELETE CASCADE also handles it if FK is enabled)
 	if _, err := tx.Exec("DELETE FROM keywords WHERE trait_id = ?", id); err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_keywords_failed"), err)
 	}
 
-	// Delete the trait itself
 	result, err := tx.Exec("DELETE FROM traits WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_trait_failed"), err)
@@ -440,32 +390,19 @@ func (s *VectorStore) Delete(id int64) error {
 	return tx.Commit()
 }
 
-// ============================================================
-// Close
-// ============================================================
-
-// ============================================================
-// DeleteByChatSN -delete all traits, vectors, and keywords for a chat SN
-// ============================================================
-
-// DeleteByChatSN permanently deletes all traits belonging to the given chat SN,
-// along with their vector embeddings (from trait_vectors) and all associated
-// keywords (via FK ON DELETE CASCADE on keywords.trait_id).
-// All operations run in a single transaction.
-// Returns the number of traits deleted.
-func (s *VectorStore) DeleteByChatSN(chatSN string) (int, error) {
+// DeleteByChatSN deletes all traits for a chat SN, along with vectors and keywords.
+func (s *BrainStore) DeleteByChatSN(chatSN string) (int, error) {
 	if chatSN == "" {
 		return 0, fmt.Errorf("%s", i18n.T("db_empty_chat_sn"))
 	}
 
-	// Get all trait IDs for this chat SN
 	var traitIDs []int64
 	if err := s.db.Select(&traitIDs, "SELECT id FROM traits WHERE chat_sn = ?", chatSN); err != nil {
 		return 0, fmt.Errorf("%s: %w", i18n.T("db_list_traits_by_chat_failed"), err)
 	}
 
 	if len(traitIDs) == 0 {
-		return 0, nil // No traits to delete
+		return 0, nil
 	}
 
 	tx, err := s.db.Begin()
@@ -474,27 +411,22 @@ func (s *VectorStore) DeleteByChatSN(chatSN string) (int, error) {
 	}
 	defer tx.Rollback()
 
-	// Delete from vec0 virtual table (no FK support, must be explicit)
-	// vec0 may not support subqueries, so we delete one by one
 	for _, id := range traitIDs {
 		if _, err := tx.Exec("DELETE FROM trait_vectors WHERE rowid = ?", id); err != nil {
 			return 0, fmt.Errorf("%s (rowid=%d): %w", i18n.T("db_delete_trait_vector_failed"), id, err)
 		}
 	}
 
-	// Delete keywords explicitly (safety net; ON DELETE CASCADE also handles this)
 	if _, err := tx.Exec("DELETE FROM keywords WHERE trait_id IN (SELECT id FROM traits WHERE chat_sn = ?)", chatSN); err != nil {
 		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_keywords_failed"), err)
 	}
 
-	// Delete the traits themselves
 	result, err := tx.Exec("DELETE FROM traits WHERE chat_sn = ?", chatSN)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_trait_failed"), err)
 	}
 
-	rows, _ := result.RowsAffected()
-	_ = rows // unused but available for logging
+	_ = result
 
 	if err := tx.Commit(); err != nil {
 		return 0, fmt.Errorf("%s: %w", i18n.T("db_commit_transaction_failed"), err)
@@ -503,14 +435,8 @@ func (s *VectorStore) DeleteByChatSN(chatSN string) (int, error) {
 	return len(traitIDs), nil
 }
 
-// ============================================================
-// DeleteTraitsByChatSNs -delete all traits for multiple chat SNs in batch
-// ============================================================
-
-// DeleteTraitsByChatSNs permanently deletes all traits belonging to the given
-// list of chat SNs (typically all trashed chats). Internally calls DeleteByChatSN
-// for each SN. Returns the total number of traits deleted.
-func (s *VectorStore) DeleteTraitsByChatSNs(chatSNs []string) (int, error) {
+// DeleteTraitsByChatSNs deletes all traits for multiple chat SNs in batch.
+func (s *BrainStore) DeleteTraitsByChatSNs(chatSNs []string) (int, error) {
 	total := 0
 	for _, sn := range chatSNs {
 		n, err := s.DeleteByChatSN(sn)
@@ -522,13 +448,8 @@ func (s *VectorStore) DeleteTraitsByChatSNs(chatSNs []string) (int, error) {
 	return total, nil
 }
 
-// ============================================================
-// ListTraitsByChat -list all traits for a specific chat
-// ============================================================
-
-// ListTraitsByChat returns all traits that belong to the given chat SN,
-// ordered by create_at descending (newest first).
-func (s *VectorStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
+// ListTraitsByChat returns all traits for a given chat SN, ordered by create_at desc.
+func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 	rows, err := s.db.Query(
 		`SELECT id, trait, category, confidence, half_life, chat_sn, create_at, update_at
 		 FROM traits
@@ -559,15 +480,8 @@ func (s *VectorStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 	return results, nil
 }
 
-// ============================================================
-// ListAllTraitsByCreateTime -list all traits ordered by create_at
-// ============================================================
-
-// ListAllTraitsByCreateTime returns all personal traits for the current user,
-// ordered by create_at descending (newest first).
-// This is used for portrait generation where all traits need to be
-// sent to the LLM for higher-level abstraction.
-func (s *VectorStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
+// ListAllTraitsByCreateTime returns all personal traits ordered by create_at desc.
+func (s *BrainStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
 	rows, err := s.db.Query(
 		`SELECT id, trait, category, confidence, half_life, chat_sn, create_at, update_at
 		 FROM traits
@@ -596,6 +510,6 @@ func (s *VectorStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
 }
 
 // Close closes the database connection.
-func (s *VectorStore) Close() error {
+func (s *BrainStore) Close() error {
 	return s.db.Close()
 }

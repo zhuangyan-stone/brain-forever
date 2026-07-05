@@ -19,11 +19,6 @@ import (
 // taged, create_at, update_at, etc.) without messages or web sources.
 // Messages are loaded lazily when the user switches to a specific chat.
 func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
@@ -35,21 +30,15 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 	// If the in-memory list is empty, try loading from DB
 	if len(chats) == 0 {
 		session.mu.Lock()
-		userNo := session.userNo
+		userSN := session.userSN
 		session.mu.Unlock()
 
-		if userNo != "" {
-			// Logged-in user: switchToUser loads chats from DB
-			session.switchToUser(userNo)
-		} else {
-			// Anonymous user: load from anonymous store
-			session.chatsMu.Lock()
-			loadedChats, err := session.chatsStore.ListChats(100)
-			if err == nil {
-				session.chats = loadedChats
+		if userSN != "" {
+			// Logged-in user: load chats from DB via UserStore.Login
+			if loadedChats, err := store.TheUserStore().Login(userSN); err == nil {
 				chats = loadedChats
+				session.switchToUser(userSN, chats)
 			}
-			session.chatsMu.Unlock()
 		}
 
 		// Re-read after potential load

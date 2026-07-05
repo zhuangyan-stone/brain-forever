@@ -21,7 +21,7 @@ import (
 )
 
 // ============================================================
-// Portrait generation handler — GET /api/user/portrait?retouch=N
+// Portrait generation handler -GET /api/user/portrait?retouch=N
 //
 // Flow:
 //  1. Frontend sends GET /api/user/portrait?retouch=3
@@ -164,15 +164,10 @@ type PortraitHighlights struct {
 }
 
 // ============================================================
-// OnGetUserPortrait — GET /api/user/portrait handler
+// OnGetUserPortrait �?GET /api/user/portrait handler
 // ============================================================
 
 func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	// ----------------------------------------------------------
 	// 1. Parse query parameters
 	// ----------------------------------------------------------
@@ -192,11 +187,12 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
-	vs, err := session.ensureTraitsStore()
+	vs, err := h.openBrainDB(session)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_traits_store_unavailable"), http.StatusInternalServerError)
 		return
 	}
+	defer h.closeBrainDB(vs)
 
 	allTraits, err := vs.ListAllTraitsByCreateTime()
 	if err != nil {
@@ -212,7 +208,14 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 3. Read tags and chat titles
 	// ----------------------------------------------------------
-	tagUsageMap, _ := session.chatsStore.SelectNonEmptyTagsGroup()
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
+
+	tagUsageMap, _ := chatStore.SelectNonEmptyTagsGroup()
 	hotTags := formatHotTags(tagUsageMap)
 	tagsInfoStr := buildTagsInfoString(hotTags, lang)
 
@@ -228,7 +231,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	recentChatTitles, err := session.chatsStore.ListChatTitles(100)
+	recentChatTitles, err := chatStore.ListChatTitles(100)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
 			map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
@@ -415,7 +418,7 @@ func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, por
 }
 
 // ============================================================
-// portraitInfo — extra metadata sent as 'info' SSE event
+// portraitInfo �?extra metadata sent as 'info' SSE event
 // ============================================================
 
 type portraitInfo struct {
@@ -516,7 +519,7 @@ func buildTagsInfoString(hotTags []hotTagItem, lang string) string {
 	prefix := i18n.TL(lang, "portrait_hot_tags_prefix")
 	var parts []string
 	for _, ht := range hotTags {
-		parts = append(parts, fmt.Sprintf("%s(%d次)", ht.Tag, ht.Count))
+		parts = append(parts, fmt.Sprintf("%s(%d)", ht.Tag, ht.Count))
 	}
-	return prefix + strings.Join(parts, "、")
+	return prefix + strings.Join(parts, ", ")
 }

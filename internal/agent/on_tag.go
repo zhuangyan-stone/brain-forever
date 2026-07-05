@@ -15,21 +15,24 @@ import (
 
 // ============================================================
 // Chat groups handler -GET /api/chat/groups
-// Returns a map of tag -> []ChatTitleTag, group内按update_at,create_at逆序。
+// Returns a map of tag -> []ChatTitleTag, grouped and ordered by update_at, create_at
 // ============================================================
 
-// OnChatGroups handles GET /api/chat/groups — 返回按标签分组的对话列表，
-// 格式为 map[string][]ChatTitleTag，组内先按 update_at 逆序，再按 create_at 逆序。
+// OnChatGroups handles GET /api/chat/groups -returns tag-grouped chat list.
+// Format: map[string][]ChatTitleTag, ordered by update_at desc, create_at desc.
 func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	groups, err := session.chatsStore.SelectChatTitlesGroupByTags()
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		h.logger.Errorf("failed to open chat store: %v", cerr)
+		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
+
+	groups, err := chatStore.SelectChatTitlesGroupByTags()
 	if err != nil {
 		h.logger.Errorf("failed to select chat title tag groups: %v", err)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
@@ -64,11 +67,6 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 //	  "tags": ["Technology", "Life"]
 //	}
 func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	// Read the required sn parameter
 	chatSN := r.URL.Query().Get("sn")
 	if chatSN == "" {
@@ -106,9 +104,17 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	chatStore2, cerr2 := h.openChatDB(session)
+	if cerr2 != nil {
+		h.logger.Errorf("failed to open chat store: %v", cerr2)
+		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore2)
+
 	// If the chat has already been tagged, return existing tags from DB directly
 	if taged {
-		existingTags, listErr := session.chatsStore.ListChatTagsByChatID(chatID)
+		existingTags, listErr := chatStore2.ListChatTagsByChatID(chatID)
 		var tags []string
 		if listErr == nil {
 			for _, ct := range existingTags {
@@ -122,7 +128,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		}
 
 		totalMessages := 0
-		if count, err := session.chatsStore.CountMessages(chatID); err == nil {
+		if count, err := chatStore2.CountMessages(chatID); err == nil {
 			totalMessages = count
 		}
 
@@ -140,13 +146,13 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// Count total messages in this chat for tracking how many the LLM views.
 	totalMessages := 0
-	if count, err := session.chatsStore.CountMessages(chatID); err == nil {
+	if count, err := chatStore2.CountMessages(chatID); err == nil {
 		totalMessages = count
 	}
 
 	// Build the LLM prompt with the tag system prompt.
 	// 1. Load user's existing tags with usage counts (excluding empty tags)
-	tagUsageMap, _ := session.chatsStore.SelectNonEmptyTagsGroup()
+	tagUsageMap, _ := chatStore2.SelectNonEmptyTagsGroup()
 	tagsUsageStr := formatTagsUsage(tagUsageMap)
 
 	// 2. Build system prompt with TagsUsage and Title template data
@@ -157,7 +163,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Create tools
 	tagTool := toolimp.MakeChatTagTool(lang)
-	samplesTool := toolimp.MakeChatSamplesTool(lang, session.chatsStore, chatID, chatTitle, totalMessages)
+	samplesTool := toolimp.MakeChatSamplesTool(lang, chatStore2, chatID, chatTitle, totalMessages)
 	toolDefs := []llm.ToolDefinition{
 		samplesTool.GetDefinition(),
 		tagTool.GetDefinition(),
@@ -260,19 +266,19 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	// Persist tags to database
 	// ============================================================
 	// 1. Delete any existing tags for this chat (replace semantics)
-	if delErr := session.chatsStore.DeleteChatTagsByChatID(chatID); delErr != nil {
+	if delErr := chatStore2.DeleteChatTagsByChatID(chatID); delErr != nil {
 		h.logger.Errorf("failed to delete old chat tags for chat %d: %v", chatID, delErr)
 	}
 
 	// 2. Insert new tags
 	if len(tags) == 0 {
-		// LLM returned no tags — still save an empty string tag
-		if _, insErr := session.chatsStore.InsertChatTag(chatID, ""); insErr != nil {
+		// LLM returned no tags �?still save an empty string tag
+		if _, insErr := chatStore2.InsertChatTag(chatID, ""); insErr != nil {
 			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", chatID, insErr)
 		}
 	} else {
 		for _, tag := range tags {
-			if _, insErr := session.chatsStore.InsertChatTag(chatID, tag); insErr != nil {
+			if _, insErr := chatStore2.InsertChatTag(chatID, tag); insErr != nil {
 				h.logger.Errorf("failed to insert chat tag %q for chat %d: %v", tag, chatID, insErr)
 			}
 		}
@@ -280,7 +286,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Mark this chat as tagged in the database
 	if chatID > 0 {
-		if tagErr := session.chatsStore.UpdateChatTagged(chatID, true); tagErr != nil {
+		if tagErr := chatStore2.UpdateChatTagged(chatID, true); tagErr != nil {
 			h.logger.Errorf("failed to update chat taged flag for chat %s: %v", chatSN, tagErr)
 		}
 	}
@@ -316,9 +322,9 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 //
 // Example output:
 //
-//   - 技术 5次
-//   - 生活 3次
-//   - 娱乐 2次
+//   - 技�?5�?
+//   - 生活 3�?
+//   - 娱乐 2�?
 func formatTagsUsage(tagUsageMap map[string]int) string {
 	if len(tagUsageMap) == 0 {
 		return "（暂无）"

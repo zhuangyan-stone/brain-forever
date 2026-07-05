@@ -41,15 +41,12 @@ type Chat struct {
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
-	// Check if the database specified by dbFile (path + filename) exists.
-	// If not, create it. Contains two tables: chat_sessions and chat_messages,
-	// corresponding to the two structs above.
-
-	// Check if the database file exists
+// dbFileOpener opens a SQLite database with standard WAL-mode settings.
+// Used internally by OpenChatStore and CreateLocalChatScheme.
+func dbFileOpener(dbFile string) (*sqlx.DB, error) {
+	// Check if the database file exists; if not, create an empty file
 	_, err := os.Stat(dbFile)
 	if os.IsNotExist(err) {
-		// File doesn't exist, create an empty file to ensure sqlx.Open works
 		f, err := os.Create(dbFile)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", i18n.T("db_create_chat_db_file_failed"), err)
@@ -57,12 +54,38 @@ func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
 		f.Close()
 	}
 
-	// Open the database (WAL mode for better concurrent performance)
 	db, err := sqlx.Open("sqlite3", dbFile+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_chat_db_failed"), err)
 	}
+	return db, nil
+}
 
+// OpenChatStore opens an existing chat database WITHOUT running DDL/migrations.
+// Use this for on-demand open/close patterns where the schema is already created.
+// The first actual database connection is established lazily on the first query.
+func OpenChatStore(dbFile string) (*ChatStore, error) {
+	db, err := dbFileOpener(dbFile)
+	if err != nil {
+		return nil, err
+	}
+	return &ChatStore{db: db}, nil
+}
+
+// EnsureSchema ensures the chat database schema exists (idempotent).
+// This runs CREATE TABLE IF NOT EXISTS and migration statements.
+// Safe to call on every open; no-op if schema already exists.
+func (s *ChatStore) EnsureSchema() error {
+	return s.initSchema()
+}
+
+// CreateLocalChatScheme opens (or creates) a chat database and initializes its schema.
+// This is the original combined open+init method, kept for backward compatibility.
+func CreateLocalChatScheme(dbFile string) (*ChatStore, error) {
+	db, err := dbFileOpener(dbFile)
+	if err != nil {
+		return nil, err
+	}
 	store := &ChatStore{db: db}
 	if err := store.initSchema(); err != nil {
 		return nil, err

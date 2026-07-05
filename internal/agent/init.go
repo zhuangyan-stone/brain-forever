@@ -1,8 +1,7 @@
-﻿package agent
+package agent
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"BrainForever/infra/embedder"
@@ -11,7 +10,7 @@ import (
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/config"
-	"BrainForever/internal/store"
+	"BrainForever/internal/store/dbcfg"
 )
 
 // ============================================================
@@ -40,14 +39,14 @@ func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embed
 		}
 		e = embedder.NewZhipuEmbedder(cfg.APIKey, envKey, dimension)
 
-		logger.Infof("✓ Using Zhipu Embedder: %s (%d dims)", e.Model(), e.Dimension())
+		logger.Infof("? Using Zhipu Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	default:
 		envKey := cfg.EnvKey
 		if envKey == "" {
 			envKey = "DASHSCOPE_API_KEY"
 		}
 		e = embedder.NewDashScopeEmbedder(cfg.APIKey, envKey, dimension)
-		logger.Infof("✓ Using DashScope Embedder: %s (%d dims)", e.Model(), e.Dimension())
+		logger.Infof("? Using DashScope Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	}
 
 	return e
@@ -107,7 +106,7 @@ func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolim
 			apiKey = os.Getenv(envKey)
 		}
 		if apiKey != "" {
-			logger.Infof("✓ Web search enabled (bigmodel.cn)")
+			logger.Infof("? Web search enabled (bigmodel.cn)")
 			return &webSearchAdapter{
 				client: searcher.NewZhiPuClient(searcher.WebSearchClientConfig{
 					APIKey: apiKey,
@@ -127,7 +126,7 @@ func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolim
 			apiKey = os.Getenv(envKey)
 		}
 		if apiKey != "" {
-			logger.Infof("✓ Web search enabled (bocha.cn)")
+			logger.Infof("? Web search enabled (bocha.cn)")
 			return &webSearchAdapter{
 				client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
 					APIKey: apiKey,
@@ -154,11 +153,8 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// 3. Initialize Web Search Client
 	webSearchClient := InitWebSearchClient(cfg.WebSearch, logger)
 
-	// 4. Initialize anonymous user ChatStore (localdb/anonymous.chats.db)
-	anonymousStore, err := store.CreateLocalChatScheme("localdb/anonymous.chats.db")
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize anonymous chat store: %w", err)
-	}
+	// 4. Initialize dbcfg (global on-demand database manager)
+	dbcfg.InitDBConfig("localdb", embeddingClient.Dimension(), logger)
 
 	// 5. Determine the avatar directory path (relative to the frontend directory)
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
@@ -170,7 +166,6 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		chatLLMClient,
 		cookieName,
 		defaultLang,
-		anonymousStore,
 		avatarDir,
 		logger,
 	)

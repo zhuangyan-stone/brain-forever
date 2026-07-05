@@ -1,40 +1,36 @@
 package agent
 
 import (
-	"BrainForever/internal/store"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
+
+	"BrainForever/internal/store"
 )
 
 // ============================================================
-// Login handler -POST /api/chat/login
+// Login handler -POST /api/user/login
 // ============================================================
 
 // LoginRequest is the login request body
 type LoginRequest struct {
-	UserNo string `json:"user_no"` // Global unique user serial number
+	UserSN string `json:"user_sn"` // User serial number
 }
 
-// OnLogin handles POST /api/chat/login -switches the current session
-// to a logged-in user, loading their chat history from the database.
+// OnLogin handles POST /api/user/login -loads user's chat data
+// and switches the session to the logged-in user.
 func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse request: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	if req.UserNo == "" {
-		http.Error(w, "user_no is required", http.StatusBadRequest)
+	if req.UserSN == "" {
+		http.Error(w, "user_sn is required", http.StatusBadRequest)
 		return
 	}
 
@@ -42,30 +38,28 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Switch the session to the logged-in user
-	session.switchToUser(req.UserNo)
+	// Load chat data via UserStore.Login
+	chats, err := store.TheUserStore().Login(req.UserSN)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("login failed: %v", err), http.StatusInternalServerError)
+		return
+	}
 
-	// Return the user's session list (read under chatsMu protection)
-	session.chatsMu.Lock()
-	chats := session.chats
-	session.chatsMu.Unlock()
-
-	// Ensure chats is not nil: Go's nil slice serializes to JSON null.
-	//   The frontend's `if (data.chats)` evaluates to false when null,
-	//   causing setSidebarChats not to execute and leaving the anonymous
-	//   user's chat list in the sidebar (never cleared).
-	//   This is consistent with the approach in OnGetChats.
+	// Ensure chats is not nil
 	if chats == nil {
 		chats = []store.Chat{}
 	}
 
-	// Randomly pick an avatar from the avatar directory
+	// Switch session to logged-in user
+	session.switchToUser(req.UserSN, chats)
+
+	// Randomly pick an avatar
 	avatar := pickRandomAvatar(h.avatarDir)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "ok",
-		"user_no": req.UserNo,
+		"user_sn": req.UserSN,
 		"avatar":  avatar,
 		"chats":   chats,
 	})

@@ -1,4 +1,4 @@
-﻿package agent
+package agent
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 )
 
 // ============================================================
-// Trait extraction handler — POST /api/chat/traits
+// Trait extraction handler -POST /api/chat/traits
 //
 // Flow:
 //  1. Frontend sends POST /api/chat/traits with {"sn": "xxx"}
@@ -116,25 +116,11 @@ func userTraitsDBPath(userNo string) string {
 	return "localdb/" + userNo + ".brain.db"
 }
 
-// ensureTraitsStore returns the session's traitsStore, or an error if it was
-// not created (e.g., due to a failure during eager initialization).
-func (s *session) ensureTraitsStore() (*store.VectorStore, error) {
-	if s.traitsStore != nil {
-		return s.traitsStore, nil
-	}
-	return nil, fmt.Errorf("traits store not available (failed during initialization)")
-}
-
-// OnExtractTraits handles POST /api/chat/traits — accepts a chat SN,
+// OnExtractTraits handles POST /api/chat/traits �� accepts a chat SN,
 // reads the chat messages from the local database, then calls the LLM
 // directly with the trip_traits tool, embeds and stores the results,
 // and returns the features to the frontend.
 func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
-		return
-	}
-
 	// ----------------------------------------------------------
 	// 1. Parse request body
 	// ----------------------------------------------------------
@@ -155,7 +141,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	foundChat, chatsStore := session.findChatBySN(req.SN)
+	foundChat := session.findChatBySN(req.SN)
 	if foundChat == nil {
 		http.Error(w, fmt.Sprintf(`{"error":"chat not found (sn=%s)"}`, req.SN), http.StatusNotFound)
 		return
@@ -164,14 +150,21 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 3. Read un-extracted messages from database
 	// ----------------------------------------------------------
-	dbMessages, err := chatsStore.ListUnExtractMessages(foundChat.ID)
+	chatStore, cerr := h.openChatDB(session)
+	if cerr != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"failed to open chat store: %v"}`, cerr), http.StatusInternalServerError)
+		return
+	}
+	defer h.closeChatDB(chatStore)
+
+	dbMessages, err := chatStore.ListUnExtractMessages(foundChat.ID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
 	if len(dbMessages) == 0 {
-		handleNoNewMessages(w, foundChat, chatsStore)
+		handleNoNewMessages(w, foundChat, chatStore)
 		return
 	}
 
@@ -195,13 +188,13 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	if len(remoteResp.Features) > 0 {
 		storedCount, _ := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN)
 		if storedCount > 0 {
-			chatsStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
-			updateExtractionProgress(foundChat, chatsStore, storedCount)
+			chatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
+			updateExtractionProgress(foundChat, chatStore, storedCount)
 		} else {
-			updateExtractionProgress(foundChat, chatsStore, 0)
+			updateExtractionProgress(foundChat, chatStore, 0)
 		}
 	} else {
-		updateExtractionProgress(foundChat, chatsStore, 0)
+		updateExtractionProgress(foundChat, chatStore, 0)
 	}
 
 	// ----------------------------------------------------------
@@ -381,10 +374,11 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) (int, error) {
 	emb := h.embedder
 
-	vs, err := session.ensureTraitsStore()
+	vs, err := h.openBrainDB(session)
 	if err != nil {
-		return 0, fmt.Errorf("ensure traits store: %w", err)
+		return 0, fmt.Errorf("open traits store: %w", err)
 	}
+	defer h.closeBrainDB(vs)
 
 	stored := 0
 	for _, f := range features {

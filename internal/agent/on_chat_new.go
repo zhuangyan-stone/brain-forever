@@ -24,11 +24,6 @@ import (
 //
 // Returns JSON: { sn: "", title: "", title_state: 0 }
 func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
