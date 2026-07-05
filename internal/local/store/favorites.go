@@ -15,21 +15,21 @@ import (
 type FavoriteItem struct {
 	ID int64 `db:"id" json:"id"` // Auto-increment primary key
 
-	ChatSN    string `db:"chat_sn" json:"chat_sn"`       // References chat_sessions.sn
+	ChatID    int64  `db:"chat_id" json:"chat_id"`       // References chat_sessions.id
 	CustomTag string `db:"custom_tag" json:"custom_tag"` // User-defined custom tag for grouping favorites
 
 	CreateAt time.Time `db:"create_at" json:"create_at"`
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// InsertFavoriteItem inserts a new favorite record for the given chat SN
-// with the specified custom tag. Duplicate (chat_sn, custom_tag) pairs
+// InsertFavoriteItem inserts a new favorite record for the given chat ID
+// with the specified custom tag. Duplicate (chat_id, custom_tag) pairs
 // are allowed since there is no UNIQUE constraint on the combination.
-func (s *ChatStore) InsertFavoriteItem(chatSN, customTag string) error {
+func (s *ChatStore) InsertFavoriteItem(chatID int64, customTag string) error {
 	_, err := s.db.Exec(
-		`INSERT INTO chat_favorites(chat_sn, custom_tag)
+		`INSERT INTO chat_favorites(chat_id, custom_tag)
 		 VALUES(?, ?)`,
-		chatSN, customTag,
+		chatID, customTag,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_insert_favorite_failed"), err)
@@ -75,12 +75,12 @@ func (s *ChatStore) UpdateFavoriteItemChatCustomTag(id int64, oldCustomTag, newC
 }
 
 // IsExistsFavoriteItem checks whether a favorite record exists for the given
-// chat SN and custom tag combination. Returns true if found, false otherwise.
-func (s *ChatStore) IsExistsFavoriteItem(chatSN, customTag string) (bool, error) {
+// chat ID and custom tag combination. Returns true if found, false otherwise.
+func (s *ChatStore) IsExistsFavoriteItem(chatID int64, customTag string) (bool, error) {
 	var exists bool
 	err := s.db.Get(&exists,
-		"SELECT COUNT(1) FROM chat_favorites WHERE chat_sn = ? AND custom_tag = ?",
-		chatSN, customTag,
+		"SELECT COUNT(1) FROM chat_favorites WHERE chat_id = ? AND custom_tag = ?",
+		chatID, customTag,
 	)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", i18n.T("db_query_favorite_exists_failed"), err)
@@ -88,30 +88,30 @@ func (s *ChatStore) IsExistsFavoriteItem(chatSN, customTag string) (bool, error)
 	return exists, nil
 }
 
-// DeleteFavoriteItem deletes a favorite record matching the given chat SN
+// DeleteFavoriteItem deletes a favorite record matching the given chat ID
 // and custom tag. If no matching record is found, returns an error.
-func (s *ChatStore) DeleteFavoriteItem(chatSN, customTag string) error {
+func (s *ChatStore) DeleteFavoriteItem(chatID int64, customTag string) error {
 	result, err := s.db.Exec(
 		`DELETE FROM chat_favorites
-		 WHERE chat_sn = ? AND custom_tag = ?`,
-		chatSN, customTag,
+		 WHERE chat_id = ? AND custom_tag = ?`,
+		chatID, customTag,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_favorite_failed"), err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (chat_sn=%s, custom_tag=%s)", i18n.T("db_favorite_not_found"), chatSN, customTag)
+		return fmt.Errorf("%s (chat_id=%d, custom_tag=%s)", i18n.T("db_favorite_not_found"), chatID, customTag)
 	}
 	return nil
 }
 
-// DeleteFavoriteItemsByChatSN deletes all favorite records for the given chat SN.
+// DeleteFavoriteItemsByChatID deletes all favorite records for the given chat ID.
 // Returns the number of rows deleted.
-func (s *ChatStore) DeleteFavoriteItemsByChatSN(chatSN string) (int64, error) {
+func (s *ChatStore) DeleteFavoriteItemsByChatID(chatID int64) (int64, error) {
 	result, err := s.db.Exec(
-		`DELETE FROM chat_favorites WHERE chat_sn = ?`,
-		chatSN,
+		`DELETE FROM chat_favorites WHERE chat_id = ?`,
+		chatID,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_favorite_failed"), err)
@@ -142,7 +142,7 @@ func (s *ChatStore) SelectFavoritedChatTitlesGroupByTags() (map[string][]Favorit
 	err := s.db.Select(&rows,
 		`SELECT cs.sn, cs.title, cf.custom_tag, cs.create_at, cs.update_at
 		 FROM chat_sessions cs
-		 JOIN chat_favorites cf ON cs.sn = cf.chat_sn
+		 JOIN chat_favorites cf ON cs.id = cf.chat_id
 		 WHERE cs.deleted = 0
 		 ORDER BY cf.custom_tag, cs.update_at DESC, cs.create_at DESC`,
 	)

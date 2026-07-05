@@ -381,17 +381,17 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 
 	// Load messages from DB (no in-memory storage)
 	session.mu.Lock()
-	chatSN := session.currentChat.dbChat.SN
+	chatID := session.currentChat.dbChat.ID
 	session.mu.Unlock()
 
 	var msgs []Message
-	if chatSN != "" {
-		dbMessages, err := session.chatsStore.ListMessages(chatSN)
+	if chatID != 0 {
+		dbMessages, err := session.chatsStore.ListMessages(chatID)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to list messages: %v", err), http.StatusInternalServerError)
 			return
 		}
-		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, chatSN)
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, chatID)
 		if convErr != nil {
 			http.Error(w, fmt.Sprintf("failed to load web sources: %v", convErr), http.StatusInternalServerError)
 			return

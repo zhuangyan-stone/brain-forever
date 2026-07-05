@@ -12,7 +12,7 @@ import (
 // to avoid circular dependencies between store and agent packages.
 type WebSource struct {
 	ID          int64     `db:"id"`      // Auto-increment primary key
-	ChatSN      string    `db:"chat_sn"` // References chat_sessions.sn
+	ChatID      int64     `db:"chat_id"` // References chat_sessions.id
 	MsgID       int64     `db:"msg_id"`  // Message group index (= agent.Message.ID)
 	Title       string    `db:"title"`
 	Content     string    `db:"content"`
@@ -30,17 +30,17 @@ type WebSource struct {
 
 // InsertWebSources batch-inserts web sources for a given message group.
 // Each source is associated with the chat and message group index.
-func (s *ChatStore) InsertWebSources(chatSN string, msgID int64, sources []WebSource) error {
+func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSource) error {
 	if len(sources) == 0 {
 		return nil
 	}
 
 	for _, src := range sources {
 		_, err := s.db.Exec(
-			`INSERT INTO web_sources(chat_sn, msg_id, title, content, url,
+			`INSERT INTO web_sources(chat_id, msg_id, title, content, url,
 			                         site_name, site_icon, publish_date, score)
 			 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			chatSN, msgID,
+			chatID, msgID,
 			src.Title, src.Content, src.URL,
 			src.SiteName, src.SiteIcon, src.PublishDate, src.Score,
 		)
@@ -53,15 +53,15 @@ func (s *ChatStore) InsertWebSources(chatSN string, msgID int64, sources []WebSo
 
 // ListWebSourcesByChat queries all web sources for a given chat,
 // grouped by msg_id. Returns a map keyed by msg_id (group_index).
-func (s *ChatStore) ListWebSourcesByChat(chatSN string) (map[int64][]WebSource, error) {
+func (s *ChatStore) ListWebSourcesByChat(chatID int64) (map[int64][]WebSource, error) {
 	var sources []WebSource
 	err := s.db.Select(&sources,
-		`SELECT id, chat_sn, msg_id, title, content, url,
+		`SELECT id, chat_id, msg_id, title, content, url,
 		        site_name, site_icon, publish_date, score, create_at
 		 FROM web_sources
-		 WHERE chat_sn = ?
+		 WHERE chat_id = ?
 		 ORDER BY msg_id ASC, id ASC`,
-		chatSN,
+		chatID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_web_sources_failed"), err)

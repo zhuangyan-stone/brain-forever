@@ -14,7 +14,7 @@ import (
 // ChatTag represents a tag associated with a chat session.
 type ChatTag struct {
 	ID       int64     `db:"id" json:"id"`               // Auto-increment primary key
-	ChatSN   string    `db:"chat_sn" json:"chat_sn"`     // References chat_sessions.sn
+	ChatID   int64     `db:"chat_id" json:"chat_id"`     // References chat_sessions.id
 	Tag      string    `db:"tag" json:"tag"`             // Tag string (topic classification)
 	CreateAt time.Time `db:"create_at" json:"create_at"` // Creation time
 }
@@ -69,10 +69,10 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 }
 
 // InsertChatTag creates a new chat tag and returns it.
-func (s *ChatStore) InsertChatTag(chatSN string, tag string) (*ChatTag, error) {
+func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 	result, err := s.db.Exec(
-		"INSERT INTO chat_tags(chat_sn, tag) VALUES(?, ?)",
-		chatSN, tag,
+		"INSERT INTO chat_tags(chat_id, tag) VALUES(?, ?)",
+		chatID, tag,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_insert_chat_tag_failed"), err)
@@ -82,7 +82,7 @@ func (s *ChatStore) InsertChatTag(chatSN string, tag string) (*ChatTag, error) {
 
 	var chatTag ChatTag
 	err = s.db.Get(&chatTag,
-		`SELECT id, chat_sn, tag, create_at
+		`SELECT id, chat_id, tag, create_at
 		 FROM chat_tags WHERE id = ?`, id,
 	)
 	if err != nil {
@@ -91,16 +91,16 @@ func (s *ChatStore) InsertChatTag(chatSN string, tag string) (*ChatTag, error) {
 	return &chatTag, nil
 }
 
-// ListChatTagsByChatSN returns all tags for a given chat session,
+// ListChatTagsByChatID returns all tags for a given chat session,
 // ordered by create_at ascending.
-func (s *ChatStore) ListChatTagsByChatSN(chatSN string) ([]ChatTag, error) {
+func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
 	var tags []ChatTag
 	err := s.db.Select(&tags,
-		`SELECT id, chat_sn, tag, create_at
+		`SELECT id, chat_id, tag, create_at
 		 FROM chat_tags
-		 WHERE chat_sn = ?
+		 WHERE chat_id = ?
 		 ORDER BY create_at ASC`,
-		chatSN,
+		chatID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_chat_tags_failed"), err)
@@ -124,14 +124,14 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 	return nil
 }
 
-// DeleteChatTagsByChatSN deletes all tags for a given chat session.
-func (s *ChatStore) DeleteChatTagsByChatSN(chatSN string) error {
+// DeleteChatTagsByChatID deletes all tags for a given chat session.
+func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
 	_, err := s.db.Exec(
-		"DELETE FROM chat_tags WHERE chat_sn = ?",
-		chatSN,
+		"DELETE FROM chat_tags WHERE chat_id = ?",
+		chatID,
 	)
 	if err != nil {
-		return fmt.Errorf("%s (sn=%s): %w", i18n.T("db_delete_chat_tags_for_chat_failed"), chatSN, err)
+		return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_chat_tags_for_chat_failed"), chatID, err)
 	}
 	return nil
 }

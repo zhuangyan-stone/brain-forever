@@ -86,27 +86,29 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
-	// Look up the chat by SN from the session's chat list
+	// Look up the chat by SN from the session's chat list, also capture ID
 	var chatTitle string
 	var taged bool
+	var chatID int64
 	session.chatsMu.Lock()
 	for _, c := range session.chats {
 		if c.SN == chatSN {
 			chatTitle = c.Title
 			taged = c.Taged
+			chatID = c.ID
 			break
 		}
 	}
 	session.chatsMu.Unlock()
 
-	if chatSN == "" {
+	if chatID == 0 {
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 
 	// If the chat has already been tagged, return existing tags from DB directly
 	if taged {
-		existingTags, listErr := session.chatsStore.ListChatTagsByChatSN(chatSN)
+		existingTags, listErr := session.chatsStore.ListChatTagsByChatID(chatID)
 		var tags []string
 		if listErr == nil {
 			for _, ct := range existingTags {
@@ -120,7 +122,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		}
 
 		totalMessages := 0
-		if count, err := session.chatsStore.CountMessages(chatSN); err == nil {
+		if count, err := session.chatsStore.CountMessages(chatID); err == nil {
 			totalMessages = count
 		}
 
@@ -138,7 +140,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// Count total messages in this chat for tracking how many the LLM views.
 	totalMessages := 0
-	if count, err := session.chatsStore.CountMessages(chatSN); err == nil {
+	if count, err := session.chatsStore.CountMessages(chatID); err == nil {
 		totalMessages = count
 	}
 
@@ -155,7 +157,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Create tools
 	tagTool := toolimp.MakeChatTagTool(lang)
-	samplesTool := toolimp.MakeChatSamplesTool(lang, session.chatsStore, chatSN, chatTitle, totalMessages)
+	samplesTool := toolimp.MakeChatSamplesTool(lang, session.chatsStore, chatID, chatTitle, totalMessages)
 	toolDefs := []llm.ToolDefinition{
 		samplesTool.GetDefinition(),
 		tagTool.GetDefinition(),
@@ -258,35 +260,25 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	// Persist tags to database
 	// ============================================================
 	// 1. Delete any existing tags for this chat (replace semantics)
-	if delErr := session.chatsStore.DeleteChatTagsByChatSN(chatSN); delErr != nil {
-		h.logger.Errorf("failed to delete old chat tags for chat %s: %v", chatSN, delErr)
+	if delErr := session.chatsStore.DeleteChatTagsByChatID(chatID); delErr != nil {
+		h.logger.Errorf("failed to delete old chat tags for chat %d: %v", chatID, delErr)
 	}
 
 	// 2. Insert new tags
 	if len(tags) == 0 {
 		// LLM returned no tags — still save an empty string tag
-		if _, insErr := session.chatsStore.InsertChatTag(chatSN, ""); insErr != nil {
-			h.logger.Errorf("failed to insert empty chat tag for chat %s: %v", chatSN, insErr)
+		if _, insErr := session.chatsStore.InsertChatTag(chatID, ""); insErr != nil {
+			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", chatID, insErr)
 		}
 	} else {
 		for _, tag := range tags {
-			if _, insErr := session.chatsStore.InsertChatTag(chatSN, tag); insErr != nil {
-				h.logger.Errorf("failed to insert chat tag %q for chat %s: %v", tag, chatSN, insErr)
+			if _, insErr := session.chatsStore.InsertChatTag(chatID, tag); insErr != nil {
+				h.logger.Errorf("failed to insert chat tag %q for chat %d: %v", tag, chatID, insErr)
 			}
 		}
 	}
 
 	// 3. Mark this chat as tagged in the database
-	// UpdateChatTag still uses chat_sessions.id, so find the ID from the session's chat list
-	var chatID int64
-	session.chatsMu.Lock()
-	for _, c := range session.chats {
-		if c.SN == chatSN {
-			chatID = c.ID
-			break
-		}
-	}
-	session.chatsMu.Unlock()
 	if chatID > 0 {
 		if tagErr := session.chatsStore.UpdateChatTagged(chatID, true); tagErr != nil {
 			h.logger.Errorf("failed to update chat taged flag for chat %s: %v", chatSN, tagErr)

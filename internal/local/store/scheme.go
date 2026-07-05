@@ -27,7 +27,7 @@ func (s *ChatStore) initSchema() error {
 
 		CREATE TABLE IF NOT EXISTS chat_messages (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_sn    TEXT    NOT NULL REFERENCES chat_sessions(sn),
+			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id),
 			group_index INTEGER NOT NULL,
 			role       INTEGER NOT NULL,
 			reasoning    TEXT,
@@ -38,12 +38,12 @@ func (s *ChatStore) initSchema() error {
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_sn
-			ON chat_messages(chat_sn);
+		CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id
+			ON chat_messages(chat_id);
 
 		CREATE TABLE IF NOT EXISTS web_sources (
 			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_sn      TEXT    NOT NULL REFERENCES chat_sessions(sn),
+			chat_id      INTEGER NOT NULL REFERENCES chat_sessions(id),
 			msg_id       INTEGER NOT NULL,
 			title        TEXT    NOT NULL DEFAULT '',
 			content      TEXT    NOT NULL DEFAULT '',
@@ -56,31 +56,31 @@ func (s *ChatStore) initSchema() error {
 		);
 
 		CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg
-			ON web_sources(chat_sn, msg_id);
+			ON web_sources(chat_id, msg_id);
 
 		CREATE TABLE IF NOT EXISTS chat_tags (
 			id        INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_sn   TEXT    NOT NULL REFERENCES chat_sessions(sn),
+			chat_id   INTEGER NOT NULL REFERENCES chat_sessions(id),
 			tag       TEXT    NOT NULL,
 			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_sn
-			ON chat_tags(chat_sn);
+		CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_id
+			ON chat_tags(chat_id);
 
 		CREATE INDEX IF NOT EXISTS idx_chat_tags_tag
 			ON chat_tags(tag);
 
 		CREATE TABLE IF NOT EXISTS chat_favorites (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			chat_sn    TEXT    NOT NULL REFERENCES chat_sessions(sn),
+			chat_id    INTEGER NOT NULL REFERENCES chat_sessions(id),
 			custom_tag TEXT    NOT NULL DEFAULT '',
 			create_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_favorites_unique
-			ON chat_favorites(chat_sn, custom_tag);
+			ON chat_favorites(chat_id, custom_tag);
 
 		CREATE TRIGGER IF NOT EXISTS trg_chat_sessions_update_at
 			BEFORE UPDATE ON chat_sessions

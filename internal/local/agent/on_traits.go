@@ -164,7 +164,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 3. Read un-extracted messages from database
 	// ----------------------------------------------------------
-	dbMessages, err := chatsStore.ListUnExtractMessages(foundChat.SN)
+	dbMessages, err := chatsStore.ListUnExtractMessages(foundChat.ID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"list messages failed: %v"}`, err), http.StatusInternalServerError)
 		return
@@ -195,7 +195,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	if len(remoteResp.Features) > 0 {
 		storedCount, _ := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN)
 		if storedCount > 0 {
-			chatsStore.UpdateMessagesExtracted(foundChat.SN, lastMsgID, true)
+			chatsStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
 			updateExtractionProgress(foundChat, chatsStore, storedCount)
 		} else {
 			updateExtractionProgress(foundChat, chatsStore, 0)
@@ -440,7 +440,7 @@ func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStor
 		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
 		resp.ExtractedAt = &extractedAtStr
 	}
-	if _, err := chatsStore.CountMessages(foundChat.SN); err == nil {
+	if _, err := chatsStore.CountMessages(foundChat.ID); err == nil {
 		resp.ExtractedCount = foundChat.ExtractedCount
 	}
 	w.Header().Set("Content-Type", "application/json")

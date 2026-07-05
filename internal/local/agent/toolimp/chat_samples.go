@@ -71,8 +71,8 @@ type ChatSamplesToolImp struct {
 	def  llm.ToolDefinition
 	lang string
 
-	// chatSN is the SN of the target chat session, set at creation time.
-	chatSN string
+	// chatID is the ID of the target chat session, set at creation time.
+	chatID int64
 
 	// chatsStore is the store used to query messages from DB.
 	chatsStore *store.ChatStore
@@ -99,13 +99,13 @@ type ChatSamplesToolImp struct {
 var _ llm.ToolIMP = (*ChatSamplesToolImp)(nil)
 
 // MakeChatSamplesTool creates a new ChatSamplesToolImp with the given language,
-// chat store reference, chat SN, and chat title.
+// chat store reference, chat ID, and chat title.
 // totalMessages is the total number of messages in this chat.
-func MakeChatSamplesTool(lang string, chatsStore *store.ChatStore, chatSN string, chatTitle string, totalMessages int) *ChatSamplesToolImp {
+func MakeChatSamplesTool(lang string, chatsStore *store.ChatStore, chatID int64, chatTitle string, totalMessages int) *ChatSamplesToolImp {
 	return &ChatSamplesToolImp{
 		def:           chatSamplesToolDefinition(lang),
 		lang:          lang,
-		chatSN:        chatSN,
+		chatID:        chatID,
 		chatsStore:    chatsStore,
 		chatTitle:     chatTitle,
 		totalMessages: totalMessages,
@@ -163,12 +163,12 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 		return i18n.Tools.TL(f.lang, chatSamplesI18NKey, "all_messages_loaded"), nil
 	}
 
-	if f.chatSN == "" {
-		return "", fmt.Errorf("no valid chat SN available")
+	if f.chatID == 0 {
+		return "", fmt.Errorf("no valid chat ID available")
 	}
 
-	// Load the next batch of messages from DB using chatSN.
-	dbMessages, err := f.chatsStore.ListMessagesByRange(f.chatSN, f.nextStartMessageID, pageSize)
+	// Load the next batch of messages from DB using chatID.
+	dbMessages, err := f.chatsStore.ListMessagesByRange(f.chatID, f.nextStartMessageID, pageSize)
 	if err != nil {
 		return "", fmt.Errorf("failed to load messages: %w", err)
 	}

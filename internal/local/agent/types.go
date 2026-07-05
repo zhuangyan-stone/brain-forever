@@ -399,13 +399,13 @@ func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
 	if s.currentChat.dbChat == nil {
 		return fmt.Errorf("no DB session")
 	}
-	chatSN := s.currentChat.dbChat.SN
-	if chatSN == "" {
+	chatID := s.currentChat.dbChat.ID
+	if chatID == 0 {
 		return fmt.Errorf("no DB session")
 	}
 
 	// Delete messages and their web sources from DB
-	return s.chatsStore.DeleteMessageGroup(chatSN, int(msgID))
+	return s.chatsStore.DeleteMessageGroup(chatID, int(msgID))
 }
 
 // isBlankChat checks whether currentChat is a "blank chat" (自由指针) -
@@ -488,17 +488,17 @@ func (s *session) syncCurrentChatTitleToChatList(title string, titleState int) {
 // During conversion, ListWebSourcesByChat is called to load all web_sources for the chat,
 // then matched to each message by msg_id (= group_index).
 //
-// chatStore and chatSN are used to query the web_sources table; if chatStore is nil or
-// chatSN is empty, Sources remain empty (compatible with anonymous users and other no-DB scenarios).
+// chatStore and chatID are used to query the web_sources table; if chatStore is nil or
+// chatID is 0, Sources remain empty (compatible with anonymous users and other no-DB scenarios).
 // Returns an error if loading web sources fails.
-func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatSN string) ([]Message, error) {
+func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatID int64) ([]Message, error) {
 	// Load web sources for this chat (if available)
 	var sourcesByMsgID map[int64][]store.WebSource
-	if chatStore != nil && chatSN != "" {
+	if chatStore != nil && chatID != 0 {
 		var err error
-		sourcesByMsgID, err = chatStore.ListWebSourcesByChat(chatSN)
+		sourcesByMsgID, err = chatStore.ListWebSourcesByChat(chatID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list web sources for chat %s: %w", chatSN, err)
+			return nil, fmt.Errorf("failed to list web sources for chat %d: %w", chatID, err)
 		}
 	}
 
@@ -548,11 +548,11 @@ func loadMessagesAsLLMMessages(s *session) ([]llm.Message, error) {
 	if s.currentChat.dbChat == nil {
 		return nil, fmt.Errorf("no DB session")
 	}
-	chatSN := s.currentChat.dbChat.SN
-	if chatSN == "" {
+	chatID := s.currentChat.dbChat.ID
+	if chatID == 0 {
 		return nil, fmt.Errorf("no DB session")
 	}
-	dbMessages, err := s.chatsStore.ListMessages(chatSN)
+	dbMessages, err := s.chatsStore.ListMessages(chatID)
 	if err != nil {
 		return nil, err
 	}

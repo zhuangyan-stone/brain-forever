@@ -60,12 +60,25 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
+	// Resolve sn to chat ID
 	session.chatsMu.Lock()
 	chatStore := session.chatsStore
+	var chatID int64
+	for _, c := range session.chats {
+		if c.SN == sn {
+			chatID = c.ID
+			break
+		}
+	}
 	session.chatsMu.Unlock()
 
-	// 检查是否已存在相同 (chat_sn, custom_tag) 的收藏
-	exists, err := chatStore.IsExistsFavoriteItem(sn, customTag)
+	if chatID == 0 {
+		http.Error(w, "chat not found", http.StatusNotFound)
+		return
+	}
+
+	// 检查是否已存在相同 (chat_id, custom_tag) 的收藏
+	exists, err := chatStore.IsExistsFavoriteItem(chatID, customTag)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -79,7 +92,7 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := chatStore.InsertFavoriteItem(sn, customTag); err != nil {
+	if err := chatStore.InsertFavoriteItem(chatID, customTag); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -101,11 +114,24 @@ func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	session := h.sessionManager.GetOrCreate(sessionID)
 
+	// Resolve sn to chat ID
 	session.chatsMu.Lock()
 	chatStore := session.chatsStore
+	var chatID int64
+	for _, c := range session.chats {
+		if c.SN == sn {
+			chatID = c.ID
+			break
+		}
+	}
 	session.chatsMu.Unlock()
 
-	if err := chatStore.DeleteFavoriteItem(sn, customTag); err != nil {
+	if chatID == 0 {
+		http.Error(w, "chat not found", http.StatusNotFound)
+		return
+	}
+
+	if err := chatStore.DeleteFavoriteItem(chatID, customTag); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}

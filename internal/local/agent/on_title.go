@@ -206,6 +206,7 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	// Read the optional sn parameter -if provided, generate a title
 	// for that specific chat instead of the current active chat.
 	chatSN := r.URL.Query().Get("sn")
+	var chatID int64
 
 	// Determine the language for this request.
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
@@ -219,12 +220,13 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 
 	// Resolve which chat's messages to use
 	if chatSN != "" {
-		// Verify the chat exists by SN
+		// Verify the chat exists by SN and get its ID
 		session.chatsMu.Lock()
 		var found bool
 		for _, c := range session.chats {
 			if c.SN == chatSN {
 				found = true
+				chatID = c.ID
 				break
 			}
 		}
@@ -245,18 +247,19 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 		session.mu.Lock()
 		if session.currentChat.dbChat != nil {
 			chatSN = session.currentChat.dbChat.SN
+			chatID = session.currentChat.dbChat.ID
 		}
 		session.mu.Unlock()
 	}
 
 	var msgs []Message
-	if chatSN != "" {
-		dbMessages, err := session.chatsStore.ListMessages(chatSN)
+	if chatID != 0 {
+		dbMessages, err := session.chatsStore.ListMessages(chatID)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to list messages: %v", err), http.StatusInternalServerError)
 			return
 		}
-		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, chatSN)
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, session.chatsStore, chatID)
 		if convErr != nil {
 			http.Error(w, fmt.Sprintf("failed to load web sources: %v", convErr), http.StatusInternalServerError)
 			return

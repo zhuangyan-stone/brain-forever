@@ -116,7 +116,7 @@ func (s *ChatStore) LogicDelete(sn string) error {
 
 // PhysicalDelete physically deletes the session identified by id + sn.
 // Also deletes all its messages, web sources, and tags (transaction-safe).
-// Uses sn (chat_sn) for related table deletes since they now reference chat_sessions(sn).
+// Uses id (chat_id) for related table deletes since they now reference chat_sessions(id).
 func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -137,28 +137,28 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 		return fmt.Errorf("%s (id=%d, sn=%s)", i18n.T("db_session_not_found"), id, sn)
 	}
 
-	// Delete all tags under this session (using sn)
+	// Delete all tags under this session (using id)
 	_, err = tx.Exec(
-		"DELETE FROM chat_tags WHERE chat_sn = ?",
-		sn,
+		"DELETE FROM chat_tags WHERE chat_id = ?",
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_tags_of_session_failed"), err)
 	}
 
-	// Delete all web sources under this session (using sn)
+	// Delete all web sources under this session (using id)
 	_, err = tx.Exec(
-		"DELETE FROM web_sources WHERE chat_sn = ?",
-		sn,
+		"DELETE FROM web_sources WHERE chat_id = ?",
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_web_sources_of_session_failed"), err)
 	}
 
-	// Delete all messages under this session (using sn)
+	// Delete all messages under this session (using id)
 	_, err = tx.Exec(
-		"DELETE FROM chat_messages WHERE chat_sn = ?",
-		sn,
+		"DELETE FROM chat_messages WHERE chat_id = ?",
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_delete_messages_of_session_failed"), err)
@@ -306,16 +306,16 @@ func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 
 // EmptyTrash permanently deletes all soft-deleted chats (and their messages/web_sources).
 func (s *ChatStore) EmptyTrash() error {
-	// Get all deleted chat SNs first (related tables now use chat_sn)
-	var deletedSNs []string
-	err := s.db.Select(&deletedSNs,
-		"SELECT sn FROM chat_sessions WHERE deleted = 1",
+	// Get all deleted chat IDs first (related tables now use chat_id)
+	var deletedIDs []int64
+	err := s.db.Select(&deletedIDs,
+		"SELECT id FROM chat_sessions WHERE deleted = 1",
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_query_deleted_chats_failed"), err)
 	}
 
-	if len(deletedSNs) == 0 {
+	if len(deletedIDs) == 0 {
 		return nil
 	}
 
@@ -325,23 +325,23 @@ func (s *ChatStore) EmptyTrash() error {
 	}
 	defer tx.Rollback()
 
-	for _, sn := range deletedSNs {
+	for _, id := range deletedIDs {
 		// Delete all tags under this session
-		_, err = tx.Exec("DELETE FROM chat_tags WHERE chat_sn = ?", sn)
+		_, err = tx.Exec("DELETE FROM chat_tags WHERE chat_id = ?", id)
 		if err != nil {
-			return fmt.Errorf("%s (sn=%s): %w", i18n.T("db_delete_tags_for_chat_failed"), sn, err)
+			return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_tags_for_chat_failed"), id, err)
 		}
 
 		// Delete all web sources under this session
-		_, err = tx.Exec("DELETE FROM web_sources WHERE chat_sn = ?", sn)
+		_, err = tx.Exec("DELETE FROM web_sources WHERE chat_id = ?", id)
 		if err != nil {
-			return fmt.Errorf("%s (sn=%s): %w", i18n.T("db_delete_web_sources_for_chat_failed"), sn, err)
+			return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_web_sources_for_chat_failed"), id, err)
 		}
 
 		// Delete all messages under this session
-		_, err = tx.Exec("DELETE FROM chat_messages WHERE chat_sn = ?", sn)
+		_, err = tx.Exec("DELETE FROM chat_messages WHERE chat_id = ?", id)
 		if err != nil {
-			return fmt.Errorf("%s (sn=%s): %w", i18n.T("db_delete_messages_for_chat_failed"), sn, err)
+			return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_messages_for_chat_failed"), id, err)
 		}
 	}
 
@@ -387,7 +387,7 @@ func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) er
 // successful trait extraction to record which messages have been processed.
 // Using message id (auto-increment PK) as the cutoff ensures that even if
 // group_index is non-contiguous, all messages up to the given point are marked.
-func (s *ChatStore) UpdateMessagesExtracted(chatSN string, upToID int64, extracted bool) error {
+func (s *ChatStore) UpdateMessagesExtracted(chatID int64, upToID int64, extracted bool) error {
 	extractedVal := 0
 	if extracted {
 		extractedVal = 1
@@ -395,8 +395,8 @@ func (s *ChatStore) UpdateMessagesExtracted(chatSN string, upToID int64, extract
 	_, err := s.db.Exec(
 		`UPDATE chat_messages
 		 SET extracted = ?
-		 WHERE chat_sn = ? AND id <= ? AND extracted = ?`,
-		extractedVal, chatSN, upToID, 1-extractedVal,
+		 WHERE chat_id = ? AND id <= ? AND extracted = ?`,
+		extractedVal, chatID, upToID, 1-extractedVal,
 	)
 	if err != nil {
 		return fmt.Errorf("%s: %w", i18n.T("db_mark_messages_extracted_failed"), err)
@@ -467,7 +467,7 @@ func (s *ChatStore) SelectChatTitlesGroupByTags() (map[string][]ChatTitleTag, er
 	err := s.db.Select(&rows,
 		`SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
 		 FROM chat_sessions cs
-		 JOIN chat_tags ct ON cs.sn = ct.chat_sn
+		 JOIN chat_tags ct ON cs.id = ct.chat_id
 		 WHERE cs.deleted = 0
 		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`,
 	)

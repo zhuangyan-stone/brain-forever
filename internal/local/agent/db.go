@@ -52,11 +52,11 @@ func ensureSessionDBForChat(session *session) bool {
 // so active chats float to the top of the sidebar.
 // Must be called with session.mu held.
 //
-// chatSN parameter is passed explicitly to avoid race conditions:
+// chatID parameter is passed explicitly to avoid race conditions:
 // session.currentChat may have been changed by OnSwitchChat while
 // streaming was in progress (session.mu is NOT held during streaming).
-func persistMessageToDB(session *session, msg *Message, chatSN string) {
-	if chatSN == "" {
+func persistMessageToDB(session *session, msg *Message, chatID int64) {
+	if chatID == 0 {
 		return
 	}
 
@@ -81,7 +81,7 @@ func persistMessageToDB(session *session, msg *Message, chatSN string) {
 	}
 
 	if err := session.chatsStore.InsertMessage(
-		chatSN,
+		chatID,
 		groupIndex,
 		role,
 		msg.Content,
@@ -96,7 +96,7 @@ func persistMessageToDB(session *session, msg *Message, chatSN string) {
 		storeSources := make([]store.WebSource, 0, len(msg.Sources))
 		for _, src := range msg.Sources {
 			storeSources = append(storeSources, store.WebSource{
-				ChatSN:      chatSN,
+				ChatID:      chatID,
 				MsgID:       msg.ID,
 				Title:       src.Title,
 				Content:     src.Content,
@@ -107,7 +107,7 @@ func persistMessageToDB(session *session, msg *Message, chatSN string) {
 				Score:       src.Score,
 			})
 		}
-		session.chatsStore.InsertWebSources(chatSN, msg.ID, storeSources)
+		session.chatsStore.InsertWebSources(chatID, msg.ID, storeSources)
 	}
 
 	// Also move the chat to the front of the in-memory list so that
@@ -121,7 +121,7 @@ func persistMessageToDB(session *session, msg *Message, chatSN string) {
 	// corrupting session.chats (producing duplicate entries with same ID/SN).
 	session.chatsMu.Lock()
 	for i, c := range session.chats {
-		if c.SN == chatSN {
+		if c.ID == chatID {
 			// Touch the chat session's update_at
 			session.chatsStore.TouchChat(c.ID)
 
