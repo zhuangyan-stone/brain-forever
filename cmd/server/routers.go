@@ -6,10 +6,11 @@ import (
 
 	"BrainForever/infra/httpx"
 	"BrainForever/internal/agent"
+	"BrainForever/internal/theme"
 )
 
 // initRouters registers all API routes on the given server.
-func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
+func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *theme.Handler) {
 
 	// /api/chat -- POST (new message) + DELETE (delete chat)
 	srv.POST("/api/chat", chatHandler.OnNewMessage)
@@ -86,5 +87,25 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent) {
 			"server":  "local-server",
 			"version": "1.0.0",
 		})
+	})
+
+	// /api/themes -- GET (list themes) + POST (update active theme)
+	srv.GET("/api/themes", themeHandler.GetThemes)
+	srv.POST("/api/themes", themeHandler.SetThemes)
+}
+
+// initStaticFileServer sets up the static file server for frontend pages.
+// When cacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
+// take effect immediately during development.
+// Production (default) uses http.FileServer's default ETag/Last-Modified caching behavior.
+func initStaticFileServer(srv *httpx.Server, frontendDir string, cacheDisable bool) {
+	fs := http.FileServer(http.Dir(frontendDir))
+	srv.Handle("/", func(w http.ResponseWriter, r *http.Request) {
+		if cacheDisable {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+		}
+		fs.ServeHTTP(w, r)
 	})
 }

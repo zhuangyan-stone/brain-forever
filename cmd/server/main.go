@@ -2,15 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -21,9 +17,7 @@ import (
 	"BrainForever/internal/config"
 	"BrainForever/internal/logger"
 	"BrainForever/internal/store"
-	"BrainForever/toolset"
-
-	"github.com/BurntSushi/toml"
+	"BrainForever/internal/theme"
 )
 
 // ============================================================
@@ -164,145 +158,14 @@ func main() {
 	// CORS middleware -support for frontend-backend separated development
 	srv.Use(httpx.UseCORSMiddleware)
 
-	// Initialize all API routes
-	initRouters(srv, chatHandler)
+	// Initialize theme handler
+	themeHandler := theme.NewHandler()
 
-	// ============================================================
-	// Theme management API
-	//   - theme manifest (themes[] list) comes from frontend/themes/manifest.json (source code)
-	//   - user's theme selection (actived/actived-light/actived-dark) stored in local-server.toml (runtime config)
-	// ============================================================
+	// Initialize all API routes (chat, theme, etc.)
+	initRouters(srv, chatHandler, themeHandler)
 
-	// themeConfigFile is the path to the runtime theme configuration.
-	const themeConfigFile = "./local-server.toml"
-
-	// themeRuntime holds the runtime theme config read from / written to local-server.toml.
-	type themeRuntime struct {
-		Theme struct {
-			Actived      string `toml:"actived"`
-			ActivedLight string `toml:"actived-light"`
-			ActivedDark  string `toml:"actived-dark"`
-		} `toml:"theme"`
-	}
-
-	// readThemeConfig reads the theme runtime config from local-server.toml.
-	// If the file doesn't exist or is malformed, returns sensible defaults.
-	readThemeConfig := func() themeRuntime {
-		var rt themeRuntime
-		if _, err := toml.DecodeFile(themeConfigFile, &rt); err != nil {
-			rt.Theme.Actived = "light"
-			rt.Theme.ActivedLight = ""
-			rt.Theme.ActivedDark = ""
-		}
-		return rt
-	}
-
-	// writeThemeConfig writes the theme runtime config to local-server.toml.
-	// Uses a sync.Mutex to prevent concurrent writes.
-	var (
-		themeMu     sync.Mutex
-		themeMuInit sync.Once
-	)
-	writeThemeConfig := func(rt themeRuntime) error {
-		themeMuInit.Do(func() { /* lazy init, mutex ready */ })
-		themeMu.Lock()
-		defer themeMu.Unlock()
-
-		// Read existing file to preserve other sections (e.g. server config)
-		type fullConfig struct {
-			Theme struct {
-				Actived      string `toml:"actived"`
-				ActivedLight string `toml:"actived-light"`
-				ActivedDark  string `toml:"actived-dark"`
-			} `toml:"theme"`
-		}
-		var cfg fullConfig
-		if _, err := toml.DecodeFile(themeConfigFile, &cfg); err != nil {
-			// File doesn't exist or is empty; start fresh
-			cfg = fullConfig{}
-		}
-		cfg.Theme = rt.Theme
-
-		var buf strings.Builder
-		if err := toml.NewEncoder(&buf).Encode(cfg); err != nil {
-			return err
-		}
-		return os.WriteFile(themeConfigFile, []byte(buf.String()), 0644)
-	}
-
-	// Build the merged response for GET /api/themes:
-	//   themes[] from manifest.json (source code)
-	//   actived/actived-light/actived-dark from local-server.toml (runtime config)
-	srv.GET("/api/themes", func(w http.ResponseWriter, r *http.Request) {
-		// Read themes list from manifest.json (source code)
-		manifestRaw, err := os.ReadFile("./frontend/themes/manifest.json")
-		if err != nil {
-			toolset.WriteJSONError(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
-			return
-		}
-		var manifest struct {
-			Themes []any `json:"themes"`
-		}
-		if err := json.Unmarshal(manifestRaw, &manifest); err != nil {
-			toolset.WriteJSONError(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
-			return
-		}
-
-		// Read runtime config from local-server.toml
-		rt := readThemeConfig()
-
-		// Merge into response
-		resp := map[string]any{
-			"themes":        manifest.Themes,
-			"actived":       rt.Theme.Actived,
-			"actived-light": rt.Theme.ActivedLight,
-			"actived-dark":  rt.Theme.ActivedDark,
-			"description":   "BrainGo External Theme List",
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
-	})
-
-	srv.POST("/api/themes", func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Actived      string `json:"actived"`
-			ActivedLight string `json:"actived-light"`
-			ActivedDark  string `json:"actived-dark"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			toolset.WriteJSONError(w, i18n.T("api_error_failed_to_parse_request"), http.StatusBadRequest)
-			return
-		}
-
-		// Only write to local-server.toml -- never touch manifest.json
-		rt := themeRuntime{}
-		rt.Theme.Actived = req.Actived
-		rt.Theme.ActivedLight = req.ActivedLight
-		rt.Theme.ActivedDark = req.ActivedDark
-
-		if err := writeThemeConfig(rt); err != nil {
-			toolset.WriteJSONError(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
-	})
-
-	// -- Static file server -frontend pages --
-	// When CacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
-	// take effect immediately during development.
-	// Production (default) uses http.FileServer's default ETag/Last-Modified caching behavior.
-	fs := http.FileServer(http.Dir(cfg.Frontend.Dir))
-	srv.Handle("/", func(w http.ResponseWriter, r *http.Request) {
-		if cfg.Frontend.CacheDisable {
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
-		}
-		fs.ServeHTTP(w, r)
-	})
+	// Static file server for frontend pages
+	initStaticFileServer(srv, cfg.Frontend.Dir, cfg.Frontend.CacheDisable)
 
 	// ============================================================
 	// Start server & wait for shutdown signal
