@@ -31,7 +31,7 @@ func main() {
 
 	cfg := config.Config{
 		Server: config.ServerConfig{
-			Name:              "local-server",
+			Name:              "brain-forever",
 			Addr:              "[::]:8080",
 			ReadTimeout:       30,
 			ReadHeaderTimeout: 10,
