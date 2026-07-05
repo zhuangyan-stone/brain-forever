@@ -114,7 +114,7 @@ document.addEventListener('alpine:init', function() {
             show: false,
             portrait: '',           // 完整画像 Markdown 原文
             portraitHTML: '',       // 渲染后的 HTML
-            portraitTitle: '',      // 文档总标题（由 _fetchDocTitle 从 /api/doc/title 获取）
+            portraitTitle: '',      // 文档总标题（由 _fetchDocTitle 从 /api/user/portrait/title 获取）
             portraitMeta: null,     // 结构化元数据 {core_traits, key_highlights}
             portraitInfo: null,     // 精华区元数据 {generated_at, chat_count, ...}
             isStreaming: false,     // 是否正在流式接收
@@ -520,7 +520,7 @@ document.addEventListener('alpine:init', function() {
 
                 this._titleAbortController = new AbortController();
 
-                fetch('/api/doc/title', {
+                fetch('/api/user/portrait/title', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: text }),

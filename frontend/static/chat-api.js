@@ -248,7 +248,7 @@ export async function createBlankChat() {
 }
 
 /**
-	* onChatLogin 调用后端 POST /api/chat/login 接口，切换当前会话到登录用户。
+	* onChatLogin 调用后端 POST /api/user/login 接口，切换当前会话到登录用户。
 	* 登录成功后调用 switchToUser 加载用户的对话列表，
 	* 并将 user_no 持久化到 localStorage 以在页面刷新后恢复。
 	* @param {string} userNo - 全局唯一用户系列号
@@ -257,7 +257,7 @@ export async function createBlankChat() {
 export async function onChatLogin(userNo) {
 	if (!userNo) return false;
 	try {
-		const response = await fetch('/api/chat/login', {
+		const response = await fetch('/api/user/login', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json; charset=utf-8' },
 			body: JSON.stringify({ user_no: userNo }),
@@ -396,14 +396,14 @@ console.warn('switchToUser: 刷新侧边栏失败', e);
 }
 
 /**
- * onChatLogout 调用后端 POST /api/chat/logout 接口，退出登录回到匿名状态。
+ * onChatLogout 调用后端 POST /api/user/logout 接口，退出登录回到匿名状态。
  * 成功后清除 localStorage 中的 user_no，然后重新获取匿名用户的对话列表
  * 并刷新侧边栏，不刷新页面。
  * @returns {Promise<boolean>} 是否成功
  */
 export async function onChatLogout() {
 	try {
-		const response = await fetch('/api/chat/logout', {
+		const response = await fetch('/api/user/logout', {
 			method: 'POST',
 		});
 		if (!response.ok) {
