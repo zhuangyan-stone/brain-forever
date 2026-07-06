@@ -374,17 +374,23 @@ func sessionEmbedderAPIKey(s *session) string {
 	return s.user.settings.APIKey.Embedder.ApiKey
 }
 
+// sessionWebSearchAPIKey returns the session user's personal Web Search API key,
+// or empty string if not set (meaning use the global default).
+func sessionWebSearchAPIKey(s *session) string {
+	return s.user.settings.APIKey.Search.ApiKey
+}
+
 // sessionWebSearcher returns the web search client for the user's configured provider.
+// Returns nil if no provider is configured or the provider is not in the registry.
 func sessionWebSearcher(s *session) toolimp.WebSearcher {
 	provider := s.user.settings.APIKey.Search.Provider
 	if provider == "" {
-		// Return nil to disable web search if no default is configured
-		return nil
+		return webSearchClients[ProviderBocha] // fallback to default
 	}
 	if w, ok := webSearchClients[provider]; ok {
 		return w
 	}
-	return nil
+	return webSearchClients[ProviderBocha]
 }
 
 // SetRedisStore attaches a Redis session store to the ChatAgent's SessionManager.

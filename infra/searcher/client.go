@@ -18,9 +18,14 @@ import (
 // when exceeded, the text is truncated with "...".
 // The maximum number of web pages is taken from req.Count.
 type WebSearcher interface {
-	Search(ctx context.Context, req WebSearchRequest) (*WebSearchResponse, error)
+	// Search performs a web search and returns the parsed response.
+	// apiKey: optional per-request API key override; empty means use the client's default.
+	Search(ctx context.Context, req WebSearchRequest, apiKey string) (*WebSearchResponse, error)
 
-	SearchForLLM(ctx context.Context, req WebSearchRequest, maxRuneLen int) (*WebSearchResponse, string, error)
+	// SearchForLLM performs a web search and returns both the parsed response and
+	// an LLM-friendly formatted text.
+	// apiKey: optional per-request API key override; empty means use the client's default.
+	SearchForLLM(ctx context.Context, req WebSearchRequest, maxRuneLen int, apiKey string) (*WebSearchResponse, string, error)
 }
 
 // ---------------------------------------------------------------------------
