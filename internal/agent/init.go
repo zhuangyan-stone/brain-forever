@@ -52,7 +52,7 @@ var (
 func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embedder {
 	provider := cfg.Provider
 	if provider == "" {
-		provider = "ali"
+		provider = ProviderAli
 	}
 
 	dimension := cfg.Dimension
@@ -62,20 +62,11 @@ func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embed
 
 	var e embedder.Embedder
 	switch provider {
-	case "zhipu":
-		envKey := cfg.EnvKey
-		if envKey == "" {
-			envKey = "ZHIPUAI_API_KEY"
-		}
-		e = embedder.NewZhipuEmbedder(cfg.APIKey, envKey, dimension)
-
+	case ProviderZhipu:
+		e = embedder.NewZhipuEmbedder(cfg.APIKey, dimension)
 		logger.Infof("? Using Zhipu Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	default:
-		envKey := cfg.EnvKey
-		if envKey == "" {
-			envKey = "DASHSCOPE_API_KEY"
-		}
-		e = embedder.NewDashScopeEmbedder(cfg.APIKey, envKey, dimension)
+		e = embedder.NewDashScopeEmbedder(cfg.APIKey, dimension)
 		logger.Infof("? Using DashScope Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	}
 

@@ -175,10 +175,12 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		embedder := sessionEmbedder(session)
+		embedderAPIKey := sessionEmbedderAPIKey(session)
 		traitSearcher := &traitSearchAdapter{
 			client: embedder,
 			store:  traitsStore,
 			lang:   lang,
+			apiKey: embedderAPIKey,
 		}
 		traitSearchByTextToolImp := toolimp.MakeTraitSearchByTextTool(r.Context(), traitSearcher, lang)
 		traitSearchByKeywordToolImp := toolimp.MakeTraitSearchByKeywordTool(r.Context(), traitSearcher, lang)

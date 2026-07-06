@@ -368,6 +368,12 @@ func sessionEmbedder(s *session) embedder.Embedder {
 	return embedderClients[ProviderAli]
 }
 
+// sessionEmbedderAPIKey returns the session user's personal Embedder API key,
+// or empty string if not set (meaning use the global default).
+func sessionEmbedderAPIKey(s *session) string {
+	return s.user.settings.APIKey.Embedder.ApiKey
+}
+
 // sessionWebSearcher returns the web search client for the user's configured provider.
 func sessionWebSearcher(s *session) toolimp.WebSearcher {
 	provider := s.user.settings.APIKey.Search.Provider

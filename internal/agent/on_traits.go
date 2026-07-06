@@ -369,6 +369,7 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 // into the session's per-user traits database.
 func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) (int, error) {
 	emb := sessionEmbedder(session)
+	apiKey := sessionEmbedderAPIKey(session)
 
 	vs, err := h.openBrainDB(session)
 	if err != nil {
@@ -382,7 +383,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 			continue
 		}
 
-		vector, err := emb.Embed(ctx, f.FeatureText)
+		vector, err := emb.Embed(ctx, f.FeatureText, apiKey)
 		if err != nil {
 			continue
 		}

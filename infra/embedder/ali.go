@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"BrainForever/infra/httpx"
@@ -21,13 +20,10 @@ type DashScopeEmbedder struct {
 	client    *http.Client
 }
 
-// NewDashScopeEmbedder creates an Alibaba Tongyi Embedder
-// apiKey: Alibaba Cloud DashScope API Key, if empty reads from the env variable specified by envKey
-// model: model name, defaults to text-embedding-v3 if empty
-func NewDashScopeEmbedder(apiKey, envKey string, dimension int) *DashScopeEmbedder {
-	if apiKey == "" {
-		apiKey = os.Getenv(envKey)
-	}
+// NewDashScopeEmbedder creates an Alibaba DashScope Embedder.
+// apiKey: API key for DashScope service (if empty, the client has no default key;
+// callers must provide an apiKey per-request).
+func NewDashScopeEmbedder(apiKey string, dimension int) *DashScopeEmbedder {
 	return &DashScopeEmbedder{
 		apiKey:    apiKey,
 		model:     "text-embedding-v4",
@@ -72,9 +68,13 @@ type dashScopeResponse struct {
 }
 
 // Embed converts text to a vector (implements the Embedder interface)
-func (d *DashScopeEmbedder) Embed(ctx context.Context, text string) ([]float32, error) {
-	if d.apiKey == "" {
-		return nil, fmt.Errorf("DASHSCOPE_API_KEY not set (please set the DASHSCOPE_API_KEY environment variable)")
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (d *DashScopeEmbedder) Embed(ctx context.Context, text string, apiKey string) ([]float32, error) {
+	if apiKey == "" {
+		apiKey = d.apiKey
+	}
+	if apiKey == "" {
+		return nil, fmt.Errorf("API client not initialized (API key may be missing)")
 	}
 
 	reqBody := dashScopeRequest{
@@ -102,7 +102,7 @@ func (d *DashScopeEmbedder) Embed(ctx context.Context, text string) ([]float32, 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+d.apiKey)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := d.client.Do(req)
 	if err != nil {
