@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"os"
 
 	"BrainForever/infra/embedder"
 	"BrainForever/infra/llm"
@@ -88,56 +87,29 @@ func InitLLMClient(cfg config.ChatLLMConfig, logger zylog.Logger) llm.Client {
 }
 
 // InitWebSearchClient creates a web search client based on the given configuration.
-// Returns nil if the provider is empty or the API key is not set.
+// Returns nil if the provider is empty or not recognized.
 func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolimp.WebSearcher {
 	provider := cfg.Provider
-	if provider == "" {
-		provider = os.Getenv("SEARCHER_PROVIDER")
-	}
 	if provider == "" {
 		return nil
 	}
 
 	switch provider {
-	case "zhipu":
-		envKey := cfg.EnvKey
-		if envKey == "" {
-			envKey = "ZHIPUAI_API_KEY"
+	case ProviderZhipu:
+		logger.Infof("? Web search enabled (bigmodel.cn)")
+		return &webSearchAdapter{
+			client: searcher.NewZhiPuClient(searcher.WebSearchClientConfig{
+				APIKey: cfg.APIKey,
+			}),
 		}
-		apiKey := cfg.APIKey
-		if apiKey == "" {
-			apiKey = os.Getenv(envKey)
-		}
-		if apiKey != "" {
-			logger.Infof("? Web search enabled (bigmodel.cn)")
-			return &webSearchAdapter{
-				client: searcher.NewZhiPuClient(searcher.WebSearchClientConfig{
-					APIKey: apiKey,
-				}),
-			}
-		}
-		logger.Warnf("%s is not set or empty - web search will be disabled. "+
-			"Set the %s environment variable to enable web search functionality.", envKey, envKey)
 
-	case "bocha":
-		envKey := cfg.EnvKey
-		if envKey == "" {
-			envKey = "BOCHA_API_KEY"
+	case ProviderBocha:
+		logger.Infof("? Web search enabled (bocha.cn)")
+		return &webSearchAdapter{
+			client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
+				APIKey: cfg.APIKey,
+			}),
 		}
-		apiKey := cfg.APIKey
-		if apiKey == "" {
-			apiKey = os.Getenv(envKey)
-		}
-		if apiKey != "" {
-			logger.Infof("? Web search enabled (bocha.cn)")
-			return &webSearchAdapter{
-				client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
-					APIKey: apiKey,
-				}),
-			}
-		}
-		logger.Warnf("%s is not set or empty - web search will be disabled. "+
-			"Set the %s environment variable to enable web search functionality.", envKey, envKey)
 	}
 
 	return nil
