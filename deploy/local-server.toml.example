@@ -22,12 +22,36 @@ idle_timeout = 60
 file = "log/local-server.log"
 level = "INFO"
 
+# ============================================================
+# MySQL 数据库配置
+# 用户数据（users 表）存储在 MySQL 中。
+# 请通过环境变量 MYSQL_DSN 设置连接字符串，格式：
+#   MYSQL_DSN="user:password@tcp(127.0.0.1:3306)/brain_forever"
+# 不要在此文件中写入密码！
+# ============================================================
+[database]
+# MySQL 数据源名称（必须设置，否则程序无法启动）
+# 或通过环境变量 MYSQL_DSN 指定
+dsn = ""
+
+# ============================================================
+# Redis 配置（可选）
+# 启用后，登录状态将存储在 Redis 中，支持：
+#   - 服务重启后保留登录态
+#   - 多实例水平扩展
+# 如果留空或 Redis 不可用，Session 管理降级为纯内存模式。
+# ============================================================
+[redis]
+# Redis 服务器地址，如 "127.0.0.1:6379"
+# 或通过环境变量 REDIS_ADDR 指定
+addr = ""
+# Redis 密码（如无认证则留空）
+# 或通过环境变量 REDIS_PASSWORD 指定
+password = ""
+
 [data]
-# 数据存储目录（SQLite 数据库文件存放位置）
+# 用户聊天/特征数据的 SQLite 存储目录
 dir = "./localdb"
-brain_db = "brain.db"
-users_db = "users.db"
-anonymous_db = "anonymous.db"
 
 [frontend]
 # 前端静态文件目录

@@ -48,18 +48,19 @@ func main() {
 			Lang:  0,
 		},
 
-		Embedder: config.EmbedderConfig{
-			Provider:  os.Getenv("EMBEDDER_PROVIDER"),
-			Dimension: 2048,
+		// MySQL 数据库配置（支持环境变量覆盖）
+		Database: config.DatabaseConfig{
+			DSN:          os.Getenv("MYSQL_DSN"),
+			MaxOpenConns: 25,
+			MaxIdleConns: 5,
 		},
-		ChatLLM: config.ChatLLMConfig{
-			EnvKey:                "DEEPSEEK_API_KEY",
-			BaseURL:               "https://api.deepseek.com/beta",
-			Model:                 "deepseek-v4-flash",
-			MaxToolCallIterations: 20,
-		},
-		WebSearch: config.WebSearchConfig{
-			Provider: os.Getenv("SEARCHER_PROVIDER"),
+
+		// Redis 配置（支持环境变量覆盖，为空则不启用 Redis）
+		Redis: config.RedisConfig{
+			Addr:     os.Getenv("REDIS_ADDR"),
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
+			PoolSize: 10,
 		},
 	}
 
@@ -88,14 +89,27 @@ func main() {
 	}
 
 	// ============================================================
-	// Initialize global UserStore singleton (localdb/users.db)
+	// Initialize global MySQL connection (theMySQLDBC)
+	// Must be before InitTheUserStore, which depends on it.
+	// ============================================================
+	if cfg.Database.DSN == "" {
+		theLogger.Fatalf("MYSQL_DSN environment variable is required")
+	}
+	if err := store.InitMySQLDB(cfg.Database.DSN); err != nil {
+		theLogger.Fatalf("failed to initialize MySQL: %v", err)
+	}
+	defer store.CloseMySQLDB()
+	theLogger.Infof("MySQL connection established")
+
+	// ============================================================
+	// Initialize global UserStore singleton (based on MySQL)
 	// Opens before HTTP server starts, closes after it stops
 	// ============================================================
 	if err := store.InitTheUserStore("./localdb"); err != nil {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
 	}
 	defer store.CloseTheUserStore()
-	theLogger.Infof("user store (users.db) initialized")
+	theLogger.Infof("user store (MySQL) initialized")
 
 	// ============================================================
 	// Initialize i18n with local language resources
@@ -120,7 +134,7 @@ func main() {
 	defer stop()
 
 	// ============================================================
-	// Initialize agent (Embedder, VectorStore, LLMClient, WebSearchClient)
+	// Initialize agent (Embedder, VectorStore, LLMClient, WebSearchClient, Redis)
 	// ============================================================
 	chatHandler, err := agent.InitAgent(ctx, cfg, "brain_go_session", defaultLang, theLogger)
 	if err != nil {
