@@ -55,12 +55,19 @@ func (h *ChatAgent) OnGetDocTitle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// ----------------------------------------------------------
-	// 2. Determine language
+	// 2. Resolve session and determine language
 	// ----------------------------------------------------------
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
 		lang = h.defaultLang
 	}
+
+	// Get the user's LLM client and personal API key
+	client := sessionLLMClient(session)
+	llmAPIKey := sessionLLMAPIKey(session)
 
 	// ----------------------------------------------------------
 	// 3. Build the LLM prompt
@@ -80,7 +87,7 @@ func (h *ChatAgent) OnGetDocTitle(w http.ResponseWriter, r *http.Request) {
 	titleCtx, titleCancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer titleCancel()
 
-	resp, err := h.charLLMClient.Chat(titleCtx, messages)
+	resp, err := client.Chat(titleCtx, messages, llmAPIKey)
 	if err != nil {
 		toolset.WriteJSONError(w, "failed to generate title: "+err.Error(), http.StatusInternalServerError)
 		return

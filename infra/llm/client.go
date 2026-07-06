@@ -48,18 +48,20 @@ type Client interface {
 	SetUsageInfo(usage Usage)
 
 	// Chat sends a chat message and gets a reply (non-streaming).
-	// Uses the client's default model.
-	Chat(ctx context.Context, messages []Message) (*ChatCompletionResponse, error)
+	// apiKey: optional per-request API key override; empty means use the client's default.
+	Chat(ctx context.Context, messages []Message, apiKey string) (*ChatCompletionResponse, error)
 
 	// ChatWithOptions sends a chat request with custom parameters (non-streaming).
-	ChatWithOptions(ctx context.Context, req ChatCompletionRequest) (*ChatCompletionResponse, error)
+	// apiKey: optional per-request API key override; empty means use the client's default.
+	ChatWithOptions(ctx context.Context, req ChatCompletionRequest, apiKey string) (*ChatCompletionResponse, error)
 
 	// ChatStream sends a chat request and returns a stream for reading chunks.
-	// Uses the client's default model.
-	ChatStream(ctx context.Context, messages []Message) *ChatCompletionChunkDecoder
+	// apiKey: optional per-request API key override; empty means use the client's default.
+	ChatStream(ctx context.Context, messages []Message, apiKey string) *ChatCompletionChunkDecoder
 
 	// ChatStreamWithOptions sends a streaming chat request with custom parameters.
-	ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest) *ChatCompletionChunkDecoder
+	// apiKey: optional per-request API key override; empty means use the client's default.
+	ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest, apiKey string) *ChatCompletionChunkDecoder
 
 	// GetMaxToolCallIterations returns the maximum number of tool call iterations
 	// allowed in the streaming loop before forcing a direct answer.
@@ -71,17 +73,18 @@ type Client interface {
 	//
 	// Parameters:
 	//   - ctx: context for cancellation
-	//   - callback: StreamCallback for receiving streaming events (text, reasoning, etc.)
 	//   - messages: the conversation messages (will be modified in-place during tool call loops)
 	//   - pipeline: connects data between the agent's frontend (sse client) and backend (llm-api), including tool calls
 	//   - withDeepThink: enable deep thinking/reasoning mode for this request
+	//   - apiKey: optional per-request API key override; empty means use the client's default
 	//
 	// Returns the final assistant reply content and reasoning content.
 	ChatWithPipeline(
 		ctx context.Context,
 		messages []Message,
 		pipeline Pipeline,
-		withDeepThink bool) (reply string, reasoning string, err error)
+		withDeepThink bool,
+		apiKey string) (reply string, reasoning string, err error)
 }
 
 // ============================================================

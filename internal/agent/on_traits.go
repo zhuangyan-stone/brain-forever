@@ -166,7 +166,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	// 4. Convert messages and call LLM directly
 	// ----------------------------------------------------------
-	remoteResp, err := h.callTraitsLLM(r.Context(), req.SN, foundChat.Title, dbMessages, lang)
+	remoteResp, err := h.callTraitsLLM(r.Context(), req.SN, foundChat.Title, dbMessages, lang, session)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 		return
@@ -207,7 +207,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 // callTraitsLLM builds the LLM request with the trip_traits tool
 // and returns the parsed extraction result.
-func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessages []store.Message, lang string) (*traitsResponse, error) {
+func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessages []store.Message, lang string, session *session) (*traitsResponse, error) {
 	// 1. Build system prompt with i18n
 	systemContent := getTraitSystemPrompt(lang, title)
 
@@ -251,9 +251,13 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 	// 3. Create the trip_traits tool
 	tripTool := toolimp.NewTripTraitsTool(lang)
 
+	// Get the user's LLM client and personal API key
+	client := sessionLLMClient(session)
+	apiKey := sessionLLMAPIKey(session)
+
 	// 4. Build LLM request with ForceToolChoice
 	reqBody := llm.ChatCompletionRequest{
-		Model:    h.charLLMClient.Model(),
+		Model:    client.Model(),
 		Messages: llmMsgs,
 		Tools:    []llm.ToolDefinition{tripTool.GetDefinition()},
 		Thinking: &llm.ThinkingConfig{Type: "disabled"},
@@ -261,7 +265,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 	reqBody.ForceToolChoice(toolimp.TripTraitsToolName)
 
 	// 5. Call LLM (non-streaming)
-	resp, err := h.charLLMClient.ChatWithOptions(ctx, reqBody)
+	resp, err := client.ChatWithOptions(ctx, reqBody, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
@@ -364,7 +368,7 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 // storeTraitsInSession embeds each trait feature and stores it along with keywords
 // into the session's per-user traits database.
 func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) (int, error) {
-	emb := h.embedder
+	emb := sessionEmbedder(session)
 
 	vs, err := h.openBrainDB(session)
 	if err != nil {

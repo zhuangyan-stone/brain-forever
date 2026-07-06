@@ -23,6 +23,8 @@ type sessionUser struct {
 	chatsMu     sync.Mutex   // Protects: chats
 	chats       []store.Chat // User's chat list from the database
 	currentChat *chat        // Current active chat (messages, title, titleState)
+
+	settings store.UserSettings // User's personal settings (API keys, theme, etc.)
 }
 
 // session represents an individual user's session
@@ -54,9 +56,14 @@ func (s *session) SetTitle(newTitle string, newState TitleState) {
 }
 
 // switchToUser sets the session's user state.
-// For login: id>0, sn is non-empty, chats are pre-loaded by the caller via dbc.InitUserDB.
-// For logout: id=0, sn is empty, chats is nil (clears session).
-func (s *session) switchToUser(id int64, sn string, chats []store.Chat) {
+// For login: id>0, sn is non-empty, chats are pre-loaded by the caller via dbc.InitUserDB,
+// settings is the user's personal settings (API keys, theme, etc.).
+// For logout: id=0, sn is empty, chats is nil, settings is zero value (clears session).
+//
+// If the session has an associated Redis store (via sm), login writes to Redis
+// and logout deletes from Redis. This is handled by the caller (OnLogin/OnLogout)
+// which has access to the SessionManager's Redis store.
+func (s *session) switchToUser(id int64, sn string, chats []store.Chat, settings store.UserSettings) {
 	if chats == nil {
 		chats = []store.Chat{}
 	}
@@ -66,7 +73,7 @@ func (s *session) switchToUser(id int64, sn string, chats []store.Chat) {
 
 	s.mu.Lock()
 	s.user.currentChat = &chat{}
-	s.user = sessionUser{ID: id, SN: sn, chats: chats, currentChat: &chat{}}
+	s.user = sessionUser{ID: id, SN: sn, chats: chats, currentChat: &chat{}, settings: settings}
 	s.mu.Unlock()
 }
 

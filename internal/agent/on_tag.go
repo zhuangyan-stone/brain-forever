@@ -193,8 +193,12 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		// This allows the LLM to load multiple rounds of message samples as needed.
 		req.EnableToolChoice()
 
+		// Get the user's LLM client and personal API key
+		client := sessionLLMClient(session)
+		llmAPIKey := sessionLLMAPIKey(session)
+
 		// Call LLM (non-streaming)
-		resp, err := h.charLLMClient.ChatWithOptions(r.Context(), req)
+		resp, err := client.ChatWithOptions(r.Context(), req, llmAPIKey)
 		if err != nil {
 			h.logger.Errorf("chat tag LLM call failed: %v", err)
 			toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_llm_call_failed"), http.StatusInternalServerError)
