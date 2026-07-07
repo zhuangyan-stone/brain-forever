@@ -20,7 +20,7 @@ import (
 // GenerateSNSimple (UUID v4) rather than the three-factor GenerateSN.
 // Format: s-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 func GenerateSessionID() string {
-	return toolset.GenerateSNSimple("s")
+	return toolset.GenerateSNSimple("s-")
 }
 
 // ResolveSessionID extracts the session ID from the cookie.

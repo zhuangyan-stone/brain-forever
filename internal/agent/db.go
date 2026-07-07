@@ -13,7 +13,7 @@ import (
 
 // generateSessionSN generates a globally unique serial number for a chat session.
 func generateSessionSN() string {
-	return toolset.GenerateSN("chat")
+	return toolset.GenerateSN("chat-")
 }
 
 // ensureSessionDBForChat ensures that the current chat has a corresponding record
