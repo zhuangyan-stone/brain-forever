@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"BrainForever/infra/httpx"
 	"BrainForever/internal/agent"
+	"BrainForever/internal/logger"
 	"BrainForever/internal/theme"
 	"BrainForever/internal/user"
 )
@@ -14,7 +16,7 @@ import (
 func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *theme.Handler, userHandler *user.Handler) {
 
 	// ============================================================
-	// 需要认证的路由
+	// Authenticated routes (require valid session)
 	// ============================================================
 
 	// /api/chat -- POST (new message) + DELETE (delete chat)
@@ -79,7 +81,7 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	srv.POST("/api/user/portrait/title", chatHandler.RequireAuth(chatHandler.OnGetPortraitTitle))
 
 	// ============================================================
-	// 用户主题路由（用户设置，需认证）
+	// User theme routes (require auth)
 	// ============================================================
 
 	// /api/user/theme/apply -- POST (apply user theme selection, requires auth)
@@ -95,7 +97,7 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	srv.GET("/api/themes/mainfes", themeHandler.GetThemeMainfes)
 
 	// ============================================================
-	// 不需要认证的路由
+	// Public routes (no authentication required)
 	// ============================================================
 
 	// /api/verify/sms -- POST (request SMS verification code)
@@ -128,6 +130,26 @@ func setNoCacheHeaders(w http.ResponseWriter) {
 	w.Header().Set("Expires", "0")
 }
 
+// serveFileOr404 reads and serves a file, returning 404 with a log if not found.
+func serveFileOr404(w http.ResponseWriter, r *http.Request, filePath string) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		logger.TheLogger().Errorf("serveFileOr404: failed to open %q: %v", filePath, err)
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		logger.TheLogger().Errorf("serveFileOr404: failed to stat %q: %v", filePath, err)
+		http.NotFound(w, r)
+		return
+	}
+
+	http.ServeContent(w, r, stat.Name(), stat.ModTime(), f)
+}
+
 // isHomePage returns true if the request path is the main app page ("/" or "/index.html").
 func isHomePage(path string) bool {
 	return path == "/" || path == "/index.html"
@@ -137,7 +159,7 @@ func isHomePage(path string) bool {
 // Supports both the new directory-style URL (/signin/) and the old file-style (/signin.html)
 // for backward compatibility.
 func isSigninPage(path string) bool {
-	return path == "/signin/" || path == "/signin.html"
+	return path == "/signin/" || path == "/signin.html" || path == "/signin/index.html"
 }
 
 // redirectSignin sends a 302 Found redirect to the signin page.
@@ -154,19 +176,31 @@ func redirectSignin(w http.ResponseWriter, r *http.Request) {
 // HTML pages ("/", "/index.html", "/signin/") always bypass cache regardless of cacheDisable:
 //   - Home page: also checked for login → anonymous sessions get 302 to /signin/
 //   - Signin page: no auth check, just no-cache to ensure fresh content
+//
+// NOTE: With Go 1.22+ http.ServeMux, when method-qualified routes (e.g. "GET /api/...")
+// are registered alongside a catch-all "/" pattern, http.FileServer may fail to serve
+// index.html for subdirectory paths like /signin/. We use http.ServeFile explicitly for
+// the signin page to work around this issue.
 func initStaticFileServer(srv *httpx.Server, frontendDir string, cacheDisable bool, chatHandler *agent.ChatAgent) {
 	fs := http.FileServer(http.Dir(frontendDir))
 	srv.Handle("/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
-		// HTML 页面对应禁用缓存（不受 cacheDisable 影响）：
-		//   - 首页：确保每次访问都经后端登录检查，避免绕过 session 验证
-		//   - 登录页：确保页面更新（促销活动、微信扫码等）后用户立即看到
-		if isHomePage(path) || isSigninPage(path) {
+		// Signin page: use explicit file reading to bypass http.FileServer
+		// subdirectory issues with Go 1.22+ ServeMux method-qualified routes,
+		// and to avoid path resolution issues with http.ServeFile.
+		if isSigninPage(path) {
+			setNoCacheHeaders(w)
+			serveFileOr404(w, r, frontendDir+"/signin/index.html")
+			return
+		}
+
+		// Home page: disable cache + check login status
+		if isHomePage(path) {
 			setNoCacheHeaders(w)
 
-			// 登录检查：仅对首页生效
-			if isHomePage(path) && chatHandler != nil && chatHandler.IsSessionAnonymous(w, r) {
+			// Anonymous session -> redirect to signin page
+			if chatHandler != nil && chatHandler.IsSessionAnonymous(w, r) {
 				redirectSignin(w, r)
 				return
 			}

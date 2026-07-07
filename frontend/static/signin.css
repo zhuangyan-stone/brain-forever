@@ -77,6 +77,20 @@ body {
     margin-bottom: 4px;
 }
 
+/* logo 背景圆 — 固定使用面板背景色（var(--bg-secondary)） */
+.signin-logo-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
 .signin-logo {
     width: 56px;
     height: 56px;
@@ -310,6 +324,11 @@ body {
     .signin-card {
         padding: 32px 20px 24px;
         border-radius: 10px;
+    }
+
+    .signin-logo-circle {
+        width: 62px;
+        height: 62px;
     }
 
     .signin-logo {

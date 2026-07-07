@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -71,6 +72,14 @@ func main() {
 	}
 	if envDisable := os.Getenv("DEV_CACHE_DISABLE"); envDisable == "true" {
 		cfg.Frontend.CacheDisable = true
+	}
+
+	// Resolve frontend directory relative to the executable's location,
+	// so the binary can be run from any working directory.
+	if resolved, err := resolveDirRelativeToExe(cfg.Frontend.Dir); err != nil {
+		log.Printf("[WARN] failed to resolve frontend dir %q: %v, using as-is", cfg.Frontend.Dir, err)
+	} else {
+		cfg.Frontend.Dir = resolved
 	}
 
 	if err := logger.CreateTheLogger(zylog.NameToLevel(cfg.Logger.Level), cfg.Logger.File,
@@ -202,4 +211,17 @@ func main() {
 	theLogger.Info("Shutting down server...")
 	srv.Stop("received shutdown signal")
 	theLogger.Info("Server shut down gracefully")
+}
+
+// resolveDirRelativeToExe resolves a relative directory path to an absolute path
+// based on the location of the running executable. This ensures paths like
+// "../frontend" work correctly regardless of the current working directory.
+func resolveDirRelativeToExe(dir string) (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return dir, err
+	}
+	exeDir := filepath.Dir(exe)
+	resolved := filepath.Join(exeDir, dir)
+	return filepath.Abs(resolved)
 }
