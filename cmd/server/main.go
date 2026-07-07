@@ -74,9 +74,10 @@ func main() {
 		cfg.Frontend.CacheDisable = true
 	}
 
-	// Resolve frontend directory relative to the executable's location,
-	// so the binary can be run from any working directory.
-	if resolved, err := resolveDirRelativeToExe(cfg.Frontend.Dir); err != nil {
+	// Resolve frontend directory to an absolute path.
+	// Relative paths are resolved against the current working directory
+	// (set via VS Code launch.json cwd or by running from the project root).
+	if resolved, err := filepath.Abs(cfg.Frontend.Dir); err != nil {
 		log.Printf("[WARN] failed to resolve frontend dir %q: %v, using as-is", cfg.Frontend.Dir, err)
 	} else {
 		cfg.Frontend.Dir = resolved
@@ -211,17 +212,4 @@ func main() {
 	theLogger.Info("Shutting down server...")
 	srv.Stop("received shutdown signal")
 	theLogger.Info("Server shut down gracefully")
-}
-
-// resolveDirRelativeToExe resolves a relative directory path to an absolute path
-// based on the location of the running executable. This ensures paths like
-// "../frontend" work correctly regardless of the current working directory.
-func resolveDirRelativeToExe(dir string) (string, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return dir, err
-	}
-	exeDir := filepath.Dir(exe)
-	resolved := filepath.Join(exeDir, dir)
-	return filepath.Abs(resolved)
 }
