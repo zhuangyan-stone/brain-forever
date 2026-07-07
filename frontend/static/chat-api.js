@@ -396,9 +396,8 @@ console.warn('switchToUser: 刷新侧边栏失败', e);
 }
 
 /**
- * onChatLogout 调用后端 POST /api/user/logout 接口，退出登录回到匿名状态。
- * 成功后清除 localStorage 中的 user_no，然后重新获取匿名用户的对话列表
- * 并刷新侧边栏，不刷新页面。
+ * onChatLogout 调用后端 POST /api/user/logout 接口退出登录，
+ * 清除 localStorage 中的用户信息，然后跳转到登录页。
  * @returns {Promise<boolean>} 是否成功
  */
 export async function onChatLogout() {
@@ -416,13 +415,11 @@ export async function onChatLogout() {
 			localStorage.removeItem('brainforever_user_no');
 			localStorage.removeItem('brainforever_user_avatar');
 
-			// 重置前端状态（清空消息、侧边栏等）
+			// 重置前端状态
 			resetTickState();
 			try {
 				var chats = window.Alpine.store('chats');
 				if (chats) {
-					// ★ 必须使用 resetToBlank() 而非 reset()，
-					//    原因同上 switchToUser() 注释。
 					chats.resetToBlank();
 					chats.currentUserNo = '';
 					chats.currentUserAvatar = '';
@@ -435,36 +432,14 @@ export async function onChatLogout() {
 				chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
 			}
 
-			// 清空刻度导航（避免退出登录后残留之前对话的刻度）
+			// 清空刻度导航
 			const tickNav = document.getElementById('tickNav');
 			if (tickNav) {
 				tickNav.innerHTML = '';
 			}
 
-			// 获取匿名用户的对话列表
-			const listResp = await fetch('/api/chat/list');
-			if (listResp.ok) {
-				const listData = await listResp.json();
-				if (listData.chats) {
-					try {
-						// ★ 复用上方已获取的 chats（同一函数内），无需重新获取
-						if (chats && chats.setSidebarChats) {
-							chats.setSidebarChats(listData.chats, null);
-						}
-					} catch(e) {
-						console.warn('onChatLogout: 刷新侧边栏失败', e);
-					}
-				}
-			}
-
-			// 更新标题、输入框聚焦
-			const { updateHeaderTitle, showWelcomeMessage } = await import('./chat-ui.js');
-			updateHeaderTitle('');
-			showWelcomeMessage();
-
-			const msgInput = document.getElementById('messageInput');
-			if (msgInput) msgInput.focus();
-
+			// 跳转到登录页（匿名设计已废弃）
+			window.location.href = '/signin.html';
 			return true;
 		}
 		return false;

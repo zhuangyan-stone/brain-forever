@@ -3,9 +3,10 @@
 // 首次打开页面时，依次：
 //   1. 重置 Alpine store 状态为空白对话
 //   2. GET /api/session → 创建/获取 HTTP session，得到 user_no
-//   3. GET /api/chat/list?user_no=xxx → 取该用户的 chats 列表
-//   4. 渲染对话列表
-//   5. 显示欢迎消息（页面总是从空白状态开始）
+//   3. 未登录（user_no 为空）→ 跳转到 /signin.html
+//   4. GET /api/chat/list → 取当前用户的 chats 列表
+//   5. 渲染对话列表
+//   6. 显示欢迎消息（页面总是从空白状态开始）
 // ============================================================
 
 import { showWelcomeMessage } from './chat-ui.js';
@@ -33,6 +34,13 @@ export async function initPage() {
     if (sessionData) {
         currentUserNo = sessionData.user_no || '';
         welcomeMessage = sessionData.welcome || '';
+    }
+
+    // ★ 登录检查：未登录用户跳转到登录页
+    // 匿名设计已废弃，所有用户必须登录才能使用。
+    if (!currentUserNo) {
+        window.location.href = '/signin.html';
+        return; // 停止后续执行
     }
 
     // Step 2: GET /api/chat/list — 取当前 HTTP session 用户的 chats 列表

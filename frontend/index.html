@@ -478,24 +478,13 @@
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
-                                    <!-- 已登录：退出登录 -->
+                                    <!-- 退出登录（已登录用户始终可见） -->
                                     <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
-                                        x-show="$store.chats.currentUserNo"
                                         @click="onChatLogout">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                             x-html="ICON_LOGOUT"></svg>
                                         退出登录
-                                    </button>
-                                    <!-- 未登录：登录 -->
-                                    <button class="dropdown-item" id="loginBtn"
-                                        x-show="!$store.chats.currentUserNo"
-                                        @click="onChatLoginClick"
-                                        :disabled="$store.chats.active?.isStreaming">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                            x-html="ICON_LOGIN"></svg>
-                                        登录
                                     </button>
                                 </div>
                             </template>

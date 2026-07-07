@@ -179,7 +179,8 @@ func main() {
 	initRouters(srv, chatHandler, themeHandler)
 
 	// Static file server for frontend pages
-	initStaticFileServer(srv, cfg.Frontend.Dir, cfg.Frontend.CacheDisable)
+	// Pass chatHandler for login check on index.html (302 redirect to /signin.html if anonymous)
+	initStaticFileServer(srv, cfg.Frontend.Dir, cfg.Frontend.CacheDisable, chatHandler)
 
 	// ============================================================
 	// Start server & wait for shutdown signal

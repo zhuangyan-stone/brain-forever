@@ -102,18 +102,57 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	})
 }
 
+// setNoCacheHeaders sets HTTP response headers to disable caching.
+func setNoCacheHeaders(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+}
+
+// isHomePage returns true if the request path is the main app page ("/" or "/index.html").
+func isHomePage(path string) bool {
+	return path == "/" || path == "/index.html"
+}
+
+// isSigninPage returns true if the request path is the signin page.
+func isSigninPage(path string) bool {
+	return path == "/signin.html"
+}
+
+// redirectSignin sends a 302 Found redirect to the signin page.
+// Uses StatusFound (302) instead of StatusMovedPermanently (301) to prevent
+// browser caching of the redirect, so logout → re-login works correctly.
+func redirectSignin(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/signin.html", http.StatusFound)
+}
+
 // initStaticFileServer sets up the static file server for frontend pages.
 // When cacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
 // take effect immediately during development.
 // Production (default) uses http.FileServer's default ETag/Last-Modified caching behavior.
-func initStaticFileServer(srv *httpx.Server, frontendDir string, cacheDisable bool) {
+// HTML pages ("/", "/index.html", "/signin.html") always bypass cache regardless of cacheDisable:
+//   - Home page: also checked for login → anonymous sessions get 302 to /signin.html
+//   - Signin page: no auth check, just no-cache to ensure fresh content
+func initStaticFileServer(srv *httpx.Server, frontendDir string, cacheDisable bool, chatHandler *agent.ChatAgent) {
 	fs := http.FileServer(http.Dir(frontendDir))
 	srv.Handle("/", func(w http.ResponseWriter, r *http.Request) {
-		if cacheDisable {
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
+		path := r.URL.Path
+
+		// HTML 页面对应禁用缓存（不受 cacheDisable 影响）：
+		//   - 首页：确保每次访问都经后端登录检查，避免绕过 session 验证
+		//   - 登录页：确保页面更新（促销活动、微信扫码等）后用户立即看到
+		if isHomePage(path) || isSigninPage(path) {
+			setNoCacheHeaders(w)
+
+			// 登录检查：仅对首页生效
+			if isHomePage(path) && chatHandler != nil && chatHandler.IsSessionAnonymous(w, r) {
+				redirectSignin(w, r)
+				return
+			}
+		} else if cacheDisable {
+			setNoCacheHeaders(w)
 		}
+
 		fs.ServeHTTP(w, r)
 	})
 }

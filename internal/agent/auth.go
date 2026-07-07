@@ -18,3 +18,14 @@ func (h *ChatAgent) RequireAuth(fn http.HandlerFunc) http.HandlerFunc {
 		fn(w, r)
 	}
 }
+
+// IsSessionAnonymous checks whether the HTTP request's session is anonymous
+// (not logged in). It resolves the session ID from cookie, gets or creates
+// the session, and returns true if the user is not authenticated.
+// This is an exported method so it can be called from outside the agent package
+// (e.g., from routers.go for static file server auth check).
+func (h *ChatAgent) IsSessionAnonymous(w http.ResponseWriter, r *http.Request) bool {
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+	return session.IsAnonymous()
+}

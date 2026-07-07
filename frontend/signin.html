@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 第2大脑 AI 助手</title>
+    <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
+
+    <!-- 防主题闪烁：CSS 渲染前从 localStorage 读取主题 -->
+    <script>
+        (function () {
+            try {
+                var raw = localStorage.getItem('brainforever_settings');
+                if (raw) {
+                    var settings = JSON.parse(raw);
+                    var theme = settings.theme;
+                    var themeStr;
+                    if (theme === 2) {
+                        themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    } else {
+                        themeStr = theme === 1 ? 'dark' : 'light';
+                    }
+                    document.documentElement.setAttribute('data-theme', themeStr);
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
+    <!-- 主题变量 + 公共样式 -->
+    <link rel="stylesheet" href="/static/theme.css">
+    <link rel="stylesheet" href="/static/signin.css">
+</head>
+<body>
+    <div class="signin-page">
+        <!-- 主题切换按钮（右上角） -->
+        <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" title="切换亮/暗主题">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path id="themeIconSun" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                <circle id="themeIconMoon" cx="12" cy="12" r="5" opacity="0"/>
+            </svg>
+        </button>
+
+        <!-- 登录卡片 -->
+        <div class="signin-card">
+            <!-- Logo + 品牌 -->
+            <div class="signin-brand">
+                <img class="signin-logo" src="/static/brain-forever.svg" alt="第2大脑" width="56" height="56">
+                <div class="signin-brand-name">第2大脑</div>
+            </div>
+
+            <!-- 口号 -->
+            <div class="signin-tagline">我们会永远活着</div>
+
+            <!-- 手机号输入 -->
+            <div class="signin-field">
+                <div class="phone-input-wrap">
+                    <span class="phone-prefix">+86</span>
+                    <input class="signin-input phone-input" id="phoneInput" type="tel" maxlength="11"
+                        placeholder="请输入手机号" autocomplete="tel">
+                </div>
+            </div>
+
+            <!-- 验证码输入 -->
+            <div class="signin-field signin-code-field">
+                <input class="signin-input code-input" id="codeInput" type="text" maxlength="6"
+                    placeholder="请输入验证码" inputmode="numeric" autocomplete="one-time-code">
+                <button class="code-send-btn" id="codeSendBtn" onclick="onSendCode()">发送验证码</button>
+            </div>
+
+            <!-- 协议小字 -->
+            <div class="signin-agreement">
+                登录即代表已阅读并同意我们的
+                <a href="/terms" target="_blank" class="agreement-link">用户协议</a>
+                与
+                <a href="/privacy" target="_blank" class="agreement-link">隐私政策</a>
+                ，未注册的用户将自动注册。
+            </div>
+
+            <!-- 登录按钮 -->
+            <button class="signin-login-btn" id="loginBtn" onclick="onLogin()">登录</button>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="signin-footer">
+            中国 · 厦门程知信息 · d2school<br>
+            闽ICP备xxxxx号
+        </div>
+    </div>
+
+    <!-- Toast 消息容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ============================================================
+        // 主题切换（与 index.html 共用 localStorage key）
+        // ============================================================
+        function getCurrentTheme() {
+            try {
+                var raw = localStorage.getItem('brainforever_settings');
+                if (raw) {
+                    var s = JSON.parse(raw);
+                    return s.theme === 1 ? 'dark' : 'light';
+                }
+            } catch(e) {}
+            return 'light';
+        }
+
+        function setTheme(mode) {
+            document.documentElement.setAttribute('data-theme', mode);
+            try {
+                var raw = localStorage.getItem('brainforever_settings');
+                var settings = raw ? JSON.parse(raw) : {};
+                settings.theme = mode === 'dark' ? 1 : 0;
+                localStorage.setItem('brainforever_settings', JSON.stringify(settings));
+            } catch(e) {}
+            updateThemeIcon(mode);
+        }
+
+        function toggleTheme() {
+            var current = getCurrentTheme();
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        function updateThemeIcon(mode) {
+            // 简单处理：切换按钮的 title，图标由 CSS 控制
+            var btn = document.getElementById('themeToggle');
+            if (btn) {
+                btn.title = mode === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
+            }
+        }
+
+        // 初始化主题图标
+        updateThemeIcon(getCurrentTheme());
+
+        // ============================================================
+        // Toast 消息
+        // ============================================================
+        function showToast(message, type, duration) {
+            if (!type) type = 'error';
+            if (!duration) duration = 4000;
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            // 触发进入动画
+            requestAnimationFrame(function() {
+                toast.classList.add('toast-visible');
+            });
+
+            setTimeout(function() {
+                toast.classList.remove('toast-visible');
+                setTimeout(function() {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }, duration);
+        }
+
+        // ============================================================
+        // 发送验证码
+        // ============================================================
+        var sendCodeTimer = null;
+        var sendCodeCountdown = 0;
+
+        function onSendCode() {
+            var phone = document.getElementById('phoneInput').value.trim();
+            if (!/^1\d{10}$/.test(phone)) {
+                showToast('请输入正确的11位手机号', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('codeSendBtn');
+            btn.disabled = true;
+
+            // 调用后端发送验证码 API
+            fetch('/api/sms/send-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ tel: phone }),
+            })
+            .then(function(resp) {
+                if (resp.ok) {
+                    showToast('验证码已发送', 'success');
+                    startCodeCountdown(60);
+                } else {
+                    return resp.text().then(function(text) {
+                        showToast(text || '发送验证码失败', 'error');
+                        btn.disabled = false;
+                    });
+                }
+            })
+            .catch(function() {
+                showToast('网络错误，请稍后重试', 'error');
+                btn.disabled = false;
+            });
+        }
+
+        function startCodeCountdown(seconds) {
+            var btn = document.getElementById('codeSendBtn');
+            sendCodeCountdown = seconds;
+            btn.textContent = sendCodeCountdown + 's 后重发';
+            btn.disabled = true;
+
+            if (sendCodeTimer) clearInterval(sendCodeTimer);
+            sendCodeTimer = setInterval(function() {
+                sendCodeCountdown--;
+                if (sendCodeCountdown <= 0) {
+                    clearInterval(sendCodeTimer);
+                    sendCodeTimer = null;
+                    btn.textContent = '重新发送';
+                    btn.disabled = false;
+                } else {
+                    btn.textContent = sendCodeCountdown + 's 后重发';
+                }
+            }, 1000);
+        }
+
+        // ============================================================
+        // 登录（手机号 + 验证码）
+        // ============================================================
+        async function onLogin() {
+            var phone = document.getElementById('phoneInput').value.trim();
+            var code = document.getElementById('codeInput').value.trim();
+
+            if (!/^1\d{10}$/.test(phone)) {
+                showToast('请输入正确的手机号', 'error');
+                return;
+            }
+            if (!/^\d{4,6}$/.test(code)) {
+                showToast('请输入正确的验证码', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.textContent = '登录中…';
+
+            try {
+                var response = await fetch('/api/user/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        tel: phone,
+                        code: code,
+                    }),
+                });
+
+                if (response.ok) {
+                    var data = await response.json();
+                    // 持久化用户信息
+                    if (data.user_sn) {
+                        localStorage.setItem('brainforever_user_no', data.user_sn);
+                    }
+                    if (data.avatar) {
+                        localStorage.setItem('brainforever_user_avatar', data.avatar);
+                    }
+                    // 跳转到首页
+                    window.location.href = '/';
+                } else {
+                    var errText = await response.text();
+                    showToast(errText || '登录失败', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '登录';
+                }
+            } catch (e) {
+                showToast('网络错误，请稍后重试', 'error');
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
+
+        // ============================================================
+        // Enter 键触发登录
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            var codeInput = document.getElementById('codeInput');
+            codeInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onLogin();
+                }
+            });
+            var phoneInput = document.getElementById('phoneInput');
+            phoneInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('codeInput').focus();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
