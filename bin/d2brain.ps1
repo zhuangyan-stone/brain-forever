@@ -1,5 +1,5 @@
-﻿# ============================================
-# BrainForever Launcher (PowerShell)
+# ============================================
+# d2brain Launcher (PowerShell)
 # Reads .env, sets environment variables,
 # then starts brain-forever.exe
 # ============================================
@@ -7,7 +7,7 @@
 # Set console output to UTF-8 so Chinese characters display correctly
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 
-Write-Host "=== 脑力永存 BrainForever Launcher ===" -ForegroundColor Cyan
+Write-Host "=== 第2大脑 d2brain Launcher ===" -ForegroundColor Cyan
 Write-Host ""
 
 # --------------------------------------------------
@@ -81,7 +81,7 @@ if (-not (Test-Path "brain-forever.exe")) {
 }
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  BrainForever is starting..." -ForegroundColor Cyan
+Write-Host "  d2brain is starting..." -ForegroundColor Cyan
 Write-Host "  Open http://localhost:8080 in your browser" -ForegroundColor Cyan
 Write-Host "  Press Ctrl+C to stop the server" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan

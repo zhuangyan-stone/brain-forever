@@ -1,13 +1,13 @@
 #!/bin/bash
 # ============================================
-# BrainForever Launcher (Linux/macOS)
+# d2brain Launcher (Linux/macOS)
 # Reads .env, sets environment variables,
 # then starts brain-forever
 # ============================================
 
 set -e
 
-echo "=== 脑力在线 BrainForever Launcher ==="
+echo "=== 第2大脑 d2brain Launcher ==="
 echo ""
 
 # --------------------------------------------------
@@ -85,11 +85,11 @@ echo ""
 # 3. Determine the binary name
 #    On Linux/macOS the built binary is "brain-forever" (no .exe)
 # --------------------------------------------------
-_binary="brain-forever"
+_binary="./brain-forever"
 if [ ! -f "$_binary" ]; then
     # Also check for brain-forever.exe (cross-compiled)
-    if [ -f "brain-forever.exe" ]; then
-        _binary="brain-forever.exe"
+    if [ -f "./brain-forever.exe" ]; then
+        _binary="./brain-forever.exe"
     else
         echo "[ERROR] $_binary not found! Please build first with: bash b.sh"
         exit 1
@@ -99,10 +99,10 @@ fi
 echo "[3/3] Starting $_binary..."
 echo ""
 echo "============================================"
-echo "  BrainForever is starting..."
+echo "  d2brain is starting..."
 echo "  Open http://localhost:8080 in your browser"
 echo "  Press Ctrl+C to stop the server"
 echo "============================================"
 echo ""
 
-exec "./$_binary"
+exec "$_binary"
