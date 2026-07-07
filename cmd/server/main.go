@@ -72,7 +72,8 @@ func main() {
 		cfg.Frontend.CacheDisable = true
 	}
 
-	if err := logger.CreateTheLogger(zylog.NameToLevel(cfg.Logger.Level), cfg.Logger.File, zylog.Language(cfg.Logger.Lang), cfg.Logger.CustomLevelNames); err != nil {
+	if err := logger.CreateTheLogger(zylog.NameToLevel(cfg.Logger.Level), cfg.Logger.File,
+		zylog.Language(cfg.Logger.Lang), cfg.Logger.CustomLevelNames); err != nil {
 		log.Fatalf("create the logger fail. %v", err)
 	}
 
