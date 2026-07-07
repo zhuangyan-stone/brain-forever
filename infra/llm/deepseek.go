@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -21,6 +20,16 @@ import (
 //
 // This implementation uses net/http directly (no openai-go SDK dependency)
 // to provide an alternative way of calling the DeepSeek API.
+
+// ============================================================
+// Default configuration constants
+// ============================================================
+
+const (
+	deepseekDefaultBaseURL               = "https://api.deepseek.com/beta"
+	deepseekDefaultModel                 = "deepseek-v4-flash"
+	deepseekDefaultMaxToolCallIterations = 20
+)
 
 // ============================================================
 // DeepSeekRaw client
@@ -40,17 +49,11 @@ type DeepSeekClient struct {
 
 // NewDeepSeekClient creates a new DeepSeek client.
 //
-// apiKey: DeepSeek API Key, if empty reads from the env variable specified by envKey
-// envKey: environment variable name, defaults to "DEEPSEEK_API_KEY"
-// model:  model name (e.g. "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner")
-func NewDeepSeekClient(baseURL, apiKey, envKey, model string) *DeepSeekClient {
-	if apiKey == "" {
-		if envKey == "" {
-			envKey = "DEEPSEEK_API_KEY"
-		}
-		apiKey = os.Getenv(envKey)
-	}
-
+// apiKey: DeepSeek API Key (if empty, the client will have no default key;
+// callers must provide an apiKey per-request via the apiKey parameter of each method).
+// baseURL: API base URL, defaults to "https://api.deepseek.com/beta" if empty.
+// model:   model name (e.g. "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner").
+func NewDeepSeekClient(baseURL, apiKey, model string) *DeepSeekClient {
 	return &DeepSeekClient{
 		apiKey:  apiKey,
 		baseURL: baseURL,
@@ -70,28 +73,30 @@ func NewDeepSeekClient(baseURL, apiKey, envKey, model string) *DeepSeekClient {
 // NewDeepSeekRawFromConfig to create a DeepSeekRaw client.
 // ============================================================
 
-// DeepseekClientConfig extends RawClientConfig with DeepSeek-specific fields.
+// DeepseekClientConfig extends ClientConfig with DeepSeek-specific fields.
 type DeepseekClientConfig struct {
 	ClientConfig
 }
 
-// NewDeepSeekClientFromConfig creates a DeepSeekRaw client from a generic RawClientConfig.
+// NewDeepSeekClientFromConfig creates a DeepSeek client from a generic ClientConfig.
+// If cfg.APIKey is empty, the client will have no default key;
+// callers must provide an apiKey per-request.
 func NewDeepSeekClientFromConfig(cfg DeepseekClientConfig) *DeepSeekClient {
-	if cfg.APIKey == "" {
-		envKey := cfg.EnvKey
-		if envKey == "" {
-			envKey = "DEEPSEEK_API_KEY"
-		}
-		cfg.APIKey = os.Getenv(envKey)
-	}
-
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://api.deepseek.com/beta"
+		cfg.BaseURL = deepseekDefaultBaseURL
 	}
 
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		httpClient = httpx.NewHTTPClient(120 * time.Second)
+	}
+
+	if cfg.Model == "" {
+		cfg.Model = deepseekDefaultModel
+	}
+
+	if cfg.MaxToolCallIterations <= 0 {
+		cfg.MaxToolCallIterations = deepseekDefaultMaxToolCallIterations
 	}
 
 	return &DeepSeekClient{
@@ -150,20 +155,22 @@ func (c *DeepSeekClient) storeUsage(usage Usage) {
 // ============================================================
 
 // Chat sends a chat message and gets a reply (non-streaming).
-// Uses the client's default model.
-// Token usage is returned in the ChatCompletionResponse.Usage field;
-// stream_options is not needed for non-streaming requests.
-func (c *DeepSeekClient) Chat(ctx context.Context, messages []Message) (*ChatCompletionResponse, error) {
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (c *DeepSeekClient) Chat(ctx context.Context, messages []Message, apiKey string) (*ChatCompletionResponse, error) {
 	req := ChatCompletionRequest{
 		Model:    c.model,
 		Messages: messages,
 	}
-	return c.ChatWithOptions(ctx, req)
+	return c.ChatWithOptions(ctx, req, apiKey)
 }
 
 // ChatWithOptions sends a chat request with custom parameters (non-streaming).
-func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletionRequest) (*ChatCompletionResponse, error) {
-	if c.apiKey == "" {
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletionRequest, apiKey string) (*ChatCompletionResponse, error) {
+	if apiKey == "" {
+		apiKey = c.apiKey
+	}
+	if apiKey == "" {
 		return nil, fmt.Errorf("API client not initialized (API key may be missing)")
 	}
 
@@ -192,7 +199,7 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -223,21 +230,24 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 // ============================================================
 
 // ChatStream sends a chat request and returns a stream for reading chunks.
-// Uses the client's default model.
-// StreamOptions (include_usage) is configured inside ChatStreamWithOptions.
-func (c *DeepSeekClient) ChatStream(ctx context.Context, messages []Message) *ChatCompletionChunkDecoder {
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (c *DeepSeekClient) ChatStream(ctx context.Context, messages []Message, apiKey string) *ChatCompletionChunkDecoder {
 	req := ChatCompletionRequest{
 		Model:    c.model,
 		Messages: messages,
 	}
-	return c.ChatStreamWithOptions(ctx, req)
+	return c.ChatStreamWithOptions(ctx, req, apiKey)
 }
 
 // ChatStreamWithOptions sends a streaming chat request with custom parameters.
 // It uses a dedicated HTTP client with a long timeout to prevent connection drops
 // during long pauses between chunks.
-func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest) *ChatCompletionChunkDecoder {
-	if c.apiKey == "" {
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatCompletionRequest, apiKey string) *ChatCompletionChunkDecoder {
+	if apiKey == "" {
+		apiKey = c.apiKey
+	}
+	if apiKey == "" {
 		return newChatCompletionChunkDecoderError(fmt.Errorf("API client not initialized (API key may be missing)"))
 	}
 
@@ -273,7 +283,7 @@ func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatComp
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	httpReq.Header.Set("Accept", "text/event-stream")
 
 	resp, err := c.streamHTTPClient.Do(httpReq)
@@ -421,7 +431,8 @@ func (c *DeepSeekClient) ChatWithPipeline(
 	ctx context.Context,
 	messages []Message,
 	pipeline Pipeline,
-	withDeepThink bool) (reply string, reasoning string, err error) {
+	withDeepThink bool,
+	apiKey string) (reply string, reasoning string, err error) {
 
 	maxToolCallIterations := c.GetMaxToolCallIterations()
 	toolCallIterations := 0
@@ -473,7 +484,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		}
 
 		// Start streaming connection
-		stream := c.ChatStreamWithOptions(ctx, req)
+		stream := c.ChatStreamWithOptions(ctx, req, apiKey)
 		if err = stream.Err(); err != nil {
 			return "", "", fmt.Errorf("failed to call LLM API. %w", err)
 		}

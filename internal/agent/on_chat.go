@@ -294,12 +294,11 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 // ChatAgent uses SessionManager to isolate each user's chat messages by sessionID.
 // The frontend only needs to send the user's latest message each time,
 // and ChatAgent merges messages with new messages before sending to the actual LLM.
+//
+// Note: API clients (LLM, Embedder, Web Search) are not stored here.
+// They are managed as package-level singletons in init.go and accessed
+// via package-level functions like sessionLLMClient().
 type ChatAgent struct {
-	embedder    embedder.Embedder   // Text embedder for trait extraction and future RAG
-	webSearcher toolimp.WebSearcher // Web search interface
-
-	charLLMClient llm.Client // LLM API client for chat
-
 	sessionManager *SessionManager
 	cookieName     string // cookie name for reading/writing sessionID
 
@@ -323,14 +322,82 @@ type LLMInfo struct {
 }
 
 // OnGetLLMInfo handles GET /api/info/llm/chat requests.
-// Returns the current chat LLM provider name, model name, and official website URL as JSON.
+// Returns the current session's LLM provider name, model name, and official website URL as JSON.
 func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
+	sessionID := h.resolveSessionID(w, r)
+	session := h.sessionManager.GetOrCreate(sessionID)
+	client := sessionLLMClient(session)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LLMInfo{
-		Name:    h.charLLMClient.Name(),
-		Model:   h.charLLMClient.Model(),
-		Website: h.charLLMClient.Website(),
+		Name:    client.Name(),
+		Model:   client.Model(),
+		Website: client.Website(),
 	})
+}
+
+// sessionLLMClient returns the LLM client for the user's configured provider.
+// Falls back to the default provider (DeepSeek) if the user hasn't set one
+// or if the configured provider is not in the registry.
+func sessionLLMClient(s *session) llm.Client {
+	provider := s.user.settings.APIKey.LLM.Provider
+	if provider == "" {
+		provider = ProviderDeepSeek
+	}
+	if c, ok := llmClients[provider]; ok {
+		return c
+	}
+	return llmClients[ProviderDeepSeek]
+}
+
+// sessionLLMAPIKey returns the session user's personal LLM API key,
+// or empty string if the user has not set one (meaning use the global default).
+func sessionLLMAPIKey(s *session) string {
+	return s.user.settings.APIKey.LLM.ApiKey
+}
+
+// sessionEmbedder returns the embedder for the user's configured provider.
+func sessionEmbedder(s *session) embedder.Embedder {
+	provider := s.user.settings.APIKey.Embedder.Provider
+	if provider == "" {
+		provider = ProviderAli
+	}
+	if e, ok := embedderClients[provider]; ok {
+		return e
+	}
+	return embedderClients[ProviderAli]
+}
+
+// sessionEmbedderAPIKey returns the session user's personal Embedder API key,
+// or empty string if not set (meaning use the global default).
+func sessionEmbedderAPIKey(s *session) string {
+	return s.user.settings.APIKey.Embedder.ApiKey
+}
+
+// sessionWebSearchAPIKey returns the session user's personal Web Search API key,
+// or empty string if not set (meaning use the global default).
+func sessionWebSearchAPIKey(s *session) string {
+	return s.user.settings.APIKey.Search.ApiKey
+}
+
+// sessionWebSearcher returns the web search client for the user's configured provider.
+// Returns nil if no provider is configured or the provider is not in the registry.
+func sessionWebSearcher(s *session) toolimp.WebSearcher {
+	provider := s.user.settings.APIKey.Search.Provider
+	if provider == "" {
+		return webSearchClients[ProviderBocha] // fallback to default
+	}
+	if w, ok := webSearchClients[provider]; ok {
+		return w
+	}
+	return webSearchClients[ProviderBocha]
+}
+
+// SetRedisStore attaches a Redis session store to the ChatAgent's SessionManager.
+// Must be called before handling requests if Redis is available.
+// If nil, session management falls back to pure in-memory mode.
+func (h *ChatAgent) SetRedisStore(redisStore *store.RedisSessionStore) {
+	h.sessionManager.SetRedisStore(redisStore)
 }
 
 // Close releases all underlying resources held by the ChatAgent.
@@ -343,10 +410,11 @@ func (h *ChatAgent) Close() error {
 //
 // cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
 // defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
+//
+// Note: API clients are not passed here. They are initialized as package-level
+// singletons in InitAgent and accessed via sessionLLMClient(), sessionEmbedder(),
+// and sessionWebSearcher().
 func NewChatHandler(
-	embedder embedder.Embedder,
-	webSearcher toolimp.WebSearcher,
-	chatLLMClient llm.Client,
 	cookieName string,
 	defaultLang string,
 	avatarDir string,
@@ -356,9 +424,6 @@ func NewChatHandler(
 		defaultLang = "en"
 	}
 	return &ChatAgent{
-		embedder:       embedder,
-		webSearcher:    webSearcher,
-		charLLMClient:  chatLLMClient,
 		sessionManager: NewSessionManager(),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,

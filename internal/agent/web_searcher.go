@@ -14,6 +14,9 @@ import (
 // webSearchAdapter adapts searcher.WebSearcher to implement the toolimp.WebSearcher interface
 type webSearchAdapter struct {
 	client searcher.WebSearcher
+
+	// apiKey is the user's personal search API key (empty = use client default).
+	apiKey string
 }
 
 func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, freshness string, count int) (string, []toolimp.WebSource, error) {
@@ -24,7 +27,7 @@ func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, fresh
 		Summary:            true,
 		FamilyFriendlyOnly: true,
 	}
-	resp, llmText, err := w.client.SearchForLLM(ctx, req, 10240)
+	resp, llmText, err := w.client.SearchForLLM(ctx, req, 10240, w.apiKey)
 	if err != nil {
 		return "", nil, err
 	}

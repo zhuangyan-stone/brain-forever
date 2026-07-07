@@ -299,14 +299,18 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	// ----------------------------------------------------------
 	acceptLang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
+	// Get the user's LLM client and personal API key
+	client := sessionLLMClient(session)
+	llmAPIKey := sessionLLMAPIKey(session)
+
 	streamReq := llm.ChatCompletionRequest{
-		Model:    h.charLLMClient.Model(),
+		Model:    client.Model(),
 		Messages: llmMsgs,
 		Thinking: &llm.ThinkingConfig{Type: "disabled"},
 	}
 	streamReq.IncludeUsage(true)
 
-	stream := h.charLLMClient.ChatStreamWithOptions(r.Context(), streamReq)
+	stream := client.ChatStreamWithOptions(r.Context(), streamReq, llmAPIKey)
 	if err := stream.Err(); err != nil {
 		sendPortraitSSE(sw, "error", fmt.Sprintf("LLM stream failed: %v", err))
 		flusher.Flush()
@@ -320,7 +324,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		chunk := stream.CurrentChatCompletionChunk()
 
 		if chunk.Usage != nil && chunk.Usage.TotalTokens > 0 {
-			h.charLLMClient.SetUsageInfo(*chunk.Usage)
+			client.SetUsageInfo(*chunk.Usage)
 		}
 
 		if len(chunk.Choices) > 0 {
@@ -351,7 +355,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	// 8. Extract structured metadata (core traits + key highlights)
 	// ----------------------------------------------------------
 	if totalContent != "" {
-		meta := extractPortraitHighlights(r.Context(), h.charLLMClient, acceptLang, totalContent)
+		meta := extractPortraitHighlights(r.Context(), client, acceptLang, totalContent, llmAPIKey)
 		if meta != nil {
 			sendPortraitSSE(sw, "meta", meta)
 			flusher.Flush()
@@ -374,7 +378,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 // extractPortraitHighlights makes a non-streaming LLM call with the completed portrait
 // text as input, using ForceToolChoice to invoke the trip_highlights tool.
-func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, portraitText string) *PortraitHighlights {
+func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, portraitText string, apiKey string) *PortraitHighlights {
 	systemContent := i18n.SystemPrompt.TL(lang, "highlights", map[string]interface{}{
 		"PortraitText": portraitText,
 	})
@@ -391,7 +395,7 @@ func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, por
 	}
 	req.ForceToolChoice(toolimp.TripHighlightsToolName)
 
-	resp, err := client.ChatWithOptions(ctx, req)
+	resp, err := client.ChatWithOptions(ctx, req, apiKey)
 	if err != nil {
 		return nil
 	}

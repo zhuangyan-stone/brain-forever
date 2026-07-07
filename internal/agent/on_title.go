@@ -301,9 +301,13 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	// Title generation is a lightweight task; if it takes longer than 50s,
 	// the LLM is likely stuck in a thinking loop, so we time out and
 	// fall back to the original title.
+	// Get the user's LLM client and personal API key
+	client := sessionLLMClient(session)
+	llmAPIKey := sessionLLMAPIKey(session)
+
 	titleCtx, titleCancel := context.WithTimeout(r.Context(), 50*time.Second)
 	defer titleCancel()
-	resp, err := h.charLLMClient.Chat(titleCtx, messages)
+	resp, err := client.Chat(titleCtx, messages, llmAPIKey)
 
 	if err == nil && len(resp.Choices) > 0 {
 		// Extract the reply content

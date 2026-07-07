@@ -3,8 +3,7 @@ log/
 *.log
 # --- Build artifacts ---
 __debug_bin*
-/local-server
-/remote-server
+/server
 brain-forever
 brain-online
 *.exe

@@ -158,7 +158,8 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	toolsImp := []llm.ToolIMP{timeQueryToolImp}
 
 	if req.WebSearchEnabled {
-		webSearchToolImp := toolimp.MakeWebSearchTool(r.Context(), h.webSearcher, lang)
+		webSearcher := sessionWebSearcher(session)
+		webSearchToolImp := toolimp.MakeWebSearchTool(r.Context(), webSearcher, lang)
 		toolsImp = append(toolsImp, webSearchToolImp)
 	}
 
@@ -173,10 +174,13 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 			defer h.closeBrainDB(traitsStore)
 		}
 
+		embedder := sessionEmbedder(session)
+		embedderAPIKey := sessionEmbedderAPIKey(session)
 		traitSearcher := &traitSearchAdapter{
-			client: h.embedder,
+			client: embedder,
 			store:  traitsStore,
 			lang:   lang,
+			apiKey: embedderAPIKey,
 		}
 		traitSearchByTextToolImp := toolimp.MakeTraitSearchByTextTool(r.Context(), traitSearcher, lang)
 		traitSearchByKeywordToolImp := toolimp.MakeTraitSearchByKeywordTool(r.Context(), traitSearcher, lang)
@@ -211,7 +215,8 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		messages,
 		toolsImp,
 		req.DeepThink,
-		lang)
+		lang,
+		session)
 
 	// 12. Persist the assistant message to DB
 	//  Use the chatID captured when streaming started, not session.user.currentChat,

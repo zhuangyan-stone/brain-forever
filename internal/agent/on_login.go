@@ -23,7 +23,8 @@ type LoginRequest struct {
 }
 
 // OnLogin handles POST /api/user/login -authenticates by no+password,
-// loads user's chat data and switches the session to the logged-in user.
+// loads user's chat data, switches the session to the logged-in user,
+// and persists the login state to Redis.
 func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -63,8 +64,25 @@ func (h *ChatAgent) OnLogin(w http.ResponseWriter, r *http.Request) {
 		chats = []store.Chat{}
 	}
 
+	// Parse user's personal settings (API keys, theme, etc.)
+	var userSettings store.UserSettings
+	if err := userSettings.FromString(user.Settings); err != nil {
+		h.logger.Warnf("failed to parse user settings for user %s: %v", user.SN, err)
+	}
+
 	// Switch session to logged-in user
-	session.switchToUser(user.ID, user.SN, chats)
+	session.switchToUser(user.ID, user.SN, chats, userSettings)
+
+	// Persist login state to Redis (if available), including user settings
+	if h.sessionManager.redis != nil {
+		settingsJSON := userSettings.ToString()
+		if err := h.sessionManager.redis.SetLoginSession(
+			h.sessionManager.ctx, sessionID, user.ID, user.SN, settingsJSON,
+		); err != nil {
+			// Log the error but don't fail the login — Redis is optional
+			h.logger.Warnf("failed to persist login session to Redis: %v", err)
+		}
+	}
 
 	// Randomly pick an avatar
 	avatar := pickRandomAvatar(h.avatarDir)

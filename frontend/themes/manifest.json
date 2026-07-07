@@ -1,5 +1,8 @@
 {
   "description": "第2大脑 主题清单",
+  "actived": "light",
+  "actived-light": "",
+  "actived-dark": "",
   "themes": [
     {
       "description": "青爽素白",

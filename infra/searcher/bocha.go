@@ -218,18 +218,15 @@ func NewBochaClient(cfg WebSearchClientConfig) *bochaClient {
 }
 
 // Search implements the WebSearcher interface.
-// It sends a web search request to the Bocha API and returns the parsed response.
-// When req.FamilyFriendlyOnly is true, results that are not family-friendly
-// (web pages, images, videos) are filtered out.
-func (c *bochaClient) Search(ctx context.Context, req WebSearchRequest) (*WebSearchResponse, error) {
-	return c.searchCore(ctx, req)
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (c *bochaClient) Search(ctx context.Context, req WebSearchRequest, apiKey string) (*WebSearchResponse, error) {
+	return c.searchCore(ctx, req, apiKey)
 }
 
 // SearchForLLM implements the WebSearcher interface.
-// It performs a web search and returns both the parsed response and an
-// LLM-friendly formatted text.
-func (c *bochaClient) SearchForLLM(ctx context.Context, req WebSearchRequest, maxRuneLen int) (*WebSearchResponse, string, error) {
-	result, err := c.searchCore(ctx, req)
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (c *bochaClient) SearchForLLM(ctx context.Context, req WebSearchRequest, maxRuneLen int, apiKey string) (*WebSearchResponse, string, error) {
+	result, err := c.searchCore(ctx, req, apiKey)
 	if err != nil {
 		return nil, "", err
 	}
@@ -240,7 +237,8 @@ func (c *bochaClient) SearchForLLM(ctx context.Context, req WebSearchRequest, ma
 
 // searchCore performs the actual HTTP request to the Bocha API and returns
 // the parsed response, with family-friendly filtering applied if requested.
-func (c *bochaClient) searchCore(ctx context.Context, req WebSearchRequest) (*WebSearchResponse, error) {
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (c *bochaClient) searchCore(ctx context.Context, req WebSearchRequest, apiKey string) (*WebSearchResponse, error) {
 	queryStr := strings.Join(req.Query, " ")
 
 	bReq := bochaRequest{
@@ -263,7 +261,10 @@ func (c *bochaClient) searchCore(ctx context.Context, req WebSearchRequest) (*We
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	if apiKey == "" {
+		apiKey = c.apiKey
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {

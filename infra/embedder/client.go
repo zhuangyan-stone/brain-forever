@@ -4,8 +4,9 @@ import "context"
 
 // Embedder is the embedding interface: converts text to float vectors
 type Embedder interface {
-	// Embed converts text to a vector
-	Embed(ctx context.Context, text string) ([]float32, error)
+	// Embed converts text to a vector.
+	// apiKey: optional per-request API key override; empty means use the client's default.
+	Embed(ctx context.Context, text string, apiKey string) ([]float32, error)
 
 	// Model returns the current model name
 	Model() string

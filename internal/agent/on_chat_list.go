@@ -37,7 +37,8 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 			// Logged-in user: load chats from DB via UserStore.LoadChats
 			if loadedChats, err := store.TheUserStore().LoadChats(userSN); err == nil {
 				chats = loadedChats
-				session.switchToUser(session.user.ID, userSN, chats)
+				// Preserve existing settings (API keys, theme) when reloading chats
+				session.switchToUser(session.user.ID, userSN, chats, session.user.settings)
 			}
 		}
 

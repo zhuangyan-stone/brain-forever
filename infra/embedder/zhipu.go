@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"BrainForever/infra/httpx"
@@ -25,14 +24,10 @@ type ZhipuEmbedder struct {
 	client    *http.Client
 }
 
-// NewZhipuEmbedder creates a Zhipu Embedder
-// apiKey: Zhipu API Key, if empty reads from the env variable specified by envKey
-// model: model name, defaults to embedding-3 if empty
-func NewZhipuEmbedder(apiKey, envKey string, dimension int) *ZhipuEmbedder {
-	if apiKey == "" {
-		apiKey = os.Getenv(envKey)
-	}
-
+// NewZhipuEmbedder creates a Zhipu Embedder.
+// apiKey: API key for Zhipu service (if empty, the client has no default key;
+// callers must provide an apiKey per-request).
+func NewZhipuEmbedder(apiKey string, dimension int) *ZhipuEmbedder {
 	return &ZhipuEmbedder{
 		apiKey:    apiKey,
 		model:     "embedding-3",
@@ -70,9 +65,13 @@ type zhipuResponse struct {
 }
 
 // Embed converts text to a vector (implements the embedder.Embedder interface)
-func (z *ZhipuEmbedder) Embed(ctx context.Context, text string) ([]float32, error) {
-	if z.apiKey == "" {
-		return nil, fmt.Errorf("ZHIPUAI_API_KEY not set (please set the ZHIPUAI_API_KEY environment variable)")
+// apiKey: if non-empty, overrides the client's default API key for this request.
+func (z *ZhipuEmbedder) Embed(ctx context.Context, text string, apiKey string) ([]float32, error) {
+	if apiKey == "" {
+		apiKey = z.apiKey
+	}
+	if apiKey == "" {
+		return nil, fmt.Errorf("API client not initialized (API key may be missing)")
 	}
 
 	reqBody := zhipuRequest{
@@ -89,7 +88,7 @@ func (z *ZhipuEmbedder) Embed(ctx context.Context, text string) ([]float32, erro
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+z.apiKey)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := z.client.Do(req)
 	if err != nil {

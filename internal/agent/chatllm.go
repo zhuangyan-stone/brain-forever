@@ -176,6 +176,8 @@ func (atc *pipelineImp) Call(toolCallID, toolName string) (string, error) {
 // Returns the assistant message on success, or nil if the LLM returned an error
 // or produced an empty reply. The caller is responsible for appending the
 // returned message to the session history via appendNewResponseMessage.
+// callLLMWithPipeline performs a streaming LLM call with tool support.
+// session is used to get the user's provider and personal API key.
 func (h *ChatAgent) callLLMWithPipeline(
 	ctx context.Context,
 	sseWriter *sse.Writer,
@@ -184,13 +186,18 @@ func (h *ChatAgent) callLLMWithPipeline(
 	tools []llm.ToolIMP,
 	withDeepThink bool,
 	lang string,
+	session *session,
 ) *Message {
 	// construct pipeline
 	pipeline := MakePipeline(ctx, h, sseWriter, tools, lang)
 
+	// Get the user's LLM client and personal API key
+	client := sessionLLMClient(session)
+	apiKey := sessionLLMAPIKey(session)
+
 	// Delegate to DeepSeekRaw
-	reply, reasoning, err := h.charLLMClient.ChatWithPipeline(ctx,
-		messages, &pipeline, withDeepThink)
+	reply, reasoning, err := client.ChatWithPipeline(ctx,
+		messages, &pipeline, withDeepThink, apiKey)
 
 	// Detect whether the frontend aborted the connection mid-stream.
 	// When the HTTP request context is cancelled (e.g. user clicked stop),
@@ -222,7 +229,7 @@ func (h *ChatAgent) callLLMWithPipeline(
 		isEstimated := true
 		var promptTokens, completionTokens int = -1, -1
 
-		if usage := h.charLLMClient.GetUsageInfo(); usage != nil {
+		if usage := client.GetUsageInfo(); usage != nil {
 			if usage.PromptTokens > 0 || usage.CompletionTokens > 0 {
 				isEstimated = false
 			}

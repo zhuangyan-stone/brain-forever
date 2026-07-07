@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
+	"BrainForever/internal/store"
 	"BrainForever/internal/store/dbc"
 )
 
@@ -15,9 +17,21 @@ import (
 // SessionManager manages all user sessions.
 // It does not hold any database connections; databases are accessed
 // via the global dbc package or theUserStore singleton.
+// Login state is persisted in Redis for restart resilience and
+// potential horizontal scaling.
 type SessionManager struct {
 	mu       sync.RWMutex
 	sessions map[string]*session
+	redis    *store.RedisSessionStore // Redis-backed login state (nil = Redis unavailable)
+	ctx      context.Context          // Background context for Redis operations
+}
+
+// SetRedisStore attaches a Redis session store to the SessionManager.
+// Must be called before any session operations if Redis is available.
+// If redisStore is nil, session management operates in pure in-memory mode
+// (no persistence across restarts, same as before).
+func (sm *SessionManager) SetRedisStore(redisStore *store.RedisSessionStore) {
+	sm.redis = redisStore
 }
 
 // Close releases all sessions. No database stores to close since
@@ -34,10 +48,13 @@ func (sm *SessionManager) Close() {
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
 		sessions: make(map[string]*session),
+		ctx:      context.Background(),
 	}
 }
 
 // GetOrCreate gets or creates a session for the given sessionID.
+// If Redis is available and the session doesn't exist in memory,
+// it attempts to restore the login state from Redis.
 // No database stores are opened at creation time.
 func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	sm.mu.RLock()
@@ -62,10 +79,27 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 		return s
 	}
 
+	// Try to restore login state from Redis
+	var restoredID int64
+	var restoredSN string
+	var restoredSettings store.UserSettings
+	if sm.redis != nil {
+		if id, sn, settingsJSON, found, err := sm.redis.GetLoginSession(sm.ctx, sessionID); err == nil && found {
+			restoredID = id
+			restoredSN = sn
+			if settingsJSON != "" {
+				restoredSettings.FromString(settingsJSON)
+			}
+		}
+	}
+
 	s = &session{
 		id:           sessionID,
 		lastActivity: time.Now(),
 		user: sessionUser{
+			ID:          restoredID,
+			SN:          restoredSN,
+			settings:    restoredSettings,
 			currentChat: &chat{},
 		},
 	}
