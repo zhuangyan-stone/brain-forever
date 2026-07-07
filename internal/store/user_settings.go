@@ -176,6 +176,32 @@ func (s *UserStore) UpdateThemeActiveMode(id int64, isDark bool) error {
 	return nil
 }
 
+// ============================================================
+// UserStore API key-related methods
+// ============================================================
+
+// UpdateUserSettingsAPIKey updates the API key settings for a user.
+// It serializes the apis struct to JSON and updates $.api_key in-place.
+func (s *UserStore) UpdateUserSettingsAPIKey(id int64, apis *UserSettingsAPIKey) error {
+	jsonBytes, err := json.Marshal(apis)
+	if err != nil {
+		return fmt.Errorf("failed to marshal API key settings: %w", err)
+	}
+
+	result, err := TheMySQLDB().Exec(
+		"UPDATE users SET settings = JSON_SET(settings, '$.api_key', ?) WHERE id = ?",
+		string(jsonBytes), id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user API key settings: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("user not found (id=%d)", id)
+	}
+	return nil
+}
+
 // UpdateThemes updates the light/dark theme IDs and the active mode for a user.
 // light is the light theme ID, dark is the dark theme ID.
 // If isDark is true, sets Active to "dark"; otherwise sets it to "light".
