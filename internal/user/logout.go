@@ -18,7 +18,7 @@ func (h *Handler) OnLogout(w http.ResponseWriter, r *http.Request) {
 	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	sess.SwitchToUser(0, "", nil, store.UserSettings{})
+	sess.SwitchToUser(0, "", "", nil, store.UserSettings{})
 
 	store.TheUserStore().Logout(sess.User.SN)
 

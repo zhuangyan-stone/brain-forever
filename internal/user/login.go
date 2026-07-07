@@ -118,7 +118,7 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		h.logger.Warnf("failed to parse user settings for user %s: %v", user.SN, err)
 	}
 
-	sess.SwitchToUser(user.ID, user.SN, chats, userSettings)
+	sess.SwitchToUser(user.ID, user.SN, user.No, chats, userSettings)
 
 	if h.sessionManager.Redis != nil {
 		settingsJSON := userSettings.ToString()
@@ -195,7 +195,7 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		h.logger.Warnf("failed to parse user settings for user %s: %v", user.SN, err)
 	}
 
-	sess.SwitchToUser(user.ID, user.SN, chats, userSettings)
+	sess.SwitchToUser(user.ID, user.SN, user.No, chats, userSettings)
 
 	if h.sessionManager.Redis != nil {
 		settingsJSON := userSettings.ToString()

@@ -29,7 +29,7 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 		if userSN != "" {
 			if loadedChats, err := store.TheUserStore().LoadChats(userSN); err == nil {
 				chats = loadedChats
-				sess.SwitchToUser(sess.User.ID, userSN, chats, sess.User.Settings)
+				sess.SwitchToUser(sess.User.ID, userSN, sess.User.No, chats, sess.User.Settings)
 			}
 		}
 

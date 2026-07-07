@@ -32,7 +32,7 @@ export async function initPage() {
     let welcomeMessage = '';
     const sessionData = await fetchSession();
     if (sessionData) {
-        currentUserNo = sessionData.user_no || '';
+        currentUserNo = sessionData.no || '';
         welcomeMessage = sessionData.welcome || '';
     }
 

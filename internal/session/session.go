@@ -52,6 +52,7 @@ func ResolveSessionID(w http.ResponseWriter, r *http.Request, cookieName string)
 type SessionUser struct {
 	ID          int64          // User's database ID (0 = not logged in)
 	SN          string         // User serial number; empty = not logged in
+	No          string         // User display number (e.g. "U12345"); empty = not logged in
 	ChatsMu     sync.Mutex     // Protects: Chats
 	Chats       []store.Chat   // User's chat list from the database
 	CurrentChat *llmtypes.Chat // Current active chat (messages, title, titleState)
@@ -91,7 +92,7 @@ func (s *Session) SetTitle(newTitle string, newState llmtypes.TitleState) {
 }
 
 // SwitchToUser sets the session's user state.
-func (s *Session) SwitchToUser(id int64, sn string, chats []store.Chat, settings store.UserSettings) {
+func (s *Session) SwitchToUser(id int64, sn, no string, chats []store.Chat, settings store.UserSettings) {
 	if chats == nil {
 		chats = []store.Chat{}
 	}
@@ -100,7 +101,7 @@ func (s *Session) SwitchToUser(id int64, sn string, chats []store.Chat, settings
 	s.User.ChatsMu.Unlock()
 
 	s.Mu.Lock()
-	s.User = SessionUser{ID: id, SN: sn, Chats: chats, CurrentChat: &llmtypes.Chat{}, Settings: settings}
+	s.User = SessionUser{ID: id, SN: sn, No: no, Chats: chats, CurrentChat: &llmtypes.Chat{}, Settings: settings}
 	s.Mu.Unlock()
 }
 
