@@ -604,6 +604,12 @@ function showContextMenu(e, chat) {
                 msg += '\n' + viewedInfo;
             }
             showToast(msg, 'success', 6000);
+
+            // ★ 归类成功后刷新分类 Tab 的缓存数据，确保切换到分类 Tab 时能看到新结果
+            var chatsStore = window.Alpine.store('chats');
+            if (chatsStore && chatsStore.loadChatGroups) {
+                chatsStore.loadChatGroups();
+            }
         } else {
             // 🔍 调试：区分"未匹配到分类"的具体原因
             if (!result) {

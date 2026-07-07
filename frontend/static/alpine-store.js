@@ -397,11 +397,12 @@ document.addEventListener('alpine:init', function() {
                 }
             }
 
-            // 各 Tab 独立按需加载
-            if (tab === 'category' && Object.keys(this.chatGroups).length === 0) {
+            // 各 Tab 切换到时总是重新加载，确保在时间线下执行的分类/收藏操作
+            // 能立即在对应的 Tab 中反映出来。
+            if (tab === 'category') {
                 this.loadChatGroups();
             }
-            if (tab === 'favorites' && !this.favoritesLoaded) {
+            if (tab === 'favorites') {
                 this.loadFavorites();
             }
         },
@@ -488,7 +489,8 @@ document.addEventListener('alpine:init', function() {
             } catch (e) {
                 console.warn('加载收藏列表失败:', e);
                 this.favoritesGroups = {};
-                this.favoritesLoaded = true;
+                // 失败时不锁定 favoritesLoaded，允许后续切换 Tab 时再次尝试加载
+                this.favoritesLoaded = false;
             }
         },
 
