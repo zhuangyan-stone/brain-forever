@@ -159,7 +159,7 @@ func isHomePage(path string) bool {
 // Supports both the new directory-style URL (/signin/) and the old file-style (/signin.html)
 // for backward compatibility.
 func isSigninPage(path string) bool {
-	return path == "/signin/" || path == "/signin.html" || path == "/signin/index.html"
+	return path == "/signin/" || path == "/signin/index.html"
 }
 
 // redirectSignin sends a 302 Found redirect to the signin page.

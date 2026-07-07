@@ -820,7 +820,7 @@ window.onChatLoginClick = async function() {
     if (Alpine.store('chats').active?.isStreaming) {
         return;
     }
-    window.location.href = '/signin.html';
+    window.location.href = '/signin/';
 };
 
 // 页面加载后初始化：创建 HTTP session、获取对话列表、显示欢迎消息

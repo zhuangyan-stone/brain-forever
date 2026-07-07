@@ -439,7 +439,7 @@ export async function onChatLogout() {
 			}
 
 			// 跳转到登录页（匿名设计已废弃）
-			window.location.href = '/signin.html';
+			window.location.href = '/signin/';
 			return true;
 		}
 		return false;

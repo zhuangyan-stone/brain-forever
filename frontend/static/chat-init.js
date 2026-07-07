@@ -3,7 +3,7 @@
 // 首次打开页面时，依次：
 //   1. 重置 Alpine store 状态为空白对话
 //   2. GET /api/session → 创建/获取 HTTP session，得到 user_no
-//   3. 未登录（user_no 为空）→ 跳转到 /signin.html
+//   3. 未登录（user_no 为空）→ 跳转到 /signin/
 //   4. GET /api/chat/list → 取当前用户的 chats 列表
 //   5. 渲染对话列表
 //   6. 显示欢迎消息（页面总是从空白状态开始）
@@ -20,6 +20,10 @@ import { fetchSession, fetchChatList, createBlankChat } from './chat-api.js';
  * 在 DOMContentLoaded 时调用，完成首次打开页面的初始化流程。
  */
 export async function initPage() {
+    // ☆ 调试日志
+    console.log('[Zoo] initPage 开始, cookie:', document.cookie);
+    console.log('[Zoo] localStorage user_no:', localStorage.getItem('brainforever_user_no'));
+
     // Step 0: 重置 Alpine store 状态为空白对话
     // 刷新页面时，用户可能之前在某个 chat 页面上，需要重置为空白状态
     var chatsStore = window.Alpine.store('chats');
@@ -31,17 +35,22 @@ export async function initPage() {
     let currentUserNo = '';
     let welcomeMessage = '';
     const sessionData = await fetchSession();
+    console.log('[Zoo] fetchSession 返回:', JSON.stringify(sessionData));
     if (sessionData) {
         currentUserNo = sessionData.no || '';
         welcomeMessage = sessionData.welcome || '';
     }
 
+    console.log('[Zoo] currentUserNo:', JSON.stringify(currentUserNo));
+
     // ★ 登录检查：未登录用户跳转到登录页
     // 匿名设计已废弃，所有用户必须登录才能使用。
     if (!currentUserNo) {
-        window.location.href = '/signin.html';
+        console.log('[Zoo] currentUserNo 为空，跳转到 /signin/');
+        window.location.href = '/signin/';
         return; // 停止后续执行
     }
+    console.log('[Zoo] 登录检查通过，继续加载');
 
     // Step 2: GET /api/chat/list — 取当前 HTTP session 用户的 chats 列表
     // 用户身份由 cookie 中的 http-session-sn 识别，不传 query 参数
