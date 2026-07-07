@@ -359,6 +359,7 @@ export async function switchToUser(data) {
 			// ★ 通过闭包直接复用外层 chats，无需重新获取
 			if (chats) {
 				chats.currentUserNo = data.user_no || '';
+				chats.currentUserNickname = data.nickname || '';
 				chats.currentUserAvatar = data.avatar || '';
 			}
 		} catch(e) {}
@@ -422,6 +423,7 @@ export async function onChatLogout() {
 				if (chats) {
 					chats.resetToBlank();
 					chats.currentUserNo = '';
+					chats.currentUserNickname = '';
 					chats.currentUserAvatar = '';
 				}
 			} catch(e) {}

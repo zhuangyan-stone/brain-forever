@@ -20,8 +20,9 @@ func (h *ChatAgent) OnSession(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"user_sn": sess.User.SN,
-		"no":      sess.User.No,
-		"welcome": welcome,
+		"user_sn":  sess.User.SN,
+		"no":       sess.User.No,
+		"nickname": sess.User.Nickname,
+		"welcome":  welcome,
 	})
 }

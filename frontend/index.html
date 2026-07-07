@@ -446,7 +446,7 @@
                         @click.outside="open = false">
                         <div class="user-avatar-dropdown">
                             <button class="user-avatar-btn" @click="open = !open"
-                                :data-tooltip="$store.chats.currentUserNo || '匿名用户'">
+                                :data-tooltip="$store.chats.currentUserNickname || '匿名用户'">
                                 <img class="user-avatar-img"
                                     :src="$store.chats.currentUserAvatar || '/static/img/avatar/anonymous.png'"
                                     alt="头像" width="32" height="32">
@@ -457,7 +457,7 @@
                                     @click="open = false">
                                     <!-- 用户名（不可点击） -->
                                     <div class="dropdown-item dropdown-item--disabled dropdown-item--username"
-                                        x-text="$store.chats.currentUserNo || '匿名用户'"></div>
+                                        x-text="$store.chats.currentUserNickname || '匿名用户'"></div>
                                     <!-- 选择颜色主题 -->
                                     <button class="dropdown-item" id="themeSelectBtn"
                                         @click="onOpenThemeDialog">

@@ -69,10 +69,11 @@ export async function initPage() {
         renderChatList(chatListData.chats);
     }
 
-    // 恢复登录按钮状态（Alpine 响应式渲染）
-    // 空串表示匿名用户，不显示用户号
-    // 注意：必须无条件赋值，因为 currentUserNo 可能从有值变为空（匿名状态）
+    // 恢复登录用户信息（Alpine 响应式渲染）
+    // 空串表示匿名用户，不显示
+    // 注意：必须无条件赋值，因为值可能从有变为空
     chatsStore.currentUserNo = currentUserNo;
+    chatsStore.currentUserNickname = sessionData.nickname || '';
 
     // 从 localStorage 恢复头像 URL（登录时持久化）
     if (currentUserNo) {

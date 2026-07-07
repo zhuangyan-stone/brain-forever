@@ -309,7 +309,8 @@ document.addEventListener('alpine:init', function() {
         sidebarTab: 'timeline',  // 侧边栏当前 tab: 'timeline' | 'category' | 'favorites'
         collapsedGroups: {},     // 折叠状态: { 'groupLabel': true/false }
         chatCategories: [],      // 分类 tab 的分组数据
-        currentUserNo: '',       // 当前登录用户号，由 initPage / onChatLogin 设置，供登录按钮 Alpine 模板渲染
+        currentUserNo: '',       // 当前登录用户号，由 initPage / onChatLogin 设置
+        currentUserNickname: '', // 当前登录用户昵称，由 initPage / onChatLogin 设置，供头像/下拉菜单显示
         currentUserAvatar: '',   // 当前登录用户头像 URL，由 onChatLogin 设置
         deletedChats: [],        // 回收站中的对话列表（已逻辑删除）
         trashExpanded: false,    // 回收站是否展开

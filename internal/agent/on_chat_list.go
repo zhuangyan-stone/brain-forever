@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 )
 
@@ -24,12 +25,23 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 	if len(chats) == 0 {
 		sess.Mu.Lock()
 		userSN := sess.User.SN
+		userNo := sess.User.No
+		userNickname := sess.User.Nickname
+		userID := sess.User.ID
+		userSettings := sess.User.Settings
 		sess.Mu.Unlock()
 
 		if userSN != "" {
 			if loadedChats, err := store.TheUserStore().LoadChats(userSN); err == nil {
 				chats = loadedChats
-				sess.SwitchToUser(sess.User.ID, userSN, sess.User.No, chats, sess.User.Settings)
+				sess.SwitchToUser(session.SessionUser{
+					ID:       userID,
+					SN:       userSN,
+					No:       userNo,
+					Nickname: userNickname,
+					Chats:    chats,
+					Settings: userSettings,
+				})
 			}
 		}
 

@@ -210,7 +210,7 @@ document.addEventListener('alpine:init', function() {
                 try {
                     var chats = Alpine.store('chats');
                     if (chats) {
-                        this.userName = chats.currentUserNo || '匿名用户';
+                        this.userName = chats.currentUserNickname || chats.currentUserNo || '匿名用户';
                         this.userAvatar = chats.currentUserAvatar || '/static/img/avatar/anonymous.png';
                     }
                 } catch(e) {
