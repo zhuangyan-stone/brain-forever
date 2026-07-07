@@ -67,6 +67,15 @@ other = "解析请求失败: {{.Error}}"
 [api_error_login_failed]
 other = "登录失败: {{.Error}}"
 
+[api_error_sms_send_failed]
+other = "发送验证码失败: {{.Error}}"
+
+[api_error_sms_code_invalid]
+other = "验证码错误或已过期"
+
+[api_error_sms_code_sent]
+other = "验证码已发送"
+
 [api_error_failed_to_open_chat_store_detail]
 other = "打开聊天数据库失败: {{.Error}}"
 

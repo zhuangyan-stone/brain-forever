@@ -1,4 +1,6 @@
-package store
+// Package cache provides Redis-backed caching for temporary data
+// such as session state, SMS verification codes, etc.
+package cache
 
 import (
 	"context"
@@ -43,6 +45,12 @@ func NewRedisSessionStore(addr, password string, db int) *RedisSessionStore {
 		DB:       db,
 	})
 	return &RedisSessionStore{client: rdb}
+}
+
+// Client returns the underlying Redis client.
+// Used by other cache components (e.g., SMSCodeCache) to share the same connection pool.
+func (rs *RedisSessionStore) Client() *redis.Client {
+	return rs.client
 }
 
 // Close closes the underlying Redis connection.

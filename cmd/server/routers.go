@@ -85,8 +85,14 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// 不需要认证的路由
 	// ============================================================
 
-	// /api/user/login -- POST
-	srv.POST("/api/user/login", chatHandler.OnLogin)
+	// /api/verify/sms -- POST (request SMS verification code)
+	srv.POST("/api/verify/sms", chatHandler.OnRequestVerifyCode)
+
+	// /api/user/login/sms -- POST (login by tel + SMS verify code)
+	srv.POST("/api/user/login/sms", chatHandler.OnLoginBySMS)
+
+	// /api/user/login/pwd -- POST (login by no + password)
+	srv.POST("/api/user/login/pwd", chatHandler.OnLoginByPwd)
 
 	// /api/session -- GET
 	srv.GET("/api/session", chatHandler.OnSession)
@@ -115,23 +121,25 @@ func isHomePage(path string) bool {
 }
 
 // isSigninPage returns true if the request path is the signin page.
+// Supports both the new directory-style URL (/signin/) and the old file-style (/signin.html)
+// for backward compatibility.
 func isSigninPage(path string) bool {
-	return path == "/signin.html"
+	return path == "/signin/" || path == "/signin.html"
 }
 
 // redirectSignin sends a 302 Found redirect to the signin page.
 // Uses StatusFound (302) instead of StatusMovedPermanently (301) to prevent
 // browser caching of the redirect, so logout → re-login works correctly.
 func redirectSignin(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/signin.html", http.StatusFound)
+	http.Redirect(w, r, "/signin/", http.StatusFound)
 }
 
 // initStaticFileServer sets up the static file server for frontend pages.
 // When cacheDisable is true, sets Cache-Control: no-cache headers so frontend changes
 // take effect immediately during development.
 // Production (default) uses http.FileServer's default ETag/Last-Modified caching behavior.
-// HTML pages ("/", "/index.html", "/signin.html") always bypass cache regardless of cacheDisable:
-//   - Home page: also checked for login → anonymous sessions get 302 to /signin.html
+// HTML pages ("/", "/index.html", "/signin/") always bypass cache regardless of cacheDisable:
+//   - Home page: also checked for login → anonymous sessions get 302 to /signin/
 //   - Signin page: no auth check, just no-cache to ensure fresh content
 func initStaticFileServer(srv *httpx.Server, frontendDir string, cacheDisable bool, chatHandler *agent.ChatAgent) {
 	fs := http.FileServer(http.Dir(frontendDir))

@@ -58,6 +58,15 @@ other = "failed to parse request: {{.Error}}"
 [api_error_login_failed]
 other = "login failed: {{.Error}}"
 
+[api_error_sms_send_failed]
+other = "failed to send SMS code: {{.Error}}"
+
+[api_error_sms_code_invalid]
+other = "invalid or expired verification code"
+
+[api_error_sms_code_sent]
+other = "verification code sent"
+
 [api_error_failed_to_open_chat_store_detail]
 other = "failed to open chat store: {{.Error}}"
 

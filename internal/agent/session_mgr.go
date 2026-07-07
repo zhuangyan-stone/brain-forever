@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"BrainForever/internal/store"
+	"BrainForever/internal/store/cache"
 	"BrainForever/internal/store/dbc"
 )
 
@@ -22,7 +23,7 @@ import (
 type SessionManager struct {
 	mu       sync.RWMutex
 	sessions map[string]*session
-	redis    *store.RedisSessionStore // Redis-backed login state (nil = Redis unavailable)
+	redis    *cache.RedisSessionStore // Redis-backed login state (nil = Redis unavailable)
 	ctx      context.Context          // Background context for Redis operations
 }
 
@@ -30,7 +31,7 @@ type SessionManager struct {
 // Must be called before any session operations if Redis is available.
 // If redisStore is nil, session management operates in pure in-memory mode
 // (no persistence across restarts, same as before).
-func (sm *SessionManager) SetRedisStore(redisStore *store.RedisSessionStore) {
+func (sm *SessionManager) SetRedisStore(redisStore *cache.RedisSessionStore) {
 	sm.redis = redisStore
 }
 

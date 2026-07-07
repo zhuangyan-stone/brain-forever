@@ -9,7 +9,7 @@ import (
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/config"
-	"BrainForever/internal/store"
+	"BrainForever/internal/store/cache"
 	"BrainForever/internal/store/dbc"
 )
 
@@ -117,11 +117,11 @@ func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolim
 
 // InitRedisStore creates a Redis session store from config.
 // Returns nil if Redis configuration is empty (Redis optional).
-func InitRedisStore(cfg config.RedisConfig) *store.RedisSessionStore {
+func InitRedisStore(cfg config.RedisConfig) *cache.RedisSessionStore {
 	if cfg.Addr == "" {
 		return nil
 	}
-	return store.NewRedisSessionStore(cfg.Addr, cfg.Password, cfg.DB)
+	return cache.NewRedisSessionStore(cfg.Addr, cfg.Password, cfg.DB)
 }
 
 // InitAgent creates a fully initialized ChatHandler from a Config.
@@ -175,6 +175,11 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		} else {
 			chatHandler.SetRedisStore(redisStore)
 			logger.Infof("? Redis session store attached (%s)", cfg.Redis.Addr)
+
+			// Create SMS code cache using the same Redis connection pool
+			smsCodeCache := cache.NewSMSCodeCache(redisStore.Client())
+			chatHandler.SetSMSCodeCache(smsCodeCache)
+			logger.Infof("? SMS code cache attached (Redis-based)")
 		}
 	}
 

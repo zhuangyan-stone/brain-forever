@@ -176,11 +176,11 @@
             var btn = document.getElementById('codeSendBtn');
             btn.disabled = true;
 
-            // 调用后端发送验证码 API
-            fetch('/api/sms/send-code', {
+            // 调用后端发送验证码 API（purpose 标明用途，不同用途的校验码在 Redis 中隔离存储）
+            fetch('/api/verify/sms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify({ tel: phone }),
+                body: JSON.stringify({ tel: phone, purpose: 'login' }),
             })
             .then(function(resp) {
                 if (resp.ok) {
@@ -240,7 +240,7 @@
             btn.textContent = '登录中…';
 
             try {
-                var response = await fetch('/api/user/login', {
+                var response = await fetch('/api/user/login/sms', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json; charset=utf-8' },
                     body: JSON.stringify({

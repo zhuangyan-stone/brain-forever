@@ -11,6 +11,7 @@ import (
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/store"
+	"BrainForever/internal/store/cache"
 	"BrainForever/internal/store/dbc"
 )
 
@@ -311,6 +312,10 @@ type ChatAgent struct {
 	// Used by OnLogin to dynamically discover available avatar files.
 	avatarDir string
 
+	// smsCodeCache is the Redis-backed SMS verification code cache.
+	// If nil, SMS code functionality is unavailable (Redis not configured).
+	smsCodeCache *cache.SMSCodeCache
+
 	logger zylog.Logger // Structured logger for the agent
 }
 
@@ -396,8 +401,14 @@ func sessionWebSearcher(s *session) toolimp.WebSearcher {
 // SetRedisStore attaches a Redis session store to the ChatAgent's SessionManager.
 // Must be called before handling requests if Redis is available.
 // If nil, session management falls back to pure in-memory mode.
-func (h *ChatAgent) SetRedisStore(redisStore *store.RedisSessionStore) {
+func (h *ChatAgent) SetRedisStore(redisStore *cache.RedisSessionStore) {
 	h.sessionManager.SetRedisStore(redisStore)
+}
+
+// SetSMSCodeCache attaches a Redis-backed SMS code cache to the ChatAgent.
+// If nil, SMS code functionality is unavailable.
+func (h *ChatAgent) SetSMSCodeCache(c *cache.SMSCodeCache) {
+	h.smsCodeCache = c
 }
 
 // Close releases all underlying resources held by the ChatAgent.

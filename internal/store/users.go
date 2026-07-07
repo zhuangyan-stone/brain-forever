@@ -173,6 +173,47 @@ func (s *UserStore) generateUserNO() string {
 // User operations
 // ============================================================
 
+// FindOrCreateByTel looks up a user by phone number.
+// If found, returns the existing user.
+// If not found, creates a new user with the given tel as nickname prefix and a default password.
+// Returns the user and a bool indicating whether the user was newly created.
+func (s *UserStore) FindOrCreateByTel(tel string) (*User, bool, error) {
+	// Try to find existing user by tel
+	existing, err := s.GetUserByTel(tel)
+	if err != nil {
+		return nil, false, err
+	}
+	if existing != nil {
+		return existing, false, nil // already registered
+	}
+
+	// Auto-register new user
+	// Use tel suffix as nickname (last 4 digits for privacy)
+	nickname := tel
+	if len(tel) >= 4 {
+		nickname = "用户" + tel[len(tel)-4:]
+	}
+
+	user, err := s.CreateUser(nickname, tel) // use tel as the default password
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to auto-register user: %w", err)
+	}
+
+	// Update the tel field after creation
+	_, err = TheMySQLDB().Exec("UPDATE users SET tel = ? WHERE id = ?", tel, user.ID)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to set tel for new user: %w", err)
+	}
+
+	// Re-fetch to get updated user
+	user, err = s.GetUserByID(user.ID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return user, true, nil
+}
+
 // CreateUser creates a new user.
 // nickname is the default nickname (max 38 chars), rawPassword is the raw password.
 // sn is auto-generated via toolset.GenerateSN("u-"), salt is auto-generated randomly,
@@ -224,6 +265,23 @@ func (s *UserStore) GetUserByNO(no string) (*User, error) {
 			return nil, fmt.Errorf("user not found by no=%s", no)
 		}
 		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+	return &u, nil
+}
+
+// GetUserByTel retrieves a user by phone number (tel field).
+// Returns nil if the tel is empty or not found.
+func (s *UserStore) GetUserByTel(tel string) (*User, error) {
+	if tel == "" {
+		return nil, fmt.Errorf("tel is empty")
+	}
+	var u User
+	err := TheMySQLDB().Get(&u, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users WHERE tel = ?", tel)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // not found, not an error
+		}
+		return nil, fmt.Errorf("failed to query user by tel: %w", err)
 	}
 	return &u, nil
 }
