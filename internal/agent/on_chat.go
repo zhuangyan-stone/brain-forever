@@ -357,6 +357,31 @@ func sessionWebSearcher(s *session.Session) toolimp.WebSearcher {
 	return webSearchClients[ProviderBocha]
 }
 
+// GetSessionManager returns the underlying session manager.
+func (h *ChatAgent) GetSessionManager() *session.Manager {
+	return h.sessionManager
+}
+
+// GetCookieName returns the cookie name used for session identification.
+func (h *ChatAgent) GetCookieName() string {
+	return h.cookieName
+}
+
+// GetLogger returns the logger instance.
+func (h *ChatAgent) GetLogger() zylog.Logger {
+	return h.logger
+}
+
+// GetAvatarDir returns the avatar directory path.
+func (h *ChatAgent) GetAvatarDir() string {
+	return h.avatarDir
+}
+
+// GetSMSCodeCache returns the SMS code cache, or nil if not configured.
+func (h *ChatAgent) GetSMSCodeCache() *cache.SMSCodeCache {
+	return h.smsCodeCache
+}
+
 // SetRedisStore attaches a Redis session store to the ChatAgent's Manager.
 func (h *ChatAgent) SetRedisStore(redisStore *cache.RedisSessionStore) {
 	h.sessionManager.SetRedisStore(redisStore)

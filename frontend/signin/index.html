@@ -258,6 +258,39 @@
                     if (data.avatar) {
                         localStorage.setItem('brainforever_user_avatar', data.avatar);
                     }
+                    // 主题同步：如果 sync=true，用服务端主题覆盖本地
+                    if (data.theme && data.theme.sync) {
+                        if (data.theme.light) {
+                            localStorage.setItem('brainforever_theme_light', data.theme.light);
+                        }
+                        if (data.theme.dark) {
+                            localStorage.setItem('brainforever_theme_dark', data.theme.dark);
+                        }
+                        // 映射 active 到数字：light→0, dark→1, system→2
+                        var themeNum = 0;
+                        if (data.theme.active === 'dark') themeNum = 1;
+                        else if (data.theme.active === 'system') themeNum = 2;
+                        try {
+                            var raw = localStorage.getItem('brainforever_settings');
+                            var settings = raw ? JSON.parse(raw) : {};
+                            settings.theme = themeNum;
+                            localStorage.setItem('brainforever_settings', JSON.stringify(settings));
+                        } catch(e) {}
+                        // 立即应用主题到当前页面（避免跳转后闪烁）
+                        var themeStr = themeNum === 2
+                            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                            : (themeNum === 1 ? 'dark' : 'light');
+                        document.documentElement.setAttribute('data-theme', themeStr);
+                        // 同步外源主题 CSS
+                        var link = document.querySelector('link[href^="/themes/"]');
+                        if (!link) {
+                            link = document.createElement('link');
+                            link.rel = 'stylesheet';
+                            link.id = 'external-theme-css';
+                            document.head.appendChild(link);
+                        }
+                        link.href = '/themes/' + encodeURIComponent(themeStr === 'dark' ? data.theme.dark : data.theme.light) + '/theme.css';
+                    }
                     // 跳转到首页
                     window.location.href = '/';
                 } else {

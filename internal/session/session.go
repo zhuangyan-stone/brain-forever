@@ -2,6 +2,7 @@ package session
 
 import (
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -20,6 +21,26 @@ import (
 // Format: s-xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 func GenerateSessionID() string {
 	return toolset.GenerateSNSimple("s")
+}
+
+// ResolveSessionID extracts the session ID from the cookie.
+// If no cookie exists, generates a new session ID and sets the cookie.
+func ResolveSessionID(w http.ResponseWriter, r *http.Request, cookieName string) string {
+	cookie, err := r.Cookie(cookieName)
+	if err == nil && cookie.Value != "" {
+		return cookie.Value
+	}
+
+	sessionID := GenerateSessionID()
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieName,
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7,
+	})
+	return sessionID
 }
 
 // ============================================================

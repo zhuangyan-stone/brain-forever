@@ -148,12 +148,11 @@ document.addEventListener('alpine:init', function() {
                 window.ThemeLoader.apply();
             }
             // 同步到服务端（异步，不阻塞 UI）
-            var mode = document.documentElement.getAttribute('data-theme') || 'light';
-            fetch('/api/themes', {
+            fetch('/api/user/theme/apply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    actived: mode,
+                    actived: String(this.theme),
                     'actived-light': lightId,
                     'actived-dark': darkId,
                 }),

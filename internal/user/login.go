@@ -1,4 +1,4 @@
-package agent
+package user
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"BrainForever/infra/i18n"
+	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
 	"BrainForever/internal/store/dbc"
@@ -24,7 +25,7 @@ type SmsVerifyCodeRequest struct {
 }
 
 // OnRequestVerifyCode handles POST /api/verify/sms.
-func (h *ChatAgent) OnRequestVerifyCode(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) OnRequestVerifyCode(w http.ResponseWriter, r *http.Request) {
 	if h.smsCodeCache == nil {
 		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": "SMS service unavailable"}), http.StatusServiceUnavailable)
 		return
@@ -71,7 +72,7 @@ type LoginByTelRequest struct {
 }
 
 // OnLoginBySMS handles POST /api/user/login/sms
-func (h *ChatAgent) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 	var req LoginByTelRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
@@ -92,7 +93,7 @@ func (h *ChatAgent) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID := h.resolveSessionID(w, r)
+	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
 	user, isNew, err := store.TheUserStore().FindOrCreateByTel(req.Tel)
@@ -132,12 +133,14 @@ func (h *ChatAgent) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "ok",
-		"user_sn": user.SN,
-		"no":      user.No,
-		"avatar":  avatar,
-		"chats":   chats,
-		"is_new":  isNew,
+		"status":   "ok",
+		"user_sn":  user.SN,
+		"no":       user.No,
+		"nickname": user.Nickname,
+		"avatar":   avatar,
+		"chats":    chats,
+		"theme":    userSettings.Theme,
+		"is_new":   isNew,
 	})
 }
 
@@ -151,7 +154,7 @@ type LoginByPwdRequest struct {
 }
 
 // OnLoginByPwd handles POST /api/user/login/pwd
-func (h *ChatAgent) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 	var req LoginByPwdRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
@@ -167,7 +170,7 @@ func (h *ChatAgent) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID := h.resolveSessionID(w, r)
+	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
 	user, err := store.TheUserStore().LoginByPassword(req.No, req.Password)
@@ -207,13 +210,19 @@ func (h *ChatAgent) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "ok",
-		"user_sn": user.SN,
-		"no":      user.No,
-		"avatar":  avatar,
-		"chats":   chats,
+		"status":   "ok",
+		"user_sn":  user.SN,
+		"no":       user.No,
+		"nickname": user.Nickname,
+		"avatar":   avatar,
+		"chats":    chats,
+		"theme":    userSettings.Theme,
 	})
 }
+
+// ============================================================
+// Helper: pick a random avatar
+// ============================================================
 
 func pickRandomAvatar(avatarDir string) string {
 	const avatarURLPrefix = "/static/img/avatar/"

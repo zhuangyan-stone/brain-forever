@@ -55,6 +55,7 @@ type UserSettingsTheme struct {
 	Active string `json:"active"` // Active theme mode: "light" or "dark"
 	Light  string `json:"light"`  // Light theme ID
 	Dark   string `json:"dark"`   // Dark theme ID
+	Sync   bool   `json:"sync"`   // Whether to sync theme across devices
 }
 
 // ============================================================
@@ -154,20 +155,33 @@ func (s *UserStore) SetUserSettings(id int64, settings *UserSettings) error {
 // ============================================================
 
 // UpdateThemeActiveMode updates the active theme mode for a user.
-// If isDark is true, sets Active to "dark"; otherwise sets it to "light".
+// active should be one of "light", "dark", or "system".
 // Uses MySQL JSON_SET to update only the $.theme.active field in-place.
-func (s *UserStore) UpdateThemeActiveMode(id int64, isDark bool) error {
-	activeMode := "light"
-	if isDark {
-		activeMode = "dark"
-	}
-
+func (s *UserStore) UpdateThemeActiveMode(id int64, active string) error {
 	result, err := TheMySQLDB().Exec(
 		"UPDATE users SET settings = JSON_SET(settings, '$.theme.active', ?) WHERE id = ?",
-		activeMode, id,
+		active, id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update user settings: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("user not found (id=%d)", id)
+	}
+	return nil
+}
+
+// UpdateThemeSyncMode updates the $.theme.sync field for a user.
+// Uses MySQL JSON_SET to update only the $.theme.sync field in-place.
+// sync is true to enable cross-device theme sync, false to disable.
+func (s *UserStore) UpdateThemeSyncMode(id int64, sync bool) error {
+	result, err := TheMySQLDB().Exec(
+		"UPDATE users SET settings = JSON_SET(settings, '$.theme.sync', ?) WHERE id = ?",
+		sync, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update theme sync mode: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -204,17 +218,12 @@ func (s *UserStore) UpdateUserSettingsAPIKey(id int64, apis *UserSettingsAPIKey)
 
 // UpdateThemes updates the light/dark theme IDs and the active mode for a user.
 // light is the light theme ID, dark is the dark theme ID.
-// If isDark is true, sets Active to "dark"; otherwise sets it to "light".
+// active should be one of "light", "dark", or "system".
 // Uses MySQL JSON_SET to update all three $.theme.* fields in a single call.
-func (s *UserStore) UpdateThemes(id int64, light, dark string, isDark bool) error {
-	activeMode := "light"
-	if isDark {
-		activeMode = "dark"
-	}
-
+func (s *UserStore) UpdateThemes(id int64, light, dark, active string) error {
 	result, err := TheMySQLDB().Exec(
 		"UPDATE users SET settings = JSON_SET(settings, '$.theme.light', ?, '$.theme.dark', ?, '$.theme.active', ?) WHERE id = ?",
-		light, dark, activeMode, id,
+		light, dark, active, id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update user settings: %w", err)

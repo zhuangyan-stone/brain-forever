@@ -7,10 +7,11 @@ import (
 	"BrainForever/infra/httpx"
 	"BrainForever/internal/agent"
 	"BrainForever/internal/theme"
+	"BrainForever/internal/user"
 )
 
 // initRouters registers all API routes on the given server.
-func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *theme.Handler) {
+func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *theme.Handler, userHandler *user.Handler) {
 
 	// ============================================================
 	// 需要认证的路由
@@ -69,7 +70,7 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	srv.GET("/api/info/llm/chat", chatHandler.RequireAuth(chatHandler.OnGetLLMInfo))
 
 	// /api/user/logout -- POST
-	srv.POST("/api/user/logout", chatHandler.RequireAuth(chatHandler.OnLogout))
+	srv.POST("/api/user/logout", chatHandler.RequireAuth(userHandler.OnLogout))
 
 	// /api/user/portrait -- GET (generate user portrait, streaming SSE)
 	srv.GET("/api/user/portrait", chatHandler.RequireAuth(chatHandler.OnGetUserPortrait))
@@ -77,22 +78,34 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// /api/user/portrait/title -- POST (generate overall title for a document, e.g. portrait)
 	srv.POST("/api/user/portrait/title", chatHandler.RequireAuth(chatHandler.OnGetPortraitTitle))
 
-	// /api/themes -- GET (list themes) + POST (update active theme)
-	srv.GET("/api/themes", chatHandler.RequireAuth(themeHandler.GetThemes))
-	srv.POST("/api/themes", chatHandler.RequireAuth(themeHandler.SetThemes))
+	// ============================================================
+	// 用户主题路由（用户设置，需认证）
+	// ============================================================
+
+	// /api/user/theme/apply -- POST (apply user theme selection, requires auth)
+	srv.POST("/api/user/theme/apply", chatHandler.RequireAuth(userHandler.ApplyTheme))
+
+	// /api/user/theme -- GET (get user theme preferences, requires auth)
+	srv.GET("/api/user/theme", chatHandler.RequireAuth(userHandler.GetTheme))
+
+	// /api/user/theme/mode -- PUT (update theme sync mode, requires auth)
+	srv.PUT("/api/user/theme/mode", chatHandler.RequireAuth(userHandler.UpdateSyncMode))
+
+	// /api/themes/mainfes -- GET (read theme manifest, no auth required)
+	srv.GET("/api/themes/mainfes", themeHandler.GetThemeMainfes)
 
 	// ============================================================
 	// 不需要认证的路由
 	// ============================================================
 
 	// /api/verify/sms -- POST (request SMS verification code)
-	srv.POST("/api/verify/sms", chatHandler.OnRequestVerifyCode)
+	srv.POST("/api/verify/sms", userHandler.OnRequestVerifyCode)
 
 	// /api/user/login/sms -- POST (login by tel + SMS verify code)
-	srv.POST("/api/user/login/sms", chatHandler.OnLoginBySMS)
+	srv.POST("/api/user/login/sms", userHandler.OnLoginBySMS)
 
 	// /api/user/login/pwd -- POST (login by no + password)
-	srv.POST("/api/user/login/pwd", chatHandler.OnLoginByPwd)
+	srv.POST("/api/user/login/pwd", userHandler.OnLoginByPwd)
 
 	// /api/session -- GET
 	srv.GET("/api/session", chatHandler.OnSession)

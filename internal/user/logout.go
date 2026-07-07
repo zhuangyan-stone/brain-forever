@@ -1,9 +1,11 @@
-package agent
+package user
 
 import (
-	"BrainForever/internal/store"
 	"encoding/json"
 	"net/http"
+
+	"BrainForever/internal/session"
+	"BrainForever/internal/store"
 )
 
 // ============================================================
@@ -12,8 +14,8 @@ import (
 
 // OnLogout handles POST /api/user/logout -clears the current session's
 // user state, returning it to an unauthenticated state.
-func (h *ChatAgent) OnLogout(w http.ResponseWriter, r *http.Request) {
-	sessionID := h.resolveSessionID(w, r)
+func (h *Handler) OnLogout(w http.ResponseWriter, r *http.Request) {
+	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
 	sess.SwitchToUser(0, "", nil, store.UserSettings{})

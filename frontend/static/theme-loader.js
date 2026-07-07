@@ -78,12 +78,12 @@ window.ThemeLoader = (function() {
         },
 
         /**
-         * loadManifest — 从 /api/themes 加载主题清单和用户选择
+         * loadManifest — 从 /api/themes/mainfes 加载主题清单和用户选择
          * @returns {Promise<object|null>} manifest 数据对象
          */
         loadManifest: async function() {
             try {
-                var resp = await fetch('/api/themes');
+                var resp = await fetch('/api/themes/mainfes');
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var data = await resp.json();
                 // 将内置主题作为完整对象注入到列表最前面，

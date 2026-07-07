@@ -18,6 +18,7 @@ import (
 	"BrainForever/internal/logger"
 	"BrainForever/internal/store"
 	"BrainForever/internal/theme"
+	"BrainForever/internal/user"
 )
 
 // ============================================================
@@ -172,11 +173,18 @@ func main() {
 	// CORS middleware -support for frontend-backend separated development
 	srv.Use(httpx.UseCORSMiddleware)
 
-	// Initialize theme handler
+	// Initialize theme handler for manifest and user handler for user operations
 	themeHandler := theme.NewHandler()
+	userHandler := user.NewHandler(
+		chatHandler.GetSessionManager(),
+		chatHandler.GetCookieName(),
+		chatHandler.GetLogger(),
+		chatHandler.GetAvatarDir(),
+		chatHandler.GetSMSCodeCache(),
+	)
 
-	// Initialize all API routes (chat, theme, etc.)
-	initRouters(srv, chatHandler, themeHandler)
+	// Initialize all API routes (chat, theme, user, etc.)
+	initRouters(srv, chatHandler, themeHandler, userHandler)
 
 	// Static file server for frontend pages
 	// Pass chatHandler for login check on index.html (302 redirect to /signin.html if anonymous)
