@@ -78,7 +78,7 @@ func main() {
 	// Relative paths are resolved against the current working directory
 	// (set via VS Code launch.json cwd or by running from the project root).
 	if resolved, err := filepath.Abs(cfg.Frontend.Dir); err != nil {
-		log.Printf("[WARN] failed to resolve frontend dir %q: %v, using as-is", cfg.Frontend.Dir, err)
+		log.Fatalf("failed to resolve frontend dir %q: %v, using as-is", cfg.Frontend.Dir, err)
 	} else {
 		cfg.Frontend.Dir = resolved
 	}
