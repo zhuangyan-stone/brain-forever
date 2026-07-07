@@ -21,21 +21,9 @@ import (
 )
 
 // ============================================================
-// Portrait generation handler -GET /api/user/portrait?retouch=N
-//
-// Flow:
-//  1. Frontend sends GET /api/user/portrait?retouch=3
-//  2. Local-server reads ALL personal traits from user-specific traits DB
-//  3. Local-server calls DeepSeek API directly (streaming) to generate portrait
-//  4. Local-server streams LLM portrait text via SSE to frontend
-//  5. After streaming completes, makes a second LLM call to extract highlights
-//
-// Traits DB naming (same as trait extraction):
-//   - Anonymous: localdb/anonymous.brain.db
-//   - Logged-in: localdb/{userNo}.brain.db
+// Portrait types
 // ============================================================
 
-// portraitTraitItem represents a single trait sent to the LLM.
 type portraitTraitItem struct {
 	Text       string `json:"text"`
 	Category   int    `json:"category"`
@@ -44,8 +32,6 @@ type portraitTraitItem struct {
 	CreateAt   string `json:"create_at"`
 }
 
-// ToString returns a human-readable natural language representation of this trait item,
-// with explanations for each field (category, confidence, half-life, creation time).
 func (t portraitTraitItem) ToString(lang string, index int) string {
 	catName := i18n.TL(lang, fmt.Sprintf("trait_cat_%d", t.Category))
 	catDesc := i18n.TL(lang, fmt.Sprintf("trait_cat_desc_%d", t.Category))
@@ -70,7 +56,6 @@ func (t portraitTraitItem) ToString(lang string, index int) string {
 	})
 }
 
-// confidenceLevelKey returns a confidence level description key suffix for the given value (1-10).
 func confidenceLevelKey(confidence int) string {
 	switch {
 	case confidence >= 8:
@@ -82,7 +67,6 @@ func confidenceLevelKey(confidence int) string {
 	}
 }
 
-// formatTraitItems converts a slice of portraitTraitItem into a natural language string.
 func formatTraitItems(items []portraitTraitItem, lang string) string {
 	var sb strings.Builder
 	for i, item := range items {
@@ -94,14 +78,12 @@ func formatTraitItems(items []portraitTraitItem, lang string) string {
 	return sb.String()
 }
 
-// portraitChatTitleItem represents a single chat title sent to the LLM.
 type portraitChatTitleItem struct {
 	ID      int64  `json:"id"`
 	Title   string `json:"title"`
 	CrateAt string `json:"create_at"`
 }
 
-// formatChatTitles converts a slice of chatTitleItem into a natural language string.
 func formatChatTitles(items []portraitChatTitleItem, lang string) string {
 	if len(items) == 0 {
 		return ""
@@ -125,23 +107,20 @@ func formatChatTitles(items []portraitChatTitleItem, lang string) string {
 	return sb.String()
 }
 
-// hotTagItem represents a single tag with its conversation count.
 type hotTagItem struct {
 	Tag   string `json:"tag"`
 	Count int    `json:"count"`
 }
 
 // ============================================================
-// Portrait SSE types (same format as before)
+// Portrait SSE types
 // ============================================================
 
-// ssePortraitEvent is the JSON structure for each SSE data message.
 type ssePortraitEvent struct {
 	Event string      `json:"event"`
 	Data  interface{} `json:"data"`
 }
 
-// sendPortraitSSE marshals and writes a portrait SSE event.
 func sendPortraitSSE(sw *sse.Writer, eventType string, data interface{}) {
 	msg := ssePortraitEvent{Event: eventType, Data: data}
 	var buf bytes.Buffer
@@ -157,7 +136,6 @@ func sendPortraitSSE(sw *sse.Writer, eventType string, data interface{}) {
 	_ = sw.WriteRaw(string(raw))
 }
 
-// PortraitHighlights holds the structured metadata extracted from a user portrait.
 type PortraitHighlights struct {
 	CoreTraits    []string `json:"core_traits"`
 	KeyHighlights []string `json:"key_highlights"`
@@ -168,26 +146,20 @@ type PortraitHighlights struct {
 // ============================================================
 
 func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
-	// ----------------------------------------------------------
-	// 1. Parse query parameters
-	// ----------------------------------------------------------
 	retouchStr := r.URL.Query().Get("retouch")
-	retouch := 3 // default
+	retouch := 3
 	if retouchStr != "" {
 		if v, err := strconv.Atoi(retouchStr); err == nil && v >= 0 && v <= 5 {
 			retouch = v
 		}
 	}
 
-	// ----------------------------------------------------------
-	// 2. Resolve session and get user traits
-	// ----------------------------------------------------------
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
-	vs, err := h.openBrainDB(session)
+	vs, err := h.openBrainDB(sess)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_traits_store_unavailable"), http.StatusInternalServerError)
 		return
@@ -205,10 +177,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ----------------------------------------------------------
-	// 3. Read tags and chat titles
-	// ----------------------------------------------------------
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 		return
@@ -219,7 +188,6 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	hotTags := formatHotTags(tagUsageMap)
 	tagsInfoStr := buildTagsInfoString(hotTags, lang)
 
-	// Convert traits to portrait request format
 	traitItems := make([]portraitTraitItem, 0, len(allTraits))
 	for _, t := range allTraits {
 		traitItems = append(traitItems, portraitTraitItem{
@@ -247,9 +215,6 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// ----------------------------------------------------------
-	// 4. Build LLM system prompt and user prompt
-	// ----------------------------------------------------------
 	traitsDesc := formatTraitItems(traitItems, lang)
 	chatTitlesStr := formatChatTitles(chatTitleItems, lang)
 
@@ -270,9 +235,6 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		{Role: llm.RoleUser, Content: userContent},
 	}
 
-	// ----------------------------------------------------------
-	// 5. Set SSE headers for frontend
-	// ----------------------------------------------------------
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -285,23 +247,16 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 	sw := sse.NewSSEWriter(w)
 
-	// ----------------------------------------------------------
-	// 6. Compute portrait info and send as 'info' SSE event
-	// ----------------------------------------------------------
 	info := computePortraitInfo(allTraits, retouch, hotTags)
 	if infoJSON, err := json.Marshal(info); err == nil {
 		fmt.Fprintf(w, "data: %s\n\n", infoJSON)
 		flusher.Flush()
 	}
 
-	// ----------------------------------------------------------
-	// 7. Call LLM directly (streaming) and forward to frontend
-	// ----------------------------------------------------------
 	acceptLang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
-	// Get the user's LLM client and personal API key
-	client := sessionLLMClient(session)
-	llmAPIKey := sessionLLMAPIKey(session)
+	client := sessionLLMClient(sess)
+	llmAPIKey := sessionLLMAPIKey(sess)
 
 	streamReq := llm.ChatCompletionRequest{
 		Model:    client.Model(),
@@ -351,9 +306,6 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ----------------------------------------------------------
-	// 8. Extract structured metadata (core traits + key highlights)
-	// ----------------------------------------------------------
 	if totalContent != "" {
 		meta := extractPortraitHighlights(r.Context(), client, acceptLang, totalContent, llmAPIKey)
 		if meta != nil {
@@ -362,22 +314,12 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// ----------------------------------------------------------
-	// 9. Send done signal
-	// ----------------------------------------------------------
 	sendPortraitSSE(sw, "done", map[string]interface{}{})
 	flusher.Flush()
 
-	// Drain any remaining body
 	io.Copy(io.Discard, r.Body)
 }
 
-// ============================================================
-// Highlights extraction (second LLM call)
-// ============================================================
-
-// extractPortraitHighlights makes a non-streaming LLM call with the completed portrait
-// text as input, using ForceToolChoice to invoke the trip_highlights tool.
 func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, portraitText string, apiKey string) *PortraitHighlights {
 	systemContent := i18n.SystemPrompt.TL(lang, "highlights", map[string]interface{}{
 		"PortraitText": portraitText,
@@ -420,10 +362,6 @@ func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, por
 
 	return nil
 }
-
-// ============================================================
-// portraitInfo -- extra metadata sent as 'info' SSE event
-// ============================================================
 
 type portraitInfo struct {
 	Event string           `json:"event"`
@@ -480,10 +418,6 @@ func computePortraitInfo(allTraits []store.PersonalTrait, retouch int, hotTags [
 		},
 	}
 }
-
-// ============================================================
-// Tags helpers
-// ============================================================
 
 func formatHotTags(tagUsageMap map[string]int) []hotTagItem {
 	if len(tagUsageMap) == 0 {

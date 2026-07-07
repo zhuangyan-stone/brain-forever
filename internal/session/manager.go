@@ -1,4 +1,4 @@
-package agent
+package session
 
 import (
 	"context"
@@ -6,50 +6,51 @@ import (
 	"sync"
 	"time"
 
+	"BrainForever/internal/agent/llmtypes"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
 	"BrainForever/internal/store/dbc"
 )
 
 // ============================================================
-// SessionManager
+// Manager
 // ============================================================
 
-// SessionManager manages all user sessions.
+// Manager manages all user sessions.
 // It does not hold any database connections; databases are accessed
 // via the global dbc package or theUserStore singleton.
 // Login state is persisted in Redis for restart resilience and
 // potential horizontal scaling.
-type SessionManager struct {
-	mu       sync.RWMutex
-	sessions map[string]*session
-	redis    *cache.RedisSessionStore // Redis-backed login state (nil = Redis unavailable)
-	ctx      context.Context          // Background context for Redis operations
+type Manager struct {
+	Mu       sync.RWMutex
+	Sessions map[string]*Session
+	Redis    *cache.RedisSessionStore // Redis-backed login state (nil = Redis unavailable)
+	Ctx      context.Context          // Background context for Redis operations
 }
 
-// SetRedisStore attaches a Redis session store to the SessionManager.
+// SetRedisStore attaches a Redis session store to the Manager.
 // Must be called before any session operations if Redis is available.
 // If redisStore is nil, session management operates in pure in-memory mode
 // (no persistence across restarts, same as before).
-func (sm *SessionManager) SetRedisStore(redisStore *cache.RedisSessionStore) {
-	sm.redis = redisStore
+func (m *Manager) SetRedisStore(redisStore *cache.RedisSessionStore) {
+	m.Redis = redisStore
 }
 
 // Close releases all sessions. No database stores to close since
 // they are opened on-demand and closed after use.
-func (sm *SessionManager) Close() {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
+func (m *Manager) Close() {
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
 	// Clear all sessions. No long-lived DB stores to close.
-	sm.sessions = make(map[string]*session)
+	m.Sessions = make(map[string]*Session)
 }
 
-// NewSessionManager creates a SessionManager.
-func NewSessionManager() *SessionManager {
-	return &SessionManager{
-		sessions: make(map[string]*session),
-		ctx:      context.Background(),
+// NewManager creates a Manager.
+func NewManager() *Manager {
+	return &Manager{
+		Sessions: make(map[string]*Session),
+		Ctx:      context.Background(),
 	}
 }
 
@@ -57,26 +58,26 @@ func NewSessionManager() *SessionManager {
 // If Redis is available and the session doesn't exist in memory,
 // it attempts to restore the login state from Redis.
 // No database stores are opened at creation time.
-func (sm *SessionManager) GetOrCreate(sessionID string) *session {
-	sm.mu.RLock()
-	s, ok := sm.sessions[sessionID]
-	sm.mu.RUnlock()
+func (m *Manager) GetOrCreate(sessionID string) *Session {
+	m.Mu.RLock()
+	s, ok := m.Sessions[sessionID]
+	m.Mu.RUnlock()
 
 	if ok {
-		s.mu.Lock()
-		s.lastActivity = time.Now()
-		s.mu.Unlock()
+		s.Mu.Lock()
+		s.LastActivity = time.Now()
+		s.Mu.Unlock()
 		return s
 	}
 
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
 	// Double-check
-	if s, ok := sm.sessions[sessionID]; ok {
-		s.mu.Lock()
-		s.lastActivity = time.Now()
-		s.mu.Unlock()
+	if s, ok := m.Sessions[sessionID]; ok {
+		s.Mu.Lock()
+		s.LastActivity = time.Now()
+		s.Mu.Unlock()
 		return s
 	}
 
@@ -84,8 +85,8 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 	var restoredID int64
 	var restoredSN string
 	var restoredSettings store.UserSettings
-	if sm.redis != nil {
-		if id, sn, settingsJSON, found, err := sm.redis.GetLoginSession(sm.ctx, sessionID); err == nil && found {
+	if m.Redis != nil {
+		if id, sn, settingsJSON, found, err := m.Redis.GetLoginSession(m.Ctx, sessionID); err == nil && found {
 			restoredID = id
 			restoredSN = sn
 			if settingsJSON != "" {
@@ -94,55 +95,55 @@ func (sm *SessionManager) GetOrCreate(sessionID string) *session {
 		}
 	}
 
-	s = &session{
-		id:           sessionID,
-		lastActivity: time.Now(),
-		user: sessionUser{
+	s = &Session{
+		ID:           sessionID,
+		LastActivity: time.Now(),
+		User: SessionUser{
 			ID:          restoredID,
 			SN:          restoredSN,
-			settings:    restoredSettings,
-			currentChat: &chat{},
+			Settings:    restoredSettings,
+			CurrentChat: &llmtypes.Chat{},
 		},
 	}
 
-	sm.sessions[sessionID] = s
+	m.Sessions[sessionID] = s
 	return s
 }
 
 // Remove removes the session for the given sessionID (optional)
-func (sm *SessionManager) Remove(sessionID string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
+func (m *Manager) Remove(sessionID string) {
+	m.Mu.Lock()
+	defer m.Mu.Unlock()
 
-	delete(sm.sessions, sessionID)
+	delete(m.Sessions, sessionID)
 }
 
 // DeleteMessage deletes a user message and all associated messages (AI reply, etc.)
 // that share the same source ID. It finds the first message with the given msgID,
 // then removes all consecutive messages with the same ID. Stops at the first message
 // with a different ID. Returns an error if the msgID is not found.
-func (sm *SessionManager) DeleteMessage(sessionID string, msgID int64) error {
-	sm.mu.RLock()
-	s, ok := sm.sessions[sessionID]
-	sm.mu.RUnlock()
+func (m *Manager) DeleteMessage(sessionID string, msgID int64) error {
+	m.Mu.RLock()
+	s, ok := m.Sessions[sessionID]
+	m.Mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("session not found")
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.lastActivity = time.Now()
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+	s.LastActivity = time.Now()
 
-	if s.user.currentChat.dbChat == nil {
+	if s.User.CurrentChat.DBCHat == nil {
 		return fmt.Errorf("no DB session")
 	}
-	chatID := s.user.currentChat.dbChat.ID
+	chatID := s.User.CurrentChat.DBCHat.ID
 	if chatID == 0 {
 		return fmt.Errorf("no DB session")
 	}
 
 	// Open chat store on-demand via dbc, delete, close
-	chatStore, err := dbc.OpenLocalChatDB(s.user.ID, s.user.SN)
+	chatStore, err := dbc.OpenLocalChatDB(s.User.ID, s.User.SN)
 	if err != nil {
 		return fmt.Errorf("failed to open chat store: %w", err)
 	}

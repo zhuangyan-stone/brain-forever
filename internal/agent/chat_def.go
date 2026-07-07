@@ -1,23 +1,39 @@
 package agent
 
-import "BrainForever/internal/store"
+import "BrainForever/internal/agent/llmtypes"
 
-// TitleState represents the state of the session title modification.
+// ============================================================
+// Type aliases re-exported from llmtypes package
 //
-//	0: original title (default, "New Chat" for new sessions)
-//	1: AI-modified title
-//	2: user-modified title
-type TitleState int
+// These aliases allow existing code in the agent package to
+// continue using the short names (chat, TitleState, Message, etc.)
+// without requiring import path changes across all files.
+// ============================================================
+
+type TitleState = llmtypes.TitleState
 
 const (
-	TitleStateOriginal     TitleState = iota // 0: original title
-	TitleStateAIModified                     // 1: AI-modified title
-	TitleStateUserModified                   // 2: user-modified title
+	TitleStateOriginal     = llmtypes.TitleStateOriginal
+	TitleStateAIModified   = llmtypes.TitleStateAIModified
+	TitleStateUserModified = llmtypes.TitleStateUserModified
 )
 
-type chat struct {
-	dbChat *store.Chat // Bridge to store.Chat (never nil after creation)
+type chat = llmtypes.Chat
+type Message = llmtypes.Message
+type ChatRequest = llmtypes.ChatRequest
+type Usage = llmtypes.Usage
 
-	title      string     // Session title, generated from the first user message content
-	titleState TitleState // Title modification state
-}
+// SSE event types
+type ReasoningEvent = llmtypes.ReasoningEvent
+type ReasoningEndEvent = llmtypes.ReasoningEndEvent
+type TextEvent = llmtypes.TextEvent
+type WebSourceEvent = llmtypes.WebSourceEvent
+type DoneEvent = llmtypes.DoneEvent
+type ErrorEvent = llmtypes.ErrorEvent
+type ChatCreatedEvent = llmtypes.ChatCreatedEvent
+
+// Function references (lowercase to match original usage in agent package)
+var convertDBMessagesToAgentMessages = llmtypes.ConvertDBMessagesToAgentMessages
+var loadMessagesAsLLMMessages = llmtypes.LoadMessagesAsLLMMessages
+var ensureAssistantForOrphanUser = llmtypes.EnsureAssistantForOrphanUser
+var makeAssistantBrokenMessage = llmtypes.MakeAssistantBrokenMessage

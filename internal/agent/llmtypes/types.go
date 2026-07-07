@@ -1,13 +1,58 @@
-package agent
+// Package llmtypes provides shared data types for the agent's LLM interaction layer.
+//
+// These types are used across the agent package and its sub-packages (toolimp, session, etc.)
+// and represent the core data model for chat conversations, SSE events, and LLM communication.
+package llmtypes
 
 import (
 	"fmt"
 	"time"
 
+	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
-	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/store"
 )
+
+// ============================================================
+// Chat session types
+// ============================================================
+
+// TitleState represents the state of the session title modification.
+//
+//	0: original title (default, "New Chat" for new sessions)
+//	1: AI-modified title
+//	2: user-modified title
+type TitleState int
+
+const (
+	TitleStateOriginal     TitleState = iota // 0: original title
+	TitleStateAIModified                     // 1: AI-modified title
+	TitleStateUserModified                   // 2: user-modified title
+)
+
+// Chat represents a single chat conversation's in-memory state.
+// DBCHat is the bridge to the database record (never nil after creation).
+type Chat struct {
+	DBCHat     *store.Chat // Bridge to store.Chat (never nil after creation)
+	Title      string      // Session title, generated from the first user message content
+	TitleState TitleState  // Title modification state
+}
+
+// ============================================================
+// WebSource represents a web search result source.
+// ============================================================
+
+// WebSource represents a web search result source.
+// Used for online search results with page URL.
+type WebSource struct {
+	Title       string  `json:"title"`
+	Content     string  `json:"content,omitempty"`
+	URL         string  `json:"url,omitempty"`          // Web page URL
+	SiteName    string  `json:"site_name,omitempty"`    // Website name (e.g. "Zhihu", "CSDN")
+	SiteIcon    string  `json:"site_icon,omitempty"`    // Website favicon URL
+	PublishDate string  `json:"publish_date,omitempty"` // Page publish date, formatted string e.g. "2006-01-02"
+	Score       float64 `json:"score"`
+}
 
 // ============================================================
 // Request / Response type definitions
@@ -30,7 +75,7 @@ type Message struct {
 	// Sources holds web search result references associated with this message.
 	// Populated for assistant messages that involved web search.
 	// Used by the frontend to restore the sources-panel after page refresh.
-	Sources []toolimp.WebSource `json:"sources,omitempty"`
+	Sources []WebSource `json:"sources,omitempty"`
 
 	CreatedAt time.Time `json:"created_at"` // UTC time, e.g. "2026-05-02T16:30:00Z"
 
@@ -79,8 +124,8 @@ type TextEvent struct {
 
 // WebSourceEvent carries web search sources.
 type WebSourceEvent struct {
-	Type       string              `json:"type"` // "web_source"
-	WebSources []toolimp.WebSource `json:"web_sources,omitempty"`
+	Type       string      `json:"type"` // "web_source"
+	WebSources []WebSource `json:"web_sources,omitempty"`
 }
 
 // DoneEvent signals that the LLM response is complete.
@@ -116,7 +161,7 @@ type Usage struct {
 // DB -> Agent message conversion helpers
 // ============================================================
 
-// convertDBMessagesToAgentMessages converts store.Message slice to agent.Message slice,
+// ConvertDBMessagesToAgentMessages converts store.Message slice to Message slice,
 // loading associated WebSources from DB matched by group_index.
 //
 // WebSources are stored in the independent web_sources table (not a chat_messages column).
@@ -127,7 +172,7 @@ type Usage struct {
 // chatStore and chatID are used to query the web_sources table; if chatStore is nil or
 // chatID is 0, Sources remain empty (compatible with anonymous users and other no-DB scenarios).
 // Returns an error if loading web sources fails.
-func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatID int64) ([]Message, error) {
+func ConvertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *store.ChatStore, chatID int64) ([]Message, error) {
 	// Load web sources for this chat (if available)
 	var sourcesByMsgID map[int64][]store.WebSource
 	if chatStore != nil && chatID != 0 {
@@ -158,9 +203,9 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 		// Attach web sources if available for this message group
 		if sourcesByMsgID != nil {
 			if sources, ok := sourcesByMsgID[int64(m.GroupIndex)]; ok && len(sources) > 0 {
-				agentMsg.Sources = make([]toolimp.WebSource, 0, len(sources))
+				agentMsg.Sources = make([]WebSource, 0, len(sources))
 				for _, src := range sources {
-					agentMsg.Sources = append(agentMsg.Sources, toolimp.WebSource{
+					agentMsg.Sources = append(agentMsg.Sources, WebSource{
 						Title:       src.Title,
 						Content:     src.Content,
 						URL:         src.URL,
@@ -178,14 +223,9 @@ func convertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 	return msgs, nil
 }
 
-// loadMessagesAsLLMMessages loads messages from DB via the given chatStore
+// LoadMessagesAsLLMMessages loads messages from DB via the given chatStore
 // and converts to llm.Message slice.
-// Caller must hold session.mu.
-func loadMessagesAsLLMMessages(s *session, chatStore *store.ChatStore) ([]llm.Message, error) {
-	if s.user.currentChat.dbChat == nil {
-		return nil, fmt.Errorf("no DB session")
-	}
-	chatID := s.user.currentChat.dbChat.ID
+func LoadMessagesAsLLMMessages(chatID int64, chatStore *store.ChatStore) ([]llm.Message, error) {
 	if chatID == 0 {
 		return nil, fmt.Errorf("no DB session")
 	}
@@ -204,22 +244,34 @@ func loadMessagesAsLLMMessages(s *session, chatStore *store.ChatStore) ([]llm.Me
 	return result, nil
 }
 
-// ensureAssistantForOrphanUser checks if the last message is an orphan user message
+// EnsureAssistantForOrphanUser checks if the last message is an orphan user message
 // (user message without a corresponding assistant reply), and if so, appends a
 // broken assistant message.
 //
 // Scenario: AI is interrupted during reply (backend crash, interrupt, etc.),
 // leaving only the user message in DB.
 // This compensation ensures broken messages display correctly after page refresh.
-func ensureAssistantForOrphanUser(msgs []Message, lang string) []Message {
+func EnsureAssistantForOrphanUser(msgs []Message, lang string) []Message {
 	if len(msgs) == 0 {
 		return msgs
 	}
 	lastMsg := msgs[len(msgs)-1]
 	if lastMsg.Role == llm.RoleUser {
-		brokenMsg := makeAssistantBrokenMessage(lang, lastMsg.ID)
+		brokenMsg := MakeAssistantBrokenMessage(lang, lastMsg.ID)
 		brokenMsg.Interrupted = 2 // backend-error
 		msgs = append(msgs, brokenMsg)
 	}
 	return msgs
+}
+
+// MakeAssistantBrokenMessage creates a broken assistant message for a given message ID.
+func MakeAssistantBrokenMessage(lang string, id int64) Message {
+	brokenMsg := i18n.TL(lang, "assistant_broken_message")
+
+	return Message{
+		ID:        id,
+		Role:      llm.RoleAssistant,
+		Content:   brokenMsg,
+		CreatedAt: time.Now().UTC(),
+	}
 }

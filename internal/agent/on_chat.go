@@ -3,13 +3,14 @@ package agent
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"BrainForever/infra/embedder"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/infra/zylog"
+	"BrainForever/internal/agent/llmtypes"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
 	"BrainForever/internal/store/dbc"
@@ -30,23 +31,23 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	// Phase 1: Find the chat by SN and remove from in-memory list (under chatsMu lock)
+	// Phase 1: Find the chat by SN and remove from in-memory list (under ChatsMu lock)
 	var chatID int64
-	session.user.chatsMu.Lock()
+	sess.User.ChatsMu.Lock()
 
 	var found bool
-	for i := range session.user.chats {
-		if session.user.chats[i].SN == sn {
-			chatID = session.user.chats[i].ID
+	for i := range sess.User.Chats {
+		if sess.User.Chats[i].SN == sn {
+			chatID = sess.User.Chats[i].ID
 			// Remove from in-memory list (normal chats)
-			session.user.chats = append(session.user.chats[:i], session.user.chats[i+1:]...)
+			sess.User.Chats = append(sess.User.Chats[:i], sess.User.Chats[i+1:]...)
 			found = true
 			break
 		}
 	}
-	session.user.chatsMu.Unlock()
+	sess.User.ChatsMu.Unlock()
 
 	if !found {
 		http.Error(w, i18n.T("db_session_not_found"), http.StatusNotFound)
@@ -58,21 +59,15 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Phase 2: If the deleted chat is the current active chat, reset it (under mu lock)
-	//  Must execute before LogicDelete (I/O operation) to avoid race conditions:
-	//   If OnNewMessage acquires mu between chatsMu unlock and mu lock,
-	//   it will find currentChat.dbChat still pointing to the deleted chat (non-nil),
-	//   causing ensureSessionDBForChat to return early, writing new messages to the deleted chat.
-	//   Moving reset before LogicDelete + immediately after chatsMu unlock
-	//   reduces the race window from millisecond-level I/O duration to a few nanoseconds of CPU instruction gap.
-	session.mu.Lock()
-	if session.user.currentChat != nil && session.user.currentChat.dbChat != nil && session.user.currentChat.dbChat.ID == chatID {
-		session.user.currentChat = &chat{}
+	// Phase 2: If the deleted chat is the current active chat, reset it (under Mu lock)
+	sess.Mu.Lock()
+	if sess.User.CurrentChat != nil && sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.ID == chatID {
+		sess.User.CurrentChat = &llmtypes.Chat{}
 	}
-	session.mu.Unlock()
+	sess.Mu.Unlock()
 
 	// Phase 3: Soft-delete (logic delete) -move to trash
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
@@ -98,9 +93,9 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 // soft-deleted (trashed) chats for the current session's user.
 func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, err := h.openChatDB(session)
+	chatStore, err := h.openChatDB(sess)
 	if err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
@@ -137,9 +132,9 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
@@ -155,9 +150,9 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 	// Reload the restored chat from DB and add back to in-memory list
 	chats, err := chatStore.ListChats(100)
 	if err == nil {
-		session.user.chatsMu.Lock()
-		session.user.chats = chats
-		session.user.chatsMu.Unlock()
+		sess.User.ChatsMu.Lock()
+		sess.User.Chats = chats
+		sess.User.ChatsMu.Unlock()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -181,9 +176,9 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
@@ -199,22 +194,17 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	chatID := chat.ID
 
 	// Phase 1: Delete traits from brain DB (cross-table) BEFORE deleting the chat.
-	// This removes all personal traits associated with this chat SN,
-	// along with their vector embeddings (trait_vectors) and keywords (via FK cascade).
-	traitsStore, terr := h.openBrainDB(session)
+	traitsStore, terr := h.openBrainDB(sess)
 	if terr != nil {
 		h.logger.Errorf("failed to open traits store for chat %s: %v", sn, terr)
 	} else {
 		if _, err := traitsStore.DeleteByChatSN(sn); err != nil {
 			h.logger.Errorf("failed to delete traits for chat %s: %v", sn, err)
-			// Non-fatal: continue with chat deletion even if trait deletion fails
 		}
 		h.closeBrainDB(traitsStore)
 	}
 
 	// Phase 2: Delete the chat session from chats DB.
-	// Child rows (chat_messages, web_sources, chat_tags, chat_favorites)
-	// are automatically removed via ON DELETE CASCADE.
 	if err := chatStore.PhysicalDelete(int(chatID), sn); err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_delete_session"), http.StatusInternalServerError)
 		return
@@ -232,28 +222,24 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 
 // OnEmptyTrash handles DELETE /api/chat/empty-trash -permanently deletes
 // all soft-deleted chats (clears the recycle bin).
-// Also removes all associated traits, vectors, and keywords from the brain DB
-// for every trashed chat.
 func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
 	}
 	defer h.closeChatDB(chatStore)
 
-	// Phase 1: Collect all trashed chat SNs.
 	deletedChats, err := chatStore.ListDeletedChats(1000)
 	if err != nil {
 		http.Error(w, i18n.T("db_list_deleted_chats_failed"), http.StatusInternalServerError)
 		return
 	}
 
-	// Phase 2: Delete traits from brain DB for each trashed chat (cross-table).
-	traitsStore, terr := h.openBrainDB(session)
+	traitsStore, terr := h.openBrainDB(sess)
 	if terr != nil {
 		h.logger.Errorf("failed to open traits store: %v", terr)
 	} else {
@@ -266,15 +252,11 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 		if len(sns) > 0 {
 			if _, err := traitsStore.DeleteTraitsByChatSNs(sns); err != nil {
 				h.logger.Errorf("failed to delete traits for trashed chats: %v", err)
-				// Non-fatal: continue with trash emptying even if trait deletion fails
 			}
 		}
 		h.closeBrainDB(traitsStore)
 	}
 
-	// Phase 3: Delete all trashed chat sessions from chats DB.
-	// Child rows (chat_messages, web_sources, chat_tags, chat_favorites)
-	// are automatically removed via ON DELETE CASCADE.
 	if err := chatStore.EmptyTrash(); err != nil {
 		http.Error(w, i18n.T("db_delete_trashed_sessions_failed"), http.StatusInternalServerError)
 		return
@@ -287,36 +269,20 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// ChatHandler -POST /api/chat handler (core)
+// ChatAgent -POST /api/chat handler (core)
 // ============================================================
 
 // ChatAgent handles chat requests, integrating RAG retrieval + LLM streaming
-//
-// ChatAgent uses SessionManager to isolate each user's chat messages by sessionID.
-// The frontend only needs to send the user's latest message each time,
-// and ChatAgent merges messages with new messages before sending to the actual LLM.
-//
-// Note: API clients (LLM, Embedder, Web Search) are not stored here.
-// They are managed as package-level singletons in init.go and accessed
-// via package-level functions like sessionLLMClient().
 type ChatAgent struct {
-	sessionManager *SessionManager
-	cookieName     string // cookie name for reading/writing sessionID
+	sessionManager *session.Manager
+	cookieName     string
 
-	// defaultLang is the default language for i18n (e.g., "zh-CN", "en").
-	// Used for translating system prompts, tool descriptions, and other
-	// content sent to the AI API and frontend.
 	defaultLang string
+	avatarDir   string
 
-	// avatarDir is the filesystem path to the avatar image directory.
-	// Used by OnLogin to dynamically discover available avatar files.
-	avatarDir string
-
-	// smsCodeCache is the Redis-backed SMS verification code cache.
-	// If nil, SMS code functionality is unavailable (Redis not configured).
 	smsCodeCache *cache.SMSCodeCache
 
-	logger zylog.Logger // Structured logger for the agent
+	logger zylog.Logger
 }
 
 // LLMInfo is the response for the LLM info endpoint.
@@ -327,11 +293,10 @@ type LLMInfo struct {
 }
 
 // OnGetLLMInfo handles GET /api/info/llm/chat requests.
-// Returns the current session's LLM provider name, model name, and official website URL as JSON.
 func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
-	client := sessionLLMClient(session)
+	sess := h.sessionManager.GetOrCreate(sessionID)
+	client := sessionLLMClient(sess)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LLMInfo{
@@ -342,10 +307,8 @@ func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // sessionLLMClient returns the LLM client for the user's configured provider.
-// Falls back to the default provider (DeepSeek) if the user hasn't set one
-// or if the configured provider is not in the registry.
-func sessionLLMClient(s *session) llm.Client {
-	provider := s.user.settings.APIKey.LLM.Provider
+func sessionLLMClient(s *session.Session) llm.Client {
+	provider := s.User.Settings.APIKey.LLM.Provider
 	if provider == "" {
 		provider = ProviderDeepSeek
 	}
@@ -355,15 +318,14 @@ func sessionLLMClient(s *session) llm.Client {
 	return llmClients[ProviderDeepSeek]
 }
 
-// sessionLLMAPIKey returns the session user's personal LLM API key,
-// or empty string if the user has not set one (meaning use the global default).
-func sessionLLMAPIKey(s *session) string {
-	return s.user.settings.APIKey.LLM.ApiKey
+// sessionLLMAPIKey returns the session user's personal LLM API key.
+func sessionLLMAPIKey(s *session.Session) string {
+	return s.User.Settings.APIKey.LLM.ApiKey
 }
 
 // sessionEmbedder returns the embedder for the user's configured provider.
-func sessionEmbedder(s *session) embedder.Embedder {
-	provider := s.user.settings.APIKey.Embedder.Provider
+func sessionEmbedder(s *session.Session) embedder.Embedder {
+	provider := s.User.Settings.APIKey.Embedder.Provider
 	if provider == "" {
 		provider = ProviderAli
 	}
@@ -373,24 +335,21 @@ func sessionEmbedder(s *session) embedder.Embedder {
 	return embedderClients[ProviderAli]
 }
 
-// sessionEmbedderAPIKey returns the session user's personal Embedder API key,
-// or empty string if not set (meaning use the global default).
-func sessionEmbedderAPIKey(s *session) string {
-	return s.user.settings.APIKey.Embedder.ApiKey
+// sessionEmbedderAPIKey returns the session user's personal Embedder API key.
+func sessionEmbedderAPIKey(s *session.Session) string {
+	return s.User.Settings.APIKey.Embedder.ApiKey
 }
 
-// sessionWebSearchAPIKey returns the session user's personal Web Search API key,
-// or empty string if not set (meaning use the global default).
-func sessionWebSearchAPIKey(s *session) string {
-	return s.user.settings.APIKey.Search.ApiKey
+// sessionWebSearchAPIKey returns the session user's personal Web Search API key.
+func sessionWebSearchAPIKey(s *session.Session) string {
+	return s.User.Settings.APIKey.Search.ApiKey
 }
 
 // sessionWebSearcher returns the web search client for the user's configured provider.
-// Returns nil if no provider is configured or the provider is not in the registry.
-func sessionWebSearcher(s *session) toolimp.WebSearcher {
-	provider := s.user.settings.APIKey.Search.Provider
+func sessionWebSearcher(s *session.Session) toolimp.WebSearcher {
+	provider := s.User.Settings.APIKey.Search.Provider
 	if provider == "" {
-		return webSearchClients[ProviderBocha] // fallback to default
+		return webSearchClients[ProviderBocha]
 	}
 	if w, ok := webSearchClients[provider]; ok {
 		return w
@@ -398,15 +357,12 @@ func sessionWebSearcher(s *session) toolimp.WebSearcher {
 	return webSearchClients[ProviderBocha]
 }
 
-// SetRedisStore attaches a Redis session store to the ChatAgent's SessionManager.
-// Must be called before handling requests if Redis is available.
-// If nil, session management falls back to pure in-memory mode.
+// SetRedisStore attaches a Redis session store to the ChatAgent's Manager.
 func (h *ChatAgent) SetRedisStore(redisStore *cache.RedisSessionStore) {
 	h.sessionManager.SetRedisStore(redisStore)
 }
 
 // SetSMSCodeCache attaches a Redis-backed SMS code cache to the ChatAgent.
-// If nil, SMS code functionality is unavailable.
 func (h *ChatAgent) SetSMSCodeCache(c *cache.SMSCodeCache) {
 	h.smsCodeCache = c
 }
@@ -418,13 +374,6 @@ func (h *ChatAgent) Close() error {
 }
 
 // NewChatHandler creates a ChatAgent.
-//
-// cookieName: the cookie name for reading/writing sessionID, e.g. "brain_go_session"
-// defaultLang: the default language for i18n, e.g. "zh-CN", "en". Empty string defaults to "en".
-//
-// Note: API clients are not passed here. They are initialized as package-level
-// singletons in InitAgent and accessed via sessionLLMClient(), sessionEmbedder(),
-// and sessionWebSearcher().
 func NewChatHandler(
 	cookieName string,
 	defaultLang string,
@@ -435,7 +384,7 @@ func NewChatHandler(
 		defaultLang = "en"
 	}
 	return &ChatAgent{
-		sessionManager: NewSessionManager(),
+		sessionManager: session.NewManager(),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
 		avatarDir:      avatarDir,
@@ -447,59 +396,37 @@ func NewChatHandler(
 // Database connection helpers (via dbcfg global)
 // ============================================================
 
-// resolveUserSN returns the session's userSN (no fallback).
-func resolveUserSN(s *session) string {
-	return s.user.SN
+func resolveUserSN(s *session.Session) string {
+	return s.User.SN
 }
 
-// resolveUserID returns the session's userID (0 = anonymous).
-func resolveUserID(s *session) int64 {
-	return s.user.ID
+func resolveUserID(s *session.Session) int64 {
+	return s.User.ID
 }
 
-// openChatDB opens the user's chat database (no schema check, for performance).
-// Schema is ensured by dbc.InitUserDB() called during login.
-// Caller MUST call closeChatDB when done.
-func (h *ChatAgent) openChatDB(s *session) (*store.ChatStore, error) {
+func (h *ChatAgent) openChatDB(s *session.Session) (*store.ChatStore, error) {
 	return dbc.OpenLocalChatDB(resolveUserID(s), resolveUserSN(s))
 }
 
-// openBrainDB opens the user's brain database (no schema check).
-// Caller MUST call closeBrainDB when done.
-func (h *ChatAgent) openBrainDB(s *session) (*store.BrainStore, error) {
+func (h *ChatAgent) openBrainDB(s *session.Session) (*store.BrainStore, error) {
 	return dbc.OpenLocalBrainDB(resolveUserID(s), resolveUserSN(s))
 }
 
-// closeChatDB safely closes a ChatStore (nil-safe).
 func (h *ChatAgent) closeChatDB(cs *store.ChatStore) {
 	dbc.CloseLocalChatDB(cs)
 }
 
-// closeBrainDB safely closes a BrainStore (nil-safe).
 func (h *ChatAgent) closeBrainDB(vs *store.BrainStore) {
 	dbc.CloseLocalBrainDB(vs)
 }
 
-func makeAssistantBrokenMessage(lang string, id int64) Message {
-	brokenMsg := i18n.TL(lang, "assistant_broken_message")
-
-	return Message{
-		ID:        id,
-		Role:      llm.RoleAssistant,
-		Content:   brokenMsg,
-		CreatedAt: time.Now().UTC(),
-	}
-}
-
 // ============================================================
 // SwitchChat handler -GET /api/chat/switch?sn=XXX
-// SwitchChat handler -switches the current active chat to a specified historical chat (topic switch).
 // ============================================================
 
 // OnSwitchChat handles GET /api/chat/switch -switches the current
 // active chat to a historical chat identified by its SN, loading
-// its messages from the database. Returns the chat's
-// messages, title, and title state.
+// its messages from the database.
 func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
@@ -508,27 +435,25 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	if err := session.switchToChat(sn); err != nil {
+	if err := sess.SwitchToChat(sn); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Determine language for i18n (used by ensureAssistantForOrphanUser)
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
 		lang = h.defaultLang
 	}
 
-	// Load messages from DB (no in-memory storage)
-	session.mu.Lock()
-	chatID := session.user.currentChat.dbChat.ID
-	session.mu.Unlock()
+	sess.Mu.Lock()
+	chatID := sess.User.CurrentChat.DBCHat.ID
+	sess.Mu.Unlock()
 
 	var msgs []Message
 	if chatID != 0 {
-		chatStore, cerr := h.openChatDB(session)
+		chatStore, cerr := h.openChatDB(sess)
 		if cerr != nil {
 			http.Error(w, i18n.T("api_error_failed_to_open_chat_store_detail", map[string]any{"Error": cerr.Error()}), http.StatusInternalServerError)
 			return
@@ -552,15 +477,12 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 		msgs = []Message{}
 	}
 
-	// Compensate orphan user message: if the last message is a user message
-	// (without a corresponding assistant reply), append a broken assistant message
-	// to ensure the frontend displays the correct interruption prompt.
 	msgs = ensureAssistantForOrphanUser(msgs, lang)
 
-	session.mu.Lock()
-	title := session.user.currentChat.title
-	titleState := int(session.user.currentChat.titleState)
-	session.mu.Unlock()
+	sess.Mu.Lock()
+	title := sess.User.CurrentChat.Title
+	titleState := int(sess.User.CurrentChat.TitleState)
+	sess.Mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -573,11 +495,9 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 
 // ============================================================
 // ChatPin handler -PUT /api/chat/pin?sn=XXX&pinned=true|false
-// ChatPin handler -pins/unpins the specified chat.
 // ============================================================
 
 // OnChatPin handles PUT /api/chat/pin -toggles the pinned state of a chat.
-// Uses chatsMu because it operates on session.user.chats (independent of streaming).
 func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
@@ -589,16 +509,15 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 	pinned := pinnedStr == "true"
 
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	session.user.chatsMu.Lock()
-	defer session.user.chatsMu.Unlock()
+	sess.User.ChatsMu.Lock()
+	defer sess.User.ChatsMu.Unlock()
 
-	// Find the session by SN
 	var targetChat *store.Chat
-	for i := range session.user.chats {
-		if session.user.chats[i].SN == sn {
-			targetChat = &session.user.chats[i]
+	for i := range sess.User.Chats {
+		if sess.User.Chats[i].SN == sn {
+			targetChat = &sess.User.Chats[i]
 			break
 		}
 	}
@@ -607,7 +526,7 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
@@ -620,11 +539,49 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 	}
 	h.closeChatDB(chatStore)
 
-	// Update in-memory cache
 	targetChat.Pinned = pinned
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "ok",
 	})
+}
+
+// getSessionID gets the sessionID from the request
+func (h *ChatAgent) getSessionID(w http.ResponseWriter, r *http.Request) (string, bool) {
+	cookie, err := r.Cookie(h.cookieName)
+	if err == nil && cookie.Value != "" {
+		return cookie.Value, false
+	}
+
+	sessionID := session.GenerateSessionID()
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     h.cookieName,
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7,
+	})
+
+	return sessionID, true
+}
+
+// refreshSession writes the given sessionID into the cookie with a fresh MaxAge.
+func (h *ChatAgent) refreshSession(w http.ResponseWriter, sessionID string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     h.cookieName,
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7,
+	})
+}
+
+// resolveSessionID is a convenience wrapper around getSessionID that discards the isNew flag.
+func (h *ChatAgent) resolveSessionID(w http.ResponseWriter, r *http.Request) string {
+	sessionID, _ := h.getSessionID(w, r)
+	return sessionID
 }

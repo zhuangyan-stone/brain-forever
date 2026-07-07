@@ -2,6 +2,7 @@ package agent
 
 import (
 	"BrainForever/infra/llm"
+	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/toolset"
 )
@@ -11,56 +12,47 @@ import (
 // ============================================================
 
 // generateSessionSN generates a globally unique serial number for a chat session.
-// Format: chat-<hosthash8>-<timestamp16>-<rand16>
-// Delegates to toolset.GenerateSN with prefix "chat".
 func generateSessionSN() string {
 	return toolset.GenerateSN("chat")
 }
 
 // ensureSessionDBForChat ensures that the current chat has a corresponding record
-// in the chat_sessions table. If dbChat.ID is 0, it creates a new session
-// record and sets dbChat.
-// Must be called with session.mu held.
+// in the chat_sessions table. If DBCHat.ID is 0, it creates a new session
+// record and sets DBCHat.
+// Must be called with Mu held.
 // Returns true if a new DB session was created, false if one already existed.
-func ensureSessionDBForChat(session *session, chatStore *store.ChatStore) bool {
-	if session.user.currentChat.dbChat != nil && session.user.currentChat.dbChat.ID != 0 {
+func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore) bool {
+	if sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.ID != 0 {
 		return false // Already has a DB session
 	}
 
 	sn := generateSessionSN()
-	title := session.user.currentChat.title
+	title := sess.User.CurrentChat.Title
 
 	dbChat, err := chatStore.InsertChat(sn, 0, title, 0)
 	if err != nil {
 		return false
 	}
 
-	session.user.currentChat.dbChat = dbChat
+	sess.User.CurrentChat.DBCHat = dbChat
 
 	// Add the new chat to the in-memory list so it immediately appears
-	// in the left sidebar's chat list (without requiring a page refresh).
-	// NOTE: addChatToList locks chatsMu internally and is safe to call
-	// while session.mu is held (no reverse lock ordering exists in the codebase).
-	session.addChatToList(*dbChat)
+	// in the left sidebar's chat list.
+	sess.AddChatToList(*dbChat)
 	return true
 }
 
 // persistMessageToDB inserts a single message into the chat_messages table.
-//
-// After insertion, it also updates the chat session's update_at timestamp
-// (via TouchChat) and moves the chat to the front of the in-memory list
-// so active chats float to the top of the sidebar.
-// Must be called with session.mu held.
+// Must be called with Mu held.
 //
 // chatID parameter is passed explicitly to avoid race conditions:
-// session.currentChat may have been changed by OnSwitchChat while
-// streaming was in progress (session.mu is NOT held during streaming).
-func persistMessageToDB(session *session, msg *Message, chatID int64, chatStore *store.ChatStore) {
+// session.CurrentChat may have been changed by OnSwitchChat while
+// streaming was in progress (Mu is NOT held during streaming).
+func persistMessageToDB(sess *session.Session, msg *Message, chatID int64, chatStore *store.ChatStore) {
 	if chatID == 0 {
 		return
 	}
 
-	// Map agent.Message role to store.Message role: 0=user, 1=assistant
 	var role int
 	switch msg.Role {
 	case llm.RoleUser:
@@ -68,13 +60,11 @@ func persistMessageToDB(session *session, msg *Message, chatID int64, chatStore 
 	case llm.RoleAssistant:
 		role = 1
 	default:
-		return // Skip system messages
+		return
 	}
 
-	// Map agent.Message.ID (group index) to store.Message.GroupIndex
 	groupIndex := int(msg.ID)
 
-	// Map agent.Message.Reasoning to store.Message.Reasoning (*string)
 	var reasoning *string
 	if msg.Reasoning != "" {
 		reasoning = &msg.Reasoning
@@ -91,7 +81,7 @@ func persistMessageToDB(session *session, msg *Message, chatID int64, chatStore 
 		return
 	}
 
-	// Persist WebSources if present (assistant messages with web search results)
+	// Persist WebSources if present
 	if len(msg.Sources) > 0 {
 		storeSources := make([]store.WebSource, 0, len(msg.Sources))
 		for _, src := range msg.Sources {
@@ -110,38 +100,24 @@ func persistMessageToDB(session *session, msg *Message, chatID int64, chatStore 
 		chatStore.InsertWebSources(chatID, msg.ID, storeSources)
 	}
 
-	// Also move the chat to the front of the in-memory list so that
-	// subsequent GET /api/session calls return the correct order.
-	// This is safe: addChatToList also locks chatsMu while session.mu is held.
-	//
-	// WARNING: Never use nested append like:
-	//   append(session.chats[:i], session.chats[i+1:]...)
-	// session.chats[:i] shares the same underlying array as session.chats.
-	// When there's spare capacity, the inner append mutates the shared array,
-	// corrupting session.chats (producing duplicate entries with same ID/SN).
-	session.user.chatsMu.Lock()
-	for i, c := range session.user.chats {
+	// Also move the chat to the front of the in-memory list
+	sess.User.ChatsMu.Lock()
+	for i, c := range sess.User.Chats {
 		if c.ID == chatID {
-			// Touch the chat session's update_at
 			chatStore.TouchChat(c.ID)
 
-			// Safe removal: copy all elements except index i into a new slice
-			removed := session.user.chats[i]
-			rest := make([]store.Chat, 0, len(session.user.chats)-1)
-			rest = append(rest, session.user.chats[:i]...)
-			rest = append(rest, session.user.chats[i+1:]...)
-			// Prepend the removed element
-			session.user.chats = append([]store.Chat{removed}, rest...)
+			removed := sess.User.Chats[i]
+			rest := make([]store.Chat, 0, len(sess.User.Chats)-1)
+			rest = append(rest, sess.User.Chats[:i]...)
+			rest = append(rest, sess.User.Chats[i+1:]...)
+			sess.User.Chats = append([]store.Chat{removed}, rest...)
 			break
 		}
 	}
-	session.user.chatsMu.Unlock()
+	sess.User.ChatsMu.Unlock()
 }
 
 // deduplicateChats removes duplicate entries from the in-memory chat list
-// by keeping only the first occurrence of each unique ID.
-// This is a safety net for any edge cases that might produce duplicates;
-// the primary fix is the safe slice manipulation in persistMessageToDB.
 func deduplicateChats(chats []store.Chat) []store.Chat {
 	seen := make(map[int64]bool, len(chats))
 	result := make([]store.Chat, 0, len(chats))

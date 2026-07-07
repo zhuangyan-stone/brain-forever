@@ -15,16 +15,14 @@ import (
 
 // ============================================================
 // Chat groups handler -GET /api/chat/groups
-// Returns a map of tag -> []ChatTitleTag, grouped and ordered by update_at, create_at
 // ============================================================
 
-// OnChatGroups handles GET /api/chat/groups -returns tag-grouped chat list.
-// Format: map[string][]ChatTitleTag, ordered by update_at desc, create_at desc.
+// OnChatGroups handles GET /api/chat/groups
 func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		h.logger.Errorf("failed to open chat store: %v", cerr)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
@@ -47,49 +45,27 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 // Chat Tags handler -GET /api/chat/tags?sn=XXX
 // ============================================================
 
-// OnGenerateChatTags handles GET /api/chat/tags -classifies a chat conversation
-// into topic categories/tags using the LLM with ToolCall.
-//
-// It loads the chat's title and selected user messages (with smart truncation),
-// sends them to the LLM along with the tag classification system prompt,
-// and forces the LLM to call the "chat_tag" tool with the classification result.
-//
-// The system prompt is dynamically populated with the user's existing tags
-// (from SelectTagsGroup) via the {{.TagsUsage}} template variable.
-//
-// Query parameters:
-//   - sn: the target chat SN (required)
-//
-// Returns a JSON object with the chat SN and an array of tag strings:
-//
-//	{
-//	  "sn": "chat-xxx",
-//	  "tags": ["Technology", "Life"]
-//	}
+// OnGenerateChatTags handles GET /api/chat/tags
 func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
-	// Read the required sn parameter
 	chatSN := r.URL.Query().Get("sn")
 	if chatSN == "" {
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_sn_required"), http.StatusBadRequest)
 		return
 	}
 
-	// Determine the language for this request
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
 		lang = h.defaultLang
 	}
 
-	// Resolve sessionID from cookie
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	// Look up the chat by SN from the session's chat list, also capture ID
 	var chatTitle string
 	var taged bool
 	var chatID int64
-	session.user.chatsMu.Lock()
-	for _, c := range session.user.chats {
+	sess.User.ChatsMu.Lock()
+	for _, c := range sess.User.Chats {
 		if c.SN == chatSN {
 			chatTitle = c.Title
 			taged = c.Taged
@@ -97,14 +73,14 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	session.user.chatsMu.Unlock()
+	sess.User.ChatsMu.Unlock()
 
 	if chatID == 0 {
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 
-	chatStore2, cerr2 := h.openChatDB(session)
+	chatStore2, cerr2 := h.openChatDB(sess)
 	if cerr2 != nil {
 		h.logger.Errorf("failed to open chat store: %v", cerr2)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
@@ -112,7 +88,6 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 	defer h.closeChatDB(chatStore2)
 
-	// If the chat has already been tagged, return existing tags from DB directly
 	if taged {
 		existingTags, listErr := chatStore2.ListChatTagsByChatID(chatID)
 		var tags []string
@@ -144,24 +119,19 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Count total messages in this chat for tracking how many the LLM views.
 	totalMessages := 0
 	if count, err := chatStore2.CountMessages(chatID); err == nil {
 		totalMessages = count
 	}
 
-	// Build the LLM prompt with the tag system prompt.
-	// 1. Load user's existing tags with usage counts (excluding empty tags)
 	tagUsageMap, _ := chatStore2.SelectNonEmptyTagsGroup()
 	tagsUsageStr := formatTagsUsage(tagUsageMap)
 
-	// 2. Build system prompt with TagsUsage and Title template data
 	systemPrompt := i18n.SystemPrompt.TL(lang, "tag", map[string]interface{}{
 		"TagsUsage": tagsUsageStr,
 		"Title":     chatTitle,
 	})
 
-	// 3. Create tools
 	tagTool := toolimp.MakeChatTagTool(lang)
 	samplesTool := toolimp.MakeChatSamplesTool(lang, chatStore2, chatID, chatTitle, totalMessages)
 	toolDefs := []llm.ToolDefinition{
@@ -169,8 +139,6 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		tagTool.GetDefinition(),
 	}
 
-	// 4. Multi-turn tool call loop, starting with just the system prompt
-	// (the chat title is embedded in the system prompt via template)
 	llmMessages := []llm.Message{
 		{Role: llm.RoleSystem, Content: systemPrompt},
 	}
@@ -184,20 +152,12 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 			Messages: llmMessages,
 			Tools:    toolDefs,
 		}
-		// Disable thinking mode since the LLM only needs to call tools,
-		// without generating any text content. Enabling thinking would waste tokens.
 		req.Thinking = &llm.ThinkingConfig{Type: "disabled"}
-
-		// Let the LLM decide in every iteration: call get_chat_samples_messages
-		// for more context, or call chat_tag to submit the classification.
-		// This allows the LLM to load multiple rounds of message samples as needed.
 		req.EnableToolChoice()
 
-		// Get the user's LLM client and personal API key
-		client := sessionLLMClient(session)
-		llmAPIKey := sessionLLMAPIKey(session)
+		client := sessionLLMClient(sess)
+		llmAPIKey := sessionLLMAPIKey(sess)
 
-		// Call LLM (non-streaming)
 		resp, err := client.ChatWithOptions(r.Context(), req, llmAPIKey)
 		if err != nil {
 			h.logger.Errorf("chat tag LLM call failed: %v", err)
@@ -207,7 +167,6 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 		if len(resp.Choices) == 0 || len(resp.Choices[0].Message.ToolCalls) == 0 {
 			h.logger.Errorf("chat tag LLM returned no tool calls")
-			// Break with empty tags
 			break
 		}
 
@@ -215,15 +174,12 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 		switch toolCall.Function.Name {
 		case toolimp.ChatSamplesToolName:
-			// The LLM wants more context. Use the incremental loader to fetch
-			// the next batch of messages from DB (up to pageSize=10 per call).
 			sampleContent, err := samplesTool.Execute()
 			if err != nil {
 				h.logger.Errorf("chat samples tool execute failed: %v", err)
 				sampleContent = i18n.Tools.TL(lang, "chat_samples_messages", "fetch_samples_failed", map[string]interface{}{"Error": err.Error()})
 			}
 
-			// Build assistant message with tool call
 			assistantMsg := llm.Message{
 				Role: llm.RoleAssistant,
 				ToolCalls: []llm.ToolCall{{
@@ -236,7 +192,6 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 				}},
 			}
 
-			// Build tool result message
 			toolResultMsg := llm.Message{
 				Role:       llm.RoleTool,
 				ToolCallID: toolCall.ID,
@@ -244,39 +199,28 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 			}
 
 			llmMessages = append(llmMessages, assistantMsg, toolResultMsg)
-			// Continue the loop to give LLM another chance to decide:
-			// either load more samples or submit the classification.
 
 		case toolimp.ChatTagToolName:
-			// Parse the classification result
 			if err := tagTool.SetArgument(toolCall.Function.Arguments); err == nil {
 				tags = tagTool.Tags
 			} else {
 				h.logger.Errorf("failed to parse chat tag arguments: %v", err)
 			}
-			// We have the result, break out of the loop
-			gotit = true // break
+			gotit = true
 		default:
 			h.logger.Errorf("chat tag LLM called unknown tool: %s", toolCall.Function.Name)
 		}
 	}
 
-	// Ensure we always return a valid JSON array
 	if tags == nil {
 		tags = []string{}
 	}
 
-	// ============================================================
-	// Persist tags to database
-	// ============================================================
-	// 1. Delete any existing tags for this chat (replace semantics)
 	if delErr := chatStore2.DeleteChatTagsByChatID(chatID); delErr != nil {
 		h.logger.Errorf("failed to delete old chat tags for chat %d: %v", chatID, delErr)
 	}
 
-	// 2. Insert new tags
 	if len(tags) == 0 {
-		// LLM returned no tags -- still save an empty string tag
 		if _, insErr := chatStore2.InsertChatTag(chatID, ""); insErr != nil {
 			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", chatID, insErr)
 		}
@@ -288,28 +232,24 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 3. Mark this chat as tagged in the database
 	if chatID > 0 {
 		if tagErr := chatStore2.UpdateChatTagged(chatID, true); tagErr != nil {
 			h.logger.Errorf("failed to update chat taged flag for chat %s: %v", chatSN, tagErr)
 		}
 	}
 
-	// 4. Update in-memory cache
-	session.user.chatsMu.Lock()
-	for i := range session.user.chats {
-		if session.user.chats[i].SN == chatSN {
-			session.user.chats[i].Taged = true
+	sess.User.ChatsMu.Lock()
+	for i := range sess.User.Chats {
+		if sess.User.Chats[i].SN == chatSN {
+			sess.User.Chats[i].Taged = true
 			break
 		}
 	}
-	session.user.chatsMu.Unlock()
+	sess.User.ChatsMu.Unlock()
 
-	// Read LLM message viewing stats from the samples tool.
 	viewedCount := samplesTool.GetViewedMessageCount()
 	allViewed := samplesTool.IsAllMessagesViewed()
 
-	// Return the tags along with the chat SN, title, and message viewing stats
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"sn":                chatSN,
@@ -321,14 +261,6 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// formatTagsUsage formats the tag usage map into a human-readable string
-// sorted by count descending. Returns empty string if the map is empty.
-//
-// Example output:
-//
-//   - tech 5 times
-//   - life 3 times
-//   - entertainment 2 times
 func formatTagsUsage(tagUsageMap map[string]int) string {
 	if len(tagUsageMap) == 0 {
 		return "(none)"

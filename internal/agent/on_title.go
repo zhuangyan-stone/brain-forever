@@ -19,26 +19,16 @@ import (
 // PutChatTitle handler -PUT /api/chat/title?title=XXX&state=N&sn=XXX
 // ============================================================
 
-// OnPutChatTitle handles PUT /api/chat/title -updates the chat title
-// and marks the title state.
-// Query parameters:
-//
-//	title -the new title to set (required)
-//	state -title modification state: 0=original, 1=AI-modified, 2=user-modified (default: 2)
-//	sn    -the target chat SN (required)
-//
-// Returns HTTP 200 on success.
+// OnPutChatTitle handles PUT /api/chat/title
 func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
-	// Read the new title from query parameter
 	newTitle := r.URL.Query().Get("title")
 	if newTitle == "" {
 		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "title"}), http.StatusBadRequest)
 		return
 	}
 
-	// Read the optional state parameter (default: user-modified)
 	stateStr := r.URL.Query().Get("state")
-	titleState := TitleStateUserModified // default
+	titleState := TitleStateUserModified
 	if stateStr != "" {
 		if v, err := strconv.Atoi(stateStr); err == nil {
 			switch v {
@@ -52,46 +42,39 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Read the required sn parameter -update a specific session from the list
 	sn := r.URL.Query().Get("sn")
 	if sn == "" {
 		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
-	// Resolve sessionID from cookie
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	// Update a specific session from the user's session list (e.g., rename from sidebar).
-	// Uses chatsMu (independent of session.mu) to avoid blocking streaming.
-	session.user.chatsMu.Lock()
+	sess.User.ChatsMu.Lock()
 
-	// Find the session by SN (under lock)
 	var targetIndex = -1
-	for i := range session.user.chats {
-		if session.user.chats[i].SN == sn {
+	for i := range sess.User.Chats {
+		if sess.User.Chats[i].SN == sn {
 			targetIndex = i
 			break
 		}
 	}
 	if targetIndex == -1 {
-		session.user.chatsMu.Unlock()
+		sess.User.ChatsMu.Unlock()
 		http.Error(w, i18n.T("db_session_not_found"), http.StatusNotFound)
 		return
 	}
 
-	// Capture needed data under lock, then release immediately
-	targetID := session.user.chats[targetIndex].ID
-	session.user.chatsMu.Unlock()
+	targetID := sess.User.Chats[targetIndex].ID
+	sess.User.ChatsMu.Unlock()
 
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
 	}
 
-	// DB write outside lock (different session_id, no conflict with streaming)
 	if err := chatStore.UpdateChatTitle(
 		targetID,
 		newTitle,
@@ -103,18 +86,16 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 	}
 	h.closeChatDB(chatStore)
 
-	// Re-acquire lock briefly to update in-memory cache
-	session.user.chatsMu.Lock()
-	for i := range session.user.chats {
-		if session.user.chats[i].SN == sn {
-			session.user.chats[i].Title = newTitle
-			session.user.chats[i].TitleState = int8(titleState)
+	sess.User.ChatsMu.Lock()
+	for i := range sess.User.Chats {
+		if sess.User.Chats[i].SN == sn {
+			sess.User.Chats[i].Title = newTitle
+			sess.User.Chats[i].TitleState = int8(titleState)
 			break
 		}
 	}
-	session.user.chatsMu.Unlock()
+	sess.User.ChatsMu.Unlock()
 
-	// Return simple 200 OK
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "ok",
@@ -125,25 +106,12 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 // Chat title generation handler -GET /api/session/title?title=XXX
 // ============================================================
 
-// extractMessagesForTitle extracts a representative sample of messages
-// for LLM-based title generation. When messages are short (<=50 messages),
-// all messages are used. For longer message lists, a sampling strategy is
-// applied to include the first, last, and representative intermediate messages.
-//
-// For AI messages in the middle portion, a randomized sampling (~/3 probability)
-// is used instead of a fixed ID%3==0 pattern. This ensures that when a user
-// extractMessagesForTitle returns a representative subset of messages for title generation.
-// It always includes the first 5 messages and the last message, and randomly samples
-// intermediate assistant messages to provide diverse context. Content exceeding 1024 runes
-// is truncated. This diversity helps produce varied title candidates across multiple calls.
 func extractMessagesForTitle(msgs []Message) []Message {
 	c := len(msgs)
 	if c <= 5 {
 		return msgs
 	}
 
-	// Use a local random source seeded with current time (nanosecond precision)
-	// so each invocation gets a different sampling pattern.
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	i := 5
@@ -181,54 +149,33 @@ func extractMessagesForTitle(msgs []Message) []Message {
 }
 
 // OnGetSuggestedChatTitle handles GET /api/session/title requests.
-// It reads the "title" query parameter as the original title,
-// and optionally a "sn" parameter specifying which chat to generate a title for.
-// If "sn" is provided, messages are loaded from that specific chat.
-// If "sn" is omitted (or empty), the current active chat's messages are used (backward compatible).
-//
-// It sends the messages to the LLM to generate a new concise title,
-// and returns the new title along with the chat SN (so the frontend can
-// correctly identify which chat to update) as JSON.
-// On error or empty LLM response, returns the original title.
-//
-// NOTE: This handler does NOT save the generated title to the session.
-// The title is only saved when the user explicitly accepts it via PUT /api/session/title.
-// This ensures the backend does not modify session state before user confirmation.
 func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Request) {
-	// Read the original title from query parameter
 	originalTitle := r.URL.Query().Get("title")
 
-	// Read the optional sn parameter -if provided, generate a title
-	// for that specific chat instead of the current active chat.
 	chatSN := r.URL.Query().Get("sn")
 	var chatID int64
 
-	// Determine the language for this request.
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
 		lang = h.defaultLang
 	}
 
-	// Resolve sessionID from cookie
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	// Resolve which chat's messages to use
 	if chatSN != "" {
-		// Verify the chat exists by SN and get its ID
-		session.user.chatsMu.Lock()
+		sess.User.ChatsMu.Lock()
 		var found bool
-		for _, c := range session.user.chats {
+		for _, c := range sess.User.Chats {
 			if c.SN == chatSN {
 				found = true
 				chatID = c.ID
 				break
 			}
 		}
-		session.user.chatsMu.Unlock()
+		sess.User.ChatsMu.Unlock()
 
 		if !found {
-			// Chat not found (may have been deleted) -return original title
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"sn":      chatSN,
@@ -238,18 +185,17 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 			return
 		}
 	} else {
-		// No sn provided: use the current active chat (backward compatible)
-		session.mu.Lock()
-		if session.user.currentChat.dbChat != nil {
-			chatSN = session.user.currentChat.dbChat.SN
-			chatID = session.user.currentChat.dbChat.ID
+		sess.Mu.Lock()
+		if sess.User.CurrentChat.DBCHat != nil {
+			chatSN = sess.User.CurrentChat.DBCHat.SN
+			chatID = sess.User.CurrentChat.DBCHat.ID
 		}
-		session.mu.Unlock()
+		sess.Mu.Unlock()
 	}
 
 	var msgs []Message
 	if chatID != 0 {
-		chatStore, cerr := h.openChatDB(session)
+		chatStore, cerr := h.openChatDB(sess)
 		if cerr != nil {
 			http.Error(w, i18n.T("api_error_failed_to_open_chat_store_detail", map[string]any{"Error": cerr.Error()}), http.StatusInternalServerError)
 			return
@@ -275,7 +221,6 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	samples := extractMessagesForTitle(msgs)
 	msgs = nil
 
-	// Build the LLM prompt with i18n support
 	systemPromptBuilder := &strings.Builder{}
 	systemPromptBuilder.WriteString(i18n.SystemPrompt.TL(lang, "title", map[string]interface{}{"Title": originalTitle}))
 	systemPromptBuilder.WriteString("\n------")
@@ -297,39 +242,26 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	newTitle := ""
 	titleChanged := false
 
-	// Call LLM (non-streaming) with a 50-second timeout.
-	// Title generation is a lightweight task; if it takes longer than 50s,
-	// the LLM is likely stuck in a thinking loop, so we time out and
-	// fall back to the original title.
-	// Get the user's LLM client and personal API key
-	client := sessionLLMClient(session)
-	llmAPIKey := sessionLLMAPIKey(session)
+	client := sessionLLMClient(sess)
+	llmAPIKey := sessionLLMAPIKey(sess)
 
 	titleCtx, titleCancel := context.WithTimeout(r.Context(), 50*time.Second)
 	defer titleCancel()
 	resp, err := client.Chat(titleCtx, messages, llmAPIKey)
 
 	if err == nil && len(resp.Choices) > 0 {
-		// Extract the reply content
 		newTitle = resp.Choices[0].Message.Content
 	}
 
-	// Validate the generated title:
-	// - If LLM returned empty content, fall back to original title
-	// - If the generated title is unreasonably long (>50 visual length), the LLM likely
-	//   failed to generate a concise title; discard it and use the original title instead.
-	//   50 visual length ~33 Chinese characters or 50 English chars, matching the prompt constraints.
 	const maxTitleLen = 50.0
 	if newTitle == "" || toolset.VisualLength(newTitle) > maxTitleLen {
 		newTitle = originalTitle
 	}
 
-	// Determine if the title changed (for the response only, no session mutation)
 	if newTitle != originalTitle {
 		titleChanged = true
 	}
 
-	// Return the new title and the SN as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"sn":      chatSN,

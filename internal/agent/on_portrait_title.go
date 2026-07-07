@@ -13,36 +13,14 @@ import (
 
 // ============================================================
 // Document title generation handler -POST /api/doc/title
-//
-// Request (JSON):
-//
-//	{
-//	  "content": "(full user portrait text)"
-//	}
-//
-// Response (JSON):
-//
-//	{
-//	  "title": "generated title"
-//	}
-//
-// Flow:
-//  1. Frontend sends the completed portrait text
-//  2. Local-server uses LLM with [doc_title] prompt to generate a concise title
-//  3. Returns the title as JSON
 // ============================================================
 
-// portraitTitleRequest is the JSON body for POST /api/user/portrait/title.
 type portraitTitleRequest struct {
 	Content string `json:"content"`
 }
 
-// OnGetPortraitTitle handles POST /api/user/portrait/title -- generates a concise
-// overall title for a document (e.g., user portrait) using the local LLM.
+// OnGetPortraitTitle handles POST /api/user/portrait/title
 func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
-	// ----------------------------------------------------------
-	// 1. Parse request body
-	// ----------------------------------------------------------
 	var req portraitTitleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		toolset.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
@@ -54,26 +32,18 @@ func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ----------------------------------------------------------
-	// 2. Resolve session and determine language
-	// ----------------------------------------------------------
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
 		lang = h.defaultLang
 	}
 
-	// Get the user's LLM client and personal API key
-	client := sessionLLMClient(session)
-	llmAPIKey := sessionLLMAPIKey(session)
+	client := sessionLLMClient(sess)
+	llmAPIKey := sessionLLMAPIKey(sess)
 
-	// ----------------------------------------------------------
-	// 3. Build the LLM prompt
-	// ----------------------------------------------------------
 	systemContent := i18n.SystemPrompt.TL(lang, "doc_title", nil)
-
 	userContent := req.Content
 
 	messages := []llm.Message{
@@ -81,9 +51,6 @@ func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 		{Role: llm.RoleUser, Content: userContent},
 	}
 
-	// ----------------------------------------------------------
-	// 4. Call LLM (non-streaming) with a 30-second timeout
-	// ----------------------------------------------------------
 	titleCtx, titleCancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer titleCancel()
 
@@ -98,15 +65,11 @@ func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 		title = resp.Choices[0].Message.Content
 	}
 
-	// Validate: if empty or too long (>50 visual chars), return empty
 	const maxTitleLen = 50.0
 	if title == "" || toolset.VisualLength(title) > maxTitleLen {
 		title = ""
 	}
 
-	// ----------------------------------------------------------
-	// 5. Return the title as JSON
-	// ----------------------------------------------------------
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"title": title,

@@ -10,16 +10,14 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/session"
 	"BrainForever/toolset"
 )
 
 // ============================================================
-// Agent implementation -ChatHandler executes tools for DeepSeek
+// pipelineImp -ChatHandler executes tools for DeepSeek
 // ============================================================
 
-// Tool implements llm.Agent.
-// It dispatches tool calls by name to the appropriate handler.
-// The returned messages are translated according to the handler's default language.
 type pipelineImp struct {
 	ctx context.Context
 
@@ -91,6 +89,7 @@ func (ate *pipelineImp) OnError(err error) {
 }
 
 func (atc *pipelineImp) OnWebSource(sources []toolimp.WebSource) {
+	// WebSource is a type alias for llmtypes.WebSource, so this works directly
 	if err := atc.sseWriter.WriteEvent(WebSourceEvent{
 		Type:       "web_source",
 		WebSources: sources,
@@ -107,7 +106,6 @@ func (ate *pipelineImp) GetWebSearchResult() (sources []toolimp.WebSource) {
 	for _, tl := range ate.tools {
 		if tl.GetName() == toolimp.WebSearchToolName {
 			if searcherTl := tl.(*toolimp.WebSearchToolImp); searcherTl != nil {
-				// Deduplicate, capped at maxSources
 				for _, page := range searcherTl.WebPages {
 					if len(sources) >= maxSources {
 						break
@@ -168,16 +166,11 @@ func (atc *pipelineImp) Call(toolCallID, toolName string) (string, error) {
 }
 
 // ============================================================
-// LLM Streaming Call -delegates to DeepSeekRaw
+// LLM Streaming Call
 // ============================================================
 
 // callLLMWithPipeline performs a streaming LLM call with tool support.
-// It delegates to DeepSeek's imp, which handles the tool call loop internally.
-// Returns the assistant message on success, or nil if the LLM returned an error
-// or produced an empty reply. The caller is responsible for appending the
-// returned message to the session history via appendNewResponseMessage.
-// callLLMWithPipeline performs a streaming LLM call with tool support.
-// session is used to get the user's provider and personal API key.
+// sess is used to get the user's provider and personal API key.
 func (h *ChatAgent) callLLMWithPipeline(
 	ctx context.Context,
 	sseWriter *sse.Writer,
@@ -186,36 +179,24 @@ func (h *ChatAgent) callLLMWithPipeline(
 	tools []llm.ToolIMP,
 	withDeepThink bool,
 	lang string,
-	session *session,
+	sess *session.Session,
 ) *Message {
-	// construct pipeline
 	pipeline := MakePipeline(ctx, h, sseWriter, tools, lang)
 
-	// Get the user's LLM client and personal API key
-	client := sessionLLMClient(session)
-	apiKey := sessionLLMAPIKey(session)
+	client := sessionLLMClient(sess)
+	apiKey := sessionLLMAPIKey(sess)
 
-	// Delegate to DeepSeekRaw
 	reply, reasoning, err := client.ChatWithPipeline(ctx,
 		messages, &pipeline, withDeepThink, apiKey)
 
-	// Detect whether the frontend aborted the connection mid-stream.
-	// When the HTTP request context is cancelled (e.g. user clicked stop),
-	// ctx.Err() returns non-nil even if ChatWithPipeline returned partial content.
 	isInterrupted := ctx.Err() != nil
 
 	var usage *Usage
 	var assistantMsg *Message
 
 	if err != nil && !isInterrupted {
-		pipeline.OnError(err) // Display "Oops! Server error!\n %v"
+		pipeline.OnError(err)
 
-		// Even on error, persist a failed assistant message so the conversation
-		// history remains consistent (the user message is already in DB).
-		// Mark it as interrupted=2 (backend-error) so the frontend can display
-		// the correct state via the .failed CSS class.
-		// Keep the partial reply as content so the user can see what the LLM
-		// generated before the error occurred.
 		assistantMsg = &Message{
 			ID:          userMsgID,
 			Role:        llm.RoleAssistant,
@@ -225,7 +206,6 @@ func (h *ChatAgent) callLLMWithPipeline(
 			Interrupted: 2,
 		}
 	} else {
-		// Get or manually (simulate) calculate the tokens consumed in this interaction
 		isEstimated := true
 		var promptTokens, completionTokens int = -1, -1
 
@@ -242,7 +222,6 @@ func (h *ChatAgent) callLLMWithPipeline(
 			}
 		}
 
-		// If the API didn't provide token counts, use simple estimation
 		if promptTokens == -1 {
 			promptTokens = toolset.TokenEstimate(mergeMessagesContent(messages))
 		}
@@ -257,11 +236,9 @@ func (h *ChatAgent) callLLMWithPipeline(
 			IsEstimated:      isEstimated,
 		}
 
-		// Append the LLM's full reply to the user's internal history
-		//     The AI reply reuses the user message's ID (source ID)
 		if len(reply) > 0 || isInterrupted {
 			assistantMsg = &Message{
-				ID:        userMsgID, // same as user message's id
+				ID:        userMsgID,
 				Role:      llm.RoleAssistant,
 				Content:   reply,
 				Reasoning: reasoning,
@@ -275,14 +252,6 @@ func (h *ChatAgent) callLLMWithPipeline(
 				}(),
 			}
 
-			// Uncomment below to append a broken message marker on interruption:
-			// if isInterrupted {
-			// 	assistantMsg.Interrupted = 1
-			// 	brokenMsg := i18n.TL(lang, "assistant_broken_message")
-			// 	assistantMsg.Content += "\n\n---\n" + brokenMsg
-			// }
-
-			// Attach web search sources so they can be restored after page refresh
 			webPages := pipeline.GetWebSearchResult()
 
 			if len(webPages) > 0 {

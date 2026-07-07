@@ -10,40 +10,25 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/toolset"
 )
 
 // ============================================================
 // Trait extraction handler -POST /api/chat/traits
-//
-// Flow:
-//  1. Frontend sends POST /api/chat/traits with {"sn": "xxx"}
-//  2. Local-server reads chat messages from local DB
-//  3. Local-server calls DeepSeek API directly (non-streaming)
-//     with the trip_traits tool to extract personal traits
-//  4. Local-server embeds each trait via the embedder and stores
-//     traits + keywords into the user-specific traits DB
-//  5. Local-server returns the result to the frontend
-//
-// Traits DB naming:
-//   - Anonymous: localdb/anonymous.brain.db
-//   - Logged-in: localdb/{userNo}.brain.db
 // ============================================================
 
-// traitsFrontendRequest is the request from the frontend to local-server.
 type traitsFrontendRequest struct {
 	SN string `json:"sn"`
 }
 
-// traitsMsg is a single message for LLM context (kept for message conversion).
 type traitsMsg struct {
 	Role     string `json:"role"`
 	Content  string `json:"content"`
 	CreateAt string `json:"create_at"`
 }
 
-// traitsFeature is a single extracted feature returned to the frontend.
 type traitsFeature struct {
 	CategoryID   int             `json:"category_id"`
 	CategoryName string          `json:"category_name"`
@@ -58,19 +43,15 @@ type traitsKeyword struct {
 	Word string `json:"word"`
 }
 
-// traitsResponse is the response returned to the frontend.
 type traitsResponse struct {
 	Features []traitsFeature `json:"features,omitempty"`
 	Usage    interface{}     `json:"usage,omitempty"`
 	Error    string          `json:"error,omitempty"`
 
-	// Extraction state
 	ExtractedAt    *string `json:"extracted_at,omitempty"`
 	ExtractedCount int     `json:"extracted_count,omitempty"`
 }
 
-// halfLifeToInt converts the half-life string from the LLM to an integer.
-// short=1, medium=2, long=3, permanent=4.
 func halfLifeToInt(s string) int {
 	switch s {
 	case "short":
@@ -82,11 +63,10 @@ func halfLifeToInt(s string) int {
 	case "permanent":
 		return 4
 	default:
-		return 2 // default to medium
+		return 2
 	}
 }
 
-// keywordTypeToInt converts keyword type letter (A-F) to integer (1-6).
 func keywordTypeToInt(t string) int {
 	switch t {
 	case "A":
@@ -102,23 +82,14 @@ func keywordTypeToInt(t string) int {
 	case "F":
 		return 6
 	default:
-		return 4 // default to D
+		return 4
 	}
 }
 
-// OnExtractTraits handles POST /api/chat/traits -- accepts a chat SN,
-// reads the chat messages from the local database, then calls the LLM
-// directly with the trip_traits tool, embeds and stores the results,
-// and returns the features to the frontend.
+// OnExtractTraits handles POST /api/chat/traits
 func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
-	// ----------------------------------------------------------
-	// 0. Determine language upfront
-	// ----------------------------------------------------------
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
-	// ----------------------------------------------------------
-	// 1. Parse request body
-	// ----------------------------------------------------------
 	var req traitsFrontendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
@@ -130,22 +101,16 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ----------------------------------------------------------
-	// 2. Resolve session and find the chat
-	// ----------------------------------------------------------
 	sessionID := h.resolveSessionID(w, r)
-	session := h.sessionManager.GetOrCreate(sessionID)
+	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	foundChat := session.findChatBySN(req.SN)
+	foundChat := sess.FindChatBySN(req.SN)
 	if foundChat == nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 
-	// ----------------------------------------------------------
-	// 3. Read un-extracted messages from database
-	// ----------------------------------------------------------
-	chatStore, cerr := h.openChatDB(session)
+	chatStore, cerr := h.openChatDB(sess)
 	if cerr != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
 		return
@@ -163,22 +128,16 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ----------------------------------------------------------
-	// 4. Convert messages and call LLM directly
-	// ----------------------------------------------------------
-	remoteResp, err := h.callTraitsLLM(r.Context(), req.SN, foundChat.Title, dbMessages, lang, session)
+	remoteResp, err := h.callTraitsLLM(r.Context(), req.SN, foundChat.Title, dbMessages, lang, sess)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
-	// ----------------------------------------------------------
-	// 5. Embed each trait and store into user-specific traits DB
-	// ----------------------------------------------------------
 	lastMsgID := dbMessages[len(dbMessages)-1].ID
 
 	if len(remoteResp.Features) > 0 {
-		storedCount, _ := h.storeTraitsInSession(r.Context(), session, remoteResp.Features, foundChat.SN)
+		storedCount, _ := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.SN)
 		if storedCount > 0 {
 			chatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
 			updateExtractionProgress(foundChat, chatStore, storedCount)
@@ -189,9 +148,6 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		updateExtractionProgress(foundChat, chatStore, 0)
 	}
 
-	// ----------------------------------------------------------
-	// 6. Populate extraction state and return
-	// ----------------------------------------------------------
 	if foundChat.ExtractedAt != nil {
 		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
 		remoteResp.ExtractedAt = &extractedAtStr
@@ -201,17 +157,9 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(remoteResp)
 }
 
-// ============================================================
-// Direct LLM call for trait extraction
-// ============================================================
-
-// callTraitsLLM builds the LLM request with the trip_traits tool
-// and returns the parsed extraction result.
-func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessages []store.Message, lang string, session *session) (*traitsResponse, error) {
-	// 1. Build system prompt with i18n
+func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessages []store.Message, lang string, sess *session.Session) (*traitsResponse, error) {
 	systemContent := getTraitSystemPrompt(lang, title)
 
-	// 2. Build LLM messages
 	llmMsgs := make([]llm.Message, 0, 1+len(dbMessages))
 	llmMsgs = append(llmMsgs, llm.Message{
 		Role:    llm.RoleSystem,
@@ -232,7 +180,6 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 			}
 		}
 
-		// Add timestamp prefix
 		createAt := toolset.FormatTimeWithLocation(m.CreateAt)
 		if createAt != "" {
 			content = "[" + createAt + "] " + content
@@ -248,14 +195,11 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 		return nil, fmt.Errorf("no valid messages after conversion")
 	}
 
-	// 3. Create the trip_traits tool
 	tripTool := toolimp.NewTripTraitsTool(lang)
 
-	// Get the user's LLM client and personal API key
-	client := sessionLLMClient(session)
-	apiKey := sessionLLMAPIKey(session)
+	client := sessionLLMClient(sess)
+	apiKey := sessionLLMAPIKey(sess)
 
-	// 4. Build LLM request with ForceToolChoice
 	reqBody := llm.ChatCompletionRequest{
 		Model:    client.Model(),
 		Messages: llmMsgs,
@@ -264,13 +208,11 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 	}
 	reqBody.ForceToolChoice(toolimp.TripTraitsToolName)
 
-	// 5. Call LLM (non-streaming)
 	resp, err := client.ChatWithOptions(ctx, reqBody, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
 
-	// 6. Parse tool calls from the response
 	result := &traitsResponse{}
 
 	if resp.Usage != nil && resp.Usage.TotalTokens > 0 {
@@ -289,7 +231,6 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 		}
 
 		traitsResult := tripTool.GetTraitsResult()
-		// Convert from toolimp types to local response types
 		for _, f := range traitsResult.Features {
 			kws := make([]traitsKeyword, 0, len(f.Keywords))
 			for _, kw := range f.Keywords {
@@ -314,12 +255,6 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 	return result, nil
 }
 
-// ============================================================
-// System prompt helper
-// ============================================================
-
-// getTraitSystemPrompt returns the localized system prompt for trip_traits extraction.
-// The prompt content is stored in lang/{lang}/system_prompt.toml under key "trip_trait".
 func getTraitSystemPrompt(lang string, chatTitle string) string {
 	return i18n.SystemPrompt.TL(lang, "trip_trait", map[string]interface{}{
 		"CurrentLocalTime": time.Now().In(time.Local).Format("2006-01-02 15:04:05 (MST)"),
@@ -327,11 +262,6 @@ func getTraitSystemPrompt(lang string, chatTitle string) string {
 	})
 }
 
-// ============================================================
-// Helper: message conversion (kept from original)
-// ============================================================
-
-// dbMessagesToTraitsMsgs converts DB messages to the traits message format.
 func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastMsgID int64) {
 	count := len(dbMessages)
 	msgs = make([]traitsMsg, 0, count)
@@ -361,17 +291,11 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 	return
 }
 
-// ============================================================
-// Helper: store traits (unchanged from original)
-// ============================================================
+func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Session, features []traitsFeature, chatSN string) (int, error) {
+	emb := sessionEmbedder(sess)
+	apiKey := sessionEmbedderAPIKey(sess)
 
-// storeTraitsInSession embeds each trait feature and stores it along with keywords
-// into the session's per-user traits database.
-func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, features []traitsFeature, chatSN string) (int, error) {
-	emb := sessionEmbedder(session)
-	apiKey := sessionEmbedderAPIKey(session)
-
-	vs, err := h.openBrainDB(session)
+	vs, err := h.openBrainDB(sess)
 	if err != nil {
 		return 0, fmt.Errorf("open traits store: %w", err)
 	}
@@ -418,10 +342,6 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, session *session, 
 
 	return stored, nil
 }
-
-// ============================================================
-// Helpers (unchanged from original)
-// ============================================================
 
 func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {
 	resp := traitsResponse{
