@@ -15,5 +15,6 @@ CREATE TABLE `users` (
   `update_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_no` (`no`),
-  UNIQUE KEY `uk_sn` (`sn`)
+  UNIQUE KEY `uk_sn` (`sn`),
+  KEY `users_tel_IDX` (`tel`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户账户表';
