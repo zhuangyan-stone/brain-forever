@@ -77,18 +77,16 @@ body {
     margin-bottom: 4px;
 }
 
-/* logo 背景圆 — 固定使用面板背景色（var(--bg-secondary)） */
+/* logo 背景圆 — 无边框无阴影，仅纯色背景 */
 .signin-logo-circle {
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: var(--bg-secondary);
+    background: var(--logo-circle-bg);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 8px var(--shadow);
 }
 
 .signin-logo {
@@ -218,7 +216,7 @@ body {
     color: var(--text-muted);
     line-height: 1.6;
     margin-bottom: 20px;
-    text-align: center;
+    text-align: left;
 }
 
 .agreement-link {

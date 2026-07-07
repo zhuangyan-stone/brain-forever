@@ -19,6 +19,7 @@ func TheLogger() zylog.Logger {
 func CreateTheLogger(level zylog.Level, logFile string, lang zylog.Language, customLevelNames ...[]string) error {
 	cfg := zylog.Config{
 		Name:     "BrainForever",
+		Level:    level,
 		File:     logFile,
 		MaxSize:  8,
 		Console:  zylog.ConsoleModeColor,

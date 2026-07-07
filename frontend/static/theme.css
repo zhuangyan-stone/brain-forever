@@ -59,6 +59,9 @@
     --tooltip-bg:       #333333;
     --tooltip-text:     #FFFFFF;
 
+    /* 登录页 logo 圆形背景 — 暗色下用亮色背景，让 logo 清晰可见 */
+    --logo-circle-bg:           #FFFFFF;
+
     /* 高亮按钮 — accent 为纯白时需独立配置 */
     --btn-highlight-bg:         #000000;
     --btn-highlight-color:      #FFFFFF;
@@ -118,6 +121,9 @@
     /* Tooltip */
     --tooltip-bg:       #E0E0E0;
     --tooltip-text:     #000000;
+
+    /* 登录页 logo 圆形背景 — 亮色下透明，不显示圆 */
+    --logo-circle-bg:           transparent;
 
     /* 高亮按钮 — 黑底白图标，hover 橙色 */
     --btn-highlight-bg:         #000000;
