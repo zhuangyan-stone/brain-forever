@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"BrainForever/infra/i18n"
 	"BrainForever/toolset"
@@ -30,7 +29,7 @@ type User struct {
 	Salt        string `db:"salt"`         // Salt for password encryption (random hex string)
 	Deleted     int    `db:"deleted"`      // Soft delete flag, 0 = active, 1 = deleted
 	SettingsVer int    `db:"settings_ver"` // User settings version, default 0
-	Settings    string `db:"settings"`     // User settings JSON, max 2048 chars
+	Settings    string `db:"settings"`     // User settings JSON
 	CreateAt    string `db:"create_at"`    // Creation time, defaults to current time
 	UpdateAt    string `db:"update_at"`    // Last update time, defaults to current time on creation, auto-updated on modification
 }
@@ -179,20 +178,6 @@ func (s *UserStore) generateUserNO() string {
 // sn is auto-generated via toolset.GenerateSN("u-"), salt is auto-generated randomly,
 // password is automatically computed as MD5(rawPassword + salt).
 func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
-	// Validate nickname length (rune count, not byte count — MySQL VARCHAR uses character semantics)
-	nickLen := utf8.RuneCountInString(nickname)
-	if nickLen > 38 {
-		return nil, fmt.Errorf("%s", i18n.T("err_nickname_too_long", map[string]any{"Max": 38, "Got": nickLen}))
-	}
-	if nickLen == 0 {
-		return nil, fmt.Errorf("%s", i18n.T("err_nickname_empty"))
-	}
-
-	// Validate password
-	if len(rawPassword) == 0 {
-		return nil, fmt.Errorf("%s", i18n.T("err_password_empty"))
-	}
-
 	sn := toolset.GenerateSN("u-")
 	no := s.generateUserNO()
 	if no == "" {
@@ -203,14 +188,14 @@ func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
 
 	result, err := TheMySQLDB().Exec(
 		"INSERT INTO users(nickname, no, sn, salt, password, tel, settings_ver, settings) VALUES(?, ?, ?, ?, ?, ?, 0, ?)",
-		nickname, no, sn, salt, password, "", "",
+		nickname, no, sn, salt, password, "", "{}",
 	)
 	if err != nil {
 		// Check for sn duplicate
 		if strings.Contains(err.Error(), "Duplicate entry") {
 			return nil, fmt.Errorf("duplicate sn: %w", err)
 		}
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_create_user_failed"), err)
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	id, _ := result.LastInsertId()
@@ -223,9 +208,9 @@ func (s *UserStore) GetUserByID(id int64) (*User, error) {
 	err := TheMySQLDB().Get(&u, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users WHERE id = ?", id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("%s (id=%d)", i18n.T("db_user_not_found_by_id"), id)
+			return nil, fmt.Errorf("user not found (id=%d)", id)
 		}
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_user_failed"), err)
+		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	return &u, nil
 }
@@ -238,7 +223,7 @@ func (s *UserStore) GetUserByNO(no string) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by no=%s", no)
 		}
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_user_failed"), err)
+		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	return &u, nil
 }
@@ -251,7 +236,7 @@ func (s *UserStore) GetUserBySN(sn string) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by sn=%s", sn)
 		}
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_user_failed"), err)
+		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	return &u, nil
 }
@@ -268,22 +253,13 @@ func (s *UserStore) VerifyPassword(sn, rawPassword string) (bool, error) {
 
 // UpdateNickname updates the user's nickname
 func (s *UserStore) UpdateNickname(id int64, newNickname string) error {
-	// Validate nickname length (rune count, not byte count — MySQL VARCHAR uses character semantics)
-	nickLen := utf8.RuneCountInString(newNickname)
-	if nickLen > 38 {
-		return fmt.Errorf("%s", i18n.T("err_nickname_too_long", map[string]any{"Max": 38, "Got": nickLen}))
-	}
-	if nickLen == 0 {
-		return fmt.Errorf("%s", i18n.T("err_nickname_empty"))
-	}
-
 	result, err := TheMySQLDB().Exec("UPDATE users SET nickname = ? WHERE id = ?", newNickname, id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_nickname_failed"), err)
+		return fmt.Errorf("failed to update nickname: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_user_not_found_by_id"), id)
+		return fmt.Errorf("user not found (id=%d)", id)
 	}
 	return nil
 }
@@ -304,7 +280,7 @@ func (s *UserStore) UpdatePassword(id int64, newRawPassword string) error {
 	newPassword := encryptPassword(newRawPassword, u.Salt)
 	_, err = TheMySQLDB().Exec("UPDATE users SET password = ? WHERE id = ?", newPassword, id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_password_failed"), err)
+		return fmt.Errorf("failed to update password: %w", err)
 	}
 	return nil
 }
@@ -313,11 +289,11 @@ func (s *UserStore) UpdatePassword(id int64, newRawPassword string) error {
 func (s *UserStore) DeleteUser(id int64) error {
 	result, err := TheMySQLDB().Exec("DELETE FROM users WHERE id = ?", id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_user_failed"), err)
+		return fmt.Errorf("failed to delete user: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_user_not_found_by_id"), id)
+		return fmt.Errorf("user not found (id=%d)", id)
 	}
 	return nil
 }
@@ -327,7 +303,7 @@ func (s *UserStore) ListUsers() ([]User, error) {
 	var users []User
 	err := TheMySQLDB().Select(&users, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users ORDER BY id")
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_users_failed"), err)
+		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 	return users, nil
 }

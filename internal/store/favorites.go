@@ -3,8 +3,6 @@ package store
 import (
 	"fmt"
 	"time"
-
-	"BrainForever/infra/i18n"
 )
 
 // ============================================================
@@ -32,7 +30,7 @@ func (s *ChatStore) InsertFavoriteItem(chatID int64, customTag string) error {
 		chatID, customTag,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_insert_favorite_failed"), err)
+		return fmt.Errorf("failed to insert favorite: %w", err)
 	}
 	return nil
 }
@@ -47,7 +45,7 @@ func (s *ChatStore) UpdateFavoriteItemsCustomTag(oldCustomTag, newCustomTag stri
 		newCustomTag, oldCustomTag,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_update_custom_tag_failed"), err)
+		return 0, fmt.Errorf("failed to update custom tag: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	return rows, nil
@@ -65,11 +63,11 @@ func (s *ChatStore) UpdateFavoriteItemChatCustomTag(id int64, oldCustomTag, newC
 		newCustomTag, id, oldCustomTag,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_favorite_item_custom_tag_failed"), err)
+		return fmt.Errorf("failed to update favorite item custom tag: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d, old_custom_tag=%s)", i18n.T("db_favorite_not_found"), id, oldCustomTag)
+		return fmt.Errorf("favorite not found (id=%d, old_custom_tag=%s)", id, oldCustomTag)
 	}
 	return nil
 }
@@ -83,7 +81,7 @@ func (s *ChatStore) IsExistsFavoriteItem(chatID int64, customTag string) (bool, 
 		chatID, customTag,
 	)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", i18n.T("db_query_favorite_exists_failed"), err)
+		return false, fmt.Errorf("failed to check favorite existence: %w", err)
 	}
 	return exists, nil
 }
@@ -97,11 +95,11 @@ func (s *ChatStore) DeleteFavoriteItem(chatID int64, customTag string) error {
 		chatID, customTag,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_favorite_failed"), err)
+		return fmt.Errorf("failed to delete favorite: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (chat_id=%d, custom_tag=%s)", i18n.T("db_favorite_not_found"), chatID, customTag)
+		return fmt.Errorf("favorite not found (chat_id=%d, custom_tag=%s)", chatID, customTag)
 	}
 	return nil
 }
@@ -114,7 +112,7 @@ func (s *ChatStore) DeleteFavoriteItemsByChatID(chatID int64) (int64, error) {
 		chatID,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_favorite_failed"), err)
+		return 0, fmt.Errorf("failed to delete favorite: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	return rows, nil
@@ -147,7 +145,7 @@ func (s *ChatStore) SelectFavoritedChatTitlesGroupByTags() (map[string][]Favorit
 		 ORDER BY cf.custom_tag, cs.update_at DESC, cs.create_at DESC`,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_select_favorited_chat_titles_group_by_tags_failed"), err)
+		return nil, fmt.Errorf("failed to select favorited chat titles grouped by tags: %w", err)
 	}
 
 	result := make(map[string][]FavoritedChatTitleTag)

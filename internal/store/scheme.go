@@ -2,8 +2,6 @@ package store
 
 import (
 	"fmt"
-
-	"BrainForever/infra/i18n"
 )
 
 // initSchema initializes chat-related table schemas and runs migrations.
@@ -105,7 +103,7 @@ func (s *ChatStore) initSchema() error {
 	`
 	_, err := s.db.Exec(schema)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_init_chat_tables_failed"), err)
+		return fmt.Errorf("failed to initialize chat tables: %w", err)
 	}
 
 	return nil

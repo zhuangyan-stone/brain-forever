@@ -7,8 +7,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-
-	"BrainForever/infra/i18n"
 )
 
 type ChatStore struct {
@@ -54,14 +52,14 @@ func dbFileOpener(dbFile string, autoCreate bool) (*sqlx.DB, error) {
 		}
 		f, err := os.Create(dbFile)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", i18n.T("db_create_chat_db_file_failed"), err)
+			return nil, fmt.Errorf("failed to create chat database file: %w", err)
 		}
 		f.Close()
 	}
 
 	db, err := sqlx.Open("sqlite3", dbFile+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_chat_db_failed"), err)
+		return nil, fmt.Errorf("failed to open chat database: %w", err)
 	}
 	return db, nil
 }
@@ -107,7 +105,7 @@ func (s *ChatStore) InsertChat(sn string, roleNO int,
 		sn, roleNO, title, extractMode,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_insert_chat_failed"), err)
+		return nil, fmt.Errorf("failed to insert chat: %w", err)
 	}
 
 	id, _ := result.LastInsertId()
@@ -120,7 +118,7 @@ func (s *ChatStore) InsertChat(sn string, roleNO int,
 		 FROM chat_sessions WHERE id = ?`, id,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_inserted_chat_failed"), err)
+		return nil, fmt.Errorf("failed to query inserted chat: %w", err)
 	}
 	return &chat, nil
 }
@@ -132,11 +130,11 @@ func (s *ChatStore) LogicDelete(sn string) error {
 		sn,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_logic_delete_session_failed"), err)
+		return fmt.Errorf("failed to delete session: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (sn=%s)", i18n.T("db_session_not_found"), sn)
+		return fmt.Errorf("session not found (sn=%s)", sn)
 	}
 	return nil
 }
@@ -147,7 +145,7 @@ func (s *ChatStore) LogicDelete(sn string) error {
 func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_begin_transaction_failed"), err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -158,10 +156,10 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 		id, sn,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_check_session_existence_failed"), err)
+		return fmt.Errorf("failed to check session existence: %w", err)
 	}
 	if !exists {
-		return fmt.Errorf("%s (id=%d, sn=%s)", i18n.T("db_session_not_found"), id, sn)
+		return fmt.Errorf("session not found (id=%d, sn=%s)", id, sn)
 	}
 
 	// Delete the session itself; child rows (chat_messages, web_sources,
@@ -171,11 +169,11 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 		id, sn,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_physical_delete_session_failed"), err)
+		return fmt.Errorf("failed to delete session: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_commit_transaction_failed"), err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
 }
@@ -190,7 +188,7 @@ func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
 		 FROM chat_sessions WHERE sn = ?`, sn,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s (sn=%s): %w", i18n.T("db_session_not_found"), sn, err)
+		return nil, fmt.Errorf("session not found (sn=%s): %w", sn, err)
 	}
 	return &chat, nil
 }
@@ -209,7 +207,7 @@ func (s *ChatStore) ListDeletedChats(n int) ([]Chat, error) {
 		n,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_deleted_chats_failed"), err)
+		return nil, fmt.Errorf("failed to list deleted chats: %w", err)
 	}
 	return chats, nil
 }
@@ -221,11 +219,11 @@ func (s *ChatStore) RestoreChat(sn string) error {
 		sn,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_restore_chat_failed"), err)
+		return fmt.Errorf("failed to restore chat: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (sn=%s)", i18n.T("db_session_not_found"), sn)
+		return fmt.Errorf("session not found (sn=%s)", sn)
 	}
 	return nil
 }
@@ -244,7 +242,7 @@ func (s *ChatStore) ListChats(n int) ([]Chat, error) {
 		n,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_chats_failed"), err)
+		return nil, fmt.Errorf("failed to list chats: %w", err)
 	}
 	return chats, nil
 }
@@ -256,11 +254,11 @@ func (s *ChatStore) UpdateChatTitle(id int64, title string, titleState int8) err
 		title, titleState, id,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_chat_title_failed"), err)
+		return fmt.Errorf("failed to update chat title: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_session_not_found"), id)
+		return fmt.Errorf("session not found (id=%d)", id)
 	}
 	return nil
 }
@@ -276,11 +274,11 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 		pinVal, id,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_chat_pin_failed"), err)
+		return fmt.Errorf("failed to update chat pin: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_session_not_found"), id)
+		return fmt.Errorf("session not found (id=%d)", id)
 	}
 	return nil
 }
@@ -296,11 +294,11 @@ func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 		tagVal, id,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_chat_tag_failed"), err)
+		return fmt.Errorf("failed to update chat tag: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_session_not_found"), id)
+		return fmt.Errorf("session not found (id=%d)", id)
 	}
 	return nil
 }
@@ -312,7 +310,7 @@ func (s *ChatStore) EmptyTrash() error {
 	// Just delete the sessions -- ON DELETE CASCADE handles the rest
 	_, err := s.db.Exec("DELETE FROM chat_sessions WHERE deleted = 1")
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_trashed_sessions_failed"), err)
+		return fmt.Errorf("failed to delete trashed sessions: %w", err)
 	}
 	return nil
 }
@@ -333,11 +331,11 @@ func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) er
 		increment, chatID,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_extraction_progress_failed"), err)
+		return fmt.Errorf("failed to update extraction progress: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_session_not_found"), chatID)
+		return fmt.Errorf("session not found (id=%d)", chatID)
 	}
 	return nil
 }
@@ -359,7 +357,7 @@ func (s *ChatStore) UpdateMessagesExtracted(chatID int64, upToID int64, extracte
 		extractedVal, chatID, upToID, 1-extractedVal,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_mark_messages_extracted_failed"), err)
+		return fmt.Errorf("failed to mark messages as extracted: %w", err)
 	}
 	return nil
 }
@@ -378,11 +376,11 @@ func (s *ChatStore) TouchChat(id int64) error {
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_touch_chat_update_at_failed"), err)
+		return fmt.Errorf("failed to touch chat update_at: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_session_not_found"), id)
+		return fmt.Errorf("session not found (id=%d)", id)
 	}
 	return nil
 }
@@ -405,7 +403,7 @@ func (s *ChatStore) ListChatTitles(n int) ([]ChatTitle, error) {
 		n,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_chat_titles_failed"), err)
+		return nil, fmt.Errorf("failed to list chat titles: %w", err)
 	}
 	return titles, nil
 }
@@ -432,7 +430,7 @@ func (s *ChatStore) SelectChatTitlesGroupByTags() (map[string][]ChatTitleTag, er
 		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_select_chat_title_tag_groups_failed"), err)
+		return nil, fmt.Errorf("failed to select chat title tag groups: %w", err)
 	}
 
 	result := make(map[string][]ChatTitleTag)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
 
 	sqlite_vec "github.com/asg017/sqlite-vec-go-bindings/cgo"
@@ -65,7 +64,7 @@ type BrainStore struct {
 func OpenBrainStore(dbPath string, dimension int, logger zylog.Logger) (*BrainStore, error) {
 	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_vector_db_failed"), err)
+		return nil, fmt.Errorf("failed to open vector database: %w", err)
 	}
 	return &BrainStore{db: db, dimension: dimension, logger: logger}, nil
 }
@@ -95,7 +94,7 @@ func NewBrainStore(dbPath string, dimension int, logger zylog.Logger) (*BrainSto
 func (s *BrainStore) initSchema() error {
 	var vecVersion string
 	if err := s.db.QueryRow("SELECT vec_version()").Scan(&vecVersion); err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_vec_not_loaded"), err)
+		return fmt.Errorf("sqlite-vec not loaded correctly: %w", err)
 	}
 	s.logger.Infof("sqlite-vec version: %s", vecVersion)
 
@@ -168,7 +167,7 @@ func (s *BrainStore) AddTrait(ctx context.Context, trait *PersonalTrait, embeddi
 		trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.ChatSN,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_insert_trait_failed"), err)
+		return 0, fmt.Errorf("failed to insert trait: %w", err)
 	}
 
 	traitID, _ := result.LastInsertId()
@@ -180,7 +179,7 @@ func (s *BrainStore) AddTrait(ctx context.Context, trait *PersonalTrait, embeddi
 		traitID, string(vecJSON),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_insert_trait_vector_failed"), err)
+		return 0, fmt.Errorf("failed to insert trait vector: %w", err)
 	}
 
 	return traitID, tx.Commit()
@@ -193,7 +192,7 @@ func (s *BrainStore) AddKeyword(kw *TraitKeyword) (int64, error) {
 		kw.Word, kw.Kind, kw.TraitID,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_insert_keyword_failed"), err)
+		return 0, fmt.Errorf("failed to insert keyword: %w", err)
 	}
 	return result.LastInsertId()
 }
@@ -219,7 +218,7 @@ func (s *BrainStore) SearchByVector(query []float32, category int, topK int) ([]
 
 	rows, err := s.db.Query(sqlQuery, args...)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_vector_search_failed"), err)
+		return nil, fmt.Errorf("vector search failed: %w", err)
 	}
 	defer rows.Close()
 
@@ -287,7 +286,7 @@ func (s *BrainStore) SearchByKeyword(word string, kind int, limit int) ([]Person
 
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_keyword_search_failed"), err)
+		return nil, fmt.Errorf("keyword search failed: %w", err)
 	}
 	defer rows.Close()
 
@@ -339,7 +338,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]P
 
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_fuzzy_keyword_search_failed"), err)
+		return nil, fmt.Errorf("fuzzy keyword search failed: %w", err)
 	}
 	defer rows.Close()
 
@@ -370,21 +369,21 @@ func (s *BrainStore) Delete(id int64) error {
 	defer tx.Rollback()
 
 	if _, err := tx.Exec("DELETE FROM trait_vectors WHERE rowid = ?", id); err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_trait_vector_failed"), err)
+		return fmt.Errorf("failed to delete trait vector: %w", err)
 	}
 
 	if _, err := tx.Exec("DELETE FROM keywords WHERE trait_id = ?", id); err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_keywords_failed"), err)
+		return fmt.Errorf("failed to delete keywords: %w", err)
 	}
 
 	result, err := tx.Exec("DELETE FROM traits WHERE id = ?", id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_trait_failed"), err)
+		return fmt.Errorf("failed to delete trait: %w", err)
 	}
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_trait_not_found"), id)
+		return fmt.Errorf("trait not found (id=%d)", id)
 	}
 
 	return tx.Commit()
@@ -393,12 +392,12 @@ func (s *BrainStore) Delete(id int64) error {
 // DeleteByChatSN deletes all traits for a chat SN, along with vectors and keywords.
 func (s *BrainStore) DeleteByChatSN(chatSN string) (int, error) {
 	if chatSN == "" {
-		return 0, fmt.Errorf("%s", i18n.T("db_empty_chat_sn"))
+		return 0, fmt.Errorf("empty chat SN")
 	}
 
 	var traitIDs []int64
 	if err := s.db.Select(&traitIDs, "SELECT id FROM traits WHERE chat_sn = ?", chatSN); err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_list_traits_by_chat_failed"), err)
+		return 0, fmt.Errorf("failed to list traits by chat: %w", err)
 	}
 
 	if len(traitIDs) == 0 {
@@ -413,23 +412,23 @@ func (s *BrainStore) DeleteByChatSN(chatSN string) (int, error) {
 
 	for _, id := range traitIDs {
 		if _, err := tx.Exec("DELETE FROM trait_vectors WHERE rowid = ?", id); err != nil {
-			return 0, fmt.Errorf("%s (rowid=%d): %w", i18n.T("db_delete_trait_vector_failed"), id, err)
+			return 0, fmt.Errorf("failed to delete trait vector (rowid=%d): %w", id, err)
 		}
 	}
 
 	if _, err := tx.Exec("DELETE FROM keywords WHERE trait_id IN (SELECT id FROM traits WHERE chat_sn = ?)", chatSN); err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_keywords_failed"), err)
+		return 0, fmt.Errorf("failed to delete keywords: %w", err)
 	}
 
 	result, err := tx.Exec("DELETE FROM traits WHERE chat_sn = ?", chatSN)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_delete_trait_failed"), err)
+		return 0, fmt.Errorf("failed to delete trait: %w", err)
 	}
 
 	_ = result
 
 	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_commit_transaction_failed"), err)
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return len(traitIDs), nil
@@ -458,7 +457,7 @@ func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 		chatSN,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_traits_by_chat_failed"), err)
+		return nil, fmt.Errorf("failed to list traits by chat: %w", err)
 	}
 	defer rows.Close()
 
@@ -487,7 +486,7 @@ func (s *BrainStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
 		 FROM traits
 		 ORDER BY create_at DESC`)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_all_traits_failed"), err)
+		return nil, fmt.Errorf("failed to list all traits: %w", err)
 	}
 	defer rows.Close()
 

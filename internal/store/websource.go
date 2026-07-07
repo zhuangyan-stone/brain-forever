@@ -3,8 +3,6 @@ package store
 import (
 	"fmt"
 	"time"
-
-	"BrainForever/infra/i18n"
 )
 
 // WebSource represents a web search result source stored in the database.
@@ -45,7 +43,7 @@ func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSou
 			src.SiteName, src.SiteIcon, src.PublishDate, src.Score,
 		)
 		if err != nil {
-			return fmt.Errorf("%s: %w", i18n.T("db_insert_web_source_failed"), err)
+			return fmt.Errorf("failed to insert web source: %w", err)
 		}
 	}
 	return nil
@@ -64,7 +62,7 @@ func (s *ChatStore) ListWebSourcesByChat(chatID int64) (map[int64][]WebSource, e
 		chatID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_web_sources_failed"), err)
+		return nil, fmt.Errorf("failed to list web sources: %w", err)
 	}
 
 	result := make(map[int64][]WebSource, 8)

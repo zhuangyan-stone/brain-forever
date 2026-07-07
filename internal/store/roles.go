@@ -7,8 +7,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-
-	"BrainForever/infra/i18n"
 )
 
 // ============================================================
@@ -41,7 +39,7 @@ type RoleStore struct {
 func NewRoleStore(dbPath string) (*RoleStore, error) {
 	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_open_role_db_failed"), err)
+		return nil, fmt.Errorf("failed to open role database: %w", err)
 	}
 
 	store := &RoleStore{db: db}
@@ -78,7 +76,7 @@ func (s *RoleStore) initSchema() error {
 	`
 	_, err := s.db.Exec(schema)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_init_role_table_failed"), err)
+		return fmt.Errorf("failed to initialize role table: %w", err)
 	}
 	return nil
 }
@@ -110,7 +108,7 @@ func (s *RoleStore) CreateRole(roleNo int, roleName, uuid string, isPublic bool)
 		roleNo, roleName, uuid, isPublicInt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_create_role_failed"), err)
+		return nil, fmt.Errorf("failed to create role: %w", err)
 	}
 
 	id, _ := result.LastInsertId()
@@ -123,9 +121,9 @@ func (s *RoleStore) GetRoleByID(id int64) (*Role, error) {
 	err := s.db.Get(&r, "SELECT id, role_no, role_name, uuid, is_public, is_active, create_at, update_at FROM roles WHERE id = ?", id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("%s (id=%d)", i18n.T("db_role_not_found"), id)
+			return nil, fmt.Errorf("role not found (id=%d)", id)
 		}
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_role_failed"), err)
+		return nil, fmt.Errorf("failed to query role: %w", err)
 	}
 	return &r, nil
 }
@@ -135,7 +133,7 @@ func (s *RoleStore) ListRolesByUUID(uuid string) ([]Role, error) {
 	var roles []Role
 	err := s.db.Select(&roles, "SELECT id, role_no, role_name, uuid, is_public, is_active, create_at, update_at FROM roles WHERE uuid = ? ORDER BY role_no", uuid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_roles_failed"), err)
+		return nil, fmt.Errorf("failed to list roles: %w", err)
 	}
 	return roles, nil
 }
@@ -145,7 +143,7 @@ func (s *RoleStore) ListActiveRolesByUUID(uuid string) ([]Role, error) {
 	var roles []Role
 	err := s.db.Select(&roles, "SELECT id, role_no, role_name, uuid, is_public, is_active, create_at, update_at FROM roles WHERE uuid = ? AND is_active = 1 ORDER BY role_no", uuid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_active_roles_failed"), err)
+		return nil, fmt.Errorf("failed to list active roles: %w", err)
 	}
 	return roles, nil
 }
@@ -166,11 +164,11 @@ func (s *RoleStore) UpdateRole(id int64, roleNo int, roleName string, isPublic b
 
 	result, err := s.db.Exec("UPDATE roles SET role_no = ?, role_name = ?, is_public = ? WHERE id = ?", roleNo, roleName, isPublicInt, id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_role_failed"), err)
+		return fmt.Errorf("failed to update role: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_role_not_found"), id)
+		return fmt.Errorf("role not found (id=%d)", id)
 	}
 	return nil
 }
@@ -183,11 +181,11 @@ func (s *RoleStore) SetRoleActive(id int64, active bool) error {
 	}
 	result, err := s.db.Exec("UPDATE roles SET is_active = ? WHERE id = ?", activeInt, id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_update_role_active_status_failed"), err)
+		return fmt.Errorf("failed to update role active status: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_role_not_found"), id)
+		return fmt.Errorf("role not found (id=%d)", id)
 	}
 	return nil
 }
@@ -196,11 +194,11 @@ func (s *RoleStore) SetRoleActive(id int64, active bool) error {
 func (s *RoleStore) DeleteRole(id int64) error {
 	result, err := s.db.Exec("DELETE FROM roles WHERE id = ?", id)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_role_failed"), err)
+		return fmt.Errorf("failed to delete role: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_role_not_found"), id)
+		return fmt.Errorf("role not found (id=%d)", id)
 	}
 	return nil
 }

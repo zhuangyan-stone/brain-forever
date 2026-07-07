@@ -3,8 +3,6 @@ package store
 import (
 	"fmt"
 	"time"
-
-	"BrainForever/infra/i18n"
 )
 
 // ============================================================
@@ -32,7 +30,7 @@ func (s *ChatStore) SelectTagsGroup() (map[string]int, error) {
 		 GROUP BY tag`,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_select_tag_groups_failed"), err)
+		return nil, fmt.Errorf("failed to select tag groups: %w", err)
 	}
 
 	result := make(map[string]int, len(rows))
@@ -58,7 +56,7 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 		 GROUP BY tag`,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_select_non_empty_tag_groups_failed"), err)
+		return nil, fmt.Errorf("failed to select non-empty tag groups: %w", err)
 	}
 
 	result := make(map[string]int, len(rows))
@@ -75,7 +73,7 @@ func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 		chatID, tag,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_insert_chat_tag_failed"), err)
+		return nil, fmt.Errorf("failed to insert chat tag: %w", err)
 	}
 
 	id, _ := result.LastInsertId()
@@ -86,7 +84,7 @@ func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 		 FROM chat_tags WHERE id = ?`, id,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_query_inserted_chat_tag_failed"), err)
+		return nil, fmt.Errorf("failed to query inserted chat tag: %w", err)
 	}
 	return &chatTag, nil
 }
@@ -103,7 +101,7 @@ func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
 		chatID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_chat_tags_failed"), err)
+		return nil, fmt.Errorf("failed to list chat tags: %w", err)
 	}
 	return tags, nil
 }
@@ -115,11 +113,11 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_chat_tag_failed"), err)
+		return fmt.Errorf("failed to delete chat tag: %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return fmt.Errorf("%s (id=%d)", i18n.T("db_chat_tag_not_found"), id)
+		return fmt.Errorf("chat tag not found (id=%d)", id)
 	}
 	return nil
 }
@@ -131,7 +129,7 @@ func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
 		chatID,
 	)
 	if err != nil {
-		return fmt.Errorf("%s (id=%d): %w", i18n.T("db_delete_chat_tags_for_chat_failed"), chatID, err)
+		return fmt.Errorf("failed to delete chat tags for chat (id=%d): %w", chatID, err)
 	}
 	return nil
 }

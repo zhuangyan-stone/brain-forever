@@ -3,8 +3,6 @@ package store
 import (
 	"fmt"
 	"time"
-
-	"BrainForever/infra/i18n"
 )
 
 type Message struct {
@@ -33,7 +31,7 @@ func (s *ChatStore) InsertMessage(chatID int64, groupIndex int, role int,
 		chatID, groupIndex, role, reasoning, content, interrupted,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_insert_message_failed"), err)
+		return fmt.Errorf("failed to insert message: %w", err)
 	}
 	return nil
 }
@@ -50,7 +48,7 @@ func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 		chatID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_messages_failed"), err)
+		return nil, fmt.Errorf("failed to list messages: %w", err)
 	}
 	return msgs, nil
 }
@@ -70,7 +68,7 @@ func (s *ChatStore) ListMessagesByRange(chatID int64, startID int64, limit int) 
 		chatID, startID, limit,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_messages_by_range_failed"), err)
+		return nil, fmt.Errorf("failed to list messages by range: %w", err)
 	}
 	return msgs, nil
 }
@@ -89,7 +87,7 @@ func (s *ChatStore) ListUnExtractMessages(chatID int64) ([]Message, error) {
 		chatID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", i18n.T("db_list_unextracted_messages_failed"), err)
+		return nil, fmt.Errorf("failed to list unextracted messages: %w", err)
 	}
 	return msgs, nil
 }
@@ -102,7 +100,7 @@ func (s *ChatStore) CountMessages(chatID int64) (int, error) {
 		chatID,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", i18n.T("db_count_messages_failed"), err)
+		return 0, fmt.Errorf("failed to count messages: %w", err)
 	}
 	return count, nil
 }
@@ -112,7 +110,7 @@ func (s *ChatStore) CountMessages(chatID int64) (int, error) {
 func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_begin_transaction_failed"), err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -122,7 +120,7 @@ func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 		chatID, groupIndex,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_web_sources_for_message_group_failed"), err)
+		return fmt.Errorf("failed to delete web sources for message group: %w", err)
 	}
 
 	// Delete messages
@@ -131,7 +129,7 @@ func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 		chatID, groupIndex,
 	)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.T("db_delete_message_group_failed"), err)
+		return fmt.Errorf("failed to delete message group: %w", err)
 	}
 
 	return tx.Commit()

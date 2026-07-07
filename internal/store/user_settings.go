@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 )
@@ -107,4 +108,94 @@ func (s *UserSettings) ToString() string {
 		return ""
 	}
 	return string(data)
+}
+
+// ============================================================
+// UserStore settings general methods
+// ============================================================
+
+// GetUserSettings retrieves the full UserSettings for a given user.
+// Returns nil if the user is not found.
+func (s *UserStore) GetUserSettings(id int64) (*UserSettings, error) {
+	var jsonStr string
+	err := TheMySQLDB().Get(&jsonStr, "SELECT settings FROM users WHERE id = ?", id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found (id=%d)", id)
+		}
+		return nil, fmt.Errorf("failed to query user settings: %w", err)
+	}
+
+	var settings UserSettings
+	if err := settings.FromString(jsonStr); err != nil {
+		return nil, fmt.Errorf("failed to parse user settings: %w", err)
+	}
+	return &settings, nil
+}
+
+// SetUserSettings writes the full UserSettings for a given user.
+// Serializes the settings to JSON and updates the settings column.
+func (s *UserStore) SetUserSettings(id int64, settings *UserSettings) error {
+	jsonStr := settings.ToString()
+
+	result, err := TheMySQLDB().Exec("UPDATE users SET settings = ? WHERE id = ?", jsonStr, id)
+	if err != nil {
+		return fmt.Errorf("failed to update user settings: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("user not found (id=%d)", id)
+	}
+	return nil
+}
+
+// ============================================================
+// UserStore theme-related methods
+// ============================================================
+
+// UpdateThemeActiveMode updates the active theme mode for a user.
+// If isDark is true, sets Active to "dark"; otherwise sets it to "light".
+// Uses MySQL JSON_SET to update only the $.theme.active field in-place.
+func (s *UserStore) UpdateThemeActiveMode(id int64, isDark bool) error {
+	activeMode := "light"
+	if isDark {
+		activeMode = "dark"
+	}
+
+	result, err := TheMySQLDB().Exec(
+		"UPDATE users SET settings = JSON_SET(settings, '$.theme.active', ?) WHERE id = ?",
+		activeMode, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user settings: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("user not found (id=%d)", id)
+	}
+	return nil
+}
+
+// UpdateThemes updates the light/dark theme IDs and the active mode for a user.
+// light is the light theme ID, dark is the dark theme ID.
+// If isDark is true, sets Active to "dark"; otherwise sets it to "light".
+// Uses MySQL JSON_SET to update all three $.theme.* fields in a single call.
+func (s *UserStore) UpdateThemes(id int64, light, dark string, isDark bool) error {
+	activeMode := "light"
+	if isDark {
+		activeMode = "dark"
+	}
+
+	result, err := TheMySQLDB().Exec(
+		"UPDATE users SET settings = JSON_SET(settings, '$.theme.light', ?, '$.theme.dark', ?, '$.theme.active', ?) WHERE id = ?",
+		light, dark, activeMode, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user settings: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("user not found (id=%d)", id)
+	}
+	return nil
 }
