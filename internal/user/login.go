@@ -118,7 +118,7 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		h.logger.Warnf("failed to parse user settings for user %s: %v", user.SN, err)
 	}
 
-	sess.SwitchToUser(session.SessionUser{
+	sess.SwitchToUser(&session.SessionUser{
 		ID:       user.ID,
 		SN:       user.SN,
 		No:       user.No,
@@ -202,7 +202,7 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		h.logger.Warnf("failed to parse user settings for user %s: %v", user.SN, err)
 	}
 
-	sess.SwitchToUser(session.SessionUser{
+	sess.SwitchToUser(&session.SessionUser{
 		ID:       user.ID,
 		SN:       user.SN,
 		No:       user.No,

@@ -61,6 +61,22 @@ type SessionUser struct {
 	Settings store.UserSettings // User's personal settings (API keys, theme, etc.)
 }
 
+// CopyTo copies data fields from src to dst, preserving dst's ChatsMu mutex.
+// Both src and dst are pointers to avoid copying sync.Mutex.
+func (src *SessionUser) CopyTo(dst *SessionUser) {
+	dst.ID = src.ID
+	dst.SN = src.SN
+	dst.No = src.No
+	dst.Nickname = src.Nickname
+	dst.CurrentChat = src.CurrentChat
+	dst.Settings = src.Settings
+
+	// Copy Chats under dst's own ChatsMu lock (preserving the existing mutex)
+	dst.ChatsMu.Lock()
+	dst.Chats = src.Chats
+	dst.ChatsMu.Unlock()
+}
+
 // Session represents an individual user's session
 type Session struct {
 	Mu sync.Mutex // protects: User, LastActivity
@@ -93,17 +109,16 @@ func (s *Session) SetTitle(newTitle string, newState llmtypes.TitleState) {
 }
 
 // SwitchToUser sets the session's user state.
-func (s *Session) SwitchToUser(user SessionUser) {
+func (s *Session) SwitchToUser(user *SessionUser) {
 	if user.Chats == nil {
 		user.Chats = []store.Chat{}
 	}
-	s.User.ChatsMu.Lock()
-	s.User.Chats = user.Chats
-	s.User.ChatsMu.Unlock()
+	if user.CurrentChat == nil {
+		user.CurrentChat = &llmtypes.Chat{}
+	}
 
-	user.CurrentChat = &llmtypes.Chat{}
 	s.Mu.Lock()
-	s.User = user
+	user.CopyTo(&s.User)
 	s.Mu.Unlock()
 }
 
