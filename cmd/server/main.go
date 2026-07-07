@@ -50,7 +50,7 @@ func main() {
 
 		// MySQL 数据库配置（支持环境变量覆盖）
 		Database: config.DatabaseConfig{
-			DSN:          os.Getenv("MYSQL_DSN"),
+			DSN:          os.Getenv("MYSQL_DSN_d2brain"),
 			MaxOpenConns: 25,
 			MaxIdleConns: 5,
 		},
@@ -93,7 +93,7 @@ func main() {
 	// Must be before InitTheUserStore, which depends on it.
 	// ============================================================
 	if cfg.Database.DSN == "" {
-		theLogger.Fatalf("MYSQL_DSN environment variable is required")
+		theLogger.Fatalf("MYSQL_DSN_d2brain environment variable is required")
 	}
 	if err := store.InitMySQLDB(cfg.Database.DSN); err != nil {
 		theLogger.Fatalf("failed to initialize MySQL: %v", err)
@@ -139,7 +139,6 @@ func main() {
 	chatHandler, err := agent.InitAgent(ctx, cfg, "brain_go_session", defaultLang, theLogger)
 	if err != nil {
 		theLogger.Fatalf("failed to initialize agent: %v", err)
-		return
 	}
 	defer chatHandler.Close()
 	theLogger.Infof("AI agent (Brain-Forever) is now active")

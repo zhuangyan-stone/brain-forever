@@ -197,6 +197,7 @@ func (l *slogWithName) Error(msg string, args ...any) {
 func (l *slogWithName) Fatal(msg string, args ...any) {
 	// Fatal level is higher than Error, using Level(12)
 	l.logger.Log(context.Background(), slog.Level(12), msg, args...)
+	os.Exit(1)
 }
 
 func (l *slogWithName) With(args ...any) Logger {
