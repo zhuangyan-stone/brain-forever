@@ -32,7 +32,7 @@ level = "TRACE"
 # MySQL 数据库配置
 # 用户数据（users 表）存储在 MySQL 中。
 # 请通过环境变量 MYSQL_DSN_d2brain 设置连接字符串，格式：
-#   MYSQL_DSN_d2brain="user:password@tcp(127.0.0.1:3306)/brain_forever"
+#   MYSQL_DSN_d2brain="user:password@tcp(127.0.0.1:3306)/d2brain"
 # 不要在此文件中写入密码！
 # ============================================================
 [database]

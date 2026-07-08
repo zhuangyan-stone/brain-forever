@@ -37,5 +37,3 @@ Thumbs.db
 
 # --- bin/ — ignore all direct children, but keep subdirectories that are checked in ---
 /bin/*
-!/bin/lang/
-!/bin/settings_template/
