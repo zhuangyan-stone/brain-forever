@@ -63,6 +63,7 @@ function applyTheme(themeVal) {
     const themeStr = resolveTheme(themeVal);
     document.documentElement.setAttribute('data-theme', themeStr);
     switchHighlightTheme(themeStr);
+    console.log('[theme] theme:', themeVal);
     // 外源主题联动：切换明暗时自动加载对应的外源主题 CSS
     if (window.ThemeLoader) {
         window.ThemeLoader.apply();
@@ -82,9 +83,13 @@ document.addEventListener('theme-changed', (e) => {
     const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
     darkMq.addEventListener('change', (e) => {
         const settings = Alpine.store('settings');
+        const mode = e.matches ? 'dark' : 'light';
         // 只在跟随系统模式（theme >= 2）时自动切换
         if (settings.theme >= 2) {
             applyTheme(settings.theme); // resolveTheme 会根据 prefers-color-scheme 重新计算
+            console.log('[theme] system change — follow system, theme:', settings.theme, 'mode:', mode);
+        } else {
+            console.log('[theme] system change — ignored (manual mode', settings.theme, ')');
         }
     });
 })();

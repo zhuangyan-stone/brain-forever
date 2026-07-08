@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 第2大脑 AI 助手</title>
     <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
+    <meta name="color-scheme" content="light dark">
 
     <!-- 防主题闪烁：CSS 渲染前从 localStorage 读取主题 -->
     <script>
@@ -22,12 +23,16 @@
                         themeStr = theme === 1 ? 'dark' : 'light';
                     }
                     document.documentElement.setAttribute('data-theme', themeStr);
+                    console.log('[theme] init theme:', theme);
                 } else {
                     // 无已保存的设置时，默认跟随系统
                     var themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                     document.documentElement.setAttribute('data-theme', themeStr);
+                    console.log('[theme] init theme: none (follow system)');
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.log('[theme] init theme: error reading settings');
+            }
         })();
     </script>
 
@@ -127,10 +132,14 @@
                 var raw = localStorage.getItem('brainforever_settings');
                 var settings = raw ? JSON.parse(raw) : {};
                 // 保留 bit 1（是否跟随系统），只改 bit 0（亮暗）
-                var base = (settings.theme >= 2) ? 2 : 0;
+                // 注意：无已保存设置时（settings.theme === undefined），默认视为跟随系统（base=2）
+                var base = (!settings || settings.theme === undefined || settings.theme >= 2) ? 2 : 0;
                 settings.theme = base + (mode === 'dark' ? 1 : 0);
                 localStorage.setItem('brainforever_settings', JSON.stringify(settings));
-            } catch(e) {}
+                console.log('[theme] theme:', settings.theme);
+            } catch(e) {
+                console.log('[theme] theme: fallback', mode === 'dark' ? 1 : 0);
+            }
             updateThemeIcon(mode);
         }
 
@@ -162,8 +171,10 @@
                 try {
                     var raw = localStorage.getItem('brainforever_settings');
                     var shouldFollow = true;
+                    var currentTheme;
                     if (raw) {
                         var s = JSON.parse(raw);
+                        currentTheme = s.theme;
                         if (s.theme < 2) {
                             shouldFollow = false; // 手动模式（0/1），不自动跟随系统
                         }
@@ -172,8 +183,13 @@
                         var mode = e.matches ? 'dark' : 'light';
                         document.documentElement.setAttribute('data-theme', mode);
                         updateThemeIcon(mode);
+                        console.log('[theme] system change — follow system, mode:', mode);
+                    } else {
+                        console.log('[theme] system change — ignored (manual mode', currentTheme, ')');
                     }
-                } catch(e) {}
+                } catch(e) {
+                    console.log('[theme] system change — error reading settings');
+                }
             });
         })();
 

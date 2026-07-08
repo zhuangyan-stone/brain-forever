@@ -136,6 +136,7 @@ document.addEventListener('alpine:init', function() {
             document.dispatchEvent(new CustomEvent('theme-changed', {
                 detail: { theme: this.theme }
             }));
+            console.log('[theme] theme:', this.theme);
             // 手动模式（0/1）且允许同步时，上报到服务端
             if (this.theme < 2 && this.themeSync) {
                 this.syncThemeModeToServer();
