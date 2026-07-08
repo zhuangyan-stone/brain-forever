@@ -61,6 +61,7 @@ body {
 .signin-card {
     width: 100%;
     max-width: 400px;
+    min-width: 340px;
     padding: 40px 32px 32px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
@@ -413,15 +414,16 @@ body {
     align-items: center;
     justify-content: center;
     margin-bottom: 8px;
+    width: 100%;
 }
 
 .captcha-img {
-    width: 240px;
-    height: 72px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 10 / 3;
     border-radius: 6px;
     border: 1px solid var(--border);
     background: var(--bg-input);
-    object-fit: contain;
 }
 
 .captcha-reload-btn {
