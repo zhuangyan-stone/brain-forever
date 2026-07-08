@@ -138,22 +138,23 @@ document.addEventListener('alpine:init', function() {
             }));
             // 手动模式（0/1）且允许同步时，上报到服务端
             if (this.theme < 2 && this.themeSync) {
-                this._syncThemeToServer();
+                this.syncThemeModeToServer();
             }
         },
 
         /**
-         * _syncThemeToServer — 将当前 theme 值同步到服务端
+         * syncThemeModeToServer — 将当前亮暗模式同步到服务端
+         * 调用 PUT /api/user/theme/mode，传 mode 整数（0=亮, 1=暗）
          */
-        _syncThemeToServer: function() {
-            fetch('/api/user/theme/apply', {
-                method: 'POST',
+        syncThemeModeToServer: function() {
+            fetch('/api/user/theme/mode', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    actived: String(this.theme),
+                    mode: this.theme & 1, // 只取 bit 0：0=亮, 1=暗
                 }),
             }).catch(function(err) {
-                console.warn('同步主题到服务端失败:', err);
+                console.warn('同步亮暗模式到服务端失败:', err);
             });
         },
 

@@ -90,8 +90,11 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// /api/user/theme -- GET (get user theme preferences, requires auth)
 	srv.GET("/api/user/theme", chatHandler.RequireAuth(userHandler.GetTheme))
 
-	// /api/user/theme/mode -- PUT (update theme sync mode, requires auth)
-	srv.PUT("/api/user/theme/mode", chatHandler.RequireAuth(userHandler.UpdateSyncMode))
+	// /api/user/theme/mode -- PUT (update active theme mode: light/dark/system)
+	srv.PUT("/api/user/theme/mode", chatHandler.RequireAuth(userHandler.ApplyThemeMode))
+
+	// /api/user/theme/sync -- PUT (update theme sync preference, with optional theme data)
+	srv.PUT("/api/user/theme/sync", chatHandler.RequireAuth(userHandler.ApplyThemeSync))
 
 	// /api/themes/mainfes -- GET (read theme manifest, no auth required)
 	srv.GET("/api/themes/mainfes", themeHandler.GetThemeMainfes)
