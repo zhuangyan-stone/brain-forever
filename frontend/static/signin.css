@@ -164,6 +164,8 @@ body {
 }
 
 .code-input {
+    flex: 1;
+    min-width: 0;
     border: 1px solid var(--border);
     border-radius: 8px 0 0 8px;
     padding: 12px 14px;
