@@ -22,7 +22,9 @@
                     }
                     document.documentElement.setAttribute('data-theme', themeStr);
                 } else {
-                    document.documentElement.setAttribute('data-theme', 'light');
+                    // 无已保存的设置时，默认跟随系统
+                    var themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', themeStr);
                 }
             } catch (e) {}
         })();
@@ -149,6 +151,28 @@
 
         // 初始化主题图标
         updateThemeIcon(getCurrentTheme());
+
+        // 监听系统主题变化（跟随系统模式下自动切换）
+        (function() {
+            var darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+            darkMq.addEventListener('change', function(e) {
+                try {
+                    var raw = localStorage.getItem('brainforever_settings');
+                    var shouldFollow = true;
+                    if (raw) {
+                        var s = JSON.parse(raw);
+                        if (s.theme === 0 || s.theme === 1) {
+                            shouldFollow = false; // 用户已手动设置显式亮/暗，不自动跟随
+                        }
+                    }
+                    if (shouldFollow) {
+                        var mode = e.matches ? 'dark' : 'light';
+                        document.documentElement.setAttribute('data-theme', mode);
+                        updateThemeIcon(mode);
+                    }
+                } catch(e) {}
+            });
+        })();
 
         // ============================================================
         // Toast 消息

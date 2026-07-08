@@ -21,6 +21,10 @@
                         themeStr = theme === 1 ? 'dark' : 'light';
                     }
                     document.documentElement.setAttribute('data-theme', themeStr);
+                } else {
+                    // 无已保存的设置时，默认跟随系统
+                    var themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', themeStr);
                 }
             } catch (e) { }
         })();

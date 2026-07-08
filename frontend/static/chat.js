@@ -78,6 +78,18 @@ document.addEventListener('theme-changed', (e) => {
     applyTheme(e.detail.theme);
 });
 
+// 监听系统主题变化（跟随系统模式下自动切换）
+(function() {
+    const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+    darkMq.addEventListener('change', (e) => {
+        const settings = Alpine.store('settings');
+        // 只在跟随系统模式（theme === 2）或无设置时自动切换
+        if (settings.theme === 2) {
+            applyTheme(2); // resolveTheme(2) 会根据 prefers-color-scheme 重新计算
+        }
+    });
+})();
+
 // ============================================================
 // AI 标题按钮 — 点击触发 AI 重新生成标题（防抖动：5 秒内只生效一次）
 // SVG 图标已在 HTML 中通过 Alpine 渲染，此处仅处理点击逻辑
