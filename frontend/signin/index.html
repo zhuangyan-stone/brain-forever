@@ -15,7 +15,8 @@
                     var settings = JSON.parse(raw);
                     var theme = settings.theme;
                     var themeStr;
-                    if (theme === 2) {
+                    if (theme >= 2) {
+                        // theme=2(系统亮) 或 3(系统暗)，跟随系统
                         themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                     } else {
                         themeStr = theme === 1 ? 'dark' : 'light';
@@ -125,7 +126,9 @@
             try {
                 var raw = localStorage.getItem('brainforever_settings');
                 var settings = raw ? JSON.parse(raw) : {};
-                settings.theme = mode === 'dark' ? 1 : 0;
+                // 保留 bit 1（是否跟随系统），只改 bit 0（亮暗）
+                var base = (settings.theme >= 2) ? 2 : 0;
+                settings.theme = base + (mode === 'dark' ? 1 : 0);
                 localStorage.setItem('brainforever_settings', JSON.stringify(settings));
             } catch(e) {}
             updateThemeIcon(mode);
@@ -161,8 +164,8 @@
                     var shouldFollow = true;
                     if (raw) {
                         var s = JSON.parse(raw);
-                        if (s.theme === 0 || s.theme === 1) {
-                            shouldFollow = false; // 用户已手动设置显式亮/暗，不自动跟随
+                        if (s.theme < 2) {
+                            shouldFollow = false; // 手动模式（0/1），不自动跟随系统
                         }
                     }
                     if (shouldFollow) {
@@ -305,10 +308,14 @@
                         if (data.theme.dark) {
                             localStorage.setItem('brainforever_theme_dark', data.theme.dark);
                         }
-                        // 映射 active 到数字：light→0, dark→1, system→2
+                        // 映射 active 到数字：light→0, dark→1, system→2 或 3
                         var themeNum = 0;
-                        if (data.theme.active === 'dark') themeNum = 1;
-                        else if (data.theme.active === 'system') themeNum = 2;
+                        if (data.theme.active === 'dark') {
+                            themeNum = 1;
+                        } else if (data.theme.active === 'system') {
+                            // bit 1 置 1（跟随系统），bit 0 根据当前系统偏好
+                            themeNum = 2 + (window.matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0);
+                        }
                         try {
                             var raw = localStorage.getItem('brainforever_settings');
                             var settings = raw ? JSON.parse(raw) : {};
@@ -316,7 +323,7 @@
                             localStorage.setItem('brainforever_settings', JSON.stringify(settings));
                         } catch(e) {}
                         // 立即应用主题到当前页面（避免跳转后闪烁）
-                        var themeStr = themeNum === 2
+                        var themeStr = themeNum >= 2
                             ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
                             : (themeNum === 1 ? 'dark' : 'light');
                         document.documentElement.setAttribute('data-theme', themeStr);

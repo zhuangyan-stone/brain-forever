@@ -163,8 +163,8 @@ document.addEventListener('alpine:init', function() {
                 // ★ 保存原始值，供取消时恢复
                 this._originalLight = savedLight || 'builtin-light';
                 this._originalDark  = savedDark || 'builtin-dark';
-                // ★ 保存当前亮暗模式，供取消时恢复
-                this._originalMode = Alpine.store('settings').theme === 1 ? 'dark' : 'light';
+                // ★ 保存当前亮暗模式，供取消时恢复（bit 0=1 为暗色）
+                this._originalMode = (Alpine.store('settings').theme & 1) ? 'dark' : 'light';
 
                 // ★ 在设置初始值之前禁用联动 watcher，防止 selectedLight/selectedDark
                 //   被重复赋值时触发 watcher 之间的级联反应（Alpine $watch 同步执行，

@@ -38,14 +38,13 @@ if (window.ThemeLoader) {
     });
 }
 
-const THEME_VALUES = ['light', 'dark', 'system'];
-
 function resolveTheme(theme) {
-    if (theme === 2) {
-        // 跟随系统
+    if (theme >= 2) {
+        // 跟随系统（theme=2 或 3）
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    return THEME_VALUES[theme] || 'light';
+    // 0=手动亮, 1=手动暗
+    return theme === 1 ? 'dark' : 'light';
 }
 
 // ============================================================
@@ -83,9 +82,9 @@ document.addEventListener('theme-changed', (e) => {
     const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
     darkMq.addEventListener('change', (e) => {
         const settings = Alpine.store('settings');
-        // 只在跟随系统模式（theme === 2）或无设置时自动切换
-        if (settings.theme === 2) {
-            applyTheme(2); // resolveTheme(2) 会根据 prefers-color-scheme 重新计算
+        // 只在跟随系统模式（theme >= 2）时自动切换
+        if (settings.theme >= 2) {
+            applyTheme(settings.theme); // resolveTheme 会根据 prefers-color-scheme 重新计算
         }
     });
 })();

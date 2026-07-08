@@ -126,11 +126,12 @@ document.addEventListener('alpine:init', function() {
         },
 
         toggleTheme: function() {
-            var newTheme = this.theme === 0 ? 1 : 0;
-            this.theme = newTheme;
+            // 只翻转 bit 0（亮/暗），永不修改 bit 1（是否跟随系统）
+            // 0↔1, 2↔3
+            this.theme = this.theme ^ 1;
             this._save();
             document.dispatchEvent(new CustomEvent('theme-changed', {
-                detail: { theme: newTheme }
+                detail: { theme: this.theme }
             }));
         },
 
@@ -166,7 +167,8 @@ document.addEventListener('alpine:init', function() {
          * @returns {string} 主题显示名称（如"猫布奇诺·摩卡"或"内置亮色"）
          */
         getCurrentThemeName: function() {
-            var curIsLight = this.theme === 0;
+            // bit 0 = 0 表示亮色，bit 0 = 1 表示暗色
+            var curIsLight = (this.theme & 1) === 0;
             var themeId = curIsLight ? this.activedLight : this.activedDark;
             var themes = this.themeManifest || [];
             var found = themes.find(function(t) { return t.id === themeId; });
@@ -178,8 +180,8 @@ document.addEventListener('alpine:init', function() {
          * @returns {string} 主题显示名称（如"猫布奇诺·摩卡"或"内置暗色"）
          */
         getTargetThemeName: function() {
-            // 当前 theme: 0=亮色, 1=暗色；目标为相反模式
-            var targetIsLight = this.theme === 1;
+            // bit 0 为当前亮暗，目标取反
+            var targetIsLight = (this.theme & 1) === 1; // 当前暗 → 目标亮
             var themeId = targetIsLight ? this.activedLight : this.activedDark;
             var themes = this.themeManifest || [];
             var found = themes.find(function(t) { return t.id === themeId; });
