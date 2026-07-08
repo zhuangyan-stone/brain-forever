@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"BrainForever/infra/i18n"
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 )
@@ -23,14 +24,14 @@ func (h *Handler) ApplyTheme(w http.ResponseWriter, r *http.Request) {
 		ActivedDark  string `json:"actived-dark"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	// Validate and normalize the active mode before saving
 	active, valid := normalizeActiveMode(req.Actived)
 	if !valid {
-		http.Error(w, `{"error":"invalid actived value, must be light/dark/system or 0/1/2"}`, http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_validation_failed", map[string]any{"Error": "invalid actived value"}), http.StatusBadRequest)
 		return
 	}
 
@@ -41,7 +42,7 @@ func (h *Handler) ApplyTheme(w http.ResponseWriter, r *http.Request) {
 	userID := sess.User.ID
 
 	if err := store.TheUserStore().UpdateThemes(userID, req.ActivedLight, req.ActivedDark, active); err != nil {
-		http.Error(w, `{"error":"failed to save theme preferences"}`, http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
@@ -73,7 +74,7 @@ func (h *Handler) ApplyThemeMode(w http.ResponseWriter, r *http.Request) {
 		Mode int `json:"mode"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
@@ -81,7 +82,7 @@ func (h *Handler) ApplyThemeMode(w http.ResponseWriter, r *http.Request) {
 	activeMap := map[int]string{0: "light", 1: "dark", 2: "system"}
 	active, ok := activeMap[req.Mode]
 	if !ok {
-		http.Error(w, `{"error":"invalid mode, must be 0(light), 1(dark), or 2(system)"}`, http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_validation_failed", map[string]any{"Error": "invalid mode, must be 0(light), 1(dark), or 2(system)"}), http.StatusBadRequest)
 		return
 	}
 
@@ -90,7 +91,7 @@ func (h *Handler) ApplyThemeMode(w http.ResponseWriter, r *http.Request) {
 
 	userID := sess.User.ID
 	if err := store.TheUserStore().UpdateThemeActiveMode(userID, active); err != nil {
-		http.Error(w, `{"error":"failed to update theme mode"}`, http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
@@ -121,17 +122,17 @@ func (h *Handler) ApplyThemeSync(w http.ResponseWriter, r *http.Request) {
 		Sync  bool                     `json:"sync"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	// Validation
 	if !req.Sync && req.Theme != nil {
-		http.Error(w, `{"error":"theme must be nil when sync is false"}`, http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_validation_failed", map[string]any{"Error": "theme must be nil when sync is false"}), http.StatusBadRequest)
 		return
 	}
 	if req.Sync && req.Theme == nil {
-		http.Error(w, `{"error":"theme is required when sync is true"}`, http.StatusBadRequest)
+		http.Error(w, i18n.T("api_error_validation_failed", map[string]any{"Error": "theme is required when sync is true"}), http.StatusBadRequest)
 		return
 	}
 
@@ -143,7 +144,7 @@ func (h *Handler) ApplyThemeSync(w http.ResponseWriter, r *http.Request) {
 	// Save theme settings to DB when provided (sync must be true)
 	if req.Theme != nil {
 		if err := store.TheUserStore().UpdateThemes(userID, req.Theme.Light, req.Theme.Dark, req.Theme.Active); err != nil {
-			http.Error(w, `{"error":"failed to save theme settings"}`, http.StatusInternalServerError)
+			http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 			return
 		}
 		// Sync the in-memory session state
@@ -154,7 +155,7 @@ func (h *Handler) ApplyThemeSync(w http.ResponseWriter, r *http.Request) {
 
 	// Update sync mode
 	if err := store.TheUserStore().UpdateThemeSyncMode(userID, req.Sync); err != nil {
-		http.Error(w, `{"error":"failed to update sync mode"}`, http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 	sess.Mu.Lock()
@@ -195,7 +196,7 @@ func (h *Handler) GetTheme(w http.ResponseWriter, r *http.Request) {
 	userID := sess.User.ID
 	settings, err := store.TheUserStore().GetUserSettings(userID)
 	if err != nil {
-		http.Error(w, `{"error":"failed to get user settings"}`, http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
