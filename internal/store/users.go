@@ -173,45 +173,52 @@ func (s *UserStore) generateUserNO() string {
 // User operations
 // ============================================================
 
-// FindOrCreateByTel looks up a user by phone number.
+// FindOrCreateByTel looks up a user by phone number (excluding deleted users).
 // If found, returns the existing user.
 // If not found, creates a new user with the given tel as nickname prefix and a default password.
-// Returns the user and a bool indicating whether the user was newly created.
-func (s *UserStore) FindOrCreateByTel(tel string) (*User, bool, error) {
-	// Try to find existing user by tel
-	existing, err := s.GetUserByTel(tel)
-	if err != nil {
-		return nil, false, err
+// FindOrCreateByTel returns an existing user by tel, or creates a new one if not found.
+// isNew is true when a new user was created.
+func (s *UserStore) FindOrCreateByTel(tel string) (user *User, isNew bool, err error) {
+	// Try to find existing user by tel (exclude deleted)
+	existing, lookupErr := s.GetUserByTel(tel, false)
+	if lookupErr != nil {
+		err = lookupErr
+		return
 	}
 	if existing != nil {
-		return existing, false, nil // already registered
+		user = existing // already registered
+		return
 	}
 
 	// Auto-register new user
 	// Use tel suffix as nickname (last 4 digits for privacy)
 	nickname := tel
 	if len(tel) >= 4 {
-		nickname = "用户" + tel[len(tel)-4:]
+		nickname = "U" + tel[len(tel)-4:]
 	}
 
-	user, err := s.CreateUser(nickname, tel) // use tel as the default password
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to auto-register user: %w", err)
+	createdUser, createErr := s.CreateUser(nickname, tel) // use tel as the default password
+	if createErr != nil {
+		err = fmt.Errorf("failed to auto-register user: %w", createErr)
+		return
 	}
 
 	// Update the tel field after creation
-	_, err = TheMySQLDB().Exec("UPDATE users SET tel = ? WHERE id = ?", tel, user.ID)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to set tel for new user: %w", err)
+	_, execErr := TheMySQLDB().Exec("UPDATE users SET tel = ? WHERE id = ?", tel, createdUser.ID)
+	if execErr != nil {
+		err = fmt.Errorf("failed to set tel for new user: %w", execErr)
+		return
 	}
 
 	// Re-fetch to get updated user
-	user, err = s.GetUserByID(user.ID)
-	if err != nil {
-		return nil, false, err
+	user, lookupErr = s.GetUserByID(createdUser.ID, false)
+	if lookupErr != nil {
+		err = lookupErr
+		return
 	}
 
-	return user, true, nil
+	isNew = true
+	return
 }
 
 // CreateUser creates a new user.
@@ -240,13 +247,18 @@ func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
 	}
 
 	id, _ := result.LastInsertId()
-	return s.GetUserByID(id)
+	return s.GetUserByID(id, false)
 }
 
-// GetUserByID retrieves a user by ID
-func (s *UserStore) GetUserByID(id int64) (*User, error) {
+// GetUserByID retrieves a user by ID.
+// If includeDeleted is false, only active (deleted=0) users are returned.
+func (s *UserStore) GetUserByID(id int64, includeDeleted bool) (*User, error) {
 	var u User
-	err := TheMySQLDB().Get(&u, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users WHERE id = ?", id)
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE id = ?"
+	if !includeDeleted {
+		query += " AND deleted = 0"
+	}
+	err := TheMySQLDB().Get(&u, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found (id=%d)", id)
@@ -256,10 +268,15 @@ func (s *UserStore) GetUserByID(id int64) (*User, error) {
 	return &u, nil
 }
 
-// GetUserByNO retrieves a user by no (user number)
-func (s *UserStore) GetUserByNO(no string) (*User, error) {
+// GetUserByNO retrieves a user by no (user number).
+// If includeDeleted is false, only active (deleted=0) users are returned.
+func (s *UserStore) GetUserByNO(no string, includeDeleted bool) (*User, error) {
 	var u User
-	err := TheMySQLDB().Get(&u, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users WHERE no = ?", no)
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE no = ?"
+	if !includeDeleted {
+		query += " AND deleted = 0"
+	}
+	err := TheMySQLDB().Get(&u, query, no)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by no=%s", no)
@@ -270,13 +287,18 @@ func (s *UserStore) GetUserByNO(no string) (*User, error) {
 }
 
 // GetUserByTel retrieves a user by phone number (tel field).
+// If includeDeleted is false, only active (deleted=0) users are returned.
 // Returns nil if the tel is empty or not found.
-func (s *UserStore) GetUserByTel(tel string) (*User, error) {
+func (s *UserStore) GetUserByTel(tel string, includeDeleted bool) (*User, error) {
 	if tel == "" {
 		return nil, fmt.Errorf("tel is empty")
 	}
 	var u User
-	err := TheMySQLDB().Get(&u, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users WHERE tel = ?", tel)
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE tel = ?"
+	if !includeDeleted {
+		query += " AND deleted = 0"
+	}
+	err := TheMySQLDB().Get(&u, query, tel)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // not found, not an error
@@ -286,10 +308,15 @@ func (s *UserStore) GetUserByTel(tel string) (*User, error) {
 	return &u, nil
 }
 
-// GetUserBySN retrieves a user by sn
-func (s *UserStore) GetUserBySN(sn string) (*User, error) {
+// GetUserBySN retrieves a user by sn.
+// If includeDeleted is false, only active (deleted=0) users are returned.
+func (s *UserStore) GetUserBySN(sn string, includeDeleted bool) (*User, error) {
 	var u User
-	err := TheMySQLDB().Get(&u, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users WHERE sn = ?", sn)
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE sn = ?"
+	if !includeDeleted {
+		query += " AND deleted = 0"
+	}
+	err := TheMySQLDB().Get(&u, query, sn)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by sn=%s", sn)
@@ -302,7 +329,7 @@ func (s *UserStore) GetUserBySN(sn string) (*User, error) {
 // VerifyPassword verifies if the user's password is correct.
 // rawPassword is the raw password to verify; it computes MD5 with the user's salt and compares.
 func (s *UserStore) VerifyPassword(sn, rawPassword string) (bool, error) {
-	u, err := s.GetUserBySN(sn)
+	u, err := s.GetUserBySN(sn, false)
 	if err != nil {
 		return false, err
 	}
@@ -330,7 +357,7 @@ func (s *UserStore) UpdatePassword(id int64, newRawPassword string) error {
 	}
 
 	// First get user info to obtain salt
-	u, err := s.GetUserByID(id)
+	u, err := s.GetUserByID(id, false)
 	if err != nil {
 		return err
 	}
@@ -384,8 +411,8 @@ func (s *UserStore) loadChats(userSN string) ([]Chat, error) {
 // LoginByPassword authenticates a user by no and password.
 // Returns the authenticated user. Caller should load chats separately.
 func (s *UserStore) LoginByPassword(no, password string) (*User, error) {
-	// Look up user by no
-	u, err := s.GetUserByNO(no)
+	// Look up user by no (exclude deleted)
+	u, err := s.GetUserByNO(no, false)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("api_error_login_failed"), err)
 	}
