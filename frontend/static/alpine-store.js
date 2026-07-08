@@ -50,6 +50,7 @@ document.addEventListener('alpine:init', function() {
     	webSearch: typeof _bfSettings.webSearch === 'boolean' ? _bfSettings.webSearch : true,
     	sendMode: typeof _bfSettings.sendMode === 'number' ? _bfSettings.sendMode : 0,
     	theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 2,
+    	themeSync: typeof _bfSettings.themeSync === 'boolean' ? _bfSettings.themeSync : false,
    
     	// ---- 外源主题选择（独立 localStorage key） ----
     	// 使用 'builtin-light'/'builtin-dark' 表示内置方案（非空字符串，避免 falsy 问题）
@@ -73,6 +74,7 @@ document.addEventListener('alpine:init', function() {
     			traitSearch: this.traitSearch,
     			webSearch: this.webSearch,
     			theme: this.theme,
+    			themeSync: this.themeSync,
     		}));
     		// 同步持久化外源主题选择
     		localStorage.setItem('brainforever_theme_light', this.activedLight);
@@ -92,6 +94,7 @@ document.addEventListener('alpine:init', function() {
         			if (typeof parsed.traitSearch === 'boolean') this.traitSearch = parsed.traitSearch;
         			if (typeof parsed.webSearch === 'boolean') this.webSearch = parsed.webSearch;
         			if (typeof parsed.theme === 'number') this.theme = parsed.theme;
+        			if (typeof parsed.themeSync === 'boolean') this.themeSync = parsed.themeSync;
         		}
         		// 加载外源主题选择
         		var light = localStorage.getItem('brainforever_theme_light');
@@ -133,6 +136,25 @@ document.addEventListener('alpine:init', function() {
             document.dispatchEvent(new CustomEvent('theme-changed', {
                 detail: { theme: this.theme }
             }));
+            // 手动模式（0/1）且允许同步时，上报到服务端
+            if (this.theme < 2 && this.themeSync) {
+                this._syncThemeToServer();
+            }
+        },
+
+        /**
+         * _syncThemeToServer — 将当前 theme 值同步到服务端
+         */
+        _syncThemeToServer: function() {
+            fetch('/api/user/theme/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    actived: String(this.theme),
+                }),
+            }).catch(function(err) {
+                console.warn('同步主题到服务端失败:', err);
+            });
         },
 
         /**
@@ -148,18 +170,20 @@ document.addEventListener('alpine:init', function() {
             if (window.ThemeLoader) {
                 window.ThemeLoader.apply();
             }
-            // 同步到服务端（异步，不阻塞 UI）
-            fetch('/api/user/theme/apply', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    actived: String(this.theme),
-                    'actived-light': lightId,
-                    'actived-dark': darkId,
-                }),
-            }).catch(function(err) {
-                console.warn('同步主题选择到服务端失败:', err);
-            });
+            // 仅在手动模式（theme < 2）且允许同步时，才上报到服务端
+            if (this.theme < 2 && this.themeSync) {
+                fetch('/api/user/theme/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        actived: String(this.theme),
+                        'actived-light': lightId,
+                        'actived-dark': darkId,
+                    }),
+                }).catch(function(err) {
+                    console.warn('同步主题选择到服务端失败:', err);
+                });
+            }
         },
 
         /**

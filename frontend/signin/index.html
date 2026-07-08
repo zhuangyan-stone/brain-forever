@@ -300,7 +300,7 @@
                     if (data.avatar) {
                         localStorage.setItem('brainforever_user_avatar', data.avatar);
                     }
-                    // 主题同步：如果 sync=true，用服务端主题覆盖本地
+                    // 主题同步：持久化 sync 标记
                     if (data.theme && data.theme.sync) {
                         if (data.theme.light) {
                             localStorage.setItem('brainforever_theme_light', data.theme.light);
@@ -320,6 +320,7 @@
                             var raw = localStorage.getItem('brainforever_settings');
                             var settings = raw ? JSON.parse(raw) : {};
                             settings.theme = themeNum;
+                            settings.themeSync = true; // 持久化同步标记
                             localStorage.setItem('brainforever_settings', JSON.stringify(settings));
                         } catch(e) {}
                         // 立即应用主题到当前页面（避免跳转后闪烁）
@@ -336,6 +337,14 @@
                             document.head.appendChild(link);
                         }
                         link.href = '/themes/' + encodeURIComponent(themeStr === 'dark' ? data.theme.dark : data.theme.light) + '/theme.css';
+                    } else if (data.theme) {
+                        // 有 theme 但 sync=false：显式清除同步标记
+                        try {
+                            var raw = localStorage.getItem('brainforever_settings');
+                            var settings = raw ? JSON.parse(raw) : {};
+                            settings.themeSync = false;
+                            localStorage.setItem('brainforever_settings', JSON.stringify(settings));
+                        } catch(e) {}
                     }
                     // 跳转到首页
                     window.location.href = '/';
