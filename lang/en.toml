@@ -67,6 +67,12 @@ other = "invalid or expired verification code"
 [api_error_sms_code_sent]
 other = "verification code sent"
 
+[api_error_captcha_expired]
+other = "Captcha code expired, please request a new one"
+
+[api_error_captcha_wrong]
+other = "Invalid captcha code"
+
 [api_error_failed_to_open_chat_store_detail]
 other = "failed to open chat store: {{.Error}}"
 

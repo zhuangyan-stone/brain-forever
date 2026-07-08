@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"BrainForever/infra/captcha"
 	"BrainForever/infra/i18n"
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
@@ -20,11 +21,13 @@ import (
 // ============================================================
 
 type SmsVerifyCodeRequest struct {
-	Tel    string `json:"tel"`
-	Action string `json:"action"`
+	Tel         string `json:"tel"`
+	Action      string `json:"action"`
+	CaptchaCode string `json:"captcha_code"`
 }
 
 // OnRequestVerifyCode handles POST /api/verify/sms.
+// When captcha_code is provided, the captcha is verified first.
 func (h *Handler) OnRequestVerifyCode(w http.ResponseWriter, r *http.Request) {
 	if h.smsCodeCache == nil {
 		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": "SMS service unavailable"}), http.StatusServiceUnavailable)
@@ -40,6 +43,28 @@ func (h *Handler) OnRequestVerifyCode(w http.ResponseWriter, r *http.Request) {
 	if req.Tel == "" || req.Action == "" {
 		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "tel/action"}), http.StatusBadRequest)
 		return
+	}
+
+	// If captcha_code is provided, verify it before sending SMS
+	if req.CaptchaCode != "" {
+		sessionID := session.ResolveSessionID(w, r, h.cookieName)
+		sess := h.sessionManager.GetOrCreate(sessionID)
+		if sess == nil {
+			http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
+			return
+		}
+
+		exists, matches := captcha.VerifyCaptchaCacheEx(sess, req.Action, req.CaptchaCode)
+		if !exists {
+			// Captcha never set or already consumed → expired
+			http.Error(w, i18n.T("api_error_captcha_expired"), http.StatusUnauthorized)
+			return
+		}
+		if !matches {
+			// Captcha exists but wrong code
+			http.Error(w, i18n.T("api_error_captcha_wrong"), http.StatusUnauthorized)
+			return
+		}
 	}
 
 	verifyCode, err := h.smsCodeCache.Generate(context.Background(), req.Action, req.Tel)

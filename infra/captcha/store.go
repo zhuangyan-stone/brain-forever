@@ -147,3 +147,23 @@ func VerifyCaptchaCache(session ISession, action, code string) bool {
 	removeCaptchaCache(session, action) // clear the cached captcha after verification
 	return true
 }
+
+// VerifyCaptchaCacheEx verifies a captcha code and distinguishes between
+// "expired" (no captcha set) and "wrong" (code doesn't match).
+// Returns:
+//   - exists: true if a captcha was previously stored for this action
+//   - matches: true if the provided code matches the stored captcha
+func VerifyCaptchaCacheEx(session ISession, action, code string) (exists, matches bool) {
+	codeInCache := getCaptchaCache(session, action)
+
+	if codeInCache == "" {
+		return false, false // never set or already consumed → expired
+	}
+
+	if !strings.EqualFold(codeInCache, code) {
+		return true, false // exists but wrong
+	}
+
+	removeCaptchaCache(session, action) // consume on success
+	return true, true
+}
