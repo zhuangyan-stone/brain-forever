@@ -104,6 +104,23 @@ func GetOne() (sn, code string) {
 	}
 }
 
+// GetOneDifferent returns a random captcha entry that is different from the given code.
+// It tries up to maxAttempts times; if all attempts fail (e.g. only one captcha available),
+// it returns whatever GetOne() gives.
+func GetOneDifferent(avoidCode string, maxAttempts int) (sn, code string) {
+	for i := 0; i < maxAttempts; i++ {
+		sn, code = GetOne()
+		if sn == "" || code == "" {
+			return "", ""
+		}
+		if code != avoidCode {
+			return sn, code
+		}
+	}
+	// Fallback: return the last one anyway
+	return GetOne()
+}
+
 // makeCaptchaCacheKey builds a cache key for a captcha code.
 // The key only depends on the action, because a session only needs one
 // captcha code for a given action at any time.

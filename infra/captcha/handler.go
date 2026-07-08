@@ -58,7 +58,9 @@ func (h *Handler) OnGetCaptcha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fn, code := GetOne()
+	// Try to get a captcha that differs from the current one (if any)
+	previousCode := getCaptchaCache(sess, action)
+	fn, code := GetOneDifferent(previousCode, 10)
 	if fn == "" || code == "" {
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
