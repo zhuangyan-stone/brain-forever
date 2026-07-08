@@ -20,61 +20,51 @@ import (
 // SMS verify-code request handler -POST /api/verify/sms
 // ============================================================
 
-type SmsVerifyCodeRequest struct {
-	Tel         string `json:"tel"`
-	Action      string `json:"action"`
-	CaptchaCode string `json:"captcha_code"`
-}
-
-// OnRequestVerifyCode handles POST /api/verify/sms.
-// When captcha_code is provided, the captcha is verified first.
-func (h *Handler) OnRequestVerifyCode(w http.ResponseWriter, r *http.Request) {
+// OnGetSMSVerifyCode handles GET /api/verify/sms.
+// Parameters (query string): tel, action, captcha_code (required).
+// The captcha must be verified before an SMS code is sent (anti-abuse).
+func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 	if h.smsCodeCache == nil {
 		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": "SMS service unavailable"}), http.StatusServiceUnavailable)
 		return
 	}
 
-	var req SmsVerifyCodeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
+	tel := r.URL.Query().Get("tel")
+	action := r.URL.Query().Get("action")
+	captchaCode := r.URL.Query().Get("captcha_code")
+
+	if tel == "" || action == "" || captchaCode == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "tel/action/captcha_code"}), http.StatusBadRequest)
 		return
 	}
 
-	if req.Tel == "" || req.Action == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "tel/action"}), http.StatusBadRequest)
+	sessionID := session.ResolveSessionID(w, r, h.cookieName)
+	sess := h.sessionManager.GetOrCreate(sessionID)
+	if sess == nil {
+		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
-	// If captcha_code is provided, verify it before sending SMS
-	if req.CaptchaCode != "" {
-		sessionID := session.ResolveSessionID(w, r, h.cookieName)
-		sess := h.sessionManager.GetOrCreate(sessionID)
-		if sess == nil {
-			http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
-			return
-		}
-
-		exists, matches := captcha.VerifyCaptchaCacheEx(sess, req.Action, req.CaptchaCode)
-		if !exists {
-			// Captcha never set or already consumed → expired
-			http.Error(w, i18n.T("api_error_captcha_expired"), http.StatusUnauthorized)
-			return
-		}
-		if !matches {
-			// Captcha exists but wrong code
-			http.Error(w, i18n.T("api_error_captcha_wrong"), http.StatusUnauthorized)
-			return
-		}
+	exists, matches := captcha.VerifyCaptchaCacheEx(sess, action, captchaCode)
+	if !exists {
+		// Captcha never set or already consumed → expired
+		http.Error(w, i18n.T("api_error_captcha_expired"), http.StatusUnauthorized)
+		return
+	}
+	if !matches {
+		// Captcha exists but wrong code
+		http.Error(w, i18n.T("api_error_captcha_wrong"), http.StatusUnauthorized)
+		return
 	}
 
-	verifyCode, err := h.smsCodeCache.Generate(context.Background(), req.Action, req.Tel)
+	verifyCode, err := h.smsCodeCache.Generate(context.Background(), action, tel)
 	if err != nil {
-		h.logger.Errorf("failed to generate SMS verify code for %s: %v", req.Tel, err)
+		h.logger.Errorf("failed to generate SMS verify code for %s: %v", tel, err)
 		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Debugf("SMS verify code for %s: %s (valid for 5 minutes)", req.Tel, verifyCode)
+	h.logger.Debugf("SMS verify code for %s: %s (valid for 5 minutes)", tel, verifyCode)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -111,8 +101,13 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.smsCodeCache.Verify(context.Background(), cache.SMS4Login, req.Tel, req.VerifyCode) {
-		http.Error(w, "", http.StatusUnauthorized)
+	exists, matches := h.smsCodeCache.Verify(context.Background(), cache.SMS4Login, req.Tel, req.VerifyCode)
+	if !exists {
+		http.Error(w, i18n.T("api_error_sms_code_expired"), http.StatusUnauthorized)
+		return
+	}
+	if !matches {
+		http.Error(w, i18n.T("api_error_sms_code_wrong"), http.StatusUnauthorized)
 		return
 	}
 

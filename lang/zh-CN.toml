@@ -71,8 +71,11 @@ other = "登录失败: {{.Error}}"
 [api_error_sms_send_failed]
 other = "发送验证码失败: {{.Error}}"
 
-[api_error_sms_code_invalid]
-other = "验证码错误或已过期"
+[api_error_sms_code_expired]
+other = "验证码已过期，请重新获取"
+
+[api_error_sms_code_wrong]
+other = "验证码输入有误"
 
 [api_error_sms_code_sent]
 other = "验证码已发送"

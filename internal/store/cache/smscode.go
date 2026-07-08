@@ -117,24 +117,24 @@ func (c *SMSCodeCache) Generate(ctx context.Context, purpose, tel string, provid
 }
 
 // Verify checks if the given code matches the stored code for the given purpose and tel.
-// Returns true if the code is valid. On success, the code is consumed (deleted)
-// to prevent replay attacks.
-// Returns false if:
-//   - no code exists or expired
-//   - code doesn't match
-//   - maxVerifyAttempts exceeded (auto-invalidated)
-func (c *SMSCodeCache) Verify(ctx context.Context, purpose, tel, code string) bool {
+// Returns two booleans:
+//   - exists: true if a valid (non-expired) code exists for this purpose+tel
+//   - matches: true if the provided code matches the stored code
+//
+// On successful match, the code is consumed (deleted) to prevent replay attacks.
+// After maxVerifyAttempts failed attempts, the code is auto-invalidated (deleted).
+func (c *SMSCodeCache) Verify(ctx context.Context, purpose, tel, code string) (exists bool, matches bool) {
 	key := smsCodeKey(purpose, tel)
 
 	// Read all hash fields
 	data, err := c.client.HGetAll(ctx, key).Result()
 	if err != nil || len(data) == 0 {
-		return false // not found or expired
+		return false, false // not found or expired
 	}
 
 	storedCode, ok := data["code"]
 	if !ok {
-		return false
+		return false, false
 	}
 
 	// Check attempts
@@ -146,18 +146,18 @@ func (c *SMSCodeCache) Verify(ctx context.Context, purpose, tel, code string) bo
 	if attempts >= maxVerifyAttempts {
 		// Too many failed attempts — delete and reject
 		c.client.Del(ctx, key)
-		return false
+		return false, false
 	}
 
 	if storedCode != code {
 		// Increment attempts
 		c.client.HIncrBy(ctx, key, "attempts", 1)
-		return false
+		return true, false // code exists but doesn't match
 	}
 
 	// Code matched — consume it to prevent replay
 	c.client.Del(ctx, key)
-	return true
+	return true, true
 }
 
 // GetData retrieves the full SMS code data for a given purpose and tel (without consuming it).

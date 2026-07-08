@@ -153,18 +153,6 @@ func SetCaptchaCache(session ISession, action, code string) {
 	session.Set(key, code)
 }
 
-// VerifyCaptchaCache verifies a captcha code for the given action.
-func VerifyCaptchaCache(session ISession, action, code string) bool {
-	codeInCache := getCaptchaCache(session, action)
-
-	if codeInCache == "" || !strings.EqualFold(codeInCache, code) {
-		return false
-	}
-
-	removeCaptchaCache(session, action) // clear the cached captcha after verification
-	return true
-}
-
 // VerifyCaptchaCacheEx verifies a captcha code and distinguishes between
 // "expired" (no captcha set) and "wrong" (code doesn't match).
 // Returns:

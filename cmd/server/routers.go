@@ -104,12 +104,11 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// Public routes (no authentication required)
 	// ============================================================
 
-	// /api/verify/sms -- POST (request SMS verification code)
-	srv.POST("/api/verify/sms", userHandler.OnRequestVerifyCode)
+	// /api/verify/sms -- GET (request SMS verification code)
+	srv.GET("/api/verify/sms", userHandler.OnGetSMSVerifyCode)
 
-	// /api/verify/captcha -- GET (get captcha image) + POST (verify captcha code)
-	srv.GET("/api/verify/captcha", captchaHandler.OnGetCaptcha)
-	srv.POST("/api/verify/captcha", captchaHandler.OnVerifyCaptcha)
+	// /api/verify/captcha -- GET (get captcha image); verification is embedded in /api/verify/sms
+	srv.GET("/api/verify/captcha", captchaHandler.OnGetVerifyCaptcha)
 
 	// /api/user/login/sms -- POST (login by tel + SMS verify code)
 	srv.POST("/api/user/login/sms", userHandler.OnLoginBySMS)

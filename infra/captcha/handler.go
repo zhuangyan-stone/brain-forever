@@ -32,14 +32,9 @@ func NewHandler(sessionManager *session.Manager, cookieName string) *Handler {
 	}
 }
 
-// captchaCodeRequest is the JSON body for captcha verification.
-type captchaCodeRequest struct {
-	Code string `json:"code"`
-}
-
-// OnGetCaptcha handles GET /api/verify/captcha?action=...
+// OnGetVerifyCaptcha handles GET /api/verify/captcha?action=...
 // It generates a captcha and returns the image URL and action.
-func (h *Handler) OnGetCaptcha(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) OnGetVerifyCaptcha(w http.ResponseWriter, r *http.Request) {
 	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 	if sess == nil {
@@ -92,43 +87,4 @@ func (h *Handler) OnGetCaptcha(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)
-}
-
-// OnVerifyCaptcha handles POST /api/verify/captcha?action=...
-// It checks the user-submitted code against the session-stored captcha code.
-// On success, the captcha is consumed (removed from session).
-func (h *Handler) OnVerifyCaptcha(w http.ResponseWriter, r *http.Request) {
-	sessionID := session.ResolveSessionID(w, r, h.cookieName)
-	sess := h.sessionManager.GetOrCreate(sessionID)
-	if sess == nil {
-		http.Error(w, i18n.T("api_error_internal"), http.StatusBadRequest)
-		return
-	}
-
-	var req captchaCodeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
-		return
-	}
-
-	if req.Code == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "code"}), http.StatusBadRequest)
-		return
-	}
-
-	action := r.URL.Query().Get("action")
-	if action == "" {
-		action = "login"
-	}
-
-	if !VerifyCaptchaCache(sess, action, req.Code) {
-		http.Error(w, "", http.StatusUnauthorized)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-		"message": "captcha verified",
-	})
 }
