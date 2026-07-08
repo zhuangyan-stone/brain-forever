@@ -49,7 +49,7 @@ document.addEventListener('alpine:init', function() {
     	traitSearch: typeof _bfSettings.traitSearch === 'boolean' ? _bfSettings.traitSearch : true,
     	webSearch: typeof _bfSettings.webSearch === 'boolean' ? _bfSettings.webSearch : true,
     	sendMode: typeof _bfSettings.sendMode === 'number' ? _bfSettings.sendMode : 0,
-    	theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 0,
+    	theme: typeof _bfSettings.theme === 'number' ? _bfSettings.theme : 2,
    
     	// ---- 外源主题选择（独立 localStorage key） ----
     	// 使用 'builtin-light'/'builtin-dark' 表示内置方案（非空字符串，避免 falsy 问题）
