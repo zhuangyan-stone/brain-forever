@@ -28,48 +28,36 @@ import (
 
 func main() {
 	// ============================================================
-	// Build configuration from environment variables
+	// Build configuration (defaults → TOML file → env var overrides)
 	// ============================================================
 
-	cfg := config.Config{
-		Server: config.ServerConfig{
-			Name:              "brain-forever",
-			Addr:              "[::]:8080",
-			ReadTimeout:       30,
-			ReadHeaderTimeout: 10,
-			WriteTimeout:      0, // 0 = disabled -SSE streaming requires long-lived connections
-			IdleTimeout:       60,
-		},
-		Frontend: config.FrontendConfig{
-			Dir:          "./frontend",
-			CacheDisable: false,
-		},
-		Logger: config.LoggerConfig{
-			File:  "log/brain-forever.log",
-			Level: "TRACE",
-			Lang:  0,
-		},
+	// Step 1: Start with built-in defaults
+	cfg := config.DefaultConfig()
 
-		// MySQL 数据库配置（支持环境变量覆盖）
-		Database: config.DatabaseConfig{
-			DSN:          os.Getenv("MYSQL_DSN_d2brain"),
-			MaxOpenConns: 25,
-			MaxIdleConns: 5,
-		},
-
-		// Redis 配置（支持环境变量覆盖，为空则不启用 Redis）
-		Redis: config.RedisConfig{
-			Addr:     os.Getenv("REDIS_ADDR"),
-			Password: os.Getenv("REDIS_PASSWORD"),
-			DB:       0,
-			PoolSize: 10,
-		},
+	// Step 2: Overlay values from optional TOML config file
+	// Fields present in the TOML file override defaults; missing sections are left as-is.
+	if err := cfg.LoadFromFile("bin/settings/server.toml"); err != nil {
+		log.Fatalf("failed to load config file bin/settings/server.toml: %v", err)
 	}
 
-	// Allow env var overrides for server address
+	// Step 3: Environment variable overrides (highest priority)
+	//
+	// Database DSN — always from env var for security (password in file is discouraged)
+	if envDSN := os.Getenv("MYSQL_DSN_d2brain"); envDSN != "" {
+		cfg.Database.DSN = envDSN
+	}
+	// Redis — from env vars if set (empty = no Redis)
+	if envAddr := os.Getenv("REDIS_ADDR"); envAddr != "" {
+		cfg.Redis.Addr = envAddr
+	}
+	if envPassword := os.Getenv("REDIS_PASSWORD"); envPassword != "" {
+		cfg.Redis.Password = envPassword
+	}
+	// Server address — overridable via PROXY_ADDR
 	if envAddr := os.Getenv("PROXY_ADDR"); envAddr != "" {
 		cfg.Server.Addr = envAddr
 	}
+	// Development cache disable
 	if envDisable := os.Getenv("DEV_CACHE_DISABLE"); envDisable == "true" {
 		cfg.Frontend.CacheDisable = true
 	}
@@ -94,10 +82,10 @@ func main() {
 	theLogger.Infof("the logger is created with level. level %s. file %s", cfg.Logger.Level, cfg.Logger.File)
 
 	// ============================================================
-	// Ensure localdb directory exists for SQLite databases
+	// Ensure data directory exists for SQLite databases
 	// ============================================================
-	if err := os.MkdirAll("./localdb", 0755); err != nil {
-		theLogger.Fatalf("failed to create localdb directory: %v", err)
+	if err := os.MkdirAll(cfg.Data.Dir, 0755); err != nil {
+		theLogger.Fatalf("failed to create data directory %q: %v", cfg.Data.Dir, err)
 	}
 
 	// ============================================================
@@ -117,7 +105,7 @@ func main() {
 	// Initialize global UserStore singleton (based on MySQL)
 	// Opens before HTTP server starts, closes after it stops
 	// ============================================================
-	if err := store.InitTheUserStore("./localdb"); err != nil {
+	if err := store.InitTheUserStore(cfg.Data.Dir); err != nil {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
 	}
 	defer store.CloseTheUserStore()

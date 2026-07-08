@@ -129,7 +129,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	webSearchClients[ProviderZhipu] = InitWebSearchClient(cfg.WebSearch, logger)
 
 	defaultEmbedder := embedderClients[ProviderAli]
-	dbc.InitDBConfig("localdb", defaultEmbedder.Dimension(), logger)
+	dbc.InitDBConfig(cfg.Data.Dir, defaultEmbedder.Dimension(), logger)
 
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
 

@@ -1,5 +1,11 @@
 package config
 
+import (
+	"os"
+
+	"github.com/BurntSushi/toml"
+)
+
 // ============================================================
 // Config -centralized configuration for the BrainForever agent
 //
@@ -19,9 +25,77 @@ type Config struct {
 	Frontend  FrontendConfig
 	Database  DatabaseConfig
 	Redis     RedisConfig
+	Data      DataConfig
 	Embedder  EmbedderConfig
 	ChatLLM   ChatLLMConfig
+	Captcha   CaptchaConfig
 	WebSearch WebSearchConfig
+}
+
+// DefaultConfig returns a Config populated with built-in default values.
+// These defaults can be overridden by a TOML config file and/or environment variables.
+func DefaultConfig() Config {
+	return Config{
+		Server: ServerConfig{
+			Name:              "brain-forever",
+			Addr:              "[::]:8080",
+			ReadTimeout:       30,
+			ReadHeaderTimeout: 10,
+			WriteTimeout:      0, // 0 = disabled -SSE streaming requires long-lived connections
+			IdleTimeout:       60,
+		},
+		Frontend: FrontendConfig{
+			Dir:          "./frontend",
+			CacheDisable: false,
+		},
+		Logger: LoggerConfig{
+			File:  "log/brain-forever.log",
+			Level: "TRACE",
+			Lang:  0,
+		},
+		Database: DatabaseConfig{
+			DSN:          os.Getenv("MYSQL_DSN_d2brain"),
+			MaxOpenConns: 25,
+			MaxIdleConns: 5,
+		},
+		Redis: RedisConfig{
+			Addr:     os.Getenv("REDIS_ADDR"),
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
+			PoolSize: 10,
+		},
+		Data: DataConfig{
+			Dir: "./localdb",
+		},
+		Captcha: CaptchaConfig{
+			Dir: "./frontend/static/img/captchas/",
+		},
+	}
+}
+
+// LoadFromFile reads a TOML config file and overlays its values onto the Config.
+// Only fields present in the TOML file are overwritten; all other fields retain
+// their current values. Missing file (ENOENT) is silently ignored.
+func (c *Config) LoadFromFile(path string) error {
+	_, err := toml.DecodeFile(path, c)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // file optional, silently ignore
+		}
+		return err
+	}
+	return nil
+}
+
+// ============================================================
+// DataConfig configures the local SQLite data storage directory.
+// ============================================================
+
+// DataConfig configures the per-user SQLite database storage directory.
+type DataConfig struct {
+	// Dir is the directory where per-user SQLite databases (chats, brain) are stored.
+	// Default: "./localdb".
+	Dir string
 }
 
 // ServerConfig configures the HTTP server.
@@ -144,6 +218,16 @@ type RedisConfig struct {
 	// PoolSize is the maximum number of socket connections.
 	// Default: 10.
 	PoolSize int
+}
+
+// ============================================================
+// CaptchaConfig configures the captcha recognition module.
+// ============================================================
+
+// CaptchaConfig configures the captcha recognition settings.
+type CaptchaConfig struct {
+	// Dir is the directory path where captcha index files are stored.
+	Dir string
 }
 
 // ============================================================

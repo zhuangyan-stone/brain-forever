@@ -59,6 +59,11 @@ password = ""
 # 用户聊天/特征数据的 SQLite 存储目录
 dir = "./localdb"
 
+[captcha]
+# 验证码图片索引文件所在的目录（必须以 / 结束）
+# 目录中包含 index.dat 文件和对应的验证码图片
+dir = "./frontend/static/img/captchas/"
+
 [frontend]
 # 前端静态文件目录
 dir = "./frontend"
