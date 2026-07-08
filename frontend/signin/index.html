@@ -113,14 +113,9 @@
             '<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
 
         function getCurrentTheme() {
-            try {
-                var raw = localStorage.getItem('brainforever_settings');
-                if (raw) {
-                    var s = JSON.parse(raw);
-                    return s.theme === 1 ? 'dark' : 'light';
-                }
-            } catch(e) {}
-            return 'light';
+            // 直接从 data-theme 属性读取当前实际主题，避免 localStorage 中 theme=2（跟随系统）
+            // 时与 data-theme 实际值不一致导致切换失效
+            return document.documentElement.getAttribute('data-theme') || 'light';
         }
 
         function setTheme(mode) {

@@ -2,11 +2,73 @@
     第2大脑 AI 助手 — 主题变量 & 全局重置
     ============================================================
     内置默认主题（明眸 · 高对比度）
-    — 暗色主题 (默认) 与 亮色主题 上下并列，方便对比与统一调整
+    — 亮色主题 (默认) 在上，暗色主题在下
     ============================================================ */
 
-/* ---------- 暗色主题 (默认) ---------- */
-:root,
+/* ---------- 亮色主题 ---------- */
+[data-theme="light"] {
+    /* 纯白背景 — 最大对比度 */
+    --bg-primary:       #FFFFFF;
+    --bg-image:         none;
+    --bg-secondary:     #F0F0F0;
+    --bg-user:          #E0E0E0;
+    --bg-assistant:     #FFFFFF;
+    --bg-input:         #FAFAFA;
+    --switch-track-bg:  #D0D0D0;
+
+    /* 纯黑文字 — 极致可读性 */
+    --text-primary:     #000000;
+    --text-secondary:   #1A1A1A;
+    --text-muted:       #4D4D4D;
+
+    /* 强调 — 纯黑，最大对比 */
+    --accent:           #000000;
+    --accent-hover:     #000000;
+
+    /* 边框 — 厚重清晰 */
+    --border:           #999999;
+    --shadow:           rgba(0, 0, 0, 0.15);
+    --shadow-inset:     inset 0 1.5px 2.5px rgba(0, 0, 0, 0.25);
+
+    /* 代码块 */
+    --bg-code:          #F0F0F0;
+
+    /* 纯色 */
+    --pure-black:       #000000;
+    --pure-white:       #FFFFFF;
+
+    /* 成功 — 青蓝色（非绿色） */
+    --success-text:     #006699;
+
+    /* 错误 — 橙红色（非纯红） */
+    --error-bg:         rgba(204, 85, 0, 0.08);
+    --error-border:     rgba(204, 85, 0, 0.30);
+    --error-text:       #CC5500;
+
+    /* 警告 — 琥珀色 */
+    --warning-bg:       #FFF0D0;
+    --warning-border:   #CC8800;
+    --warning-text:     #664400;
+
+    /* Tooltip */
+    --tooltip-bg:       #E0E0E0;
+    --tooltip-text:     #000000;
+
+    /* 登录页 logo 圆形背景 — 亮色下透明，不显示圆 */
+    --logo-circle-bg:           transparent;
+
+    /* 高亮按钮 — 黑底白图标，hover 橙色 */
+    --btn-highlight-bg:         #000000;
+    --btn-highlight-color:      #FFFFFF;
+    --btn-highlight-hover-bg:   #FFAA33;
+
+    /* 危险/删除按钮 */
+    --btn-danger-bg:            #CC3333;
+    --btn-danger-color:         #FFFFFF;
+    --btn-danger-hover-bg:      #AA2222;
+}
+
+/* ---------- 暗色主题 ---------- */
 [data-theme="dark"] {
     /* 深黑背景 — 最大对比度 */
     --bg-primary:       #0D0D0D;
@@ -63,69 +125,6 @@
     --logo-circle-bg:           #FFFFFF;
 
     /* 高亮按钮 — accent 为纯白时需独立配置 */
-    --btn-highlight-bg:         #000000;
-    --btn-highlight-color:      #FFFFFF;
-    --btn-highlight-hover-bg:   #FFAA33;
-
-    /* 危险/删除按钮 */
-    --btn-danger-bg:            #CC3333;
-    --btn-danger-color:         #FFFFFF;
-    --btn-danger-hover-bg:      #AA2222;
-}
-
-/* ---------- 亮色主题 ---------- */
-[data-theme="light"] {
-    /* 纯白背景 — 最大对比度 */
-    --bg-primary:       #FFFFFF;
-    --bg-image:         none;
-    --bg-secondary:     #F0F0F0;
-    --bg-user:          #E0E0E0;
-    --bg-assistant:     #FFFFFF;
-    --bg-input:         #FAFAFA;
-    --switch-track-bg:  #D0D0D0;
-
-    /* 纯黑文字 — 极致可读性 */
-    --text-primary:     #000000;
-    --text-secondary:   #1A1A1A;
-    --text-muted:       #4D4D4D;
-
-    /* 强调 — 纯黑，最大对比 */
-    --accent:           #000000;
-    --accent-hover:     #000000;
-
-    /* 边框 — 厚重清晰 */
-    --border:           #999999;
-    --shadow:           rgba(0, 0, 0, 0.15);
-    --shadow-inset:     inset 0 1.5px 2.5px rgba(0, 0, 0, 0.25);
-
-    /* 代码块 */
-    --bg-code:          #F0F0F0;
-
-    /* 纯色 */
-    --pure-black:       #000000;
-    --pure-white:       #FFFFFF;
-
-    /* 成功 — 青蓝色（非绿色） */
-    --success-text:     #006699;
-
-    /* 错误 — 橙红色（非纯红） */
-    --error-bg:         rgba(204, 85, 0, 0.08);
-    --error-border:     rgba(204, 85, 0, 0.30);
-    --error-text:       #CC5500;
-
-    /* 警告 — 琥珀色 */
-    --warning-bg:       #FFF0D0;
-    --warning-border:   #CC8800;
-    --warning-text:     #664400;
-
-    /* Tooltip */
-    --tooltip-bg:       #E0E0E0;
-    --tooltip-text:     #000000;
-
-    /* 登录页 logo 圆形背景 — 亮色下透明，不显示圆 */
-    --logo-circle-bg:           transparent;
-
-    /* 高亮按钮 — 黑底白图标，hover 橙色 */
     --btn-highlight-bg:         #000000;
     --btn-highlight-color:      #FFFFFF;
     --btn-highlight-hover-bg:   #FFAA33;
