@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"BrainForever/infra/captcha"
 	"BrainForever/infra/httpx"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
@@ -144,6 +145,15 @@ func main() {
 	theLogger.Infof("AI agent (Brain-Forever) is now active")
 
 	// ============================================================
+	// Initialize captcha recognition module
+	// ============================================================
+	if count, err := captcha.Refresh(cfg.Captcha.Dir); err != nil {
+		theLogger.Fatalf("failed to load captcha index from %q: %v", cfg.Captcha.Dir, err)
+	} else {
+		theLogger.Infof("captcha index loaded with %d entries from %q", count, cfg.Captcha.Dir)
+	}
+
+	// ============================================================
 	// Setup routes using httpx.Server
 	// ============================================================
 
@@ -181,8 +191,14 @@ func main() {
 		chatHandler.GetSMSCodeCache(),
 	)
 
+	// Initialize captcha handler
+	captchaHandler := captcha.NewHandler(
+		chatHandler.GetSessionManager(),
+		chatHandler.GetCookieName(),
+	)
+
 	// Initialize all API routes (chat, theme, user, etc.)
-	initRouters(srv, chatHandler, themeHandler, userHandler)
+	initRouters(srv, chatHandler, themeHandler, userHandler, captchaHandler)
 
 	// Static file server for frontend pages
 	// Pass chatHandler for login check on index.html (302 redirect to /signin.html if anonymous)

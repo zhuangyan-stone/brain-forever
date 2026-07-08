@@ -20,8 +20,8 @@ import (
 // ============================================================
 
 type SmsVerifyCodeRequest struct {
-	Tel     string `json:"tel"`
-	Purpose string `json:"purpose"`
+	Tel    string `json:"tel"`
+	Action string `json:"action"`
 }
 
 // OnRequestVerifyCode handles POST /api/verify/sms.
@@ -37,16 +37,12 @@ func (h *Handler) OnRequestVerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Tel == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "tel"}), http.StatusBadRequest)
-		return
-	}
-	if req.Purpose == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "purpose"}), http.StatusBadRequest)
+	if req.Tel == "" || req.Action == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "tel/action"}), http.StatusBadRequest)
 		return
 	}
 
-	verifyCode, err := h.smsCodeCache.Generate(context.Background(), req.Purpose, req.Tel)
+	verifyCode, err := h.smsCodeCache.Generate(context.Background(), req.Action, req.Tel)
 	if err != nil {
 		h.logger.Errorf("failed to generate SMS verify code for %s: %v", req.Tel, err)
 		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
@@ -79,17 +75,19 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Tel == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "tel"}), http.StatusBadRequest)
-		return
-	}
-	if req.VerifyCode == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "code"}), http.StatusBadRequest)
+	if req.Tel == "" || req.VerifyCode == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "tel/code"}), http.StatusBadRequest)
 		return
 	}
 
-	if h.smsCodeCache == nil || !h.smsCodeCache.Verify(context.Background(), cache.SMS4Login, req.Tel, req.VerifyCode) {
-		http.Error(w, i18n.T("api_error_sms_code_invalid"), http.StatusUnauthorized)
+	if h.smsCodeCache == nil {
+		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": "SMS service unavailable"}),
+			http.StatusInternalServerError)
+		return
+	}
+
+	if !h.smsCodeCache.Verify(context.Background(), cache.SMS4Login, req.Tel, req.VerifyCode) {
+		http.Error(w, "", http.StatusUnauthorized)
 		return
 	}
 
@@ -98,7 +96,8 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 
 	user, isNew, err := store.TheUserStore().FindOrCreateByTel(req.Tel)
 	if err != nil {
-		http.Error(w, i18n.T("api_error_login_failed", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
+		http.Error(w, i18n.T("api_error_login_failed", map[string]any{"Error": err.Error()}),
+			http.StatusInternalServerError)
 		return
 	}
 
@@ -168,12 +167,8 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.No == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "no"}), http.StatusBadRequest)
-		return
-	}
-	if req.Password == "" {
-		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "password"}), http.StatusBadRequest)
+	if req.No == "" || req.Password == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "no/password"}), http.StatusBadRequest)
 		return
 	}
 
@@ -182,7 +177,7 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 
 	user, err := store.TheUserStore().LoginByPassword(req.No, req.Password)
 	if err != nil {
-		http.Error(w, i18n.T("api_error_login_failed", map[string]any{"Error": err.Error()}), http.StatusUnauthorized)
+		http.Error(w, "", http.StatusUnauthorized)
 		return
 	}
 

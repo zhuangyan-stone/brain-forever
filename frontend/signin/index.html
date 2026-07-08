@@ -79,6 +79,35 @@
                 <button class="code-send-btn" id="codeSendBtn" onclick="onSendCode()">发送验证码</button>
             </div>
 
+            <!-- 图形验证码弹层 -->
+            <div class="captcha-overlay" id="captchaOverlay" style="display:none;">
+                <div class="captcha-box">
+                    <div class="captcha-header">
+                        <span>安全验证</span>
+                        <button class="captcha-close-btn" onclick="closeCaptcha()">&times;</button>
+                    </div>
+                    <div class="captcha-body">
+                        <div class="captcha-img-wrap">
+                            <img class="captcha-img" id="captchaImg" src="" alt="验证码">
+                            <button class="captcha-reload-btn" onclick="reloadCaptcha()" title="换一张">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <input class="captcha-input" id="captchaInput" type="text" maxlength="6"
+                            placeholder="请输入图片中的字符" autocomplete="off">
+                    </div>
+                    <div class="captcha-footer">
+                        <button class="captcha-btn captcha-btn-cancel" onclick="closeCaptcha()">取消</button>
+                        <button class="captcha-btn captcha-btn-confirm" id="captchaConfirmBtn" onclick="confirmCaptcha()">确认</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- 协议小字 -->
             <div class="signin-agreement">
                 登录即代表已阅读并同意我们的
@@ -224,6 +253,103 @@
         var sendCodeTimer = null;
         var sendCodeCountdown = 0;
 
+        // ============================================================
+        // 图形验证码状态
+        // ============================================================
+        var captchaAction = 'login';
+        var captchaPendingResolve = null; // 用于 Promise 回调
+
+        function openCaptcha() {
+            var overlay = document.getElementById('captchaOverlay');
+            overlay.style.display = 'flex';
+            document.getElementById('captchaInput').value = '';
+            document.getElementById('captchaInput').focus();
+            // 加载验证码图片
+            fetchCaptchaImage();
+        }
+
+        function closeCaptcha() {
+            var overlay = document.getElementById('captchaOverlay');
+            overlay.style.display = 'none';
+            if (captchaPendingResolve) {
+                captchaPendingResolve(false);
+                captchaPendingResolve = null;
+            }
+        }
+
+        function fetchCaptchaImage() {
+            var img = document.getElementById('captchaImg');
+            img.src = ''; // 清空旧图
+            fetch('/api/verify/captcha?action=' + captchaAction)
+                .then(function(resp) {
+                    if (resp.ok) {
+                        return resp.json();
+                    }
+                    throw new Error('获取验证码失败');
+                })
+                .then(function(data) {
+                    if (data.captcha && data.captcha.src) {
+                        // 给图片 URL 添加时间戳防缓存
+                        img.src = data.captcha.src + '?t=' + Date.now();
+                    } else {
+                        showToast('获取验证码失败，请重试', 'error');
+                    }
+                })
+                .catch(function() {
+                    showToast('网络错误，请稍后重试', 'error');
+                });
+        }
+
+        function reloadCaptcha() {
+            fetchCaptchaImage();
+        }
+
+        // 返回一个 Promise，用户确认 captcha 后 resolve(true)，取消则 resolve(false)
+        function waitForCaptcha(action) {
+            captchaAction = action || 'login';
+            return new Promise(function(resolve) {
+                captchaPendingResolve = resolve;
+                openCaptcha();
+            });
+        }
+
+        function confirmCaptcha() {
+            var code = document.getElementById('captchaInput').value.trim();
+            if (!code) {
+                showToast('请输入图片中的验证字符', 'error');
+                return;
+            }
+            // 调用后端验证图形验证码
+            fetch('/api/verify/captcha?action=' + captchaAction, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({ code: code }),
+            })
+            .then(function(resp) {
+                if (resp.ok) {
+                    closeCaptcha();
+                    if (captchaPendingResolve) {
+                        captchaPendingResolve(true);
+                        captchaPendingResolve = null;
+                    }
+                } else {
+                    // 根据状态码显示中文提示（401 = 验证码错误，其他 = 服务异常）
+                    if (resp.status === 401) {
+                        showToast('验证码错误', 'error');
+                    } else {
+                        showToast('验证服务异常，请稍后重试', 'error');
+                    }
+                    // 刷新验证码图片
+                    fetchCaptchaImage();
+                    document.getElementById('captchaInput').value = '';
+                    document.getElementById('captchaInput').focus();
+                }
+            })
+            .catch(function() {
+                showToast('网络错误，请稍后重试', 'error');
+            });
+        }
+
         function onSendCode() {
             var phone = document.getElementById('phoneInput').value.trim();
             if (!/^1\d{10}$/.test(phone)) {
@@ -234,26 +360,43 @@
             var btn = document.getElementById('codeSendBtn');
             btn.disabled = true;
 
-            // 调用后端发送验证码 API（purpose 标明用途，不同用途的校验码在 Redis 中隔离存储）
-            fetch('/api/verify/sms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify({ tel: phone, purpose: 'login' }),
-            })
-            .then(function(resp) {
-                if (resp.ok) {
-                    showToast('验证码已发送', 'success');
-                    startCodeCountdown(60);
-                } else {
-                    return resp.text().then(function(text) {
-                        showToast(text || '发送验证码失败', 'error');
-                        btn.disabled = false;
-                    });
+            // 先弹出图形验证码，验证通过后才发送短信
+            waitForCaptcha('login').then(function(ok) {
+                if (!ok) {
+                    // 用户取消了验证码
+                    btn.disabled = false;
+                    return;
                 }
-            })
-            .catch(function() {
-                showToast('网络错误，请稍后重试', 'error');
-                btn.disabled = false;
+
+                // 调用后端发送短信验证码
+                fetch('/api/verify/sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                    body: JSON.stringify({
+                        tel: phone,
+                        action: 'login',
+                    }),
+                })
+                .then(function(resp) {
+                    if (resp.ok) {
+                        showToast('验证码已发送', 'success');
+                        startCodeCountdown(60);
+                    } else {
+                        // 根据状态码显示中文提示
+                        if (resp.status === 400) {
+                            showToast('参数错误，请重试', 'error');
+                        } else if (resp.status === 401 || resp.status === 403) {
+                            showToast('手机验证码错误', 'error');
+                        } else {
+                            showToast('发送验证码失败，请稍后重试', 'error');
+                        }
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function() {
+                    showToast('网络错误，请稍后重试', 'error');
+                    btn.disabled = false;
+                });
             });
         }
 
@@ -365,8 +508,14 @@
                     // 跳转到首页
                     window.location.href = '/';
                 } else {
-                    var errText = await response.text();
-                    showToast(errText || '登录失败', 'error');
+                    // 根据状态码显示中文提示
+                    if (response.status === 401) {
+                        showToast('手机验证码错误', 'error');
+                    } else if (response.status === 400) {
+                        showToast('参数错误', 'error');
+                    } else {
+                        showToast('登录失败', 'error');
+                    }
                     btn.disabled = false;
                     btn.textContent = '登录';
                 }
