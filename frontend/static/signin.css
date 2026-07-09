@@ -275,7 +275,7 @@ body {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10001;
+    z-index: 99999;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -306,6 +306,11 @@ body {
     background: var(--error-bg);
     border: 1px solid var(--error-border);
     color: var(--error-text);
+}
+
+/* 亮色主题下 Error Toast 背景调亮，在遮罩上更清晰 */
+[data-theme="light"] .toast-error {
+    background: #FFEFEF;
 }
 
 .toast-success {
@@ -354,7 +359,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.3);
     z-index: 10000;
     display: none;
     align-items: center;
