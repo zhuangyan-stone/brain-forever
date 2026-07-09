@@ -14,25 +14,27 @@ import (
 // Data models
 // ============================================================
 
-// CaptchaData 验证码的问题和点击区域答案。
+// CaptchaData holds the captcha question and click area answer.
 type CaptchaData struct {
-	QCn           string `json:"q_cn"`         // 中文提问
-	QEn           string `json:"q_en"`         // 英文提问
-	Left, Top     int    `json:"left,top"`     // 点击区域左上角
-	Right, Bottom int    `json:"right,bottom"` // 点击区域右下角
+	QCn    string `json:"q_cn"` // Chinese question
+	QEn    string `json:"q_en"` // English question
+	Left   int    `json:"left"` // Top-left corner of click area
+	Top    int    `json:"top"`
+	Right  int    `json:"right"` // Bottom-right corner of click area
+	Bottom int    `json:"bottom"`
 }
 
-// CaptchaItem 单个验证码条目。
+// CaptchaItem represents a single captcha entry.
 type CaptchaItem struct {
-	Image string      `json:"image"` // 图片 URL 相对路径，如 "d1/png/xxx.png"
-	Data  CaptchaData `json:"data"`  // 验证码数据
+	Image string      `json:"image"` // Image URL relative path, e.g. "d1/png/xxx.png"
+	Data  CaptchaData `json:"data"`  // Captcha data
 }
 
 // ============================================================
 // CaptchaStore 接口
 // ============================================================
 
-// CaptchaStore 验证码数据的存储抽象，由调用方提供 Redis 实现。
+// CaptchaStore is an abstraction for captcha data storage, with Redis implementation provided by the caller.
 type CaptchaStore interface {
 	HSet(ctx context.Context, key, field string, value interface{}) error
 	HGet(ctx context.Context, key, field string) (string, error)
@@ -44,17 +46,17 @@ type CaptchaStore interface {
 // CaptchaProvider
 // ============================================================
 
-// CaptchaProvider 管理验证码数据的加载、获取和刷新。
+// CaptchaProvider manages loading, retrieval, and refreshing of captcha data.
 type CaptchaProvider struct {
-	captchaURLBase string       // 图片 URL 基础路径
-	captchaDirBase string       // 本地文件系统路径
-	activeDir      string       // 当前活动目录 "d1" 或 "d2"
-	store          CaptchaStore // 存储后端（Redis 或 memory）
-	mu             sync.RWMutex // 保护 activeDir，GetOne/Refresh 并发安全
+	captchaURLBase string       // Base URL for captcha images
+	captchaDirBase string       // Local filesystem path
+	activeDir      string       // Current active directory "d1" or "d2"
+	store          CaptchaStore // Storage backend (Redis or memory)
+	mu             sync.RWMutex // Protects activeDir, ensures GetOne/Refresh concurrency safety
 }
 
-// NewCaptchaProvider 创建并初始化 CaptchaProvider。
-// 加载 d1 和 d2 的验证码数据到 store，检测 activeDir。
+// NewCaptchaProvider creates and initializes a CaptchaProvider.
+// Loads captcha data from d1 and d2 into the store, detects activeDir.
 func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase string, store CaptchaStore) (*CaptchaProvider, error) {
 	p := &CaptchaProvider{
 		captchaURLBase: captchaURLBase,
@@ -62,15 +64,15 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 		store:          store,
 	}
 
-	// 加载 d1 和 d2
+	// Load d1 and d2
 	for _, dir := range []string{"d1", "d2"} {
 		if err := p.loadAndStore(ctx, dir); err != nil {
 			return nil, fmt.Errorf("failed to load captcha dir %q: %w", dir, err)
 		}
 	}
 
-	// 检测 activeDir
-	activeDir := "d1" // 默认
+	// Detect activeDir
+	activeDir := "d1" // default
 	if _, err := os.Stat(filepath.Join(captchaDirBase, "d1.active")); err == nil {
 		activeDir = "d1"
 	} else if _, err := os.Stat(filepath.Join(captchaDirBase, "d2.active")); err == nil {
@@ -81,12 +83,12 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 	return p, nil
 }
 
-// loadAndStore 读取指定目录下的 PNG 和 JSON 文件，将匹配的条目存入 store。
+// loadAndStore reads PNG and JSON files in the specified directory and stores matching entries into the store.
 func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 	pngDir := filepath.Join(p.captchaDirBase, dir, "png")
 	jsonDir := filepath.Join(p.captchaDirBase, dir, "json")
 
-	// 读取所有 .png 文件，提取文件名（无扩展名）
+	// Read all .png files, extract filenames (without extension)
 	pngEntries, err := os.ReadDir(pngDir)
 	if err != nil {
 		return fmt.Errorf("cannot read png dir %q: %w", pngDir, err)
@@ -104,7 +106,7 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 		pngNames = append(pngNames, strings.TrimSuffix(name, ".png"))
 	}
 
-	// 读取所有 .json 文件到 map
+	// Read all .json files into a map
 	jsonEntries, err := os.ReadDir(jsonDir)
 	if err != nil {
 		return fmt.Errorf("cannot read json dir %q: %w", jsonDir, err)
@@ -122,17 +124,17 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 		baseName := strings.TrimSuffix(name, ".json")
 		data, err := os.ReadFile(filepath.Join(jsonDir, name))
 		if err != nil {
-			continue // 跳过无法读取的 JSON
+			continue // skip unreadable JSON
 		}
 		jsonMap[baseName] = data
 	}
 
-	// 遍历 PNG 文件名，检查是否有对应 JSON
+	// Iterate over PNG filenames and check for corresponding JSON
 	redisKey := "CAPTCHAS_store." + dir
 	for _, name := range pngNames {
 		data, ok := jsonMap[name]
 		if !ok {
-			continue // 无对应 JSON，跳过
+			continue // no matching JSON, skip
 		}
 		if err := p.store.HSet(ctx, redisKey, name, string(data)); err != nil {
 			return fmt.Errorf("failed to hset captcha %q: %w", name, err)
@@ -142,14 +144,14 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 	return nil
 }
 
-// ActiveDir 返回当前活动目录名称（"d1" 或 "d2"）。
+// ActiveDir returns the current active directory name ("d1" or "d2").
 func (p *CaptchaProvider) ActiveDir() string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.activeDir
 }
 
-// GetOne 从当前活动目录中随机返回一个验证码条目。
+// GetOne returns a random captcha entry from the current active directory.
 func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 	p.mu.RLock()
 	activeDir := p.activeDir
@@ -157,7 +159,7 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 
 	redisKey := "CAPTCHAS_store." + activeDir
 
-	// HRANDFIELD 取一个随机 field（图片名）
+	// HRANDFIELD gets a random field (image name)
 	fields, err := p.store.HRandField(ctx, redisKey, 1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hrandfield from %q: %w", redisKey, err)
@@ -168,7 +170,7 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 
 	field := fields[0]
 
-	// HGET 获取 JSON 数据
+	// HGET retrieves JSON data
 	val, err := p.store.HGet(ctx, redisKey, field)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hget %q field %q: %w", redisKey, field, err)
@@ -185,19 +187,19 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 	}, nil
 }
 
-// Refresh 刷新指定目录的验证码数据到 store，并更新 activeDir。
+// Refresh reloads captcha data for the specified directory into the store and updates activeDir.
 func (p *CaptchaProvider) Refresh(ctx context.Context, activeDir string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	oldKey := "CAPTCHAS_store." + p.activeDir
 
-	// 清空旧数据
+	// Clear old data
 	if err := p.store.Del(ctx, oldKey); err != nil {
 		return fmt.Errorf("failed to del old captcha store %q: %w", oldKey, err)
 	}
 
-	// 重新加载
+	// Reload
 	if err := p.loadAndStore(ctx, activeDir); err != nil {
 		return fmt.Errorf("failed to reload captcha dir %q: %w", activeDir, err)
 	}

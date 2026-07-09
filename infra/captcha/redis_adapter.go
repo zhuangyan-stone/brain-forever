@@ -8,14 +8,14 @@ import (
 )
 
 // ============================================================
-// Redis 适配器
+// Redis adapter
 // ============================================================
 
 type redisStore struct {
 	client *redis.Client
 }
 
-// NewRedisStore 创建基于 Redis 的 CaptchaStore 实现。
+// NewRedisStore creates a Redis-based CaptchaStore implementation.
 func NewRedisStore(client *redis.Client) CaptchaStore {
 	return &redisStore{client: client}
 }
@@ -37,14 +37,14 @@ func (s *redisStore) Del(ctx context.Context, key ...string) error {
 }
 
 // ============================================================
-// 内存实现（开发/测试用）
+// In-memory implementation (for dev/test)
 // ============================================================
 
 type memoryStore struct {
 	data map[string]map[string]string // key -> field -> value
 }
 
-// NewMemoryStore 创建基于内存的 CaptchaStore 实现（开发/测试用）。
+// NewMemoryStore creates an in-memory CaptchaStore implementation (for dev/test).
 func NewMemoryStore() CaptchaStore {
 	return &memoryStore{data: make(map[string]map[string]string)}
 }
@@ -55,7 +55,7 @@ func (s *memoryStore) HSet(ctx context.Context, key, field string, value interfa
 		m = make(map[string]string)
 		s.data[key] = m
 	}
-	m[field] = value.(string) // 调用方确保传 string
+	m[field] = value.(string) // caller guarantees string type
 	return nil
 }
 
@@ -80,7 +80,7 @@ func (s *memoryStore) HRandField(ctx context.Context, key string, count int) ([]
 	for f := range m {
 		fields = append(fields, f)
 	}
-	// 随机打乱取前 count 个
+	// Shuffle and take the first count items
 	rand.Shuffle(len(fields), func(i, j int) {
 		fields[i], fields[j] = fields[j], fields[i]
 	})

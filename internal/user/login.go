@@ -21,7 +21,7 @@ import (
 )
 
 // ============================================================
-// 图形验证码处理 — GET /api/verify/captcha
+// Image captcha handler — GET /api/verify/captcha
 // ============================================================
 
 // validActions defines the set of actions that are allowed for captcha.
@@ -30,15 +30,15 @@ var validActions = map[string]bool{
 	"resetpwd": true,
 }
 
-// captchaCacheKey 构建验证码在 Redis 中的缓存 key。
+// captchaCacheKey builds the captcha cache key in Redis.
 func captchaCacheKey(sessionID, action string) string {
 	return sessionID + "::captcha::" + action
 }
 
-// storeCaptchaItem 将验证码条目存入 Redis 缓存（2 分钟有效期）。
+// storeCaptchaItem stores a captcha item in Redis cache (2-minute TTL).
 func (h *Handler) storeCaptchaItem(ctx context.Context, sessionID, action string, item *captcha.CaptchaItem) error {
 	if h.sessionManager.Redis == nil {
-		return nil // 无 Redis 时跳过缓存（仅开发/测试场景）
+		return nil // skip caching when Redis unavailable (dev/test only)
 	}
 	client := h.sessionManager.Redis.Client()
 	data, err := json.Marshal(item)
@@ -49,7 +49,7 @@ func (h *Handler) storeCaptchaItem(ctx context.Context, sessionID, action string
 	return client.Set(ctx, key, string(data), 2*time.Minute).Err()
 }
 
-// getCaptchaItem 从 Redis 缓存中读取验证码条目。
+// getCaptchaItem reads a captcha item from Redis cache.
 func (h *Handler) getCaptchaItem(ctx context.Context, sessionID, action string) (*captcha.CaptchaItem, error) {
 	if h.sessionManager.Redis == nil {
 		return nil, redis.Nil
@@ -67,7 +67,7 @@ func (h *Handler) getCaptchaItem(ctx context.Context, sessionID, action string) 
 	return &item, nil
 }
 
-// deleteCaptchaItem 删除 Redis 缓存中的验证码条目（验证成功后消费）。
+// deleteCaptchaItem deletes a captcha item from Redis cache (consumed after verification).
 func (h *Handler) deleteCaptchaItem(ctx context.Context, sessionID, action string) error {
 	if h.sessionManager.Redis == nil {
 		return nil
@@ -78,7 +78,7 @@ func (h *Handler) deleteCaptchaItem(ctx context.Context, sessionID, action strin
 }
 
 // OnGetVerifyCaptcha handles GET /api/verify/captcha?action=...
-// 获取一个随机验证码条目，缓存后返回供前端展示。
+// Gets a random captcha entry, caches it, and returns it for frontend display.
 func (h *Handler) OnGetVerifyCaptcha(w http.ResponseWriter, r *http.Request) {
 	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 
@@ -99,7 +99,7 @@ func (h *Handler) OnGetVerifyCaptcha(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 存入 Redis 缓存供后续验证
+	// Cache in Redis for subsequent verification
 	if err := h.storeCaptchaItem(r.Context(), sessionID, action, item); err != nil {
 		h.logger.Errorf("failed to cache captcha item: %v", err)
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
@@ -122,7 +122,7 @@ func (h *Handler) OnGetVerifyCaptcha(w http.ResponseWriter, r *http.Request) {
 
 // OnGetSMSVerifyCode handles GET /api/verify/sms.
 // Parameters (query string): tel, action, img_name, click_x, click_y (required).
-// 先验证图形验证码的点击坐标，再发送短信。
+// Verifies the image captcha click coordinates first, then sends the SMS.
 func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 	if h.smsCodeCache == nil {
 		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": "SMS service unavailable"}), http.StatusServiceUnavailable)
@@ -140,7 +140,7 @@ func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 解析点击坐标
+	// Parse click coordinates
 	var clickX, clickY int
 	if _, err := fmt.Sscanf(clickXStr, "%d", &clickX); err != nil {
 		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "click_x must be integer"}), http.StatusBadRequest)
@@ -153,22 +153,22 @@ func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 
 	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 
-	// 从 Redis 取回缓存的验证码
+	// Retrieve cached captcha from Redis
 	item, err := h.getCaptchaItem(r.Context(), sessionID, action)
 	if err != nil {
-		// 验证码不存在或已过期
+		// Captcha not found or expired
 		http.Error(w, i18n.T("api_error_captcha_expired"), http.StatusUnauthorized)
 		return
 	}
 
-	// 验证图片名匹配
+	// Verify image name match
 	if item.Image != imgName {
 		h.logger.Debugf("captcha image mismatch: cached=%q, received=%q", item.Image, imgName)
 		http.Error(w, i18n.T("api_error_captcha_wrong"), http.StatusUnauthorized)
 		return
 	}
 
-	// 验证点击坐标是否在矩形区域内
+	// Verify click coordinates are within the rectangular area
 	d := item.Data
 	if clickX < d.Left || clickX > d.Right || clickY < d.Top || clickY > d.Bottom {
 		h.logger.Debugf("captcha click position mismatch: click=(%d,%d), rect=[%d,%d,%d,%d]",
@@ -177,7 +177,7 @@ func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 验证通过，消费掉该验证码
+	// Verification passed, consume the captcha
 	if err := h.deleteCaptchaItem(r.Context(), sessionID, action); err != nil {
 		h.logger.Warnf("failed to delete consumed captcha: %v", err)
 	}
