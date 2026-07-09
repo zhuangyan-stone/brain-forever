@@ -468,41 +468,14 @@ body {
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
-.captcha-footer {
-    display: flex;
-    gap: 10px;
-    padding: 4px 20px 12px;
-    justify-content: flex-end;
+.captcha-img.captcha-loading {
+    /* 图片加载中：降低透明度，阻止点击，显示加载提示 */
+    opacity: 0.3;
+    cursor: wait;
 }
 
-.captcha-btn {
-    padding: 8px 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.2s, color 0.2s;
-}
-
-.captcha-btn-cancel {
-    color: var(--text-secondary);
-    background: var(--bg-input);
-}
-
-.captcha-btn-cancel:hover {
-    background: var(--border);
-    color: var(--text-primary);
-}
-
-.captcha-btn-confirm {
-    color: var(--btn-highlight-color, #fff);
-    background: var(--btn-highlight-bg, #000);
-    border-color: var(--btn-highlight-bg, #000);
-}
-
-.captcha-btn-confirm:hover {
-    background: var(--btn-highlight-hover-bg, var(--accent-hover));
-    border-color: var(--btn-highlight-hover-bg, var(--accent-hover));
+.captcha-img.captcha-verifying {
+    /* 正在验证中：降低透明度，阻止再次点击 */
+    opacity: 0.5;
+    cursor: wait;
 }
