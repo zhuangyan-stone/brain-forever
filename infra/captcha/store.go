@@ -179,7 +179,7 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 	}
 
 	return &CaptchaItem{
-		Image: activeDir + "/png/" + field + ".png",
+		Image: p.captchaURLBase + activeDir + "/png/" + field + ".png",
 		Data:  data,
 	}, nil
 }

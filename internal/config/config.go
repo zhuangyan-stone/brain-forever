@@ -68,7 +68,7 @@ func DefaultConfig() Config {
 			Dir: "./localdb",
 		},
 		Captcha: CaptchaConfig{
-			URLBase: "static/img/captchas/",
+			URLBase: "/static/img/captchas/",
 			DirBase: "./frontend/static/img/captchas/",
 		},
 	}
