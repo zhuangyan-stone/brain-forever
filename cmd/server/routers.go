@@ -218,3 +218,29 @@ func initStaticFileServer(srv *httpx.Server, frontendDir string, cacheDisable bo
 		fs.ServeHTTP(w, r)
 	})
 }
+
+// initNginxModeStaticServer 在 Nginx 反向代理模式下注册静态文件路由。
+// 此模式下：
+//   - / 和 /index.html：由 Go 处理（保留匿名 session → /signin/ 的登录检查）
+//   - 其他静态文件（/static/, /themes/, /signin/）由 Nginx 直接返回
+func initNginxModeStaticServer(srv *httpx.Server, frontendDir string, chatHandler *agent.ChatAgent) {
+	srv.Handle("/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		// 仅处理 / 和 /index.html，其他路径返回 404（应由 Nginx 处理）
+		if !isHomePage(path) {
+			http.NotFound(w, r)
+			return
+		}
+
+		setNoCacheHeaders(w)
+
+		// Anonymous session -> redirect to signin page
+		if chatHandler != nil && chatHandler.IsSessionAnonymous(w, r) {
+			redirectSignin(w, r)
+			return
+		}
+
+		serveFileOr404(w, r, frontendDir+"/index.html")
+	})
+}

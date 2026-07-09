@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net"
 	"os"
@@ -28,6 +29,12 @@ import (
 // ============================================================
 
 func main() {
+	// ============================================================
+	// Command-line flags
+	// ============================================================
+	withNginx := flag.Bool("with-nginx", false, "启用 Nginx 反向代理模式：关闭内置静态文件服务")
+	flag.Parse()
+
 	// ============================================================
 	// Build configuration (defaults → TOML file → env var overrides)
 	// ============================================================
@@ -202,7 +209,15 @@ func main() {
 
 	// Static file server for frontend pages
 	// Pass chatHandler for login check on index.html (302 redirect to /signin.html if anonymous)
-	initStaticFileServer(srv, cfg.Frontend.Dir, cfg.Frontend.CacheDisable, chatHandler)
+	if *withNginx {
+		// Nginx reverse proxy mode: only handle / and /index.html with login check,
+		// other static files (/static/, /themes/, /signin/) are served by Nginx directly.
+		initNginxModeStaticServer(srv, cfg.Frontend.Dir, chatHandler)
+		theLogger.Infof("Nginx mode enabled: static files (except /) served by Nginx")
+	} else {
+		// Standard mode: Go serves both API and all static files.
+		initStaticFileServer(srv, cfg.Frontend.Dir, cfg.Frontend.CacheDisable, chatHandler)
+	}
 
 	// ============================================================
 	// Start server & wait for shutdown signal
