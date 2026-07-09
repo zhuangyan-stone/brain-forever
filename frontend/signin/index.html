@@ -87,12 +87,11 @@
                         <button class="captcha-close-btn" onclick="closeCaptcha()">&times;</button>
                     </div>
                     <div class="captcha-body">
+                        <p class="captcha-question" id="captchaQuestion">请点击图片中的目标位置</p>
                         <div class="captcha-img-wrap">
                             <img class="captcha-img" id="captchaImg" src="" alt="验证码">
                         </div>
                         <button class="captcha-reload-btn" onclick="reloadCaptcha()">换一张</button>
-                        <input class="captcha-input" id="captchaInput" type="text" maxlength="6"
-                            placeholder="请输入图片中的字符" autocomplete="off">
                     </div>
                     <div class="captcha-footer">
                         <button class="captcha-btn captcha-btn-cancel" onclick="closeCaptcha()">取消</button>
@@ -252,12 +251,18 @@
         var captchaAction = 'login';
         var captchaPhone = ''; // 打开验证码时的手机号
         var captchaPendingResolve = null; // 用于 Promise 回调
+        var captchaClickX = null;  // 用户点击坐标 X（映射到原始尺寸）
+        var captchaClickY = null;  // 用户点击坐标 Y（映射到原始尺寸）
+        var captchaImgName = '';   // 当前验证码图片名
+        var captchaQuestionCn = ''; // 当前中文问题
 
         function openCaptcha() {
             var overlay = document.getElementById('captchaOverlay');
             overlay.classList.add('show');
-            document.getElementById('captchaInput').value = '';
-            document.getElementById('captchaInput').focus();
+            // 重置点击状态
+            captchaClickX = null;
+            captchaClickY = null;
+            captchaImgName = '';
             // 加载验证码图片
             fetchCaptchaImage();
         }
@@ -273,7 +278,16 @@
 
         function fetchCaptchaImage() {
             var img = document.getElementById('captchaImg');
+            var questionEl = document.getElementById('captchaQuestion');
             img.src = ''; // 清空旧图
+            // 清除点击标记
+            removeClickMarker();
+            captchaClickX = null;
+            captchaClickY = null;
+            captchaImgName = '';
+            // 恢复默认提示文本
+            questionEl.textContent = '请点击图片中的目标位置';
+
             fetch('/api/verify/captcha?action=' + captchaAction)
                 .then(function(resp) {
                     if (resp.ok) {
@@ -282,9 +296,16 @@
                     throw new Error('获取验证码失败');
                 })
                 .then(function(data) {
-                    if (data.captcha && data.captcha.src) {
+                    if (data.src) {
+                        // 新响应格式：{ src, action, q_cn, q_en }
+                        captchaImgName = data.src;
+                        captchaQuestionCn = data.q_cn || '';
+                        // 优先显示中文问题
+                        if (captchaQuestionCn) {
+                            questionEl.textContent = captchaQuestionCn;
+                        }
                         // 给图片 URL 添加时间戳防缓存
-                        img.src = data.captcha.src + '?t=' + Date.now();
+                        img.src = data.src + '?t=' + Date.now();
                     } else {
                         showToast('获取验证码失败，请重试', 'error');
                     }
@@ -298,6 +319,42 @@
             fetchCaptchaImage();
         }
 
+        // 移除点击标记
+        function removeClickMarker() {
+            var old = document.querySelector('.captcha-click-marker');
+            if (old) old.remove();
+        }
+
+        // 图片点击处理 — 捕获点击坐标并映射到原始尺寸
+        function setupCaptchaClick() {
+            var img = document.getElementById('captchaImg');
+            img.addEventListener('click', function(e) {
+                if (!this.src || this.src === window.location.href) return; // 图片未加载
+                var rect = this.getBoundingClientRect();
+                var clickX = e.clientX - rect.left;   // 显示区域坐标
+                var clickY = e.clientY - rect.top;
+
+                // 映射到原始图片尺寸
+                captchaClickX = Math.round((clickX / this.clientWidth)  * this.naturalWidth);
+                captchaClickY = Math.round((clickY / this.clientHeight) * this.naturalHeight);
+
+                // 显示点击标记
+                removeClickMarker();
+                var wrap = this.parentElement;
+                var marker = document.createElement('div');
+                marker.className = 'captcha-click-marker';
+                marker.style.left = clickX + 'px';
+                marker.style.top  = clickY + 'px';
+                wrap.appendChild(marker);
+            });
+        }
+        // DOM 加载完成后绑定点击事件
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupCaptchaClick);
+        } else {
+            setupCaptchaClick();
+        }
+
         // 返回一个 Promise，用户确认 captcha 后 resolve(true)，取消则 resolve(false)
         function waitForCaptcha(action) {
             captchaAction = action || 'login';
@@ -307,11 +364,10 @@
             });
         }
 
-        // 确认图形验证码 → 直接调用发短信接口（带上图形验证码）
+        // 确认图形验证码 → 直接调用发短信接口（带上点击坐标）
         function confirmCaptcha() {
-            var code = document.getElementById('captchaInput').value.trim();
-            if (!code) {
-                showToast('请输入图片中的验证字符', 'error');
+            if (captchaClickX === null || captchaClickY === null) {
+                showToast('请点击图片中的目标位置', 'error');
                 return;
             }
             var phone = captchaPhone;
@@ -322,7 +378,9 @@
 
             fetch('/api/verify/sms?tel=' + encodeURIComponent(phone) +
                   '&action=' + encodeURIComponent(captchaAction) +
-                  '&captcha_code=' + encodeURIComponent(code))
+                  '&img_name=' + encodeURIComponent(captchaImgName) +
+                  '&click_x=' + captchaClickX +
+                  '&click_y=' + captchaClickY)
             .then(function(resp) {
                 if (resp.ok) {
                     // 图形验证码正确且短信已发送
@@ -332,14 +390,12 @@
                         captchaPendingResolve = null;
                     }
                 } else if (resp.status === 401) {
-                    // 图形验证码过期或错误 — 读取后端返回的纯文本错误消息
+                    // 图形验证码过期或位置错误
                     resp.text().then(function(text) {
                         showToast(text || '图形校验码错误', 'error');
                     });
                     // 刷新验证码图片让用户重试
                     fetchCaptchaImage();
-                    document.getElementById('captchaInput').value = '';
-                    document.getElementById('captchaInput').focus();
                 } else {
                     // 其他错误
                     resp.text().then(function(text) {

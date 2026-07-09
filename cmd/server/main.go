@@ -152,13 +152,27 @@ func main() {
 	theLogger.Infof("AI agent (Brain-Forever) is now active")
 
 	// ============================================================
-	// Initialize captcha recognition module
+	// Initialize CaptchaProvider (click-based captcha)
 	// ============================================================
-	if count, err := captcha.Refresh(cfg.Captcha.Dir); err != nil {
-		theLogger.Fatalf("failed to load captcha index from %q: %v", cfg.Captcha.Dir, err)
+	var captchaStore captcha.CaptchaStore
+	if sm := chatHandler.GetSessionManager(); sm.Redis != nil {
+		captchaStore = captcha.NewRedisStore(sm.Redis.Client())
+		theLogger.Infof("CaptchaStore: Redis backend")
 	} else {
-		theLogger.Infof("captcha index loaded with %d entries from %q", count, cfg.Captcha.Dir)
+		captchaStore = captcha.NewMemoryStore()
+		theLogger.Infof("CaptchaStore: in-memory backend (dev mode)")
 	}
+
+	captchaProvider, err := captcha.NewCaptchaProvider(
+		context.Background(),
+		cfg.Captcha.URLBase,
+		cfg.Captcha.DirBase,
+		captchaStore,
+	)
+	if err != nil {
+		theLogger.Fatalf("failed to initialize captcha provider: %v", err)
+	}
+	theLogger.Infof("captcha provider initialized (activeDir=%s)", captchaProvider.ActiveDir())
 
 	// ============================================================
 	// Setup routes using httpx.Server
@@ -196,16 +210,11 @@ func main() {
 		chatHandler.GetLogger(),
 		chatHandler.GetAvatarDir(),
 		chatHandler.GetSMSCodeCache(),
-	)
-
-	// Initialize captcha handler
-	captchaHandler := captcha.NewHandler(
-		chatHandler.GetSessionManager(),
-		chatHandler.GetCookieName(),
+		captchaProvider,
 	)
 
 	// Initialize all API routes (chat, theme, user, etc.)
-	initRouters(srv, chatHandler, themeHandler, userHandler, captchaHandler)
+	initRouters(srv, chatHandler, themeHandler, userHandler)
 
 	// Static file server for frontend pages
 	// Pass chatHandler for login check on index.html (302 redirect to /signin.html if anonymous)

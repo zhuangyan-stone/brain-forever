@@ -68,7 +68,8 @@ func DefaultConfig() Config {
 			Dir: "./localdb",
 		},
 		Captcha: CaptchaConfig{
-			Dir: "./frontend/static/img/captchas/",
+			URLBase: "static/img/captchas/",
+			DirBase: "./frontend/static/img/captchas/",
 		},
 	}
 }
@@ -226,8 +227,12 @@ type RedisConfig struct {
 
 // CaptchaConfig configures the captcha recognition settings.
 type CaptchaConfig struct {
-	// Dir is the directory path where captcha index files are stored.
-	Dir string
+	// URLBase is the URL base path for captcha images, e.g., "/captcha/".
+	URLBase string
+	// DirBase is the server local file system path for captcha images and data,
+	// e.g., "./data/captchas/". It contains d1/ and d2/ subdirectories,
+	// each with png/ and json/ subdirectories.
+	DirBase string
 }
 
 // ============================================================
