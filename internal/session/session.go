@@ -79,12 +79,11 @@ func (src *SessionUser) CopyTo(dst *SessionUser) {
 
 // Session represents an individual user's session
 type Session struct {
-	Mu sync.Mutex // protects: User, LastActivity, Data
+	Mu sync.Mutex // protects: User, LastActivity
 
-	LastActivity time.Time              // Last activity time, used by GC for cleanup
-	ID           string                 // HTTP cookie session ID
-	User         SessionUser            // Logged-in user identity (zero value = anonymous)
-	Data         map[string]interface{} // Generic key-value store (e.g. captcha codes)
+	LastActivity time.Time   // Last activity time, used by GC for cleanup
+	ID           string      // HTTP cookie session ID
+	User         SessionUser // Logged-in user identity (zero value = anonymous)
 }
 
 // ============================================================
@@ -203,41 +202,5 @@ func (s *Session) SyncCurrentChatTitleToChatList(title string, titleState int) {
 			s.User.Chats[i].TitleState = int8(titleState)
 			return
 		}
-	}
-}
-
-// ============================================================
-// ISession implementation (generic key-value storage)
-// ============================================================
-
-// Get retrieves a value by key from the session's Data store.
-func (s *Session) Get(key string) interface{} {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
-
-	if s.Data == nil {
-		return nil
-	}
-	return s.Data[key]
-}
-
-// Set stores a key-value pair in the session's Data store.
-func (s *Session) Set(key string, value interface{}) {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
-
-	if s.Data == nil {
-		s.Data = make(map[string]interface{})
-	}
-	s.Data[key] = value
-}
-
-// Delete removes a key from the session's Data store.
-func (s *Session) Delete(key string) {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
-
-	if s.Data != nil {
-		delete(s.Data, key)
 	}
 }
