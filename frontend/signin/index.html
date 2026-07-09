@@ -451,6 +451,8 @@
 
                 // 图形验证码已验证且短信已发送 → 显示成功并开始倒计时
                 showToast('已向指定手机发送验证码，请查收并及时登录', 'success');
+                // 自动聚焦到验证码输入框
+                document.getElementById('codeInput').focus();
                 startCodeCountdown(60);
             });
         }
