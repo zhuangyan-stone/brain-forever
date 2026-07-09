@@ -20,6 +20,7 @@ import (
 	"BrainForever/internal/config"
 	"BrainForever/internal/logger"
 	"BrainForever/internal/store"
+	"BrainForever/internal/store/cache"
 	"BrainForever/internal/theme"
 	"BrainForever/internal/user"
 )
@@ -154,12 +155,12 @@ func main() {
 	// ============================================================
 	// Initialize CaptchaProvider (click-based captcha)
 	// ============================================================
-	var captchaStore captcha.CaptchaStore
+	var captchaStore captcha.ICaptchaStore
 	if sm := chatHandler.GetSessionManager(); sm.Redis != nil {
-		captchaStore = captcha.NewRedisStore(sm.Redis.Client())
+		captchaStore = cache.NewRedisCaptchaStore(sm.Redis.Client())
 		theLogger.Infof("CaptchaStore: Redis backend")
 	} else {
-		captchaStore = captcha.NewMemoryStore()
+		captchaStore = cache.NewMemoryCaptchaStore()
 		theLogger.Infof("CaptchaStore: in-memory backend (dev mode)")
 	}
 
