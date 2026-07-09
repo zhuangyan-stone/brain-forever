@@ -363,6 +363,114 @@ userHandler := user.NewHandler(
 
 ---
 
+### 步骤 8：前端改造 — [`frontend/signin/index.html`](frontend/signin/index.html)
+
+#### 8a. 移除文字输入，改为图片点击
+
+**旧 UI：**
+- `<input>` 文本框输入验证码字符
+- 点击"确认"发送 `captcha_code` 参数
+
+**新 UI：**
+- 显示验证码图片（尺寸可变，建议 `max-width: 480px` 保持比例）
+- 显示问题文本（`q_cn` / `q_en`），引导用户点击图片中的目标
+- 在 `<img>` 上绑定 `click` 事件，**捕获点击坐标并映射到原始尺寸**
+- 点击后立即记录坐标，在点击位置显示视觉反馈（圆点标记）
+- 用户若点错位置，点击"换一张"重新获取验证码即可重新开始
+
+#### 8b. 坐标映射逻辑
+
+```javascript
+img.addEventListener('click', function(e) {
+    var rect = this.getBoundingClientRect();
+    var clickX = e.clientX - rect.left;          // 显示区域内的坐标
+    var clickY = e.clientY - rect.top;
+
+    // 映射到原始图片尺寸（naturalWidth/naturalHeight 由浏览器自动提供）
+    var origX = Math.round((clickX / this.clientWidth)  * this.naturalWidth);
+    var origY = Math.round((clickY / this.clientHeight) * this.naturalHeight);
+
+    // 存储坐标供确认时使用
+    captchaClickX = origX;
+    captchaClickY = origY;
+    captchaImgName = currentImgName; // 从 API 响应的 src 中提取
+});
+```
+
+**关键点**：使用 `HTMLImageElement.naturalWidth / naturalHeight` 获取原始尺寸，与 CSS 缩放无关。详见 [MDN: HTMLImageElement.naturalWidth](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/naturalWidth)。
+
+#### 8c. API 请求/响应格式变更
+
+**`GET /api/verify/captcha` 响应（新格式）：**
+```json
+{
+    "src": "/captcha/d1/png/xxx.png",
+    "action": "login",
+    "q_cn": "请点击图片中的花朵",
+    "q_en": "Please click the flower"
+}
+```
+
+**`POST /api/verify/sms` 参数（新格式）：**
+```
+?tel=138xxxx&action=login&img_name=d1/png/xxx.png&click_x=150&click_y=80
+```
+
+#### 8d. 具体 DOM 变更清单
+
+| 元素 | 变更 |
+|---|---|
+| `#captchaInput`（文本框） | **删除**，不再需要文字输入 |
+| `#captchaImg` | **添加** `click` 事件监听；移除 `maxlength` 等图片无关属性 |
+| `.captcha-body` | **添加** 问题文本展示区域（`<p id="captchaQuestion">`） |
+| `#captchaConfirmBtn` | 保留，但确认时不再校验文本框内容，改为校验坐标是否已记录 |
+| `.captcha-reload-btn` | 保留，刷新时重新获取验证码图片 + 问题文本 |
+
+#### 8e. 新增/修改的 JS 变量
+
+```javascript
+var captchaClickX = null;      // 记录点击坐标 X（原始尺寸）
+var captchaClickY = null;      // 记录点击坐标 Y（原始尺寸）
+var captchaImgName = '';       // 当前验证码图片名（从 src 提取）
+var captchaQuestionCn = '';    // 当前中文问题
+var captchaQuestionEn = '';    // 当前英文问题
+```
+
+#### 8f. 视觉点击反馈
+
+在点击位置添加一个临时圆点标记，让用户确认自己点击的位置：
+
+```javascript
+function showClickMarker(imgEl, clientX, clientY) {
+    // 移除旧标记
+    var old = document.querySelector('.captcha-click-marker');
+    if (old) old.remove();
+
+    var marker = document.createElement('div');
+    marker.className = 'captcha-click-marker';
+    var rect = imgEl.getBoundingClientRect();
+    marker.style.left = (clientX - rect.left - 8) + 'px';
+    marker.style.top  = (clientY - rect.top - 8) + 'px';
+    imgEl.parentElement.appendChild(marker);
+}
+```
+
+对应 CSS：
+```css
+.captcha-click-marker {
+    position: absolute;
+    width: 16px; height: 16px;
+    border: 2px solid #ff4444;
+    border-radius: 50%;
+    background: rgba(255, 68, 68, 0.3);
+    pointer-events: none;
+}
+```
+
+注意：`.captcha-img-wrap` 需要设置 `position: relative` 作为定位容器。
+
+---
+
 ## 综合 Todo 清单
 
 1. **`internal/config/config.go`** — 重构 `CaptchaConfig`：`Dir` → `URLBase` + `DirBase`
@@ -372,4 +480,5 @@ userHandler := user.NewHandler(
 5. **`internal/user/login.go`** — 实现 `OnGetVerifyCaptcha`（获取验证码）+ 修改 `OnGetSMSVerifyCode`（坐标验证）
 6. **`cmd/server/main.go`** — 初始化 `CaptchaProvider`，传入 `user.NewHandler`
 7. **`cmd/server/routers.go`** — `GET /api/verify/captcha` 路由指向 `userHandler.OnGetVerifyCaptcha`，移除 `captchaHandler`
-8. **删除 `infra/captcha/handler.go`** — 功能已迁移完毕
+8. **`frontend/signin/index.html`** — 前端改造：文字型 → 点击式验证码
+9. **删除 `infra/captcha/handler.go`** — 功能已迁移完毕
