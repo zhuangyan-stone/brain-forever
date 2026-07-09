@@ -28,33 +28,21 @@ type CaptchaItem struct {
 }
 
 // ============================================================
-// CaptchaStore 接口
-// ============================================================
-
-// CaptchaStore is an abstraction for captcha data storage, with Redis implementation provided by the caller.
-type CaptchaStore interface {
-	HSet(ctx context.Context, key, field string, value interface{}) error
-	HGet(ctx context.Context, key, field string) (string, error)
-	HRandField(ctx context.Context, key string, count int) ([]string, error)
-	Del(ctx context.Context, key ...string) error
-}
-
-// ============================================================
 // CaptchaProvider
 // ============================================================
 
 // CaptchaProvider manages loading, retrieval, and refreshing of captcha data.
 type CaptchaProvider struct {
-	captchaURLBase string       // Base URL for captcha images
-	captchaDirBase string       // Local filesystem path
-	activeDir      string       // Current active directory "d1" or "d2"
-	store          CaptchaStore // Storage backend (Redis or memory)
-	mu             sync.RWMutex // Protects activeDir, ensures GetOne/Refresh concurrency safety
+	captchaURLBase string        // Base URL for captcha images
+	captchaDirBase string        // Local filesystem path
+	activeDir      string        // Current active directory "d1" or "d2"
+	store          ICaptchaStore // Storage backend (Redis or memory)
+	mu             sync.RWMutex  // Protects activeDir, ensures GetOne/Refresh concurrency safety
 }
 
 // NewCaptchaProvider creates and initializes a CaptchaProvider.
 // Loads captcha data from d1 and d2 into the store, detects activeDir.
-func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase string, store CaptchaStore) (*CaptchaProvider, error) {
+func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase string, store ICaptchaStore) (*CaptchaProvider, error) {
 	p := &CaptchaProvider{
 		captchaURLBase: captchaURLBase,
 		captchaDirBase: captchaDirBase,
