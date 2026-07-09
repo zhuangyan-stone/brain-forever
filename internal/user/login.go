@@ -170,9 +170,9 @@ func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 
 	// Verify click coordinates are within the rectangular area
 	d := item.Data
-	if clickX < d.Left || clickX > d.Right || clickY < d.Top || clickY > d.Bottom {
+	if clickX < d.A[0] || clickX > d.A[2] || clickY < d.A[1] || clickY > d.A[3] {
 		h.logger.Debugf("captcha click position mismatch: click=(%d,%d), rect=[%d,%d,%d,%d]",
-			clickX, clickY, d.Left, d.Top, d.Right, d.Bottom)
+			clickX, clickY, d.A[0], d.A[1], d.A[2], d.A[3])
 		http.Error(w, i18n.T("api_error_captcha_wrong"), http.StatusUnauthorized)
 		return
 	}

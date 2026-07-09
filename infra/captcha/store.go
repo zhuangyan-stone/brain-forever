@@ -16,12 +16,9 @@ import (
 
 // CaptchaData holds the captcha question and click area answer.
 type CaptchaData struct {
-	QCn    string `json:"q_cn"` // Chinese question
-	QEn    string `json:"q_en"` // English question
-	Left   int    `json:"left"` // Top-left corner of click area
-	Top    int    `json:"top"`
-	Right  int    `json:"right"` // Bottom-right corner of click area
-	Bottom int    `json:"bottom"`
+	QCn string `json:"q-cn"` // Chinese question
+	QEn string `json:"q-en"` // English question
+	A   [4]int `json:"a"`    // Click area [left, top, right, bottom]
 }
 
 // CaptchaItem represents a single captcha entry.
