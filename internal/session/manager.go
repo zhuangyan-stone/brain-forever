@@ -24,16 +24,29 @@ import (
 type Manager struct {
 	Mu       sync.RWMutex
 	Sessions map[string]*Session
-	Redis    *cache.RedisSessionStore // Redis-backed login state (nil = Redis unavailable)
+	redis    *cache.RedisSessionStore // unexported: use Redis() or HasRedis()
 	Ctx      context.Context          // Background context for Redis operations
 }
 
 // SetRedisStore attaches a Redis session store to the Manager.
-// Must be called before any session operations if Redis is available.
-// If redisStore is nil, session management operates in pure in-memory mode
-// (no persistence across restarts, same as before).
+// Must be called before any session operations.
 func (m *Manager) SetRedisStore(redisStore *cache.RedisSessionStore) {
-	m.Redis = redisStore
+	m.redis = redisStore
+}
+
+// Redis returns the Redis session store, panicking if it's nil.
+// Acts like C++ assert: business code assumes Redis is always configured.
+func (m *Manager) Redis() *cache.RedisSessionStore {
+	if m.redis == nil {
+		panic("session: Redis store is nil")
+	}
+	return m.redis
+}
+
+// HasRedis returns true if a Redis session store is configured.
+// Used by captcha code that supports in-memory fallback.
+func (m *Manager) HasRedis() bool {
+	return m.redis != nil
 }
 
 // Close releases all sessions. No database stores to close since
@@ -70,8 +83,8 @@ func (m *Manager) GetOrCreate(sessionID string) *Session {
 		s.Mu.Unlock()
 
 		// Refresh Redis TTL for active logged-in sessions
-		if isLoggedIn && m.Redis != nil {
-			m.Redis.RefreshTTL(m.Ctx, sessionID)
+		if isLoggedIn {
+			m.Redis().RefreshTTL(m.Ctx, sessionID)
 		}
 		return s
 	}
@@ -87,8 +100,8 @@ func (m *Manager) GetOrCreate(sessionID string) *Session {
 		s.Mu.Unlock()
 
 		// Refresh Redis TTL for active logged-in sessions
-		if isLoggedIn && m.Redis != nil {
-			m.Redis.RefreshTTL(m.Ctx, sessionID)
+		if isLoggedIn {
+			m.Redis().RefreshTTL(m.Ctx, sessionID)
 		}
 		return s
 	}
@@ -97,13 +110,11 @@ func (m *Manager) GetOrCreate(sessionID string) *Session {
 	var restoredID int64
 	var restoredSN string
 	var restoredSettings store.UserSettings
-	if m.Redis != nil {
-		if id, sn, settingsJSON, found, err := m.Redis.GetLoginSession(m.Ctx, sessionID); err == nil && found {
-			restoredID = id
-			restoredSN = sn
-			if settingsJSON != "" {
-				restoredSettings.FromString(settingsJSON)
-			}
+	if id, sn, settingsJSON, found, err := m.Redis().GetLoginSession(m.Ctx, sessionID); err == nil && found {
+		restoredID = id
+		restoredSN = sn
+		if settingsJSON != "" {
+			restoredSettings.FromString(settingsJSON)
 		}
 	}
 

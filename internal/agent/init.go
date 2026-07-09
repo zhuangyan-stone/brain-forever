@@ -144,14 +144,16 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	if redisStore != nil {
 		if err := redisStore.Ping(ctx); err != nil {
 			logger.Fatalf("Redis is configured but unreachable: %v", err)
-		} else {
-			chatHandler.SetRedisStore(redisStore)
-			logger.Infof("? Redis session store attached (%s)", cfg.Redis.Addr)
-
-			smsCodeCache := cache.NewSMSCodeCache(redisStore.Client())
-			chatHandler.SetSMSCodeCache(smsCodeCache)
-			logger.Infof("? SMS code cache attached (Redis-based)")
 		}
+
+		chatHandler.SetRedisStore(redisStore)
+		logger.Infof("? Redis session store attached (%s)", cfg.Redis.Addr)
+
+		smsCodeCache := cache.NewSMSCodeCache(redisStore.Client())
+		chatHandler.SetSMSCodeCache(smsCodeCache)
+		logger.Infof("? SMS code cache attached (Redis-based)")
+	} else {
+		logger.Fatalf("Redis not configured")
 	}
 
 	return chatHandler, nil

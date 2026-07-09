@@ -37,10 +37,10 @@ func captchaCacheKey(sessionID, action string) string {
 
 // storeCaptchaItem stores a captcha item in Redis cache (2-minute TTL).
 func (h *Handler) storeCaptchaItem(ctx context.Context, sessionID, action string, item *captcha.CaptchaItem) error {
-	if h.sessionManager.Redis == nil {
+	if !h.sessionManager.HasRedis() {
 		return nil // skip caching when Redis unavailable (dev/test only)
 	}
-	client := h.sessionManager.Redis.Client()
+	client := h.sessionManager.Redis().Client()
 	data, err := json.Marshal(item)
 	if err != nil {
 		return err
@@ -51,10 +51,10 @@ func (h *Handler) storeCaptchaItem(ctx context.Context, sessionID, action string
 
 // getCaptchaItem reads a captcha item from Redis cache.
 func (h *Handler) getCaptchaItem(ctx context.Context, sessionID, action string) (*captcha.CaptchaItem, error) {
-	if h.sessionManager.Redis == nil {
+	if !h.sessionManager.HasRedis() {
 		return nil, redis.Nil
 	}
-	client := h.sessionManager.Redis.Client()
+	client := h.sessionManager.Redis().Client()
 	key := captchaCacheKey(sessionID, action)
 	val, err := client.Get(ctx, key).Result()
 	if err != nil {
@@ -69,10 +69,10 @@ func (h *Handler) getCaptchaItem(ctx context.Context, sessionID, action string) 
 
 // deleteCaptchaItem deletes a captcha item from Redis cache (consumed after verification).
 func (h *Handler) deleteCaptchaItem(ctx context.Context, sessionID, action string) error {
-	if h.sessionManager.Redis == nil {
+	if !h.sessionManager.HasRedis() {
 		return nil
 	}
-	client := h.sessionManager.Redis.Client()
+	client := h.sessionManager.Redis().Client()
 	key := captchaCacheKey(sessionID, action)
 	return client.Del(ctx, key).Err()
 }
@@ -271,13 +271,11 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		Settings: userSettings,
 	})
 
-	if h.sessionManager.Redis != nil {
-		settingsJSON := userSettings.ToString()
-		if err := h.sessionManager.Redis.SetLoginSession(
-			h.sessionManager.Ctx, sessionID, user.ID, user.SN, settingsJSON,
-		); err != nil {
-			h.logger.Warnf("failed to persist login session to Redis: %v", err)
-		}
+	settingsJSON := userSettings.ToString()
+	if err := h.sessionManager.Redis().SetLoginSession(
+		h.sessionManager.Ctx, sessionID, user.ID, user.SN, settingsJSON,
+	); err != nil {
+		h.logger.Warnf("failed to persist login session to Redis: %v", err)
 	}
 
 	avatar := pickRandomAvatar(h.avatarDir)
@@ -351,13 +349,11 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		Settings: userSettings,
 	})
 
-	if h.sessionManager.Redis != nil {
-		settingsJSON := userSettings.ToString()
-		if err := h.sessionManager.Redis.SetLoginSession(
-			h.sessionManager.Ctx, sessionID, user.ID, user.SN, settingsJSON,
-		); err != nil {
-			h.logger.Warnf("failed to persist login session to Redis: %v", err)
-		}
+	settingsJSON := userSettings.ToString()
+	if err := h.sessionManager.Redis().SetLoginSession(
+		h.sessionManager.Ctx, sessionID, user.ID, user.SN, settingsJSON,
+	); err != nil {
+		h.logger.Warnf("failed to persist login session to Redis: %v", err)
 	}
 
 	avatar := pickRandomAvatar(h.avatarDir)

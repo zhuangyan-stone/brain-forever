@@ -156,8 +156,8 @@ func main() {
 	// Initialize CaptchaProvider (click-based captcha)
 	// ============================================================
 	var captchaStore captcha.ICaptchaStore
-	if sm := chatHandler.GetSessionManager(); sm.Redis != nil {
-		captchaStore = cache.NewRedisCaptchaStore(sm.Redis.Client())
+	if sm := chatHandler.GetSessionManager(); sm.HasRedis() {
+		captchaStore = cache.NewRedisCaptchaStore(sm.Redis().Client())
 		theLogger.Infof("CaptchaStore: Redis backend")
 	} else {
 		captchaStore = cache.NewMemoryCaptchaStore()
