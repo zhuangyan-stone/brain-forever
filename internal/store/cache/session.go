@@ -140,15 +140,5 @@ func (rs *RedisSessionStore) DelLoginSession(ctx context.Context, sessionID stri
 // Should be called on each authenticated request to keep the session alive.
 func (rs *RedisSessionStore) RefreshTTL(ctx context.Context, sessionID string) error {
 	key := sessionKey(sessionID)
-	now := time.Now().UTC().Format(time.RFC3339)
-
-	// Update last_active and refresh TTL
-	pipe := rs.client.Pipeline()
-	pipe.HSet(ctx, key, "last_active", now)
-	pipe.Expire(ctx, key, sessionTTL)
-	_, err := pipe.Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("redis: failed to refresh session TTL: %w", err)
-	}
-	return nil
+	return rs.client.Expire(ctx, key, sessionTTL).Err()
 }

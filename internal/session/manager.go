@@ -66,7 +66,13 @@ func (m *Manager) GetOrCreate(sessionID string) *Session {
 	if ok {
 		s.Mu.Lock()
 		s.LastActivity = time.Now()
+		isLoggedIn := !s.IsAnonymous()
 		s.Mu.Unlock()
+
+		// Refresh Redis TTL for active logged-in sessions
+		if isLoggedIn && m.Redis != nil {
+			m.Redis.RefreshTTL(m.Ctx, sessionID)
+		}
 		return s
 	}
 
@@ -77,7 +83,13 @@ func (m *Manager) GetOrCreate(sessionID string) *Session {
 	if s, ok := m.Sessions[sessionID]; ok {
 		s.Mu.Lock()
 		s.LastActivity = time.Now()
+		isLoggedIn := !s.IsAnonymous()
 		s.Mu.Unlock()
+
+		// Refresh Redis TTL for active logged-in sessions
+		if isLoggedIn && m.Redis != nil {
+			m.Redis.RefreshTTL(m.Ctx, sessionID)
+		}
 		return s
 	}
 
