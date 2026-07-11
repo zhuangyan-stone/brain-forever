@@ -456,6 +456,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		}
 	}()
 
+	var accumulatedUsage Usage
 	for {
 		toolCallIterations++
 
@@ -489,8 +490,15 @@ func (c *DeepSeekClient) ChatWithPipeline(
 			return "", "", fmt.Errorf("failed to call LLM API. %w", err)
 		}
 
-		// Read all chunks from the stream -collect reply, reasoning, and tool calls
-		streamResult, err := streamChatCompletion(ctx, stream, pipeline, c.SetUsageInfo)
+		// Read all chunks from the stream -collect reply, reasoning, and tool calls.
+		// Accumulate usage across all iterations so total_tokens reflects the entire
+		// pipeline (including all tool call rounds), not just the last iteration.
+		streamResult, err := streamChatCompletion(ctx, stream, pipeline, func(u Usage) {
+			accumulatedUsage.PromptTokens += u.PromptTokens
+			accumulatedUsage.CompletionTokens += u.CompletionTokens
+			accumulatedUsage.TotalTokens += u.TotalTokens
+			c.SetUsageInfo(accumulatedUsage)
+		})
 		if err != nil {
 			return "", "", fmt.Errorf("Read chunks from stream fail. %w", err)
 		}
