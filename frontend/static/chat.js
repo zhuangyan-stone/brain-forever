@@ -250,7 +250,7 @@ function setToggleButtonIcon(open) {
 
 // ===== 品牌文本常量（方便以后修改） =====
 const BRAND_TITLE = '第2大脑';
-const BRAND_SUBTITLE = '尽量懂你' 
+const BRAND_SUBTITLE = '渐渐懂你' 
 
 // 创建品牌元素（Logo + 主标题 + 副标题）
 function createBrandElement() {
