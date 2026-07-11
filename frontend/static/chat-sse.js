@@ -10,7 +10,7 @@
 // ============================================================
 
 import { chatStreamMgr } from './chat-stream-mgr.js';
-import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, isScrolledToBottom, restoreInputArea } from './chat-ui.js';
+import { addMessage, applyStreamingState, showError, showSources, showTokenUsage, autoScrollToBottom, updateHeaderTitle, showToast, showToastHTML, isScrolledToBottom, restoreInputArea } from './chat-ui.js';
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { TITLE_STATE, fetchChatTitle, truncateTitle, sendChatMessage } from './chat-api.js';
@@ -405,6 +405,41 @@ function handleAbortError(stream) {
 }
 
 /**
+ * ★ 判断是否为网络错误（连接断开、网络不可达等）
+ * 电脑休眠恢复后，浏览器 fetch 连接断开会抛出 TypeError（"Failed to fetch" 等）。
+ * @param {Error} err
+ * @returns {boolean}
+ */
+function isNetworkError(err) {
+    // AbortError 不视为网络错误（用户主动中止）
+    if (err.name === 'AbortError') return false;
+    // fetch 网络错误通常是 TypeError
+    if (err.name === 'TypeError') return true;
+    // 某些浏览器可能抛出含 network/fetch 关键词的错误
+    var msg = (err.message || '').toLowerCase();
+    return msg.includes('network') || msg.includes('fetch') || msg.includes('econnrefused');
+}
+
+/**
+ * ★ 处理网络错误：显示"连接已断开"的重试提示 Toast
+ * @param {ChatStream} stream
+ */
+function handleNetworkError(stream) {
+    console.warn('[SSE] 网络连接断开，显示重试提示');
+
+    // 显示可点击的 Toast，点击后调用 retryStream 重试
+    // 使用长时间（30s）确保用户有时间操作
+    showToastHTML(
+        '⚠ 连接已断开，<span class="toast-link">点击重新发送</span>',
+        'error',
+        30000,
+        function() {
+            retryStream(stream);
+        }
+    );
+}
+
+/**
  * 处理流式请求错误
  * @param {Error} err
  * @param {ChatStream} stream
@@ -414,6 +449,10 @@ function handleStreamError(err, stream) {
         // 标记为中断，cleanupAfterStream 据此跳过标题自动修改等操作
         stream.wasAborted = true;
         handleAbortError(stream);
+    } else if (isNetworkError(err) && stream.hasRetryData()) {
+        // ★ 网络错误（休眠恢复等导致 SSE 连接断开）：显示重试提示
+        //    不清除 retryData，供 retryStream 使用
+        handleNetworkError(stream);
     } else {
         console.error('请求失败:', err);
         if (stream.assistantBubble) {
@@ -584,6 +623,11 @@ export async function sendMessage() {
 
     const { content, createdAt, stream } = data;
 
+    // ★ 保存重试数据：当网络错误（如休眠恢复后连接断开）时，
+    //   用户可点击重试重新发送这条消息。
+    //   在 retryStream 中使用，新 sendMessage 调用时会自动覆盖。
+    stream.saveRetryData(content, createdAt);
+
     // 使用 Alpine.nextTick 让 Alpine 先完成用户消息的 DOM 渲染，
     // 再执行流式初始化和网络请求，减少用户感知的"消息气泡延迟"
     window.Alpine.nextTick(function() {
@@ -600,4 +644,130 @@ export async function sendMessage() {
             }
         })();
     });
+}
+
+// ============================================================
+// ★ SSE 重连 — 网络断开后的恢复机制
+// ============================================================
+
+/**
+ * ★ retryStream — 在 SSE 连接因网络错误（如电脑休眠恢复）断开后，重新发送消息。
+ *
+ * 触发条件：
+ *   1. sendMessage() 已保存重试数据（stream._retryContent/_retryCreatedAt）
+ *   2. handleStreamError 检测到网络错误（TypeError / 含 network/fetch 关键词）
+ *   3. 用户点击 Toast 中的"重新发送"链接
+ *
+ * 流程：
+ *   1. 重置 stream 状态（新 AbortController、清除 wasAborted）
+ *   2. 刷新 Alpine store 的 streamingMsg（丢弃旧的不完整数据）
+ *   3. 重置 assistant group 的内容（准备接收新数据）
+ *   4. 重新获取 DOM 引用
+ *   5. 重新发起 fetchStream()
+ *
+ * @param {ChatStream} stream
+ */
+async function retryStream(stream) {
+    if (!stream.hasRetryData()) {
+        console.warn('[SSE] 无重试数据，无法重试');
+        return;
+    }
+
+    const content = stream._retryContent;
+    const createdAt = stream._retryCreatedAt;
+    console.log('[SSE] 开始重试，SN:', stream.sn);
+
+    // ---- 1. 重置 stream 状态 ----
+    stream.wasAborted = false;
+    stream.abortController = new AbortController();
+
+    // ---- 2. 刷新 Alpine store 的流式状态 ----
+    var chats = window.Alpine.store('chats');
+    if (!chats) return;
+    var chatData = chats.getOrCreate(stream.sn);
+    if (!chatData) return;
+
+    // 重新创建 streamingMsg（丢弃之前的不完整数据，从空白开始接收）
+    chatData.isStreaming = true;
+    chatData.streamingMsg = {
+        reasoning: '',
+        content: '',
+        sources: [],
+        usage: null,
+        msgId: 0,
+        createdAt: null,
+        isDone: false,
+        error: null,
+        reasoningState: 'thinking',
+    };
+
+    // ---- 3. 重置最后一个 group 的 assistant 内容 ----
+    var groups = chatData.groups;
+    if (groups && groups.length > 0) {
+        var lastGroup = groups[groups.length - 1];
+        if (lastGroup && lastGroup.assistant) {
+            lastGroup.assistant.content = '';
+            lastGroup.assistant.contentHTML = '';
+            lastGroup.assistant.reasoning = '';
+            lastGroup.assistant.reasoningHTML = '';
+            lastGroup.assistant.reasoningState = 'thinking';
+            lastGroup.assistant.sources = [];
+            lastGroup.assistant.createdAt = null;
+            // 清除可能被 handleAbortError 设置的中断标记
+            lastGroup.assistant.interrupted = 0;
+        }
+    }
+
+    // ---- 4. 恢复 UI 流式状态 ----
+    applyStreamingState(true);
+
+    // ---- 5. 重新获取 DOM 引用 ----
+    requestAnimationFrame(function() {
+        var chatContainer = document.getElementById('chatContainer');
+        if (!chatContainer) return;
+        var lastGroupEl = chatContainer.querySelector('.message-group:last-child');
+        if (!lastGroupEl) return;
+        var streamingBubble = lastGroupEl.querySelector('.bubble.streaming');
+        var assistantMsgEl = lastGroupEl.querySelector('.message.assistant');
+        if (assistantMsgEl) {
+            stream.assistantBubble = assistantMsgEl;
+            stream.contentDiv = streamingBubble || assistantMsgEl.querySelector('.bubble');
+
+            // 清除气泡上的错误/中断样式
+            assistantMsgEl.classList.remove('interrupted');
+            if (stream.contentDiv) {
+                stream.contentDiv.classList.remove('streaming');
+                stream.contentDiv.classList.add('streaming');
+            }
+        }
+    });
+
+    autoScrollToBottom();
+
+    // ---- 6. 重新发起 SSE 请求 ----
+    try {
+        await fetchStream(stream, content, createdAt);
+        // ★ 重试成功：清除重试数据（后续正常 cleanupAfterStream 中 wasAborted=false）
+    } catch (err) {
+        // ★ 重试仍然失败：更新错误提示
+        if (err.name === 'AbortError') {
+            // 用户主动中断
+            stream.wasAborted = true;
+            handleAbortError(stream);
+        } else if (isNetworkError(err)) {
+            // 网络仍然不可达：再次显示重试提示
+            handleNetworkError(stream);
+            // 不执行 cleanupAfterStream，保持 isStreaming 状态供再次重试
+            return;
+        } else {
+            // 其他错误
+            console.error('[SSE] 重试请求失败:', err);
+            if (stream.assistantBubble) {
+                showError(stream.assistantBubble, err.message);
+            }
+        }
+    }
+
+    // ★ 只有在非网络错误（或重试成功）时才 cleanup
+    cleanupAfterStream(stream, stream.wasAborted);
 }

@@ -43,6 +43,15 @@ export class ChatStream {
         // 中断标记：当前 SSE 流是否被用户中断（AbortError）
         // 瞬态标记，不持久化，仅用于 cleanupAfterStream 判断
         this.wasAborted = false;
+
+        // ★ 重试数据：保存最后一次发送的消息内容和创建时间，
+        //   当网络错误（休眠恢复等）导致 SSE 连接断开时，用户可点击重试重新发送。
+        //   在 sendMessage() 中设置，在 retryStream() 中使用。
+        //   正常完成后（onDone）会被清除，避免后续误重试。
+        /** @type {string|null} */
+        this._retryContent = null;
+        /** @type {string|null} */
+        this._retryCreatedAt = null;
     }
 
     /**
@@ -51,5 +60,31 @@ export class ChatStream {
     releaseDOM() {
         this.assistantBubble = null;
         this.contentDiv = null;
+    }
+
+    /**
+     * ★ 保存重试数据，供网络断开后重试使用
+     * @param {string} content
+     * @param {string} createdAt
+     */
+    saveRetryData(content, createdAt) {
+        this._retryContent = content;
+        this._retryCreatedAt = createdAt;
+    }
+
+    /**
+     * ★ 清除重试数据（正常完成后调用）
+     */
+    clearRetryData() {
+        this._retryContent = null;
+        this._retryCreatedAt = null;
+    }
+
+    /**
+     * ★ 判断是否有可重试的数据
+     * @returns {boolean}
+     */
+    hasRetryData() {
+        return this._retryContent !== null && this._retryCreatedAt !== null;
     }
 }
