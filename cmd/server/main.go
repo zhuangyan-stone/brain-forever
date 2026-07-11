@@ -169,11 +169,12 @@ func main() {
 		cfg.Captcha.URLBase,
 		cfg.Captcha.DirBase,
 		captchaStore,
+		theLogger,
 	)
 	if err != nil {
 		theLogger.Fatalf("failed to initialize captcha provider: %v", err)
 	}
-	theLogger.Infof("captcha provider initialized (activeDir=%s)", captchaProvider.ActiveDir())
+	theLogger.Infof("captcha provider initialized (activeDir=%s, count=%d)", captchaProvider.ActiveDir(), captchaProvider.ActiveCount())
 
 	// ============================================================
 	// Setup routes using httpx.Server
