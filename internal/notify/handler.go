@@ -29,13 +29,9 @@ func NewHandler(captchaProvider *captcha.CaptchaProvider) *Handler {
 // PUT /api/notify/captcha/refresh — RefreshCaptcha
 // ============================================================
 
-// refreshCaptchaRequest is the JSON body for refreshing captcha.
-type refreshCaptchaRequest struct {
-	Dir string `json:"dir"` // Directory to activate: "d1" or "d2"
-}
-
 // OnCaptchaRefresh handles PUT /api/notify/captcha/refresh.
 // It refreshes the captcha provider's active directory.
+// The dir parameter is passed as a URL query parameter (e.g. ?dir=d1).
 // Only requests from 127.0.0.1 (localhost) are accepted.
 func (h *Handler) OnCaptchaRefresh(w http.ResponseWriter, r *http.Request) {
 	// Verify the request comes from localhost
@@ -45,14 +41,14 @@ func (h *Handler) OnCaptchaRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req refreshCaptchaRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	// Read dir from URL query parameter (not from request body)
+	dir := strings.TrimSpace(r.URL.Query().Get("dir"))
+	if dir == "" {
+		http.Error(w, "missing dir query parameter", http.StatusBadRequest)
 		return
 	}
 
 	// Validate dir
-	dir := strings.TrimSpace(req.Dir)
 	if dir != "d1" && dir != "d2" {
 		http.Error(w, "invalid dir: must be \"d1\" or \"d2\"", http.StatusBadRequest)
 		return

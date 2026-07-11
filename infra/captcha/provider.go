@@ -210,15 +210,25 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 }
 
 // Refresh reloads captcha data for the specified directory into the store and updates activeDir.
+//
+// Safety logic:
+//   - If activeDir == p.activeDir (refreshing the same directory): old data is deleted first,
+//     then reloaded from disk to ensure fresh data.
+//   - If activeDir != p.activeDir (switching to a different directory): only the new directory
+//     is loaded; the old directory's data is preserved. This ensures users who already have
+//     a captcha image from the old directory can still complete verification (via session cache),
+//     and the old data remains available in case we need to switch back.
 func (p *CaptchaProvider) Refresh(ctx context.Context, activeDir string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	oldKey := "CAPTCHAS_store." + p.activeDir
-
-	// Clear old data
-	if err := p.store.Del(ctx, oldKey); err != nil {
-		return fmt.Errorf("failed to del old captcha store %q: %w", oldKey, err)
+	// Only delete old data when refreshing the same directory;
+	// when switching to a different directory, keep the old one intact.
+	if activeDir == p.activeDir {
+		oldKey := "CAPTCHAS_store." + p.activeDir
+		if err := p.store.Del(ctx, oldKey); err != nil {
+			return fmt.Errorf("failed to del old captcha store %q: %w", oldKey, err)
+		}
 	}
 
 	// Reload
