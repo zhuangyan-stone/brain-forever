@@ -345,16 +345,22 @@ func sessionWebSearchAPIKey(s *session.Session) string {
 	return s.User.Settings.APIKey.Search.ApiKey
 }
 
-// sessionWebSearcher returns the web search client for the user's configured provider.
+// sessionWebSearcher returns a per-request webSearchAdapter with the
+// user's configured provider and personal API key baked in.
 func sessionWebSearcher(s *session.Session) toolimp.WebSearcher {
 	provider := s.User.Settings.APIKey.Search.Provider
 	if provider == "" {
-		return webSearchClients[ProviderBocha]
+		provider = ProviderBocha
 	}
-	if w, ok := webSearchClients[provider]; ok {
-		return w
+	rawClient, ok := searcherClientByPvd[provider]
+	if !ok {
+		rawClient = searcherClientByPvd[ProviderBocha]
 	}
-	return webSearchClients[ProviderBocha]
+	apiKey := s.User.Settings.APIKey.Search.ApiKey
+	return &webSearchAdapter{
+		client: rawClient,
+		apiKey: apiKey,
+	}
 }
 
 // GetSessionManager returns the underlying session manager.

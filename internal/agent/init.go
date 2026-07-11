@@ -7,7 +7,6 @@ import (
 	"BrainForever/infra/llm"
 	"BrainForever/infra/searcher"
 	"BrainForever/infra/zylog"
-	"BrainForever/internal/agent/toolimp"
 	"BrainForever/internal/config"
 	"BrainForever/internal/store/cache"
 	"BrainForever/internal/store/dbc"
@@ -26,25 +25,29 @@ const (
 
 // ============================================================
 // Provider client registries (package-level singletons)
+//
+// All clients are initialized with empty API keys. Per-user API
+// keys are provided at runtime via session LLM/Embedder/Search
+// API key accessors.
 // ============================================================
 
 var (
-	llmClients       map[string]llm.Client
-	embedderClients  map[string]embedder.Embedder
-	webSearchClients map[string]toolimp.WebSearcher
+	llmClients          map[string]llm.Client
+	embedderClients     map[string]embedder.Embedder
+	searcherClientByPvd map[string]searcher.WebSearcher // underlying search clients (no API key)
 )
 
 // ============================================================
 // Agent initialization
 // ============================================================
 
-func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embedder {
-	provider := cfg.Provider
+// InitEmbedder creates an embedder for the given provider.
+// The embedder is created with an empty API key; callers must
+// provide the per-user API key at embed-time.
+func InitEmbedder(provider string, dimension int, logger zylog.Logger) embedder.Embedder {
 	if provider == "" {
 		provider = ProviderAli
 	}
-
-	dimension := cfg.Dimension
 	if dimension <= 0 {
 		dimension = 2048
 	}
@@ -52,49 +55,36 @@ func InitEmbedder(cfg config.EmbedderConfig, logger zylog.Logger) embedder.Embed
 	var e embedder.Embedder
 	switch provider {
 	case ProviderZhipu:
-		e = embedder.NewZhipuEmbedder(cfg.APIKey, dimension)
+		e = embedder.NewZhipuEmbedder("", dimension)
 		logger.Infof("? Using Zhipu Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	default:
-		e = embedder.NewDashScopeEmbedder(cfg.APIKey, dimension)
+		e = embedder.NewDashScopeEmbedder("", dimension)
 		logger.Infof("? Using DashScope Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	}
 
 	return e
 }
 
-func InitLLMClient(cfg config.ChatLLMConfig, logger zylog.Logger) llm.Client {
-	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{
-		ClientConfig: llm.ClientConfig{
-			APIKey:                cfg.APIKey,
-			BaseURL:               cfg.BaseURL,
-			Model:                 cfg.Model,
-			MaxToolCallIterations: cfg.MaxToolCallIterations,
-		},
-	})
+// InitLLMClient creates the default DeepSeek LLM client.
+// The client is created with an empty API key; callers must
+// provide the per-user API key at call time.
+func InitLLMClient(logger zylog.Logger) llm.Client {
+	logger.Infof("? Using DeepSeek LLM client")
+	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{})
 }
 
-func InitWebSearchClient(cfg config.WebSearchConfig, logger zylog.Logger) toolimp.WebSearcher {
-	provider := cfg.Provider
-	if provider == "" {
-		return nil
-	}
-
+// InitWebSearchRawClient creates a raw search client for the given provider.
+// The client is created with an empty API key; callers must provide the
+// per-user API key via webSearchAdapter at call time.
+func InitWebSearchRawClient(provider string, logger zylog.Logger) searcher.WebSearcher {
 	switch provider {
 	case ProviderZhipu:
-		logger.Infof("? Web search enabled (bigmodel.cn)")
-		return &webSearchAdapter{
-			client: searcher.NewZhiPuClient(searcher.WebSearchClientConfig{
-				APIKey: cfg.APIKey,
-			}),
-		}
+		logger.Infof("? Web search client registered (bigmodel.cn)")
+		return searcher.NewZhiPuClient(searcher.WebSearchClientConfig{})
 
 	case ProviderBocha:
-		logger.Infof("? Web search enabled (bocha.cn)")
-		return &webSearchAdapter{
-			client: searcher.NewBochaClient(searcher.WebSearchClientConfig{
-				APIKey: cfg.APIKey,
-			}),
-		}
+		logger.Infof("? Web search client registered (bocha.cn)")
+		return searcher.NewBochaClient(searcher.WebSearchClientConfig{})
 	}
 
 	return nil
@@ -110,23 +100,16 @@ func InitRedisStore(cfg config.RedisConfig) *cache.RedisSessionStore {
 // InitAgent creates a fully initialized ChatHandler from a Config.
 func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaultLang string, logger zylog.Logger) (*ChatAgent, error) {
 	llmClients = make(map[string]llm.Client)
-	llmClients[ProviderDeepSeek] = InitLLMClient(cfg.ChatLLM, logger)
+	llmClients[ProviderDeepSeek] = InitLLMClient(logger)
 
+	const embedderDimension = 2048
 	embedderClients = make(map[string]embedder.Embedder)
-	embedderClients[ProviderAli] = InitEmbedder(config.EmbedderConfig{
-		Provider:  ProviderAli,
-		APIKey:    cfg.Embedder.APIKey,
-		Dimension: cfg.Embedder.Dimension,
-	}, logger)
-	embedderClients[ProviderZhipu] = InitEmbedder(config.EmbedderConfig{
-		Provider:  ProviderZhipu,
-		APIKey:    cfg.Embedder.APIKey,
-		Dimension: cfg.Embedder.Dimension,
-	}, logger)
+	embedderClients[ProviderAli] = InitEmbedder(ProviderAli, embedderDimension, logger)
+	embedderClients[ProviderZhipu] = InitEmbedder(ProviderZhipu, embedderDimension, logger)
 
-	webSearchClients = make(map[string]toolimp.WebSearcher)
-	webSearchClients[ProviderBocha] = InitWebSearchClient(cfg.WebSearch, logger)
-	webSearchClients[ProviderZhipu] = InitWebSearchClient(cfg.WebSearch, logger)
+	searcherClientByPvd = make(map[string]searcher.WebSearcher)
+	searcherClientByPvd[ProviderBocha] = InitWebSearchRawClient(ProviderBocha, logger)
+	searcherClientByPvd[ProviderZhipu] = InitWebSearchRawClient(ProviderZhipu, logger)
 
 	defaultEmbedder := embedderClients[ProviderAli]
 	dbc.InitDBConfig(cfg.Data.Dir, defaultEmbedder.Dimension(), logger)

@@ -15,6 +15,7 @@ import (
 type ApiSetting struct {
 	Provider string `json:"provider"` // 服务提供商，如 "deepseek", "ali", "zhipu", "bocha"
 	ApiKey   string `json:"api_key"`  // API Key
+
 }
 
 // UnmarshalJSON 兼容两种 JSON 格式：
