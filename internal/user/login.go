@@ -271,9 +271,15 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		Settings: userSettings,
 	})
 
-	settingsJSON := userSettings.ToString()
 	if err := h.sessionManager.Redis().SetLoginSession(
-		h.sessionManager.Ctx, sessionID, user.ID, user.SN, settingsJSON,
+		h.sessionManager.Ctx, sessionID,
+		&cache.LoginSessionData{
+			UserID:   user.ID,
+			UserSN:   user.SN,
+			No:       user.No,
+			Nickname: user.Nickname,
+			Settings: userSettings.ToString(),
+		},
 	); err != nil {
 		h.logger.Warnf("failed to persist login session to Redis: %v", err)
 	}
@@ -349,9 +355,15 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		Settings: userSettings,
 	})
 
-	settingsJSON := userSettings.ToString()
 	if err := h.sessionManager.Redis().SetLoginSession(
-		h.sessionManager.Ctx, sessionID, user.ID, user.SN, settingsJSON,
+		h.sessionManager.Ctx, sessionID,
+		&cache.LoginSessionData{
+			UserID:   user.ID,
+			UserSN:   user.SN,
+			No:       user.No,
+			Nickname: user.Nickname,
+			Settings: userSettings.ToString(),
+		},
 	); err != nil {
 		h.logger.Warnf("failed to persist login session to Redis: %v", err)
 	}

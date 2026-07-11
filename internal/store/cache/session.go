@@ -32,6 +32,17 @@ const (
 	sessionTTL = 7 * 24 * time.Hour
 )
 
+// LoginSessionData holds the user login session data persisted in Redis.
+// It is a subset of session.SessionUser — kept here as a standalone struct
+// to avoid circular imports between the cache and session packages.
+type LoginSessionData struct {
+	UserID   int64
+	UserSN   string
+	No       string
+	Nickname string
+	Settings string // JSON-serialized UserSettings
+}
+
 // RedisSessionStore wraps a Redis client for session operations.
 type RedisSessionStore struct {
 	client *redis.Client
@@ -76,16 +87,17 @@ func sessionKey(sessionID string) string {
 // ============================================================
 
 // SetLoginSession stores the user's login session in Redis.
-// userID and userSN are the authenticated user's identity.
 // settingsJSON is the JSON-serialized UserSettings (API keys, theme, etc.).
-func (rs *RedisSessionStore) SetLoginSession(ctx context.Context, sessionID string, userID int64, userSN string, settingsJSON string) error {
+func (rs *RedisSessionStore) SetLoginSession(ctx context.Context, sessionID string, data *LoginSessionData) error {
 	key := sessionKey(sessionID)
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	err := rs.client.HSet(ctx, key,
-		"user_id", strconv.FormatInt(userID, 10),
-		"user_sn", userSN,
-		"settings", settingsJSON,
+		"user_id", strconv.FormatInt(data.UserID, 10),
+		"user_sn", data.UserSN,
+		"no", data.No,
+		"nickname", data.Nickname,
+		"settings", data.Settings,
 		"created_at", now,
 		"last_active", now,
 	).Err()
@@ -99,35 +111,40 @@ func (rs *RedisSessionStore) SetLoginSession(ctx context.Context, sessionID stri
 }
 
 // GetLoginSession retrieves login state from Redis.
-// Returns userID, userSN, settingsJSON, and a bool indicating if the session exists.
-func (rs *RedisSessionStore) GetLoginSession(ctx context.Context, sessionID string) (userID int64, userSN string, settingsJSON string, ok bool, err error) {
+// Returns nil if the session does not exist or is malformed.
+func (rs *RedisSessionStore) GetLoginSession(ctx context.Context, sessionID string) (*LoginSessionData, error) {
 	key := sessionKey(sessionID)
 
 	data, err := rs.client.HGetAll(ctx, key).Result()
 	if err != nil {
-		return 0, "", "", false, fmt.Errorf("redis: failed to get login session: %w", err)
+		return nil, fmt.Errorf("redis: failed to get login session: %w", err)
 	}
 
 	if len(data) == 0 {
-		return 0, "", "", false, nil // session not found
+		return nil, nil // session not found
 	}
 
 	uidStr, hasUID := data["user_id"]
 	snStr, hasSN := data["user_sn"]
-	settingsStr := data["settings"] // may be empty (old format sessions)
 	if !hasUID || !hasSN {
 		// Malformed entry — clean it up
 		rs.client.Del(ctx, key)
-		return 0, "", "", false, nil
+		return nil, nil
 	}
 
 	uid, err := strconv.ParseInt(uidStr, 10, 64)
 	if err != nil {
 		rs.client.Del(ctx, key)
-		return 0, "", "", false, nil
+		return nil, nil
 	}
 
-	return uid, snStr, settingsStr, true, nil
+	return &LoginSessionData{
+		UserID:   uid,
+		UserSN:   snStr,
+		No:       data["no"],
+		Nickname: data["nickname"],
+		Settings: data["settings"],
+	}, nil
 }
 
 // DelLoginSession removes a session from Redis (used on logout).

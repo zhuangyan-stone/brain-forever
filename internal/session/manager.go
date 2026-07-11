@@ -107,26 +107,32 @@ func (m *Manager) GetOrCreate(sessionID string) *Session {
 	}
 
 	// Try to restore login state from Redis
-	var restoredID int64
-	var restoredSN string
 	var restoredSettings store.UserSettings
-	if id, sn, settingsJSON, found, err := m.Redis().GetLoginSession(m.Ctx, sessionID); err == nil && found {
-		restoredID = id
-		restoredSN = sn
-		if settingsJSON != "" {
-			restoredSettings.FromString(settingsJSON)
+	if loginData, err := m.Redis().GetLoginSession(m.Ctx, sessionID); err == nil && loginData != nil {
+		if loginData.Settings != "" {
+			restoredSettings.FromString(loginData.Settings)
 		}
-	}
 
-	s = &Session{
-		ID:           sessionID,
-		LastActivity: time.Now(),
-		User: SessionUser{
-			ID:          restoredID,
-			SN:          restoredSN,
-			Settings:    restoredSettings,
-			CurrentChat: &llmtypes.Chat{},
-		},
+		s = &Session{
+			ID:           sessionID,
+			LastActivity: time.Now(),
+			User: SessionUser{
+				ID:          loginData.UserID,
+				SN:          loginData.UserSN,
+				No:          loginData.No,
+				Nickname:    loginData.Nickname,
+				Settings:    restoredSettings,
+				CurrentChat: &llmtypes.Chat{},
+			},
+		}
+	} else {
+		s = &Session{
+			ID:           sessionID,
+			LastActivity: time.Now(),
+			User: SessionUser{
+				CurrentChat: &llmtypes.Chat{},
+			},
+		}
 	}
 
 	m.Sessions[sessionID] = s
