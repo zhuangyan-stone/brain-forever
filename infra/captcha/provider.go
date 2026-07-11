@@ -57,13 +57,7 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 	// Load d1 and d2, track the count for the active directory
 	var activeCount int
 	for _, dir := range []string{"d1", "d2"} {
-		// Delete stale entries first to avoid accumulating orphaned captcha
-		// entries in Redis when PNG files are removed from disk between restarts.
-		oldKey := "CAPTCHAS_store." + dir
-		if err := store.Del(ctx, oldKey); err != nil {
-			return nil, fmt.Errorf("failed to clear stale captcha store %q: %w", oldKey, err)
-		}
-
+		// loadAndStore clears stale data internally before re-populating.
 		count, err := p.loadAndStore(ctx, dir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load captcha dir %q: %w", dir, err)
@@ -86,8 +80,16 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 
 // loadAndStore reads PNG and JSON files in the specified directory and stores matching entries into the store.
 // If the png or json subdirectories do not exist, they are created automatically.
+// The store key is cleared first to remove any stale entries from previous loads.
 // Returns the number of successfully stored entries.
 func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, error) {
+	// Clear stale data first to avoid accumulating orphaned entries
+	// when the files on disk have changed since the last load.
+	redisKey := "CAPTCHAS_store." + dir
+	if err := p.store.Del(ctx, redisKey); err != nil {
+		return 0, fmt.Errorf("failed to clear captcha store %q before reload: %w", redisKey, err)
+	}
+
 	pngDir := filepath.Join(p.captchaDirBase, dir, "png")
 	jsonDir := filepath.Join(p.captchaDirBase, dir, "json")
 
@@ -143,7 +145,6 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, er
 	}
 
 	// Iterate over PNG filenames and check for corresponding JSON
-	redisKey := "CAPTCHAS_store." + dir
 	count := 0
 	for _, name := range pngNames {
 		data, ok := jsonMap[name]
@@ -212,8 +213,8 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 // Refresh reloads captcha data for the specified directory into the store and updates activeDir.
 //
 // Safety logic:
-//   - If activeDir == p.activeDir (refreshing the same directory): old data is deleted first,
-//     then reloaded from disk to ensure fresh data.
+//   - If activeDir == p.activeDir (refreshing the same directory): old data is replaced
+//     by loadAndStore (which clears first then reloads from disk).
 //   - If activeDir != p.activeDir (switching to a different directory): only the new directory
 //     is loaded; the old directory's data is preserved. This ensures users who already have
 //     a captcha image from the old directory can still complete verification (via session cache),
@@ -222,14 +223,9 @@ func (p *CaptchaProvider) Refresh(ctx context.Context, activeDir string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Only delete old data when refreshing the same directory;
-	// when switching to a different directory, keep the old one intact.
-	if activeDir == p.activeDir {
-		oldKey := "CAPTCHAS_store." + p.activeDir
-		if err := p.store.Del(ctx, oldKey); err != nil {
-			return fmt.Errorf("failed to del old captcha store %q: %w", oldKey, err)
-		}
-	}
+	// loadAndStore clears stale data internally before re-populating,
+	// so no explicit Del is needed regardless of whether we're refreshing
+	// the same directory or switching to a different one.
 
 	// Reload
 	count, err := p.loadAndStore(ctx, activeDir)
