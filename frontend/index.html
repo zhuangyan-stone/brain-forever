@@ -7,6 +7,22 @@
     <meta name="color-scheme" content="light dark">
     <title>第2大脑 AI 助手</title>
     <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
+    <!-- 防止浏览器 bfcache（后退/前进缓存）导致退出登录后仍可回退到首页 -->
+    <!-- 即使服务端已设 Cache-Control: no-store，bfcache 仍可能保存页面快照，
+         此脚本通过轻量 API 探测 session，仅在未登录时静默重定向，无闪烁。 -->
+    <script>
+        window.addEventListener('pageshow', function (evt) {
+            if (evt.persisted) {
+                fetch('/api/session').then(function (r) { return r.json(); }).then(function (data) {
+                    if (!data.no) {
+                        window.location.replace('/signin/');
+                    }
+                }).catch(function () {
+                    window.location.replace('/signin/');
+                });
+            }
+        });
+    </script>
     <!-- 防主题闪烁：在 CSS 渲染前从 localStorage 读取主题并设置 data-theme -->
     <script>
         (function () {

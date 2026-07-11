@@ -440,8 +440,8 @@ export async function onChatLogout() {
 				tickNav.innerHTML = '';
 			}
 
-			// 跳转到登录页（匿名设计已废弃）
-			window.location.href = '/signin/';
+			// 跳转到登录页（replace 替换首页历史，不让后退回到已过期的首页）
+			window.location.replace('/signin/');
 			return true;
 		}
 		return false;

@@ -47,7 +47,7 @@ export async function initPage() {
     // 匿名设计已废弃，所有用户必须登录才能使用。
     if (!currentUserNo) {
         console.log('[Zoo] currentUserNo 为空，跳转到 /signin/');
-        window.location.href = '/signin/';
+        window.location.replace('/signin/');
         return; // 停止后续执行
     }
     console.log('[Zoo] 登录检查通过，继续加载');
