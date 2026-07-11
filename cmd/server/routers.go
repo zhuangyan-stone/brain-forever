@@ -8,12 +8,13 @@ import (
 	"BrainForever/infra/httpx"
 	"BrainForever/internal/agent"
 	"BrainForever/internal/logger"
+	"BrainForever/internal/notify"
 	"BrainForever/internal/theme"
 	"BrainForever/internal/user"
 )
 
 // initRouters registers all API routes on the given server.
-func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *theme.Handler, userHandler *user.Handler) {
+func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *theme.Handler, userHandler *user.Handler, notifyHandler *notify.Handler) {
 
 	// ============================================================
 	// Authenticated routes (require valid session)
@@ -108,6 +109,9 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 
 	// /api/verify/captcha -- GET (get click-based captcha); verification is embedded in /api/verify/sms
 	srv.GET("/api/verify/captcha", userHandler.OnGetVerifyCaptcha)
+
+	// /api/notify/captcha/refresh -- PUT (refresh captcha active directory, localhost only)
+	srv.PUT("/api/notify/captcha/refresh", notifyHandler.OnCaptchaRefresh)
 
 	// /api/user/login/sms -- POST (login by tel + SMS verify code)
 	srv.POST("/api/user/login/sms", userHandler.OnLoginBySMS)

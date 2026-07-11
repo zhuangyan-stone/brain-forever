@@ -7,32 +7,11 @@
     <title>登录 - 第2大脑 AI 助手</title>
     <link rel="icon" type="image/svg+xml" href="/static/brain-forever.svg">
 
-    <!-- 防主题闪烁：CSS 渲染前从 localStorage 读取主题 -->
+    <!-- 登录页无状态主题：永远跟随系统，不从任何存储读取 -->
     <script>
         (function () {
-            try {
-                var raw = localStorage.getItem('brainforever_settings');
-                if (raw) {
-                    var settings = JSON.parse(raw);
-                    var theme = settings.theme;
-                    var themeStr;
-                    if (theme >= 2) {
-                        // theme=2(系统亮) 或 3(系统暗)，跟随系统
-                        themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                    } else {
-                        themeStr = theme === 1 ? 'dark' : 'light';
-                    }
-                    document.documentElement.setAttribute('data-theme', themeStr);
-                    console.log('[theme] init theme:', theme);
-                } else {
-                    // 无已保存的设置时，默认跟随系统
-                    var themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                    document.documentElement.setAttribute('data-theme', themeStr);
-                    console.log('[theme] init theme: none (follow system)');
-                }
-            } catch (e) {
-                console.log('[theme] init theme: error reading settings');
-            }
+            var themeStr = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', themeStr);
         })();
     </script>
 
@@ -137,26 +116,16 @@
             '<line x1="4.22" y1="19.78" x2="5.64" y2="18.32"/>' +
             '<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
 
+        // 内存标记：用户是否手动切换过主题（登录页无状态，不用 localStorage）
+        var _userToggledTheme = false;
+
         function getCurrentTheme() {
-            // 直接从 data-theme 属性读取当前实际主题，避免 localStorage 中 theme=2（跟随系统）
-            // 时与 data-theme 实际值不一致导致切换失效
             return document.documentElement.getAttribute('data-theme') || 'light';
         }
 
         function setTheme(mode) {
             document.documentElement.setAttribute('data-theme', mode);
-            try {
-                var raw = localStorage.getItem('brainforever_settings');
-                var settings = raw ? JSON.parse(raw) : {};
-                // 保留 bit 1（是否跟随系统），只改 bit 0（亮暗）
-                // 注意：无已保存设置时（settings.theme === undefined），默认视为跟随系统（base=2）
-                var base = (!settings || settings.theme === undefined || settings.theme >= 2) ? 2 : 0;
-                settings.theme = base + (mode === 'dark' ? 1 : 0);
-                localStorage.setItem('brainforever_settings', JSON.stringify(settings));
-                console.log('[theme] theme:', settings.theme);
-            } catch(e) {
-                console.log('[theme] theme: fallback', mode === 'dark' ? 1 : 0);
-            }
+            _userToggledTheme = true;
             updateThemeIcon(mode);
         }
 
@@ -166,12 +135,10 @@
         }
 
         function updateThemeIcon(mode) {
-            // 更新按钮的 title
             var btn = document.getElementById('themeToggle');
             if (btn) {
                 btn.title = mode === 'dark' ? '切换到亮色主题' : '切换到暗色主题';
             }
-            // 更新 SVG 图标：亮色→太阳，暗色→月亮
             var svg = document.getElementById('themeIconSvg');
             if (svg) {
                 svg.innerHTML = mode === 'dark' ? ICON_MOON_PATH : ICON_SUN_PATH;
@@ -181,32 +148,14 @@
         // 初始化主题图标
         updateThemeIcon(getCurrentTheme());
 
-        // 监听系统主题变化（跟随系统模式下自动切换）
+        // 监听系统主题变化：用户未手动切换过时才自动跟随
         (function() {
             var darkMq = window.matchMedia('(prefers-color-scheme: dark)');
             darkMq.addEventListener('change', function(e) {
-                try {
-                    var raw = localStorage.getItem('brainforever_settings');
-                    var shouldFollow = true;
-                    var currentTheme;
-                    if (raw) {
-                        var s = JSON.parse(raw);
-                        currentTheme = s.theme;
-                        if (s.theme < 2) {
-                            shouldFollow = false; // 手动模式（0/1），不自动跟随系统
-                        }
-                    }
-                    if (shouldFollow) {
-                        var mode = e.matches ? 'dark' : 'light';
-                        document.documentElement.setAttribute('data-theme', mode);
-                        updateThemeIcon(mode);
-                        console.log('[theme] system change — follow system, mode:', mode);
-                    } else {
-                        console.log('[theme] system change — ignored (manual mode', currentTheme, ')');
-                    }
-                } catch(e) {
-                    console.log('[theme] system change — error reading settings');
-                }
+                if (_userToggledTheme) return;
+                var mode = e.matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', mode);
+                updateThemeIcon(mode);
             });
         })();
 
@@ -516,51 +465,21 @@
                     if (data.avatar) {
                         localStorage.setItem('brainforever_user_avatar', data.avatar);
                     }
-                    // 主题同步：持久化 sync 标记
-                    if (data.theme && data.theme.sync) {
-                        if (data.theme.light) {
-                            localStorage.setItem('brainforever_theme_light', data.theme.light);
-                        }
-                        if (data.theme.dark) {
-                            localStorage.setItem('brainforever_theme_dark', data.theme.dark);
-                        }
-                        // 映射 active 到数字：light→0, dark→1, system→2 或 3
-                        var themeNum = 0;
-                        if (data.theme.active === 'dark') {
-                            themeNum = 1;
-                        } else if (data.theme.active === 'system') {
-                            // bit 1 置 1（跟随系统），bit 0 根据当前系统偏好
-                            themeNum = 2 + (window.matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0);
-                        }
+                    // 亮暗模式传递：仅将登录页当前亮暗（0或1）合并到首页 theme 值中
+                    if (data.theme) {
+                        // 从登录页 data-theme 属性读取当前实际亮暗（用户所见即所得）
+                        var loginBrightBit = getCurrentTheme() === 'dark' ? 1 : 0;
                         try {
                             var raw = localStorage.getItem('brainforever_settings');
                             var settings = raw ? JSON.parse(raw) : {};
-                            settings.theme = themeNum;
-                            settings.themeSync = true; // 持久化同步标记
+                            // 保留首页原有的 bit 1（是否跟随系统），仅替换 bit 0（亮暗）
+                            var curTheme = typeof settings.theme === 'number' ? settings.theme : 2;
+                            settings.theme = (curTheme & 2) | loginBrightBit; // 掩码 2 = 0b10
+                            settings.themeSync = !!data.theme.sync;
                             localStorage.setItem('brainforever_settings', JSON.stringify(settings));
                         } catch(e) {}
-                        // 立即应用主题到当前页面（避免跳转后闪烁）
-                        var themeStr = themeNum >= 2
-                            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-                            : (themeNum === 1 ? 'dark' : 'light');
-                        document.documentElement.setAttribute('data-theme', themeStr);
-                        // 同步外源主题 CSS
-                        var link = document.querySelector('link[href^="/themes/"]');
-                        if (!link) {
-                            link = document.createElement('link');
-                            link.rel = 'stylesheet';
-                            link.id = 'external-theme-css';
-                            document.head.appendChild(link);
-                        }
-                        link.href = '/themes/' + encodeURIComponent(themeStr === 'dark' ? data.theme.dark : data.theme.light) + '/theme.css';
-                    } else if (data.theme) {
-                        // 有 theme 但 sync=false：显式清除同步标记
-                        try {
-                            var raw = localStorage.getItem('brainforever_settings');
-                            var settings = raw ? JSON.parse(raw) : {};
-                            settings.themeSync = false;
-                            localStorage.setItem('brainforever_settings', JSON.stringify(settings));
-                        } catch(e) {}
+                        // 同步到登录页的 data-theme（避免跳转后闪烁，但仅亮暗，不涉及主题 ID）
+                        document.documentElement.setAttribute('data-theme', loginBrightBit === 1 ? 'dark' : 'light');
                     }
                     // 跳转到首页
                     window.location.href = '/';

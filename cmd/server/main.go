@@ -19,6 +19,7 @@ import (
 	"BrainForever/internal/agent"
 	"BrainForever/internal/config"
 	"BrainForever/internal/logger"
+	"BrainForever/internal/notify"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
 	"BrainForever/internal/theme"
@@ -215,8 +216,11 @@ func main() {
 		captchaProvider,
 	)
 
-	// Initialize all API routes (chat, theme, user, etc.)
-	initRouters(srv, chatHandler, themeHandler, userHandler)
+	// Initialize notify handler for internal notification endpoints (e.g., captcha refresh)
+	notifyHandler := notify.NewHandler(captchaProvider)
+
+	// Initialize all API routes (chat, theme, user, notify, etc.)
+	initRouters(srv, chatHandler, themeHandler, userHandler, notifyHandler)
 
 	// Static file server for frontend pages
 	// Pass chatHandler for login check on index.html (302 redirect to /signin.html if anonymous)
