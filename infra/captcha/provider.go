@@ -36,8 +36,9 @@ type CaptchaProvider struct {
 	captchaURLBase string        // Base URL for captcha images
 	captchaDirBase string        // Local filesystem path
 	activeDir      string        // Current active directory "d1" or "d2"
+	activeCount    int           // Number of loaded images in the active directory
 	store          ICaptchaStore // Storage backend (Redis or memory)
-	mu             sync.RWMutex  // Protects activeDir, ensures GetOne/Refresh concurrency safety
+	mu             sync.RWMutex  // Protects activeDir/activeCount, ensures GetOne/Refresh concurrency safety
 }
 
 // NewCaptchaProvider creates and initializes a CaptchaProvider.
@@ -49,40 +50,52 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 		store:          store,
 	}
 
-	// Load d1 and d2
+	// Load d1 and d2, track the count for the active directory
+	var activeCount int
 	for _, dir := range []string{"d1", "d2"} {
-		if err := p.loadAndStore(ctx, dir); err != nil {
+		// Delete stale entries first to avoid accumulating orphaned captcha
+		// entries in Redis when PNG files are removed from disk between restarts.
+		oldKey := "CAPTCHAS_store." + dir
+		if err := store.Del(ctx, oldKey); err != nil {
+			return nil, fmt.Errorf("failed to clear stale captcha store %q: %w", oldKey, err)
+		}
+
+		count, err := p.loadAndStore(ctx, dir)
+		if err != nil {
 			return nil, fmt.Errorf("failed to load captcha dir %q: %w", dir, err)
+		}
+		// Detect activeDir while iterating
+		if _, err := os.Stat(filepath.Join(captchaDirBase, dir+".active")); err == nil {
+			p.activeDir = dir
+			activeCount = count
 		}
 	}
 
-	// Detect activeDir
-	activeDir := "d1" // default
-	if _, err := os.Stat(filepath.Join(captchaDirBase, "d1.active")); err == nil {
-		activeDir = "d1"
-	} else if _, err := os.Stat(filepath.Join(captchaDirBase, "d2.active")); err == nil {
-		activeDir = "d2"
+	// Ensure activeDir has a default value
+	if p.activeDir == "" {
+		p.activeDir = "d1"
 	}
-	p.activeDir = activeDir
+	p.activeCount = activeCount
 
 	return p, nil
 }
 
 // loadAndStore reads PNG and JSON files in the specified directory and stores matching entries into the store.
 // If the png or json subdirectories do not exist, they are created automatically.
-func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
+// Returns the number of successfully stored entries.
+func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, error) {
 	pngDir := filepath.Join(p.captchaDirBase, dir, "png")
 	jsonDir := filepath.Join(p.captchaDirBase, dir, "json")
 
 	// Ensure png subdirectory exists
 	if err := os.MkdirAll(pngDir, 0755); err != nil {
-		return fmt.Errorf("cannot create png dir %q: %w", pngDir, err)
+		return 0, fmt.Errorf("cannot create png dir %q: %w", pngDir, err)
 	}
 
 	// Read all .png files, extract filenames (without extension)
 	pngEntries, err := os.ReadDir(pngDir)
 	if err != nil {
-		return fmt.Errorf("cannot read png dir %q: %w", pngDir, err)
+		return 0, fmt.Errorf("cannot read png dir %q: %w", pngDir, err)
 	}
 
 	var pngNames []string
@@ -99,13 +112,13 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 
 	// Ensure json subdirectory exists
 	if err := os.MkdirAll(jsonDir, 0755); err != nil {
-		return fmt.Errorf("cannot create json dir %q: %w", jsonDir, err)
+		return 0, fmt.Errorf("cannot create json dir %q: %w", jsonDir, err)
 	}
 
 	// Read all .json files into a map
 	jsonEntries, err := os.ReadDir(jsonDir)
 	if err != nil {
-		return fmt.Errorf("cannot read json dir %q: %w", jsonDir, err)
+		return 0, fmt.Errorf("cannot read json dir %q: %w", jsonDir, err)
 	}
 
 	jsonMap := make(map[string][]byte, len(jsonEntries))
@@ -127,17 +140,19 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 
 	// Iterate over PNG filenames and check for corresponding JSON
 	redisKey := "CAPTCHAS_store." + dir
+	count := 0
 	for _, name := range pngNames {
 		data, ok := jsonMap[name]
 		if !ok {
 			continue // no matching JSON, skip
 		}
 		if err := p.store.HSet(ctx, redisKey, name, string(data)); err != nil {
-			return fmt.Errorf("failed to hset captcha %q: %w", name, err)
+			return count, fmt.Errorf("failed to hset captcha %q: %w", name, err)
 		}
+		count++
 	}
 
-	return nil
+	return count, nil
 }
 
 // ActiveDir returns the current active directory name ("d1" or "d2").
@@ -145,6 +160,13 @@ func (p *CaptchaProvider) ActiveDir() string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.activeDir
+}
+
+// ActiveCount returns the number of loaded images in the active directory.
+func (p *CaptchaProvider) ActiveCount() int {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.activeCount
 }
 
 // GetOne returns a random captcha entry from the current active directory.
@@ -196,10 +218,12 @@ func (p *CaptchaProvider) Refresh(ctx context.Context, activeDir string) error {
 	}
 
 	// Reload
-	if err := p.loadAndStore(ctx, activeDir); err != nil {
+	count, err := p.loadAndStore(ctx, activeDir)
+	if err != nil {
 		return fmt.Errorf("failed to reload captcha dir %q: %w", activeDir, err)
 	}
 
 	p.activeDir = activeDir
+	p.activeCount = count
 	return nil
 }
