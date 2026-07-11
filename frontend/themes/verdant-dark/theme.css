@@ -44,10 +44,6 @@
     --error-border:     rgba(244, 67, 54, 0.35);
     --error-text:       #ef5350;
 
-    /* 通用 */
-    --radius:           12px;
-    --max-width:        960px;
-
     /* 警告 */
     --warning-bg:       #3d3100;
     --warning-border:   #ffc107;
