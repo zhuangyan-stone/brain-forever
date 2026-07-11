@@ -1020,6 +1020,22 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ============================================================
+// 全局热键 — Ctrl+Alt+K：切换亮/暗主题
+// K 取自 Color（颜色）中的 K 音，语义直观。
+// 仅在无对话框打开时生效。
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'k') {
+        // 检查是否有对话框打开
+        const hasDialog = document.querySelector('.dialog-overlay.show, .portrait-overlay.show');
+        if (hasDialog) return;
+
+        e.preventDefault();
+        Alpine.store('settings').toggleTheme();
+    }
+});
+
+// ============================================================
 // Placeholder 动态提示 — 无焦点时显示 F2 快捷键提示
 // 小屏模式（无物理键盘）下始终显示 "说点什么？"，不显示 F2 提示
 // ============================================================

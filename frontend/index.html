@@ -448,7 +448,7 @@
                 <div class="main-header-right">
                     <button id="themeToggle" class="icon-btn icon-btn--normal" x-data="iconBtn({ size: 'normal' })"
                         @click="$store.settings.toggleTheme()"
-                        :data-tooltip="$store.settings.getCurrentThemeName() + ' → ' + $store.settings.getTargetThemeName()">
+                        :data-tooltip="$store.settings.getCurrentThemeName() + ' → ' + $store.settings.getTargetThemeName() + ' (Ctrl+Alt+K)'">
                         <!-- bit 0=1 → 暗色（含 1=手动暗, 3=系统暗）→ 月亮 -->
                         <template x-if="$store.settings.theme & 1">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
