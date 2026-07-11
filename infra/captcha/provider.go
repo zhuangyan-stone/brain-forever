@@ -69,9 +69,15 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 }
 
 // loadAndStore reads PNG and JSON files in the specified directory and stores matching entries into the store.
+// If the png or json subdirectories do not exist, they are created automatically.
 func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 	pngDir := filepath.Join(p.captchaDirBase, dir, "png")
 	jsonDir := filepath.Join(p.captchaDirBase, dir, "json")
+
+	// Ensure png subdirectory exists
+	if err := os.MkdirAll(pngDir, 0755); err != nil {
+		return fmt.Errorf("cannot create png dir %q: %w", pngDir, err)
+	}
 
 	// Read all .png files, extract filenames (without extension)
 	pngEntries, err := os.ReadDir(pngDir)
@@ -89,6 +95,11 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) error {
 			continue
 		}
 		pngNames = append(pngNames, strings.TrimSuffix(name, ".png"))
+	}
+
+	// Ensure json subdirectory exists
+	if err := os.MkdirAll(jsonDir, 0755); err != nil {
+		return fmt.Errorf("cannot create json dir %q: %w", jsonDir, err)
 	}
 
 	// Read all .json files into a map
