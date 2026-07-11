@@ -34,6 +34,10 @@
     /* 代码块 */
     --bg-code:          #F0F0F0;
 
+    /* 通用 */
+    --radius:           12px;
+    --max-width:        960px;
+
     /* 纯色 */
     --pure-black:       #000000;
     --pure-white:       #FFFFFF;
