@@ -198,7 +198,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 	tripTool := toolimp.NewTripTraitsTool(lang)
 
 	client := sessionLLMClient(sess)
-	apiKey := sessionLLMAPIKey(sess)
+	apiSetting := sessionLLMApiSetting(sess)
 
 	reqBody := llm.ChatCompletionRequest{
 		Model:    client.Model(),
@@ -208,7 +208,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 	}
 	reqBody.ForceToolChoice(toolimp.TripTraitsToolName)
 
-	resp, err := client.ChatWithOptions(ctx, reqBody, apiKey)
+	resp, err := client.ChatWithOptions(ctx, reqBody, apiSetting.ApiKey)
 	if err != nil {
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
@@ -293,7 +293,7 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 
 func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Session, features []traitsFeature, chatSN string) (int, error) {
 	emb := sessionEmbedder(sess)
-	apiKey := sessionEmbedderAPIKey(sess)
+	apiSetting := sessionEmbedderApiSetting(sess)
 
 	vs, err := h.openBrainDB(sess)
 	if err != nil {
@@ -307,7 +307,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 			continue
 		}
 
-		vector, err := emb.Embed(ctx, f.FeatureText, apiKey)
+		vector, err := emb.Embed(ctx, f.FeatureText, apiSetting.ApiKey)
 		if err != nil {
 			continue
 		}

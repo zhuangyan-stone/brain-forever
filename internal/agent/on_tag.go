@@ -156,9 +156,9 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		req.EnableToolChoice()
 
 		client := sessionLLMClient(sess)
-		llmAPIKey := sessionLLMAPIKey(sess)
+		llmApiSettings := sessionLLMApiSetting(sess)
 
-		resp, err := client.ChatWithOptions(r.Context(), req, llmAPIKey)
+		resp, err := client.ChatWithOptions(r.Context(), req, llmApiSettings.ApiKey)
 		if err != nil {
 			h.logger.Errorf("chat tag LLM call failed: %v", err)
 			toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_llm_call_failed"), http.StatusInternalServerError)

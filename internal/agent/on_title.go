@@ -243,11 +243,11 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	titleChanged := false
 
 	client := sessionLLMClient(sess)
-	llmAPIKey := sessionLLMAPIKey(sess)
+	llmApiSettings := sessionLLMApiSetting(sess)
 
 	titleCtx, titleCancel := context.WithTimeout(r.Context(), 50*time.Second)
 	defer titleCancel()
-	resp, err := client.Chat(titleCtx, messages, llmAPIKey)
+	resp, err := client.Chat(titleCtx, messages, llmApiSettings.ApiKey)
 
 	if err == nil && len(resp.Choices) > 0 {
 		newTitle = resp.Choices[0].Message.Content

@@ -256,7 +256,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	acceptLang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
 	client := sessionLLMClient(sess)
-	llmAPIKey := sessionLLMAPIKey(sess)
+	llmApiSettings := sessionLLMApiSetting(sess)
 
 	streamReq := llm.ChatCompletionRequest{
 		Model:    client.Model(),
@@ -265,7 +265,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 	streamReq.IncludeUsage(true)
 
-	stream := client.ChatStreamWithOptions(r.Context(), streamReq, llmAPIKey)
+	stream := client.ChatStreamWithOptions(r.Context(), streamReq, llmApiSettings.ApiKey)
 	if err := stream.Err(); err != nil {
 		sendPortraitSSE(sw, "error", fmt.Sprintf("LLM stream failed: %v", err))
 		flusher.Flush()
@@ -307,7 +307,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if totalContent != "" {
-		meta := extractPortraitHighlights(r.Context(), client, acceptLang, totalContent, llmAPIKey)
+		meta := extractPortraitHighlights(r.Context(), client, acceptLang, totalContent, llmApiSettings.ApiKey)
 		if meta != nil {
 			sendPortraitSSE(sw, "meta", meta)
 			flusher.Flush()

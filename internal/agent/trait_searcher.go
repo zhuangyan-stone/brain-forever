@@ -15,8 +15,8 @@ type traitSearchAdapter struct {
 	store  *store.BrainStore
 	lang   string
 
-	// apiKey is the user's personal embedder API key (empty = use client default).
-	apiKey string
+	// apiSetting is the user's personal embedder API setting (empty ApiKey = use client default).
+	apiSetting store.ApiSetting
 }
 
 // halfLifeDisplay returns the localized half-life label for the stored integer (1-4).
@@ -53,7 +53,7 @@ func categoryDisplay(lang string, cat int) string {
 // SearchByText finds matching personal trait descriptions by the given text.
 func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string, category int, topK int) ([]toolimp.TraitSource, error) {
 	// 1. Use the client (embedder.Embedder) to compute the vector for queryText
-	vector, err := a.client.Embed(ctx, queryText, a.apiKey)
+	vector, err := a.client.Embed(ctx, queryText, a.apiSetting.ApiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to embed query text: %w", err)
 	}

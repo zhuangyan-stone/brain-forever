@@ -5,6 +5,7 @@ import (
 
 	"BrainForever/infra/searcher"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/store"
 )
 
 // ============================================================
@@ -15,8 +16,8 @@ import (
 type webSearchAdapter struct {
 	client searcher.WebSearcher
 
-	// apiKey is the user's personal search API key (empty = use client default).
-	apiKey string
+	// apiSetting is the user's personal search API setting (empty ApiKey = use client default).
+	apiSetting store.ApiSetting
 }
 
 func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, freshness string, count int) (string, []toolimp.WebSource, error) {
@@ -27,7 +28,7 @@ func (w *webSearchAdapter) SearchForLLM(ctx context.Context, query string, fresh
 		Summary:            true,
 		FamilyFriendlyOnly: true,
 	}
-	resp, llmText, err := w.client.SearchForLLM(ctx, req, 10240, w.apiKey)
+	resp, llmText, err := w.client.SearchForLLM(ctx, req, 10240, w.apiSetting.ApiKey)
 	if err != nil {
 		return "", nil, err
 	}

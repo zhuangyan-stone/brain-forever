@@ -13,9 +13,9 @@ import (
 // ApiSetting 表示一个外部服务的 API 配置，包含服务提供商和 API Key。
 // 支持 JSON 双向序列化，兼容旧格式（纯字符串）和新格式（对象）。
 type ApiSetting struct {
-	Provider string `json:"provider"` // 服务提供商，如 "deepseek", "ali", "zhipu", "bocha"
+	Provider string `json:"provider"` // 服务提供商，如 "deepseek", "ali", "zhipu", "bocha" （当前只会用到 deepseek 和 zhipu）
 	ApiKey   string `json:"api_key"`  // API Key
-
+	Private  bool   `json:"private"`  // API 是不是用户私人提供的（否则就是使用系统的，需计费）
 }
 
 // UnmarshalJSON 兼容两种 JSON 格式：

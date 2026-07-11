@@ -41,7 +41,7 @@ func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := sessionLLMClient(sess)
-	llmAPIKey := sessionLLMAPIKey(sess)
+	llmApiSettings := sessionLLMApiSetting(sess)
 
 	systemContent := i18n.SystemPrompt.TL(lang, "doc_title", nil)
 	userContent := req.Content
@@ -54,7 +54,7 @@ func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 	titleCtx, titleCancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer titleCancel()
 
-	resp, err := client.Chat(titleCtx, messages, llmAPIKey)
+	resp, err := client.Chat(titleCtx, messages, llmApiSettings.ApiKey)
 	if err != nil {
 		toolset.WriteJSONError(w, "failed to generate title: "+err.Error(), http.StatusInternalServerError)
 		return

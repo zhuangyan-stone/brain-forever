@@ -184,10 +184,10 @@ func (h *ChatAgent) callLLMWithPipeline(
 	pipeline := MakePipeline(ctx, h, sseWriter, tools, lang)
 
 	client := sessionLLMClient(sess)
-	apiKey := sessionLLMAPIKey(sess)
+	apiSetting := sessionLLMApiSetting(sess)
 
 	reply, reasoning, err := client.ChatWithPipeline(ctx,
-		messages, &pipeline, withDeepThink, apiKey)
+		messages, &pipeline, withDeepThink, apiSetting.ApiKey)
 
 	isInterrupted := ctx.Err() != nil
 

@@ -318,9 +318,9 @@ func sessionLLMClient(s *session.Session) llm.Client {
 	return llmClients[ProviderDeepSeek]
 }
 
-// sessionLLMAPIKey returns the session user's personal LLM API key.
-func sessionLLMAPIKey(s *session.Session) string {
-	return s.User.Settings.APIKey.LLM.ApiKey
+// sessionLLMApiSetting returns the session user's personal LLM ApiSetting.
+func sessionLLMApiSetting(s *session.Session) store.ApiSetting {
+	return s.User.Settings.APIKey.LLM
 }
 
 // sessionEmbedder returns the embedder for the user's configured provider.
@@ -335,18 +335,18 @@ func sessionEmbedder(s *session.Session) embedder.Embedder {
 	return embedderClients[ProviderAli]
 }
 
-// sessionEmbedderAPIKey returns the session user's personal Embedder API key.
-func sessionEmbedderAPIKey(s *session.Session) string {
-	return s.User.Settings.APIKey.Embedder.ApiKey
+// sessionEmbedderApiSetting returns the session user's personal Embedder ApiSetting.
+func sessionEmbedderApiSetting(s *session.Session) store.ApiSetting {
+	return s.User.Settings.APIKey.Embedder
 }
 
-// sessionWebSearchAPIKey returns the session user's personal Web Search API key.
-func sessionWebSearchAPIKey(s *session.Session) string {
-	return s.User.Settings.APIKey.Search.ApiKey
+// sessionWebSearchApiSetting returns the session user's personal Web Search ApiSetting.
+func sessionWebSearchApiSetting(s *session.Session) store.ApiSetting {
+	return s.User.Settings.APIKey.Search
 }
 
 // sessionWebSearcher returns a per-request webSearchAdapter with the
-// user's configured provider and personal API key baked in.
+// user's configured provider and personal API settings baked in.
 func sessionWebSearcher(s *session.Session) toolimp.WebSearcher {
 	provider := s.User.Settings.APIKey.Search.Provider
 	if provider == "" {
@@ -356,10 +356,10 @@ func sessionWebSearcher(s *session.Session) toolimp.WebSearcher {
 	if !ok {
 		rawClient = searcherClientByPvd[ProviderBocha]
 	}
-	apiKey := s.User.Settings.APIKey.Search.ApiKey
+	apiSetting := s.User.Settings.APIKey.Search
 	return &webSearchAdapter{
-		client: rawClient,
-		apiKey: apiKey,
+		client:     rawClient,
+		apiSetting: apiSetting,
 	}
 }
 
