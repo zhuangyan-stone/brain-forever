@@ -60,9 +60,11 @@ type BrainStore struct {
 
 // OpenBrainStore opens an existing brain database WITHOUT running DDL/migrations.
 // Use this for on-demand open/close patterns where the schema is already created.
-// sqlite_vec.Auto() is called once globally; the caller should ensure it is called
-// at process startup before using any BrainStore.
+// sqlite_vec.Auto() is safe to call multiple times; it registers the vec0 extension
+// via sqlite3_auto_extension() so that any future connection has it loaded.
 func OpenBrainStore(dbPath string, dimension int, logger zylog.Logger) (*BrainStore, error) {
+	sqlite_vec.Auto()
+
 	db, err := sqlx.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open vector database: %w", err)
@@ -79,8 +81,6 @@ func (s *BrainStore) EnsureSchema() error {
 // dimension specifies the vector dimension used for the HNSW index,
 // which must match the embedding model's output dimension.
 func NewBrainStore(dbPath string, dimension int, logger zylog.Logger) (*BrainStore, error) {
-	sqlite_vec.Auto()
-
 	store, err := OpenBrainStore(dbPath, dimension, logger)
 	if err != nil {
 		return nil, err
