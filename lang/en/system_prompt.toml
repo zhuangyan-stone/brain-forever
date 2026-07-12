@@ -298,6 +298,35 @@ Each trait (feature) must include a `half_life` field, indicating the validity p
 5. permanent applies only to **completed objective historical events** (having experienced or done something) — these facts will not change.
 6. **Do not extract anything below short**: The minimum half_life value is short (days to weeks). If a goal, wish, or state has a shorter validity than short (minutes to hours, such as "hope the rain stops," "hope I catch this bus"), it means it fundamentally lacks value as a personal trait and **should not be extracted as any category of trait**, even labeling it half_life=short would be inappropriate. Such instantaneous, transient thoughts should simply be ignored.
 
+**Privacy Level (privacy_level) Determination Rules**:
+
+Each trait (feature) must include a `privacy_level` field, indicating the privacy sensitivity of the trait content. The privacy level determines how broadly the trait information can be shared.
+
+**Three Privacy Levels**:
+
+| Level | Name | Definition | Criteria (hit any one to classify) |
+|-------|------|------------|------------------------------------|
+| "private" | Strictly Confidential | Information typically known only to yourself or immediate family. Leakage could **uniquely identify you personally**, cause **significant financial/health/reputation damage**, or involve **legally protected special data** | A. **Unique Identification & Whereabouts**: Full name + SSN/driver's license/passport number, phone number, exact street address (with house number), biometric data (fingerprint, facial recognition), real-time precise location (GPS/tracking), license plate number, flight number + date B. **Financial & Assets**: Bank account number, credit card number, specific salary/wage/tax amount, debt/loan details, exact value of real estate/vehicles/equity C. **Health Privacy**: All diseases (including mental health), physical defects, disabilities, allergies, surgical history, genetic medical history D. **Minor Protection**: When a related person is a minor (<18), their name + school + class + address etc. that can pinpoint location (if just "has a daughter" without specific locatable info, downgrade to protected) E. **Stigmatizing Information**: Non-mainstream sexual orientation/preferences, criminal/legal records, drug addiction history, specific religious sect (e.g., "Shia" rather than just "Muslim"), specific political affiliation F. **Risk Speech**: Negative/critical comments about identifiable persons or organizations (e.g., "my boss is an idiot"), especially regarding workplace, politics, or public figures G. **Trade Secrets**: Non-public company financial data, strategic plans, client lists, source code, internal HR evaluations/compensation |
+| "protected" | Restricted Visibility | Information typically shared only with yourself, family, close friends, or those with strong vested interest. Can **indirectly identify** you or point to a **fuzzy range**. Leakage has limited impact but harm is controllable. Includes **private everyday matters most people wouldn't widely share** | • Exact age + birthplace (without full name, not uniquely identifiable) • Fuzzy location (city/region level, not street address) • Specific occupation + industry (e.g., "cardiac surgeon at a top hospital" without name) • Family structure (e.g., "divorced, raising a 10-year-old daughter" without school details) • Partial behavioral habits (e.g., "heavy drinker," "gambling history" without amounts/frequency) • Ordinary related persons' names (e.g., "my friend John" without other sensitive details) • Recent circumstances/states (e.g., "currently unemployed," "going through a divorce" without financial details) • Company/institution name (e.g., "I work at Microsoft" without internal secrets) |
+| "public" | Public | Information naturally shared in public settings with high social acceptance. Leakage has virtually no negative impact. Typically **group labels** rather than individual identifiers | • Age range (millennial, Gen Z, middle-aged, 30-40) • Gender • Hobbies/interests (hiking, chess, playing guitar) • General skills (knows Python, has a driver's license) • Personality/character (introverted, responsible, easygoing) • Worldview/values (environmentalist, atheist) • Publicly known achievements (published a book, won a competition) • Positive evaluations ("I admire Taylor Swift") |
+
+**Determination Priority** (checked in order):
+
+1. **First, check Level 0 (private)**: If the trait content meets ANY criterion in the "private" level above, immediately classify it as `privacy_level="private"`. No need to consider other levels.
+2. **Then, check Level 2 (public)**: If the trait content clearly belongs to public social tags (gender, age range, interests, personality, macro worldview, general skills, positive evaluations), classify it as `privacy_level="public"`.
+3. **Everything else goes to Level 1 (protected)**: If neither private nor public applies, classify it as `privacy_level="protected"`.
+
+**Important Notes**:
+
+- `privacy_level` is judged **independently for each trait**. Different traits within the same `category_id` may have different privacy levels. For example:
+  - `"The user is male"` → `privacy_level="public"`
+  - `"The user's SSN is 987-65-4320"` → `privacy_level="private"`
+  - Both belong to `category_id=1` (Demographic Attributes), but their privacy levels are completely different.
+
+- When a trait involves another person (`category_id=12` Related Persons): if the content contains a minor's specific locatable information (name + school + class + address), classify it as `privacy_level="private"`; if it's merely "has a daughter" or "a friend named John" without further sensitive details, classify it as `privacy_level="protected"`.
+
+- Health traits (`category_id=8`) must have a minimum privacy level of `privacy_level="protected"` (common allergies, insomnia can stay at protected level). Those involving genetic diseases, mental illness, HIV/AIDS, or other serious health conditions should be classified as `privacy_level="private"`.
+
 **Output Format**:
 The overall output is a JSON object containing a `features` array, where each element is a trait object with the following structure:
 **⚠️ IMPORTANT: category_id values MUST be in range 1~14 only — 0 is NOT allowed. If a trait cannot be classified into any category 1~14, do not output that trait.**
@@ -310,6 +339,7 @@ The overall output is a JSON object containing a `features` array, where each el
       "feature_text": "The user published a poetry collection through Penguin Random House",
       "confidence": 9,
       "half_life": "permanent",
+      "privacy_level": "public",
       "keywords": [
         { "type": "D", "word": "poetry collection" }
       ]
@@ -320,6 +350,7 @@ The overall output is a JSON object containing a `features` array, where each el
       "feature_text": "The user loves playing basketball",
       "confidence": 8,
       "half_life": "long",
+      "privacy_level": "public",
       "keywords": [
         { "type": "D", "word": "basketball" }
       ]
@@ -330,6 +361,7 @@ The overall output is a JSON object containing a `features` array, where each el
       "feature_text": "The user participated in flood relief in sophomore year",
       "confidence": 9,
       "half_life": "permanent",
+      "privacy_level": "protected",
       "keywords": [
         { "type": "A", "word": "sophomore year" },
         { "type": "F", "word": "flood relief" }
@@ -337,6 +369,87 @@ The overall output is a JSON object containing a `features` array, where each el
     }
   ]
 }
+
+**Example Cases**:
+
+*Example 1 (Privacy level distinction)*:
+User: "My SSN is 987-65-4320, I'm male, and I work at Microsoft. Been super stressed lately, thinking about quitting."
+Output:
+```json
+{
+  "features": [
+    { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "The user's SSN is 987-65-4320", "confidence": 9, "half_life": "permanent", "privacy_level": "private", "keywords": [] },
+    { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "The user is male", "confidence": 9, "half_life": "permanent", "privacy_level": "public", "keywords": [] },
+    { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "The user works at Microsoft", "confidence": 8, "half_life": "medium", "privacy_level": "protected", "keywords": [{ "type":"D", "word":"Microsoft" }] },
+    { "category_id": 9, "category_name": "Situational States", "feature_text": "The user has been stressed at work lately", "confidence": 7, "half_life": "short", "privacy_level": "protected", "keywords": [{ "type":"D", "word":"work" }, { "type":"D", "word":"stress" }] },
+    { "category_id": 14, "category_name": "Goals/Plans", "feature_text": "The user is thinking about quitting their job", "confidence": 6, "half_life": "short", "privacy_level": "protected", "keywords": [{ "type":"F", "word":"quit job" }] }
+  ]
+}
+```
+
+*Example 2 (Keyword concretization)*:
+User: "In the summer of my sophomore year, I volunteered for flood relief and met Sarah, who was handling logistics there. She later became my first girlfriend."
+Output:
+```json
+{
+  "features": [
+    {
+      "category_id": 13,
+      "category_name": "Life Experiences",
+      "feature_text": "The user participated in flood relief in sophomore year",
+      "confidence": 9,
+      "half_life": "permanent",
+      "privacy_level": "protected",
+      "keywords": [
+        { "type": "A", "word": "sophomore year" },
+        { "type": "F", "word": "flood relief" }
+      ]
+    },
+    {
+      "category_id": 13,
+      "category_name": "Life Experiences",
+      "feature_text": "The user met their first girlfriend during sophomore year flood relief",
+      "confidence": 8,
+      "half_life": "permanent",
+      "privacy_level": "protected",
+      "keywords": [
+        { "type": "A", "word": "sophomore year" },
+        { "type": "C", "word": "Sarah" },
+        { "type": "F", "word": "relationship" }
+      ]
+    },
+    {
+      "category_id": 12,
+      "category_name": "Related Persons",
+      "feature_text": "The user's first girlfriend handled logistics during flood relief",
+      "confidence": 7,
+      "half_life": "permanent",
+      "privacy_level": "protected",
+      "keywords": [
+        { "type": "C", "word": "first girlfriend" },
+        { "type": "F", "word": "flood relief" }
+      ]
+    }
+  ]
+}
+```
+
+*Example 3 (Anti-pattern — do not merge demographic attributes)*:
+User: "I'm 50, male, a programmer"
+❌ Incorrect output:
+```json
+{ "features": [
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "50-year-old male programmer", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] }
+] }
+```
+✅ Correct output:
+```json
+{ "features": [
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "The user is 50 years old", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] },
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "The user is male", "confidence": 9, "half_life": "permanent", "privacy_level": "public", "keywords": [] },
+  { "category_id": 1, "category_name": "Demographic Attributes", "feature_text": "The user is a programmer", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] }
+] }
+```
 ----
 Additionally, the current system local time is: {{.CurrentLocalTime}}. Note: this timestamp indicates the moment you are performing trait extraction, not the time when the
 conversation took place. The time of each individual message can be found in the message format description above.
