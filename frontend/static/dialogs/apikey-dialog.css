@@ -1,0 +1,360 @@
+/* ============================================================
+    第2大脑 AI 助手 — API-Key 设置对话框专有样式
+    ============================================================
+    依赖：dialog.css（公共对话框样式）、theme.css（主题变量）
+    ============================================================ */
+
+/* 覆盖 dialog.css 的 white-space: pre-wrap */
+#apikeyDialog .dialog-body {
+    white-space: normal;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* ---- 说明行（标题 + "说明"按钮同一行） ---- */
+.apikey-desc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.apikey-desc-text {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+/* ---- 每个 API-Key 条目 ---- */
+.apikey-section {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    background: var(--bg-primary);
+    transition: border-color 0.2s;
+}
+
+.apikey-section:last-child {
+    margin-bottom: 0;
+}
+
+/* 小标题 */
+.apikey-section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+/* 小字说明 */
+.apikey-section-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+/* ---- 单选行（RadioButton 组） ---- */
+.apikey-check-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+.apikey-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: 2px 0;
+    user-select: none;
+}
+
+.apikey-check-item input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    border: 2px solid var(--text-muted);
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.apikey-check-item input[type="radio"]:checked {
+    border-color: var(--accent);
+    background: var(--accent);
+}
+
+.apikey-check-item input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.apikey-check-item .check-label {
+    flex: 1;
+}
+
+/* ---- 私有 key 编辑框 ---- */
+.apikey-input-wrap {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+}
+
+.apikey-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.apikey-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.apikey-input::placeholder {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* ---- 小提示（如"可以和联网搜索使用同一api-key"） ---- */
+.apikey-subnote {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-style: italic;
+}
+
+/* ---- 底部操作区 ---- */
+.apikey-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 12px;
+}
+
+/* 初始费用按钮 — 左端 */
+.apikey-fee-btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: default;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.apikey-fee-btn .fee-amount {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* 确认按钮 — 右端，复用 dialog-btn-confirm 样式 */
+.apikey-confirm-btn {
+    padding: 8px 28px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: var(--btn-highlight-bg, var(--accent));
+    color: var(--btn-highlight-color, #fff);
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.apikey-confirm-btn:hover {
+    background: var(--btn-highlight-hover-bg, var(--accent-hover));
+}
+
+.apikey-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 保存失败提示 */
+.apikey-save-error {
+    font-size: 0.8rem;
+    color: var(--error-text, #d32f2f);
+    line-height: 1.4;
+    text-align: right;
+}
+
+/* ---- 说明按钮（标题右侧） ---- */
+.apikey-help-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    padding: 2px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    line-height: 1.6;
+    margin-right: 8px;
+}
+
+.apikey-help-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+/* ---- 说明弹层遮罩 ---- */
+.apikey-help-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+/* ---- 说明弹层盒子 ---- */
+.apikey-help-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--shadow);
+    width: 90%;
+    max-width: 420px;
+    animation: dialogFadeIn 0.2s ease;
+    overflow: hidden;
+}
+
+.apikey-help-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+}
+
+.apikey-help-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.apikey-help-close:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+.apikey-help-body {
+    padding: 16px 18px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    white-space: normal;
+}
+
+.apikey-help-body p,
+.apikey-help-body h4 {
+    margin: 0 0 8px;
+}
+
+.apikey-help-body p:last-child,
+.apikey-help-body h4:last-child {
+    margin-bottom: 0;
+}
+
+.apikey-help-note {
+    background: var(--bg-primary, #ffffff);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+}
+
+.apikey-help-note p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.apikey-help-body h4 {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.apikey-help-body ol,
+.apikey-help-body ul {
+    margin: 0 0 10px 1.5em;
+    padding-left: 0;
+}
+
+.apikey-help-body ol:last-child {
+    margin-bottom: 0;
+}
+
+.apikey-help-body li {
+    margin-bottom: 2px;
+    line-height: 1.8;
+}
+
+.apikey-help-body li:last-child {
+    margin-bottom: 0;
+}
+
+/* ---- 响应式：小屏适配 ---- */
+@media (max-width: 540px) {
+    #apikeyDialog .dialog-box {
+        width: 95vw;
+    }
+
+    .apikey-section {
+        padding: 12px 14px;
+    }
+
+    .apikey-footer {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .apikey-fee-btn,
+    .apikey-confirm-btn {
+        text-align: center;
+    }
+}

@@ -78,6 +78,7 @@
     <link rel="stylesheet" href="/static/dialogs/title-edit-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/favorite-edit-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/portrait-dialog.css">
+    <link rel="stylesheet" href="/static/dialogs/apikey-dialog.css">
     <link rel="stylesheet" href="/static/components/wordcloud.css">
     <link rel="stylesheet" href="/static/components/theme-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
@@ -489,6 +490,15 @@
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                             x-html="ICON_PALETTE"></svg>
                                         选择颜色主题
+                                    </button>
+                                    <!-- API-Key 设置 -->
+                                    <button class="dropdown-item" id="apikeySettingBtn"
+                                        @click="onOpenApiKeyDialog">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                        </svg>
+                                        API-Key 设置
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
@@ -1060,6 +1070,140 @@
         </div>
     </div>
 
+    <!-- ============================================================
+         API-Key 设置对话框（Alpine 组件：apikeyDialog）
+         ============================================================ -->
+    <div class="dialog-overlay" id="apikeyDialog"
+        x-data="apikeyDialog()"
+        :class="{ show: show }"
+        @click.self="close">
+        <div class="dialog-box" style="position:relative">
+            <div class="dialog-header">
+                <h3>设置 API-key</h3>
+                <button class="dialog-close-btn" @click="close" aria-label="关闭">&times;</button>
+            </div>
+
+            <!-- 说明弹层 -->
+            <div class="apikey-help-overlay" x-show="showHelp" @click.self="showHelp = false" x-cloak>
+                <div class="apikey-help-box">
+                    <div class="apikey-help-header">
+                        <span>更多说明</span>
+                        <button class="apikey-help-close" @click="showHelp = false" type="button">&times;</button>
+                    </div>
+                    <div class="apikey-help-body">
+                        <h4>需设置第三方服务商 api-key，以实现：</h4>
+                        <ol>
+                            <li>和人工智能（大语言模型/LLM）对话</li>
+                            <li>生成14个维度的个人特征数据</li>
+                            <li>生成用户画像（AI眼中的你）</li>
+                            <li>为对话生成智能取标题、分类</li>
+                            <li>实现语义匹配的矢量数据（Embedding）</li>
+                        </ol>
+                        <h4>每一个服务你都可以选择：</h4>
+                        <ol>
+                            <li>使用"第2大脑"系统的 api-key</li>
+                            <li>或者你在三方服务商自行购买的 api-key</li>
+                        </ol>
+                        <div class="apikey-help-note">
+                            <p>依据您的选择，对话框左下位置将动态计算需在第2大脑充值的最低金额</p>
+                            <p style="font-size: small">第三方服务商网址：<a href="https://www.deepseek.com/">DeepSeek</a>&nbsp;<a href="https://open.bigmodel.cn//">智谱</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dialog-body">
+                <!-- 说明文本 -->
+                <div class="apikey-desc-row">
+                    <span class="apikey-desc-text">请设置第三方服务商的 api-key  ：</span>
+                    <button class="apikey-help-btn" @click="showHelp = true" type="button">说明</button>
+                </div>
+
+                <!-- ====== 第1个：LLM ====== -->
+                <div class="apikey-section">
+                    <div class="apikey-section-title">语言大模型（LLM）服务 api-key ：</div>
+                    <div class="apikey-section-desc">用于和您对话，以及生成您的个人特征、用户画像（AI对你的印象），以及生成对话智能标题、智能分类等。</div>
+
+                    <div class="apikey-check-group">
+                        <label class="apikey-check-item">
+                            <input type="checkbox" class="apikey-cb"
+                                :checked="!settings.llm.private"
+                                @click="llmPrivate = !llmPrivate">
+                            <span class="check-label">使用第2大脑的key</span>
+                        </label>
+                    </div>
+
+                    <div class="apikey-input-wrap" x-show="settings.llm.private" x-cloak>
+                        <input class="apikey-input" type="text"
+                            x-model="settings.llm.api_key"
+                            placeholder="请粘贴 DeepSeek 的 api-key"
+                            maxlength="200" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- ====== 第2个：联网搜索 ====== -->
+                <div class="apikey-section">
+                    <div class="apikey-section-title">联网搜索服务 api-key ：</div>
+                    <div class="apikey-section-desc">某些回复LLM必须联网搜索信息（否则会让AI看起来像个二傻子……）</div>
+
+                    <div class="apikey-check-group">
+                        <label class="apikey-check-item">
+                            <input type="checkbox" class="apikey-cb"
+                                :checked="!settings.search.private"
+                                @click="searchPrivate = !searchPrivate">
+                            <span class="check-label">使用第2大脑的key</span>
+                        </label>
+                    </div>
+
+                    <div class="apikey-input-wrap" x-show="settings.search.private" x-cloak>
+                        <input class="apikey-input" type="text"
+                            x-model="settings.search.api_key"
+                            placeholder="请粘贴智谱科技 api-key"
+                            maxlength="200" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- ====== 第3个：Embedding ====== -->
+                <div class="apikey-section">
+                    <div class="apikey-section-title">语义矢量数据生成服务 api-key ：</div>
+                    <div class="apikey-section-desc">用于生成您的个人特征，以及 LLM 需要语义匹配时所生成的矢量数据。注意，该服务一经绑定就须从一而终。</div>
+
+                    <div class="apikey-check-group">
+                        <label class="apikey-check-item">
+                            <input type="checkbox" class="apikey-cb"
+                                :checked="!settings.embedder.private"
+                                @click="embedderPrivate = !embedderPrivate">
+                            <span class="check-label">使用第2大脑的key</span>
+                        </label>
+                    </div>
+
+                    <div class="apikey-subnote">可以和联网搜索使用同一api-key</div>
+
+                    <div class="apikey-input-wrap" x-show="settings.embedder.private" x-cloak>
+                        <input class="apikey-input" type="text"
+                            x-model="settings.embedder.api_key"
+                            placeholder="请粘贴智谱科技 api-key"
+                            maxlength="200" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部操作区 -->
+            <div class="apikey-footer">
+                <button class="apikey-fee-btn" disabled>
+                    预充值：<span class="fee-amount" x-text="totalFee"></span> 元
+                </button>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                    <div class="apikey-save-error" x-show="_saveError" x-text="_saveError" x-cloak></div>
+                    <button class="apikey-confirm-btn" @click="confirm" :disabled="_submitting">
+                        <span x-show="!_submitting">确认</span>
+                        <span x-show="_submitting" x-cloak>保存中…</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- AI 生成免责声明 — 页面加载后由 JS 动态插入模型名称 -->
     <div class="ai-disclaimer" id="aiDisclaimer">内容由 AI 生成，请仔细甄别</div>
 
@@ -1067,6 +1211,8 @@
     <script src="/static/theme-loader.js"></script>
     <!-- 主题选择对话框 Alpine 组件 -->
     <script src="/static/components/theme-dialog.js"></script>
+    <!-- API-Key 设置对话框 Alpine 组件 -->
+    <script src="/static/dialogs/apikey-dialog.js"></script>
 
     <script type="module" src="/static/chat.js"></script>
 </body>

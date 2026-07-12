@@ -246,57 +246,7 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var chats []store.Chat
-	cs, bs, err := dbc.InitUserDB(user.ID, user.SN)
-	if err == nil {
-		chats, err = cs.ListChats(100)
-		dbc.CloseLocalChatDB(cs)
-		dbc.CloseLocalBrainDB(bs)
-	}
-	if err != nil || chats == nil {
-		chats = []store.Chat{}
-	}
-
-	var userSettings store.UserSettings
-	if err := userSettings.FromString(user.Settings); err != nil {
-		h.logger.Warnf("failed to parse user settings for user %s: %v", user.SN, err)
-	}
-
-	sess.SwitchToUser(&session.SessionUser{
-		ID:       user.ID,
-		SN:       user.SN,
-		No:       user.No,
-		Nickname: user.Nickname,
-		Chats:    chats,
-		Settings: userSettings,
-	})
-
-	if err := h.sessionManager.Redis().SetLoginSession(
-		h.sessionManager.Ctx, sessionID,
-		&cache.LoginSessionData{
-			UserID:   user.ID,
-			UserSN:   user.SN,
-			No:       user.No,
-			Nickname: user.Nickname,
-			Settings: userSettings.ToString(),
-		},
-	); err != nil {
-		h.logger.Warnf("failed to persist login session to Redis: %v", err)
-	}
-
-	avatar := pickRandomAvatar(h.avatarDir)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":   "ok",
-		"user_sn":  user.SN,
-		"no":       user.No,
-		"nickname": user.Nickname,
-		"avatar":   avatar,
-		"chats":    chats,
-		"theme":    userSettings.Theme,
-		"is_new":   isNew,
-	})
+	h.afterLogin(w, user, isNew, sess)
 }
 
 // ============================================================
@@ -330,56 +280,7 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var chats []store.Chat
-	cs, bs, err := dbc.InitUserDB(user.ID, user.SN)
-	if err == nil {
-		chats, err = cs.ListChats(100)
-		dbc.CloseLocalChatDB(cs)
-		dbc.CloseLocalBrainDB(bs)
-	}
-	if err != nil || chats == nil {
-		chats = []store.Chat{}
-	}
-
-	var userSettings store.UserSettings
-	if err := userSettings.FromString(user.Settings); err != nil {
-		h.logger.Warnf("failed to parse user settings for user %s: %v", user.SN, err)
-	}
-
-	sess.SwitchToUser(&session.SessionUser{
-		ID:       user.ID,
-		SN:       user.SN,
-		No:       user.No,
-		Nickname: user.Nickname,
-		Chats:    chats,
-		Settings: userSettings,
-	})
-
-	if err := h.sessionManager.Redis().SetLoginSession(
-		h.sessionManager.Ctx, sessionID,
-		&cache.LoginSessionData{
-			UserID:   user.ID,
-			UserSN:   user.SN,
-			No:       user.No,
-			Nickname: user.Nickname,
-			Settings: userSettings.ToString(),
-		},
-	); err != nil {
-		h.logger.Warnf("failed to persist login session to Redis: %v", err)
-	}
-
-	avatar := pickRandomAvatar(h.avatarDir)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":   "ok",
-		"user_sn":  user.SN,
-		"no":       user.No,
-		"nickname": user.Nickname,
-		"avatar":   avatar,
-		"chats":    chats,
-		"theme":    userSettings.Theme,
-	})
+	h.afterLogin(w, user, false, sess)
 }
 
 // ============================================================
@@ -409,4 +310,66 @@ func pickRandomAvatar(avatarDir string) string {
 	}
 
 	return avatarURLPrefix + avatarFiles[rand.Intn(len(avatarFiles))]
+}
+
+// afterLogin handles common post-login logic: load user chats, parse settings,
+// switch session, persist to Redis, and respond.
+func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool, sess *session.Session) {
+	var chats []store.Chat
+	cs, bs, err := dbc.InitUserDB(user.ID, user.SN)
+	if err == nil {
+		chats, err = cs.ListChats(100)
+		dbc.CloseLocalChatDB(cs)
+		dbc.CloseLocalBrainDB(bs)
+	}
+	if err != nil || chats == nil {
+		chats = []store.Chat{}
+	}
+
+	var userSettings store.UserSettings
+	if err := userSettings.FromString(user.Settings); err != nil {
+		h.logger.Errorf("failed to parse user settings for user %s: %v", user.SN, err)
+		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+
+	sess.SwitchToUser(&session.SessionUser{
+		ID:       user.ID,
+		SN:       user.SN,
+		No:       user.No,
+		Nickname: user.Nickname,
+		Chats:    chats,
+		Settings: userSettings,
+	})
+
+	if err := h.sessionManager.Redis().SetLoginSession(
+		h.sessionManager.Ctx, sess.ID,
+		&cache.LoginSessionData{
+			UserID:   user.ID,
+			UserSN:   user.SN,
+			No:       user.No,
+			Nickname: user.Nickname,
+			Settings: userSettings.ToString(),
+		},
+	); err != nil {
+		h.logger.Errorf("failed to persist login session to Redis: %v", err)
+		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+
+	avatar := pickRandomAvatar(h.avatarDir)
+
+	resp := map[string]interface{}{
+		"status":   "ok",
+		"user_sn":  user.SN,
+		"no":       user.No,
+		"nickname": user.Nickname,
+		"avatar":   avatar,
+		"chats":    chats,
+		"theme":    userSettings.Theme,
+		"is_new":   isNew,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }

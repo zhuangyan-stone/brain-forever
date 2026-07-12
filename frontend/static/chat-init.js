@@ -83,7 +83,7 @@ export async function initPage() {
         }
     }
 
-    // Step 4: 显示欢迎消息（页面总是从空白状态开始）
+    // Step 5: 显示欢迎消息（页面总是从空白状态开始）
     // 将后端返回的欢迎词设置到 Alpine store，由响应式模板自动渲染
     chatsStore.welcomeMessage = welcomeMessage;
 

@@ -851,6 +851,25 @@ window.onOpenThemeDialog = function() {
 };
 
 // ============================================================
+// 打开 API-Key 设置对话框
+// ============================================================
+window.onOpenApiKeyDialog = function() {
+    try {
+        var dialogEl = document.getElementById('apikeyDialog');
+        if (dialogEl) {
+            var dialogData = Alpine.$data(dialogEl);
+            if (dialogData && typeof dialogData.open === 'function') {
+                dialogData.open({ settings: null });
+                return;
+            }
+        }
+        console.warn('API-Key 设置对话框组件未找到或未初始化');
+    } catch (e) {
+        console.error('打开 API-Key 设置对话框失败:', e);
+    }
+};
+
+// ============================================================
 // 注册方法到 Alpine store + window — 供 HTML 模板中 @click 表达式调用
 // chat-api.js 是 ES Module，export 的函数不会进入全局作用域。
 // 但 Alpine 模板 @click="onChatLogout" 需要在 Alpine 的表达式作用域

@@ -7,22 +7,49 @@ import (
 )
 
 // ============================================================
-// ApiSetting - 外部服务的 API 配置
+// ApiSetting - external service API config
 // ============================================================
 
-// ApiSetting 表示一个外部服务的 API 配置，包含服务提供商和 API Key。
-// 支持 JSON 双向序列化，兼容旧格式（纯字符串）和新格式（对象）。
+// ApiSetting represents an external service API config, including provider and API key.
+// Supports bidirectional JSON serialization, compatible with both legacy (plain string) and new (object) formats.
 type ApiSetting struct {
-	Provider string `json:"provider"` // 服务提供商，如 "deepseek", "ali", "zhipu", "bocha" （当前只会用到 deepseek 和 zhipu）
+	Provider string `json:"provider"` // provider name, e.g. "deepseek", "ali", "zhipu", "bocha"
 	ApiKey   string `json:"api_key"`  // API Key
-	Private  bool   `json:"private"`  // API 是不是用户私人提供的（否则就是使用系统的，需计费）
+	Private  bool   `json:"private"`  // true if user-provided (private); false if system-shared (billed)
 }
 
-// UnmarshalJSON 兼容两种 JSON 格式：
-//   - 旧格式：纯字符串 "sk-xxx"
-//   - 新格式：对象 {"provider":"deepseek","api_key":"sk-xxx"}
+// Desensitize masks sensitive ApiKey for frontend display:
+//   - Private==true && key==""  → keep as-is (private key not yet set)
+//   - Private==true && key!=""  → replace each char with '*'
+//   - Private==false            → keep empty (system provides the shared key)
+func (a *ApiSetting) Desensitize() {
+	if a.Private && a.ApiKey == "" {
+		return
+	}
+	if a.Private {
+		a.ApiKey = starifyApiKey(a.ApiKey)
+	} else {
+		a.ApiKey = ""
+	}
+}
+
+// starifyApiKey replaces each character in s with '*'.
+func starifyApiKey(s string) string {
+	if s == "" {
+		return s
+	}
+	runes := []rune(s)
+	for i := range runes {
+		runes[i] = '*'
+	}
+	return string(runes)
+}
+
+// UnmarshalJSON supports two JSON formats:
+//   - Legacy: plain string "sk-xxx"
+//   - New: object {"provider":"deepseek","api_key":"sk-xxx"}
 func (a *ApiSetting) UnmarshalJSON(data []byte) error {
-	// 先尝试解析为字符串（旧格式）
+	// Try legacy format (plain string)
 	var s string
 	if err := json.Unmarshal(data, &s); err == nil {
 		a.Provider = ""
@@ -30,7 +57,7 @@ func (a *ApiSetting) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	// 再尝试解析为对象（新格式）
+	// Try new format (object)
 	type Alias ApiSetting
 	var alias Alias
 	if err := json.Unmarshal(data, &alias); err != nil {
@@ -40,15 +67,15 @@ func (a *ApiSetting) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalJSON 序列化为新格式（对象）。
-// 旧格式数据读取后，下次写入时会自动升级为新格式。
+// MarshalJSON serializes to the new (object) format.
+// Legacy data read from DB is automatically upgraded on next write.
 func (a ApiSetting) MarshalJSON() ([]byte, error) {
 	type Alias ApiSetting
 	return json.Marshal(Alias(a))
 }
 
 // ============================================================
-// UserSettingsTheme - 主题偏好
+// UserSettingsTheme - theme preferences
 // ============================================================
 
 // UserSettingsTheme holds theme preferences for the UI.
@@ -60,7 +87,7 @@ type UserSettingsTheme struct {
 }
 
 // ============================================================
-// UserSettingsAPIKey - 外部服务的 API 配置集合
+// UserSettingsAPIKey - collection of API configurations for external services
 // ============================================================
 
 // UserSettingsAPIKey holds API configurations for external services.
@@ -70,8 +97,13 @@ type UserSettingsAPIKey struct {
 	Embedder ApiSetting `json:"embedder"` // Embedder service
 }
 
+// IsOK returns true when all three API keys (LLM, Search, Embedder) are non-empty.
+func (a *UserSettingsAPIKey) IsOK() bool {
+	return a.LLM.ApiKey != "" && a.Search.ApiKey != "" && a.Embedder.ApiKey != ""
+}
+
 // ============================================================
-// UserSettings - 用户设置（JSON 格式，存储在 users.settings 列）
+// UserSettings - user settings (JSON format, stored in users.settings column)
 // ============================================================
 
 // UserSettings represents user settings in JSON format, stored in the settings field of User.

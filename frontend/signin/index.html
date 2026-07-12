@@ -18,6 +18,7 @@
     <!-- 主题变量 + 公共样式 -->
     <link rel="stylesheet" href="/static/theme.css">
     <link rel="stylesheet" href="/static/signin.css">
+    <link rel="stylesheet" href="/static/dialogs/apikey-dialog.css">
 </head>
 <body>
     <div class="signin-page">
@@ -429,6 +430,7 @@
         // ============================================================
         // 登录（手机号 + 验证码）
         // ============================================================
+
         async function onLogin() {
             var phone = document.getElementById('phoneInput').value.trim();
             var code = document.getElementById('codeInput').value.trim();
@@ -467,24 +469,21 @@
                     }
                     // 亮暗模式传递：仅将登录页当前亮暗（0或1）合并到首页 theme 值中
                     if (data.theme) {
-                        // 从登录页 data-theme 属性读取当前实际亮暗（用户所见即所得）
                         var loginBrightBit = getCurrentTheme() === 'dark' ? 1 : 0;
                         try {
                             var raw = localStorage.getItem('brainforever_settings');
                             var settings = raw ? JSON.parse(raw) : {};
-                            // 保留首页原有的 bit 1（是否跟随系统），仅替换 bit 0（亮暗）
                             var curTheme = typeof settings.theme === 'number' ? settings.theme : 2;
-                            settings.theme = (curTheme & 2) | loginBrightBit; // 掩码 2 = 0b10
+                            settings.theme = (curTheme & 2) | loginBrightBit;
                             settings.themeSync = !!data.theme.sync;
                             localStorage.setItem('brainforever_settings', JSON.stringify(settings));
                         } catch(e) {}
-                        // 同步到登录页的 data-theme（避免跳转后闪烁，但仅亮暗，不涉及主题 ID）
                         document.documentElement.setAttribute('data-theme', loginBrightBit === 1 ? 'dark' : 'light');
-                       }
-                       // 跳转到首页（replace 替换登录页历史，不让后退回到登录页）
-                       window.location.replace('/');
+                    }
+
+                    // 登录成功，跳转首页（API-Key 设置由首页 Alpine 对话框自动检测处理）
+                    goToHome();
                 } else {
-                    // 读取后端返回的错误消息并显示
                     var errorText = '';
                     try {
                         errorText = await response.text();
@@ -504,6 +503,10 @@
                 btn.disabled = false;
                 btn.textContent = '登录';
             }
+        }
+
+        function goToHome() {
+            window.location.replace('/');
         }
 
         // ============================================================
