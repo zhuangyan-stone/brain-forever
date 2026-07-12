@@ -50,7 +50,7 @@ func (s *BrainStore) initSchema() error {
 
 		CREATE TRIGGER IF NOT EXISTS trg_traits_update_at
 			BEFORE UPDATE ON traits
-			FOR EACH ROW 
+			FOR EACH ROW
 		BEGIN
 			UPDATE traits SET update_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 		END;
