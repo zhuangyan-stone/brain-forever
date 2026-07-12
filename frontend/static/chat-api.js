@@ -853,17 +853,31 @@ window.onOpenThemeDialog = function() {
 // ============================================================
 // 打开 API-Key 设置对话框
 // ============================================================
-window.onOpenApiKeyDialog = function() {
+window.onOpenApiKeyDialog = async function() {
     try {
         var dialogEl = document.getElementById('apikeyDialog');
-        if (dialogEl) {
-            var dialogData = Alpine.$data(dialogEl);
-            if (dialogData && typeof dialogData.open === 'function') {
-                dialogData.open({ settings: null });
-                return;
-            }
+        if (!dialogEl) {
+            console.warn('API-Key 设置对话框组件未找到或未初始化');
+            return;
         }
-        console.warn('API-Key 设置对话框组件未找到或未初始化');
+        var dialogData = Alpine.$data(dialogEl);
+        if (!dialogData || typeof dialogData.open !== 'function') {
+            console.warn('API-Key 设置对话框组件未初始化');
+            return;
+        }
+
+        // 先从后端获取当前设置（已脱敏）
+        var settings = null;
+        try {
+            var resp = await fetch('/api/user/settings/apikey');
+            if (resp.ok) {
+                settings = await resp.json();
+            }
+        } catch (e) {
+            console.warn('获取 API-Key 设置失败，使用默认值:', e);
+        }
+
+        dialogData.open({ settings: settings });
     } catch (e) {
         console.error('打开 API-Key 设置对话框失败:', e);
     }

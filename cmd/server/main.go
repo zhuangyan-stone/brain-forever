@@ -205,6 +205,9 @@ func main() {
 	// CORS middleware -support for frontend-backend separated development
 	srv.Use(httpx.UseCORSMiddleware)
 
+	// Initialize global API keys pool singleton (used by user package)
+	config.InitApiKeysPool(cfg.ApiKeys)
+
 	// Initialize theme handler for manifest and user handler for user operations
 	themeHandler := theme.NewHandler()
 	userHandler := user.NewHandler(

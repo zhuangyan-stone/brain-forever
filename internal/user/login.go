@@ -12,6 +12,7 @@ import (
 
 	"BrainForever/infra/captcha"
 	"BrainForever/infra/i18n"
+	"BrainForever/internal/config"
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
@@ -313,7 +314,8 @@ func pickRandomAvatar(avatarDir string) string {
 }
 
 // afterLogin handles common post-login logic: load user chats, parse settings,
-// switch session, persist to Redis, and respond.
+// fill system-shared API keys for non-private services, switch session,
+// persist to Redis, and respond.
 func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool, sess *session.Session) {
 	var chats []store.Chat
 	cs, bs, err := dbc.InitUserDB(user.ID, user.SN)
@@ -331,6 +333,36 @@ func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool
 		h.logger.Errorf("failed to parse user settings for user %s: %v", user.SN, err)
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
+	}
+
+	// ============================================================
+	// Inject system-shared API keys for non-private services.
+	// This fills ApiKey from the global pool (configured in server.toml
+	// under [api-keys]) when the user's setting is Private=false.
+	//
+	// Rules:
+	//   - Private=true, key!=""  → keep as-is (user's own key)
+	//   - Private=true, key==""  → leave empty (will fail at call time)
+	//   - Private=false          → fill from system pool (random pick)
+	//
+	// IMPORTANT: We only modify the in-memory copy in the session.
+	// The Private flag is NOT changed, and nothing is written back to DB.
+	// ============================================================
+	pool := config.GetApiKeysPool()
+	if !userSettings.APIKey.LLM.Private && userSettings.APIKey.LLM.ApiKey == "" {
+		if k := pool.GetOne("llm", "deepseek"); k != "" {
+			userSettings.APIKey.LLM.ApiKey = k
+		}
+	}
+	if !userSettings.APIKey.Embedder.Private && userSettings.APIKey.Embedder.ApiKey == "" {
+		if k := pool.GetOne("embedding", "zhipu"); k != "" {
+			userSettings.APIKey.Embedder.ApiKey = k
+		}
+	}
+	if !userSettings.APIKey.Search.Private && userSettings.APIKey.Search.ApiKey == "" {
+		if k := pool.GetOne("websearch", "zhipu"); k != "" {
+			userSettings.APIKey.Search.ApiKey = k
+		}
 	}
 
 	sess.SwitchToUser(&session.SessionUser{

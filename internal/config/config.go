@@ -1,10 +1,28 @@
 package config
 
 import (
+	"math/rand"
 	"os"
 
 	"github.com/BurntSushi/toml"
 )
+
+// ============================================================
+// Global singleton — shared API keys pool
+// ============================================================
+
+var theApiKeysPool ApiKeysConfig
+
+// InitApiKeysPool sets the global system-shared API keys pool.
+// Must be called during startup after loading the config file.
+func InitApiKeysPool(cfg ApiKeysConfig) {
+	theApiKeysPool = cfg
+}
+
+// GetApiKeysPool returns the global system-shared API keys pool.
+func GetApiKeysPool() ApiKeysConfig {
+	return theApiKeysPool
+}
 
 // ============================================================
 // Config -centralized configuration for the BrainForever server
@@ -23,6 +41,7 @@ type Config struct {
 	Redis    RedisConfig
 	Data     DataConfig
 	Captcha  CaptchaConfig
+	ApiKeys  ApiKeysConfig `toml:"api-keys"`
 }
 
 // DefaultConfig returns a Config populated with built-in default values.
@@ -79,6 +98,79 @@ func (c *Config) LoadFromFile(path string) error {
 		return err
 	}
 	return nil
+}
+
+// ============================================================
+// ApiKeysConfig — shared system API key pool
+//
+// Provides a global pool of API keys for external services (LLM,
+// WebSearch, Embedding) configured in server.toml under [api-keys].
+//
+// Keys are identified by "purpose@provider", e.g.:
+//   - llm@deepseek       — LLM chat via DeepSeek
+//   - websearch@zhipu    — Web search via Zhipu
+//   - embedding@ali      — Embedding via Alibaba DashScope
+//
+// The pool is populated once at startup (single-threaded TOML decode)
+// and is read-only thereafter, so no locking is required.
+// ============================================================
+
+// ApiKeysConfig holds a read-only pool of system-shared API keys.
+type ApiKeysConfig struct {
+	keys map[string][]string
+}
+
+// UnmarshalTOML implements toml.Unmarshaler to decode a [api-keys] section
+// directly into ApiKeysConfig. Each TOML key becomes a "purpose@provider"
+// entry mapping to a string slice of API keys.
+//
+// TOML example:
+//
+//	[api-keys]
+//	llm@deepseek = ["sk-abc123", "sk-def456"]
+//	websearch@zhipu = ["key-789"]
+func (a *ApiKeysConfig) UnmarshalTOML(i interface{}) error {
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	a.keys = make(map[string][]string, len(m))
+	for k, v := range m {
+		list, ok := v.([]interface{})
+		if !ok {
+			continue
+		}
+		strs := make([]string, 0, len(list))
+		for _, item := range list {
+			if s, ok := item.(string); ok {
+				strs = append(strs, s)
+			}
+		}
+		if len(strs) > 0 {
+			a.keys[k] = strs
+		}
+	}
+	return nil
+}
+
+// GetOne returns a random API key for the given purpose and provider.
+// The lookup key is constructed as "purpose@provider".
+// Returns an empty string if no keys are configured for this key.
+func (a *ApiKeysConfig) GetOne(purpose, provider string) string {
+	if a.keys == nil {
+		return ""
+	}
+
+	key := purpose + "@" + provider
+	vals := a.keys[key]
+
+	if c := len(vals); c == 1 {
+		return vals[0]
+	} else if c == 0 {
+		return ""
+	} else {
+		return vals[rand.Intn(len(vals))]
+	}
 }
 
 // ============================================================

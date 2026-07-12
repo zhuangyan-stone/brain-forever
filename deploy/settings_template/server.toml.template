@@ -69,3 +69,33 @@ dir = "./frontend/static/img/captchas/"
 dir = "./frontend"
 # 禁用浏览器缓存（开发环境设为 true）
 cache_disable = false
+
+# ============================================================
+# 系统共享 API Key 池（可选）
+#
+# 配置全局共享的 API Key，供系统中所有用户使用（当用户未设置
+# 自己的私有 Key 时使用）。支持为同一用途配置多个 Key 以实现
+# 负载均衡（GetOne 随机选取一个）。
+#
+# 格式：用途@提供商 = ["key1", "key2", ...]
+#   用途：llm | websearch | embedding
+#   提供商：deepseek | ali | zhipu | bocha
+#
+# 示例：
+#
+#   [api-keys]
+#   llm@deepseek = ["sk-xxx1", "sk-xxx2"]
+#   websearch@zhipu = ["key-111"]
+#   embedding@ali = ["key-222"]
+# ============================================================
+[api-keys]
+# LLM 对话（DeepSeek）
+# llm@deepseek = []
+
+# 联网搜索（智谱/博查）
+# websearch@zhipu = []
+# websearch@bocha = []
+
+# 文本嵌入（阿里 DashScope/智谱）
+# embedding@ali = []
+# embedding@zhipu = []

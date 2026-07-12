@@ -97,7 +97,8 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// /api/user/theme/sync -- PUT (update theme sync preference, with optional theme data)
 	srv.PUT("/api/user/theme/sync", chatHandler.RequireAuth(userHandler.ApplyThemeSync))
 
-	// /api/user/settings/apikey -- POST (save API key settings for LLM, Search, Embedder)
+	// /api/user/settings/apikey -- GET (read desensitized) + POST (save)
+	srv.GET("/api/user/settings/apikey", chatHandler.RequireAuth(userHandler.OnGetApiKeySettings))
 	srv.POST("/api/user/settings/apikey", chatHandler.RequireAuth(userHandler.OnSaveApiKeySettings))
 
 	// /api/themes/mainfes -- GET (read theme manifest, no auth required)

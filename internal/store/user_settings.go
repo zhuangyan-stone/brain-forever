@@ -33,6 +33,21 @@ func (a *ApiSetting) Desensitize() {
 	}
 }
 
+// IsPseudo returns true if the ApiKey is a starified placeholder ("****").
+// This indicates the value came from the frontend's desensitized display
+// rather than an actual user modification.
+func (a *ApiSetting) IsPseudo() bool {
+	if a.ApiKey == "" {
+		return false
+	}
+	for _, r := range a.ApiKey {
+		if r != '*' {
+			return false
+		}
+	}
+	return true
+}
+
 // starifyApiKey replaces each character in s with '*'.
 func starifyApiKey(s string) string {
 	if s == "" {
