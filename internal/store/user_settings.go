@@ -251,7 +251,7 @@ func (s *UserStore) UpdateUserSettingsAPIKey(id int64, apis *UserSettingsAPIKey)
 	}
 
 	result, err := TheMySQLDB().Exec(
-		"UPDATE users SET settings = JSON_SET(settings, '$.api_key', ?) WHERE id = ?",
+		"UPDATE users SET settings = JSON_SET(settings, '$.api_key', CAST(? AS JSON)) WHERE id = ?",
 		string(jsonBytes), id,
 	)
 	if err != nil {
