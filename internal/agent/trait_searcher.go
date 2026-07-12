@@ -21,6 +21,19 @@ type traitSearchAdapter struct {
 
 // halfLifeDisplay returns the localized half-life label for the stored integer (1-4).
 // Mapping: 1=short, 2=medium, 3=long, 4=permanent.
+func privacyLevelDisplay(level int) string {
+	switch level {
+	case 0:
+		return "private"
+	case 1:
+		return "protected"
+	case 2:
+		return "public"
+	default:
+		return "protected"
+	}
+}
+
 func halfLifeDisplay(lang string, halfLife int) string {
 	key := fmt.Sprintf("trait_halflife_%d", halfLife)
 	return i18n.TL(lang, key)
@@ -71,13 +84,14 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 			continue
 		}
 		result = append(result, toolimp.TraitSource{
-			ID:         pt.ID,
-			Trait:      pt.Trait,
-			Category:   categoryDisplay(a.lang, pt.Category),
-			Confidence: confidenceDisplay(a.lang, pt.Confidence),
-			HalfLife:   halfLifeDisplay(a.lang, pt.HalfLife),
-			CreateAt:   pt.CreateAt,
-			UpdateAt:   pt.UpdateAt,
+			ID:           pt.ID,
+			Trait:        pt.Trait,
+			Category:     categoryDisplay(a.lang, pt.Category),
+			Confidence:   confidenceDisplay(a.lang, pt.Confidence),
+			HalfLife:     halfLifeDisplay(a.lang, pt.HalfLife),
+			PrivacyLevel: privacyLevelDisplay(pt.PrivacyLevel),
+			CreateAt:     pt.CreateAt,
+			UpdateAt:     pt.UpdateAt,
 		})
 	}
 
@@ -102,13 +116,14 @@ func (a *traitSearchAdapter) SearchByKeyword(ctx context.Context, queryKeyword s
 	var result []toolimp.TraitSource
 	for _, pt := range traits {
 		result = append(result, toolimp.TraitSource{
-			ID:         pt.ID,
-			Trait:      pt.Trait,
-			Category:   categoryDisplay(a.lang, pt.Category),
-			Confidence: confidenceDisplay(a.lang, pt.Confidence),
-			HalfLife:   halfLifeDisplay(a.lang, pt.HalfLife),
-			CreateAt:   pt.CreateAt,
-			UpdateAt:   pt.UpdateAt,
+			ID:           pt.ID,
+			Trait:        pt.Trait,
+			Category:     categoryDisplay(a.lang, pt.Category),
+			Confidence:   confidenceDisplay(a.lang, pt.Confidence),
+			HalfLife:     halfLifeDisplay(a.lang, pt.HalfLife),
+			PrivacyLevel: privacyLevelDisplay(pt.PrivacyLevel),
+			CreateAt:     pt.CreateAt,
+			UpdateAt:     pt.UpdateAt,
 		})
 	}
 

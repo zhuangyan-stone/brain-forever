@@ -25,5 +25,12 @@ other = "置信度（1-10 整数）：值越大代表对该特征的确信程度
 [param_half_life_desc]
 other = "该特征的有效期/半衰期，取值为 short（短期，天~周）、medium（中期，月~年）、long（长期，年+）、permanent（永久，已完成的客观事件永不改变）。应根据特征的实际性质判断，而非机械映射 category_id。"
 
+[param_privacy_level_desc]
+other = """隐私层级。分为三级：
+  - private（0）：高度私密，如个人健康、情感经历、家庭矛盾等，仅限用户本人可见
+  - protected（1）：一般敏感，如职业规划、兴趣爱好等，可在受控范围内分享
+  - public（2）：公开信息，如公开作品、公开观点等，可被广泛传播
+"""
+
 [pending]
 other = "正在提取用户特征..."

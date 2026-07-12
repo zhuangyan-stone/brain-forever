@@ -20,15 +20,16 @@ import (
 // PersonalTrait represents a personal trait stored in the traits table.
 // Score is only populated during search results, not persisted to DB.
 type PersonalTrait struct {
-	ID         int64     `db:"id"`
-	Trait      string    `db:"trait"`      // trait text
-	Category   int       `db:"category"`   // category 1~14
-	Confidence int       `db:"confidence"` // confidence (integer)
-	HalfLife   int       `db:"half_life"`  // half-life: 1=short,2=medium,3=long,4=permanent
-	ChatSN     string    `db:"chat_sn"`    // source chat SN, globally unique
-	Score      float64   `db:"-"`          // similarity score (search only, not persisted)
-	CreateAt   time.Time `db:"create_at"`
-	UpdateAt   time.Time `db:"update_at"`
+	ID           int64     `db:"id"`
+	Trait        string    `db:"trait"`         // trait text
+	Category     int       `db:"category"`      // category 1~14
+	Confidence   int       `db:"confidence"`    // confidence (integer)
+	HalfLife     int       `db:"half_life"`     // half-life: 1=short,2=medium,3=long,4=permanent
+	PrivacyLevel int       `db:"privacy_level"` // 0=private, 1=protected, 2=public
+	ChatSN       string    `db:"chat_sn"`       // source chat SN, globally unique
+	Score        float64   `db:"-"`             // similarity score (search only, not persisted)
+	CreateAt     time.Time `db:"create_at"`
+	UpdateAt     time.Time `db:"update_at"`
 }
 
 // ============================================================
@@ -105,14 +106,15 @@ func (s *BrainStore) initSchema() error {
 		);
 
 		CREATE TABLE IF NOT EXISTS traits (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			trait      TEXT    NOT NULL,
-			category   INTEGER NOT NULL,
-			confidence INTEGER NOT NULL,
-			half_life  INTEGER NOT NULL,
-			chat_sn    TEXT    NOT NULL DEFAULT '',
-			create_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			update_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+			id             INTEGER PRIMARY KEY AUTOINCREMENT,
+			trait          TEXT    NOT NULL,
+			category       INTEGER NOT NULL,
+			confidence     INTEGER NOT NULL,
+			half_life      INTEGER NOT NULL,
+			privacy_level  INTEGER NOT NULL DEFAULT 0,
+			chat_sn        TEXT    NOT NULL DEFAULT '',
+			create_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			update_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
 		CREATE TABLE IF NOT EXISTS keywords (
@@ -163,8 +165,8 @@ func (s *BrainStore) AddTrait(ctx context.Context, trait *PersonalTrait, embeddi
 	defer tx.Rollback()
 
 	result, err := tx.Exec(
-		"INSERT INTO traits(trait, category, confidence, half_life, chat_sn) VALUES(?, ?, ?, ?, ?)",
-		trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.ChatSN,
+		"INSERT INTO traits(trait, category, confidence, half_life, privacy_level, chat_sn) VALUES(?, ?, ?, ?, ?, ?)",
+		trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.PrivacyLevel, trait.ChatSN,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert trait: %w", err)
@@ -203,7 +205,7 @@ func (s *BrainStore) SearchByVector(query []float32, category int, topK int) ([]
 
 	sqlQuery := "SELECT v.rowid, v.distance, " +
 		"t.id, t.trait, t.category, t.confidence, t.half_life, " +
-		"t.chat_sn, t.create_at, t.update_at\n" +
+		"t.privacy_level, t.chat_sn, t.create_at, t.update_at\n" +
 		"FROM trait_vectors v " +
 		"JOIN traits t ON t.id = v.rowid " +
 		"WHERE v.embedding MATCH ? AND k=?"
@@ -227,25 +229,27 @@ func (s *BrainStore) SearchByVector(query []float32, category int, topK int) ([]
 		var (
 			rowid, traitID                           int64
 			distance, traitCat, confidence, halfLife int64
+			privacyLevel                             int
 			traitText, chatSN                        string
 			createAt, updateAt                       time.Time
 		)
-		if err := rows.Scan(&rowid, &distance, &traitID, &traitText, &traitCat, &confidence, &halfLife, &chatSN, &createAt, &updateAt); err != nil {
+		if err := rows.Scan(&rowid, &distance, &traitID, &traitText, &traitCat, &confidence, &halfLife, &privacyLevel, &chatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 
 		score := 1.0 - float64(distance)
 
 		pt := PersonalTrait{
-			ID:         traitID,
-			Trait:      traitText,
-			Category:   int(traitCat),
-			Confidence: int(confidence),
-			HalfLife:   int(halfLife),
-			ChatSN:     chatSN,
-			Score:      score,
-			CreateAt:   createAt,
-			UpdateAt:   updateAt,
+			ID:           traitID,
+			Trait:        traitText,
+			Category:     int(traitCat),
+			Confidence:   int(confidence),
+			HalfLife:     int(halfLife),
+			ChatSN:       chatSN,
+			Score:        score,
+			PrivacyLevel: privacyLevel,
+			CreateAt:     createAt,
+			UpdateAt:     updateAt,
 		}
 		results = append(results, pt)
 	}
@@ -266,7 +270,7 @@ func (s *BrainStore) SearchByKeyword(word string, kind int, limit int) ([]Person
 	var args []interface{}
 	if kind > 0 {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE k.word = ? AND k.kind = ?
@@ -275,7 +279,7 @@ func (s *BrainStore) SearchByKeyword(word string, kind int, limit int) ([]Person
 		args = []interface{}{word, kind, limit}
 	} else {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE k.word = ?
@@ -294,7 +298,7 @@ func (s *BrainStore) SearchByKeyword(word string, kind int, limit int) ([]Person
 	for rows.Next() {
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
-		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt
@@ -318,7 +322,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]P
 	var args []interface{}
 	if kind > 0 {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE k.word LIKE ? AND k.kind = ?
@@ -327,7 +331,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]P
 		args = []interface{}{"%" + word + "%", kind, limit}
 	} else {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE k.word LIKE ?
@@ -346,7 +350,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(word string, kind int, limit int) ([]P
 	for rows.Next() {
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
-		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt
@@ -450,7 +454,7 @@ func (s *BrainStore) DeleteTraitsByChatSNs(chatSNs []string) (int, error) {
 // ListTraitsByChat returns all traits for a given chat SN, ordered by create_at desc.
 func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 	rows, err := s.db.Query(
-		`SELECT id, trait, category, confidence, half_life, chat_sn, create_at, update_at
+		`SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
 		 FROM traits
 		 WHERE chat_sn = ?
 		 ORDER BY create_at DESC`,
@@ -465,7 +469,7 @@ func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 	for rows.Next() {
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
-		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt
@@ -482,7 +486,7 @@ func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 // ListAllTraitsByCreateTime returns all personal traits ordered by create_at desc.
 func (s *BrainStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
 	rows, err := s.db.Query(
-		`SELECT id, trait, category, confidence, half_life, chat_sn, create_at, update_at
+		`SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
 		 FROM traits
 		 ORDER BY create_at DESC`)
 	if err != nil {
@@ -494,7 +498,7 @@ func (s *BrainStore) ListAllTraitsByCreateTime() ([]PersonalTrait, error) {
 	for rows.Next() {
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
-		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.ChatSN, &createAt, &updateAt); err != nil {
+		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife, &pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt

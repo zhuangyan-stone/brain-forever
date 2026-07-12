@@ -25,5 +25,12 @@ other = "Confidence level (integer 1-10): higher values indicate greater certain
 [param_half_life_desc]
 other = "The validity period / half-life of this feature. Values: short (days~weeks), medium (months~year), long (year+), permanent (completed objective events that never change). Should be determined based on the actual nature of the feature, not by mechanically mapping from category_id."
 
+[param_privacy_level_desc]
+other = """Privacy level. Three levels:
+  - private (0): Highly private, e.g. personal health, emotional experiences, family conflicts — visible only to the user
+  - protected (1): Moderately sensitive, e.g. career plans, hobbies — can be shared in controlled scope
+  - public (2): Public information, e.g. published works, public opinions — can be widely shared
+"""
+
 [pending]
 other = "Extracting user traits..."

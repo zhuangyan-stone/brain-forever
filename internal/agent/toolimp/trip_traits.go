@@ -39,6 +39,7 @@ type TripTraitsFeature struct {
 	Keywords     []TraitKeyword `json:"keywords"`
 	Confidence   int            `json:"confidence"`
 	HalfLife     string         `json:"half_life"`
+	PrivacyLevel string         `json:"privacy_level"`
 }
 
 // TripTraitsTool implements llm.ToolIMP for the trip_traits tool.
@@ -111,8 +112,13 @@ func tripTraitsToolDefinition(lang string) llm.ToolDefinition {
 									"enum":        []string{"short", "medium", "long", "permanent"},
 									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_half_life_desc"),
 								},
+								"privacy_level": map[string]any{
+									"type":        "string",
+									"enum":        []string{"private", "protected", "public"},
+									"description": i18n.Tools.TL(lang, TripTraitsToolName, "param_privacy_level_desc"),
+								},
 							},
-							"required":             []string{"category_id", "category_name", "feature_text", "keywords", "confidence", "half_life"},
+							"required":             []string{"category_id", "category_name", "feature_text", "keywords", "confidence", "half_life", "privacy_level"},
 							"additionalProperties": false,
 						},
 					},
@@ -292,6 +298,7 @@ func decodeSingleFeature(data []byte) (TripTraitsFeature, error) {
 	f.Keywords = extractKeywordsField(data)
 	f.Confidence = extractIntField(data, "confidence")
 	f.HalfLife = extractStringFieldDirect(data, "half_life")
+	f.PrivacyLevel = extractStringFieldDirect(data, "privacy_level")
 	return f, nil
 }
 

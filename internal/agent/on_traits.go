@@ -36,6 +36,7 @@ type traitsFeature struct {
 	Keywords     []traitsKeyword `json:"keywords"`
 	Confidence   int             `json:"confidence"`
 	HalfLife     string          `json:"half_life"`
+	PrivacyLevel string          `json:"privacy_level"`
 }
 
 type traitsKeyword struct {
@@ -64,6 +65,19 @@ func halfLifeToInt(s string) int {
 		return 4
 	default:
 		return 2
+	}
+}
+
+func privacyLevelToInt(s string) int {
+	switch s {
+	case "private":
+		return 0
+	case "protected":
+		return 1
+	case "public":
+		return 2
+	default:
+		return 1 // 默认 protected（保守选择）
 	}
 }
 
@@ -246,6 +260,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessa
 				Keywords:     kws,
 				Confidence:   f.Confidence,
 				HalfLife:     f.HalfLife,
+				PrivacyLevel: f.PrivacyLevel,
 			})
 		}
 	} else if len(resp.Choices) > 0 && resp.Choices[0].Message.Content != "" {
@@ -313,11 +328,12 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 		}
 
 		trait := &store.PersonalTrait{
-			Trait:      f.FeatureText,
-			Category:   f.CategoryID,
-			Confidence: f.Confidence,
-			HalfLife:   halfLifeToInt(f.HalfLife),
-			ChatSN:     chatSN,
+			Trait:        f.FeatureText,
+			Category:     f.CategoryID,
+			Confidence:   f.Confidence,
+			HalfLife:     halfLifeToInt(f.HalfLife),
+			PrivacyLevel: privacyLevelToInt(f.PrivacyLevel),
+			ChatSN:       chatSN,
 		}
 
 		traitID, err := vs.AddTrait(ctx, trait, vector)

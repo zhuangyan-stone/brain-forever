@@ -37,6 +37,8 @@ type TraitSource struct {
 
 	HalfLife string `json:"half_life"`
 
+	PrivacyLevel string `json:"privacy_level"`
+
 	CreateAt time.Time `json:"create_at"`
 	UpdateAt time.Time `json:"update_at"`
 }
@@ -348,6 +350,7 @@ func formatTraitSources(lang string, traits []TraitSource) string {
 		b.WriteString(fmt.Sprintf("Category: %s | ", t.Category))
 		b.WriteString(fmt.Sprintf("Confidence: %s | ", t.Confidence))
 		b.WriteString(fmt.Sprintf("HalfLife: %s | ", t.HalfLife))
+		b.WriteString(fmt.Sprintf("PrivacyLevel: %s | ", t.PrivacyLevel))
 		if !t.CreateAt.IsZero() {
 			b.WriteString(fmt.Sprintf("Created: %s", t.CreateAt.Format("2006-01-02 15:04:05")))
 		} else {

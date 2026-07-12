@@ -272,7 +272,7 @@ keyword  : "民俗"
 | long | 长期 | 年+ | "讨厌香菜"、"会Python"、"责任心强" |
 | permanent | 永久 | 永不改变 | "参加过抗洪"、"出版过诗集" |
 
-**判定原则**：
+**分类判定原则**：
 1. **基于特征的实际性质判断**，而非机械映射 category_id。例如：
   - Category 9（近况和状态）不一定全是 short——"正在准备考公"更接近 medium
   - Category 1（人口学特征）不一定全是 long——"月薪八千"可能 medium（换工作可能变化）
@@ -283,7 +283,36 @@ keyword  : "民俗"
 5. permanent 仅适用于**已完成的客观历史事件**（经历过、做过），这些事实不会改变。
 6. **低于 short 的不提取**：half_life 的最小取值是 short（天~周级）。如果一种目标、愿望或状态的时效比 short 更短（分钟~小时级，如"希望雨能停下来"、"希望能赶上这趟班车"），说明它根本不具备作为个人特征的价值，**不应提取为任何分类的特征**，即使标注 half_life=short 也不合适。这类即时性临时念头应直接忽略。
 
+**隐私层级判定规则**：
+
+每个特征（feature）必须提供 privacy_level 字段，表示该特征内容的隐私敏感程度。取值及含义如下：
+
+| 取值  | 名称     | 定义                                                          | 判定标准（命中任一即归入该级）                               |
+| ----- | --------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| "private" | 严格保密  | 现实中通常仅为自己或家人知道的信息。一旦泄露，可**唯一锁定个人身份**、造成**财务/健康/声誉重大损害**，或属于**法律禁止处理的特殊数据** | A. **唯一识别与行踪**：真实姓名+身份证号、手机号、精确门牌号/收货地址、生物特征（指纹/面部）、实时精确位置（GPS/行踪轨迹）、车牌号、航班号+日期 B. **财务与资产**：存款余额、收入/工资/纳税额、债务/贷款明细、不动产/车辆/股权等大额资产的具体价值 C. **健康隐私**：所有疾病（含精神类）、生理缺陷、残疾、过敏史、手术史、遗传病史 D. **未成年人保护**：任何关系人为未成年人时，其姓名+学校+班级+住址等可定位信息（若仅为"有个女儿"而无具体可定位信息，则降至1级） E. **污名化信息**：非主流性取向/性癖好、犯罪/诉讼记录、吸毒/成瘾史、具体宗教信仰派别（如"什叶派"而非"穆斯林"）、具体政治派别 F. **风险言论**：对可识别自然人或组织的负面/批评性评价（如"我老板就是个蠢货"），尤其是涉及职场、政治、公众人物的内容 G. **商业机密**：非公开的公司财务数据、战略计划、客户名单、技术源码、内部人事考核/薪酬信息 |
+| "protected" | 受限可见 | 现实中通常仅在自己、家人、好友、利益高度相关人中公开的信息。 可**间接识别**个人或指向**模糊范围**，泄露后有一定影响但危害可控；或属于**多数人不愿公开的日常私事** | • 精确年龄+出生地（不配姓名时不算唯一） • 模糊位置（城市/区域，非门牌号） • 具体职业+行业（如"三甲医院心外科主治医师"，但没提姓名） • 家庭成员结构（如"离异，带一个10岁女儿"，无具体学校/班级） • 部分行为习惯（如"酗酒"、"赌博史"，但无金额/频率） • 普通关系人姓名（如"我朋友张三"，但张三无其他附带敏感信息） • 近况与状态（如"失业中"、"正在打离婚官司"，但无具体财务细节） • 公司名称（如"我在华为上班"，未涉及内部机密） |
+| "public" | 可公开的 | 公开场合可自然流露、社会接受度高的信息，泄露几乎无负面影响；或属于**群体标签**而非个体标识 | • 年龄段（90后、中年人） • 性别 • 兴趣爱好（爬山、下棋） • 一般性技能（会Python、会开车） • 人格/性格（内向、认真负责） • 世界观/人生观（环保主义、无神论） • 已公开成就（出版过书、获奖） • 正面评价（"我崇拜周杰伦"） |
+
+**隐私层级判定优先级**：
+
+1. 先命中0级特征：若特征内容满足上述0级判定标准中的任一条，直接判为 privacy_level="private"，无需再考虑其他级别。
+2. 再判定是否属于2级：若特征内容明显属于公开社交标签（性别、年龄段、兴趣、性格、三观宏观、普通技能、正面评价），判为 privacy_level="public"。
+3. 其余归入1级：上述两者都不满足的，判为 privacy_level="protected"。
+
+**隐私层级判定注意事项**：
+
+- privacy_level 是针对每条特征内容独立判断的，不同特征即使属于同一 category_id 也可能有不同的 privacy_level。例如：
+
+ - "用户性别男" → privacy_level="public"
+ - "用户身份证号是 11010119900307666X" → privacy_level="private"
+ - 上述两条都属于 category_id=1（人口学特征），但隐私层级完全不同。
+
+- 当特征涉及他人（category_id=12 关系人）时，若内容中包含未成年人的具体可定位信息（姓名+学校+班级+住址），应判为 privacy_level="private"；若仅为"有个女儿"或"朋友叫张三"而无更多敏感细节，判为 privacy_level="protected"。
+- 健康类特征（category_id=8）最低不得低于 privacy_level="protected"（普通过敏、失眠可归1级），涉及遗传病、精神疾病、艾滋等严重健康问题应归0级。
+
+
 **输出格式**：
+
 整体输出为一个 JSON 对象，包含 `features` 数组，每个元素是一个特征对象，结构如下：
 **⚠️ 重要：category_id 的取值范围仅为 1~14，不允许出现 0。如果某条特征无法归入 1~14 中的任何分类，则不要输出该特征。**
 ```json
@@ -295,6 +324,7 @@ keyword  : "民俗"
       "feature_text": "用户出版过诗集",
       "confidence": 9,
       "half_life": "permanent",
+      "privacy_level": "public",
       "keywords": [
         { "type": "D", "word": "诗集" }
       ]
@@ -305,6 +335,7 @@ keyword  : "民俗"
       "feature_text": "用户爱打篮球",
       "confidence": 8,
       "half_life": "long",
+      "privacy_level": "public",
       "keywords": [
         { "type": "D", "word": "篮球" }
       ]
@@ -313,8 +344,9 @@ keyword  : "民俗"
       "category_id": 13,
       "category_name": "人生事件",
       "feature_text": "用户大二参加过抗洪",
-      "confidence": 9,
+      "confidence": 9,      
       "half_life": "permanent",
+      "privacy_level": "protected",
       "keywords": [
         { "type": "A", "word": "大二" },
         { "type": "F", "word": "抗洪" }
@@ -330,10 +362,10 @@ keyword  : "民俗"
 ```json
 {
   "features": [
-    { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户25岁", "confidence": 9, "half_life": "long", "keywords": [] },
-    { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户身高178cm", "confidence": 9, "half_life": "long", "keywords": [] },
-    { "category_id": 12, "category_name": "关系人", "feature_text": "用户一直没女友", "confidence": 8, "half_life": "medium", "keywords": [{ "type":"E", "word":"女友" }] },
-    { "category_id": 9, "category_name": "近况和状态", "feature_text": "用户对自己找不到女友感到不解与不服", "confidence": 7, "half_life": "short", "keywords": [] }
+    { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户25岁", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] },
+    { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户身高178cm", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] },
+    { "category_id": 12, "category_name": "关系人", "feature_text": "用户一直没女友", "confidence": 8, "half_life": "medium", "privacy_level": "protected", "keywords": [{ "type":"E", "word":"女友" }] },
+    { "category_id": 9, "category_name": "近况和状态", "feature_text": "用户对自己找不到女友感到不解与不服", "confidence": 7, "half_life": "short", "privacy_level": "protected", "keywords": [] }
   ]
 }
 ```
@@ -344,11 +376,11 @@ keyword  : "民俗"
 ```json
 {
   "features": [
-    { "category_id": 3, "category_name": "成就与修为", "feature_text": "用户出版过诗集", "confidence": 9, "half_life": "permanent", "keywords": [{ "type":"D", "word":"诗集" }] },
-    { "category_id": 4, "category_name": "兴趣爱好", "feature_text": "用户爱打篮球", "confidence": 8, "half_life": "long", "keywords": [{ "type":"D", "word":"篮球" }] },
-    { "category_id": 9, "category_name": "近况和状态", "feature_text": "用户现在不写诗了", "confidence": 8, "half_life": "medium", "keywords": [] },
-    { "category_id": 9, "category_name": "近况和状态", "feature_text": "用户现在工作忙", "confidence": 7, "half_life": "short", "keywords": [] },
-    { "category_id": 11, "category_name": "价值观与信仰", "feature_text": "用户意识到身体健康重要", "confidence": 6, "half_life": "long", "keywords": [] }
+    { "category_id": 3, "category_name": "成就与修为", "feature_text": "用户出版过诗集", "confidence": 9, "half_life": "permanent", "privacy_level": "public", "keywords": [{ "type":"D", "word":"诗集" }] },
+    { "category_id": 4, "category_name": "兴趣爱好", "feature_text": "用户爱打篮球", "confidence": 8, "half_life": "long", "privacy_level": "public", "keywords": [{ "type":"D", "word":"篮球" }] },
+    { "category_id": 9, "category_name": "近况和状态", "feature_text": "用户现在不写诗了", "confidence": 8, "half_life": "medium", "privacy_level": "protected", "keywords": [] },
+    { "category_id": 9, "category_name": "近况和状态", "feature_text": "用户现在工作忙", "confidence": 7, "half_life": "short", "privacy_level": "public", "keywords": [] },
+    { "category_id": 11, "category_name": "价值观与信仰", "feature_text": "用户意识到身体健康重要", "confidence": 6, "half_life": "long", "privacy_level": "public", "keywords": [] }
   ]
 }
 ```
@@ -365,6 +397,7 @@ keyword  : "民俗"
       "feature_text": "用户大二参加过抗洪",
       "confidence": 9,
       "half_life": "permanent",
+      "privacy_level": "protected",
       "keywords": [
         { "type": "A", "word": "大二" },
         { "type": "F", "word": "抗洪" }
@@ -376,6 +409,7 @@ keyword  : "民俗"
       "feature_text": "用户大二认识了初恋",
       "confidence": 8,
       "half_life": "permanent",
+      "privacy_level": "protected",
       "keywords": [
         { "type": "A", "word": "大二" },
         { "type": "C", "word": "初恋女友" },
@@ -388,6 +422,7 @@ keyword  : "民俗"
       "feature_text": "用户初恋参加过抗洪时的后勤工作",
       "confidence": 7,
       "half_life": "permanent",
+      "privacy_level": "protected",
       "keywords": [
         { "type": "C", "word": "初恋" },
         { "type": "F", "word": "抗洪" }
@@ -409,6 +444,7 @@ keyword  : "民俗"
       "feature_text": "用户最近工作压力大",
       "confidence": 7,
       "half_life": "short",
+      "privacy_level": "protected",
       "keywords": [
         { "type": "A", "word": "最近" },
         { "type": "D", "word": "工作" },
@@ -420,20 +456,35 @@ keyword  : "民俗"
 ```
 注意上例中：①关键词 `type` 使用的是 A（时间）和 D（事物），**绝非 9**（`category_id` 的值）；②关键词 `word` 是分解后的原子化表达（"工作"、"压力"），而非直接复制特征文本"工作压力"。
 
+*案例5（隐私层级区分示例）*
+用户：我身份证号是11010119900307666X，性别男，在华为上班，最近压力太大了，想辞职。
+输出：
+```json
+{
+  "features": [
+    { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户身份证号是11010119900307666X", "confidence": 9, "half_life": "permanent", "privacy_level": "private", "keywords": [] },
+    { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户性别男", "confidence": 9, "half_life": "permanent", "privacy_level": "public", "keywords": [] },
+    { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户在华为上班", "confidence": 8, "half_life": "medium", "privacy_level": "protected", "keywords": [{ "type":"D", "word":"华为" }] },
+    { "category_id": 9, "category_name": "近况和状态", "feature_text": "用户最近工作压力大", "confidence": 7, "half_life": "short", "privacy_level": "protected", "keywords": [{ "type":"D", "word":"工作" }, { "type":"D", "word":"压力" }] },
+    { "category_id": 14, "category_name": "目标与计划", "feature_text": "用户想辞职", "confidence": 6, "half_life": "short", "privacy_level": "protected", "keywords": [{ "type":"F", "word":"辞职" }] }
+  ]
+}
+```
+
 *反例（常见错误——不要合并人口学属性）*
 用户：我50岁，男，是个程序员
 ❌ 错误输出：
 ```json
 { "features": [
-  { "category_id": 1, "category_name": "人口学特征", "feature_text": "50岁男性程序员", "confidence": 9, "half_life": "long", "keywords": [] }
+  { "category_id": 1, "category_name": "人口学特征", "feature_text": "50岁男性程序员", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] }
 ] }
 ```
 ✅ 正确输出：
 ```json
 { "features": [
-  { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户50岁", "confidence": 9, "half_life": "long", "keywords": [] },
-  { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户性别男", "confidence": 9, "half_life": "permanent", "keywords": [] },
-  { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户职业是程序员", "confidence": 9, "half_life": "long", "keywords": [] }
+  { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户50岁", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] },
+  { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户性别男", "confidence": 9, "half_life": "permanent", "privacy_level": "public", "keywords": [] },
+  { "category_id": 1, "category_name": "人口学特征", "feature_text": "用户职业是程序员", "confidence": 9, "half_life": "long", "privacy_level": "protected", "keywords": [] }
 ] }
 ```
 ----
