@@ -147,10 +147,6 @@ func (s *BrainStore) initSchema() error {
 		return err
 	}
 
-	s.db.Exec("ALTER TABLE traits ADD COLUMN chat_sn TEXT NOT NULL DEFAULT ''")
-	s.db.Exec("DROP TRIGGER IF EXISTS trg_keywords_update_at")
-	s.db.Exec("ALTER TABLE keywords DROP COLUMN update_at")
-
 	return nil
 }
 
