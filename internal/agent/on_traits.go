@@ -154,10 +154,11 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.SN)
 		if err != nil {
 			h.logger.Errorf("store traits to brain.db failed (chatSN=%s): %v", foundChat.SN, err)
-		} else {
-			chatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
-			updateExtractionProgress(foundChat, chatStore, storedCount)
+			toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
+			return
 		}
+		chatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
+		updateExtractionProgress(foundChat, chatStore, storedCount)
 	} else {
 		updateExtractionProgress(foundChat, chatStore, 0)
 	}
