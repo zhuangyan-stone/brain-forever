@@ -1136,6 +1136,7 @@
                     <div class="apikey-input-wrap" x-show="settings.llm.private" x-cloak>
                         <input class="apikey-input" type="text"
                             x-model="settings.llm.api_key"
+                            id="llm-api-key" name="llm_api_key"
                             placeholder="请粘贴 DeepSeek 的 api-key"
                             maxlength="200" autocomplete="off">
                     </div>
@@ -1158,6 +1159,7 @@
                     <div class="apikey-input-wrap" x-show="settings.search.private" x-cloak>
                         <input class="apikey-input" type="text"
                             x-model="settings.search.api_key"
+                            id="search-api-key" name="search_api_key"
                             placeholder="请粘贴智谱科技 api-key"
                             maxlength="200" autocomplete="off">
                     </div>
@@ -1182,6 +1184,7 @@
                     <div class="apikey-input-wrap" x-show="settings.embedder.private" x-cloak>
                         <input class="apikey-input" type="text"
                             x-model="settings.embedder.api_key"
+                            id="embedder-api-key" name="embedder_api_key"
                             placeholder="请粘贴智谱科技 api-key"
                             maxlength="200" autocomplete="off">
                     </div>
