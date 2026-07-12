@@ -95,7 +95,7 @@ func (a ApiSetting) MarshalJSON() ([]byte, error) {
 
 // UserSettingsTheme holds theme preferences for the UI.
 type UserSettingsTheme struct {
-	Active string `json:"active"` // Active theme mode: "light" or "dark"
+	Active string `json:"active"` // Active theme mode: "light", "dark", or "system" (empty defaults to "system")
 	Light  string `json:"light"`  // Light theme ID
 	Dark   string `json:"dark"`   // Dark theme ID
 	Sync   bool   `json:"sync"`   // Whether to sync theme across devices
@@ -165,6 +165,7 @@ func (s *UserSettings) ToString() string {
 
 // GetUserSettings retrieves the full UserSettings for a given user.
 // Returns nil if the user is not found.
+// Normalizes Theme.Active: empty string is treated as "system".
 func (s *UserStore) GetUserSettings(id int64) (*UserSettings, error) {
 	var jsonStr string
 	err := TheMySQLDB().Get(&jsonStr, "SELECT settings FROM users WHERE id = ?", id)
@@ -178,6 +179,11 @@ func (s *UserStore) GetUserSettings(id int64) (*UserSettings, error) {
 	var settings UserSettings
 	if err := settings.FromString(jsonStr); err != nil {
 		return nil, fmt.Errorf("failed to parse user settings: %w", err)
+	}
+
+	// Normalize: empty Active defaults to "system"
+	if settings.Theme.Active == "" {
+		settings.Theme.Active = "system"
 	}
 	return &settings, nil
 }

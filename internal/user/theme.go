@@ -168,7 +168,7 @@ func (h *Handler) ApplyThemeSync(w http.ResponseWriter, r *http.Request) {
 
 // normalizeActiveMode converts a raw actived value to a canonical value.
 // Accepts: "0"/"light", "1"/"dark", "2"/"system".
-// Returns the canonical value and whether it's valid.
+// Empty or unknown values default to "system".
 func normalizeActiveMode(raw string) (string, bool) {
 	switch raw {
 	case "0", "light":
@@ -178,7 +178,7 @@ func normalizeActiveMode(raw string) (string, bool) {
 	case "2", "system":
 		return "system", true
 	default:
-		return "light", false
+		return "system", false
 	}
 }
 
