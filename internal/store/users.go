@@ -6,11 +6,11 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"BrainForever/infra/i18n"
+	"BrainForever/internal/store/dbpath"
 	"BrainForever/toolset"
 )
 
@@ -398,9 +398,9 @@ func (s *UserStore) ListUsers() ([]User, error) {
 // ============================================================
 
 // loadChats opens a user's chat database and loads the chat list.
-func (s *UserStore) loadChats(userSN string) ([]Chat, error) {
-	dbPath := filepath.Join(theDBDir, userSN+".chats.db")
-	chatStore, err := CreateLocalChat(dbPath)
+func (s *UserStore) loadChats(userID int64, userSN string) ([]Chat, error) {
+	p := dbpath.ForUser(theDBDir, userID, userSN, "chats")
+	chatStore, err := CreateLocalChat(p)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open chats for %s: %w", userSN, err)
 	}
@@ -427,8 +427,8 @@ func (s *UserStore) LoginByPassword(no, password string) (*User, error) {
 
 // LoadChats loads a logged-in user's chat list by their SN (no authentication).
 // Used to reload chat data for an already authenticated session.
-func (s *UserStore) LoadChats(userSN string) ([]Chat, error) {
-	return s.loadChats(userSN)
+func (s *UserStore) LoadChats(userID int64, userSN string) ([]Chat, error) {
+	return s.loadChats(userID, userSN)
 }
 
 // Logout is called when a user logs out. Currently a placeholder.

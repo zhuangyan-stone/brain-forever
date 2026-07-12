@@ -9,6 +9,7 @@ import (
 
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/store"
+	"BrainForever/internal/store/dbpath"
 )
 
 // Package-level configuration, initialized once at startup.
@@ -25,20 +26,9 @@ func InitDBConfig(dbDir string, embedderDim int, logger zylog.Logger) {
 	theLogger = logger
 }
 
-// dirID returns the 4-digit subdirectory name for a user ID.
-// e.g. ID=1 => "0000", ID=1000 => "0001", ID=12345 => "0012"
-func dirID(userID int64) string {
-	return fmt.Sprintf("%04d", userID/1000)
-}
-
-// dbPath returns: {dbDir}/{dirID}/{userSN}.{dbKind}.db
-func dbPath(userID int64, userSN string, dbKind string) string {
-	return filepath.Join(theDBDir, dirID(userID), userSN+"."+dbKind+".db")
-}
-
 // ensureUserDBDir creates the user's subdirectory if needed.
 func ensureUserDBDir(userID int64) error {
-	return os.MkdirAll(filepath.Join(theDBDir, dirID(userID)), 0755)
+	return os.MkdirAll(filepath.Join(theDBDir, dbpath.DirID(userID)), 0755)
 }
 
 // ============================================================
@@ -68,7 +58,7 @@ func InitUserDB(userID int64, userSN string) (chatStore *store.ChatStore, brainS
 
 // initLocalChatDB opens a user's chat database and ensures its schema exists.
 func initLocalChatDB(userID int64, userSN string) (*store.ChatStore, error) {
-	s, err := store.CreateLocalChat(dbPath(userID, userSN, "chats"))
+	s, err := store.CreateLocalChat(dbpath.ForUser(theDBDir, userID, userSN, "chats"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to init chat db for %s: %w", userSN, err)
 	}
@@ -77,7 +67,7 @@ func initLocalChatDB(userID int64, userSN string) (*store.ChatStore, error) {
 
 // initLocalBrainDB opens a user's brain database and ensures its schema exists.
 func initLocalBrainDB(userID int64, userSN string) (*store.BrainStore, error) {
-	s, err := store.NewBrainStore(dbPath(userID, userSN, "brain"), theEmbedderDim, theLogger)
+	s, err := store.NewBrainStore(dbpath.ForUser(theDBDir, userID, userSN, "brain"), theEmbedderDim, theLogger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init brain db for %s: %w", userSN, err)
 	}
@@ -92,7 +82,7 @@ func initLocalBrainDB(userID int64, userSN string) (*store.BrainStore, error) {
 // Assumes the user's DB directory already exists (ensured by InitUserDB during login).
 // Used on hot paths where schema already exists. Caller MUST call CloseLocalChatDB when done.
 func OpenLocalChatDB(userID int64, userSN string) (*store.ChatStore, error) {
-	s, err := store.OpenChatStore(dbPath(userID, userSN, "chats"))
+	s, err := store.OpenChatStore(dbpath.ForUser(theDBDir, userID, userSN, "chats"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open chat db for %s: %w", userSN, err)
 	}
@@ -114,7 +104,7 @@ func CloseLocalChatDB(s *store.ChatStore) {
 // Assumes the user's DB directory already exists (ensured by InitUserDB during login).
 // Used on hot paths where schema already exists. Caller MUST call CloseLocalBrainDB when done.
 func OpenLocalBrainDB(userID int64, userSN string) (*store.BrainStore, error) {
-	s, err := store.OpenBrainStore(dbPath(userID, userSN, "brain"), theEmbedderDim, theLogger)
+	s, err := store.OpenBrainStore(dbpath.ForUser(theDBDir, userID, userSN, "brain"), theEmbedderDim, theLogger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open brain db for %s: %w", userSN, err)
 	}

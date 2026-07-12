@@ -32,7 +32,7 @@ func (h *ChatAgent) OnGetChats(w http.ResponseWriter, r *http.Request) {
 		sess.Mu.Unlock()
 
 		if userSN != "" {
-			if loadedChats, err := store.TheUserStore().LoadChats(userSN); err == nil {
+			if loadedChats, err := store.TheUserStore().LoadChats(userID, userSN); err == nil {
 				chats = loadedChats
 				sess.SwitchToUser(&session.SessionUser{
 					ID:       userID,
