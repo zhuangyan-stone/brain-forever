@@ -124,6 +124,60 @@ func (s *BrainStore) AddTrait(ctx context.Context, trait *PersonalTrait, embeddi
 	return traitID, tx.Commit()
 }
 
+// TraitInsertion holds all data needed to insert a single trait with its vector and keywords.
+type TraitInsertion struct {
+	Trait    PersonalTrait
+	Vector   []float32
+	Keywords []TraitKeyword
+}
+
+// AddTraits inserts multiple traits atomically in a single transaction.
+// All traits are committed together on success, or rolled back entirely on any error.
+// Returns the number of traits stored (always == len(insertions) on success).
+func (s *BrainStore) AddTraits(ctx context.Context, insertions []TraitInsertion) (int, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	for _, ins := range insertions {
+		result, err := tx.Exec(
+			"INSERT INTO traits(trait, category, confidence, half_life, privacy_level, chat_sn) VALUES(?, ?, ?, ?, ?, ?)",
+			ins.Trait.Trait, ins.Trait.Category, ins.Trait.Confidence, ins.Trait.HalfLife, ins.Trait.PrivacyLevel, ins.Trait.ChatSN,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("failed to insert trait: %w", err)
+		}
+
+		traitID, _ := result.LastInsertId()
+
+		vecJSON, _ := json.Marshal(ins.Vector)
+		_, err = tx.Exec(
+			"INSERT INTO trait_vectors(rowid, embedding) VALUES(?, ?)",
+			traitID, string(vecJSON),
+		)
+		if err != nil {
+			return 0, fmt.Errorf("failed to insert trait vector: %w", err)
+		}
+
+		for _, kw := range ins.Keywords {
+			_, err := tx.Exec(
+				"INSERT INTO keywords(word, kind, trait_id) VALUES(?, ?, ?)",
+				kw.Word, kw.Kind, traitID,
+			)
+			if err != nil {
+				return 0, fmt.Errorf("failed to insert keyword: %w", err)
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit traits transaction: %w", err)
+	}
+	return len(insertions), nil
+}
+
 // AddKeyword inserts a keyword associated with a trait.
 func (s *BrainStore) AddKeyword(kw *TraitKeyword) (int64, error) {
 	result, err := s.db.Exec(

@@ -151,12 +151,12 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	lastMsgID := dbMessages[len(dbMessages)-1].ID
 
 	if len(remoteResp.Features) > 0 {
-		storedCount, _ := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.SN)
-		if storedCount > 0 {
+		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.SN)
+		if err != nil {
+			h.logger.Errorf("store traits to brain.db failed (chatSN=%s): %v", foundChat.SN, err)
+		} else {
 			chatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
 			updateExtractionProgress(foundChat, chatStore, storedCount)
-		} else {
-			updateExtractionProgress(foundChat, chatStore, 0)
 		}
 	} else {
 		updateExtractionProgress(foundChat, chatStore, 0)
@@ -316,7 +316,8 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 	}
 	defer h.closeBrainDB(vs)
 
-	stored := 0
+	// First pass: compute embeddings for all features and build insertion data
+	insertions := make([]store.TraitInsertion, 0, len(features))
 	for _, f := range features {
 		if f.FeatureText == "" {
 			continue
@@ -324,10 +325,10 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 
 		vector, err := emb.Embed(ctx, f.FeatureText, apiSetting.ApiKey)
 		if err != nil {
-			continue
+			return 0, fmt.Errorf("embed trait failed: %w", err)
 		}
 
-		trait := &store.PersonalTrait{
+		trait := store.PersonalTrait{
 			Trait:        f.FeatureText,
 			Category:     f.CategoryID,
 			Confidence:   f.Confidence,
@@ -336,27 +337,30 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 			ChatSN:       chatSN,
 		}
 
-		traitID, err := vs.AddTrait(ctx, trait, vector)
-		if err != nil {
-			continue
-		}
-
+		keywords := make([]store.TraitKeyword, 0, len(f.Keywords))
 		for _, kw := range f.Keywords {
 			if kw.Word == "" {
 				continue
 			}
-			keyword := &store.TraitKeyword{
-				Word:    kw.Word,
-				Kind:    keywordTypeToInt(kw.Type),
-				TraitID: traitID,
-			}
-			vs.AddKeyword(keyword)
+			keywords = append(keywords, store.TraitKeyword{
+				Word: kw.Word,
+				Kind: keywordTypeToInt(kw.Type),
+			})
 		}
 
-		stored++
+		insertions = append(insertions, store.TraitInsertion{
+			Trait:    trait,
+			Vector:   vector,
+			Keywords: keywords,
+		})
 	}
 
-	return stored, nil
+	if len(insertions) == 0 {
+		return 0, nil
+	}
+
+	// Single atomic transaction for all traits
+	return vs.AddTraits(ctx, insertions)
 }
 
 func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {
