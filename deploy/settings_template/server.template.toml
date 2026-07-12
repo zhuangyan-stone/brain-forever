@@ -81,14 +81,27 @@ cache_disable = false
 #   用途：llm | websearch | embedding
 #   提供商：deepseek | ali | zhipu | bocha
 #
+# 默认提供商（用户未设置时使用）：
+#   default_llm_provider       = "deepseek"
+#   default_web_search_provider = "zhipu"
+#   default_embedding_provider  = "zhipu"
+#
 # 示例：
 #
 #   [api-keys]
+#   default_llm_provider        = "deepseek"
+#   default_web_search_provider = "zhipu"
+#   default_embedding_provider  = "zhipu"
 #   "llm@deepseek" = ["sk-xxx1", "sk-xxx2"]
 #   "websearch@zhipu" = ["key-111"]
 #   "embedding@ali" = ["key-222"]
 # ============================================================
 [api-keys]
+# 默认提供商（用户未显式设置 provider 时使用）
+default_llm_provider        = "deepseek"
+default_web_search_provider = "zhipu"
+default_embedding_provider  = "zhipu"
+
 # LLM 对话（DeepSeek）
 # "llm@deepseek" = []
 

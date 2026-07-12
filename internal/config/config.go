@@ -15,13 +15,38 @@ var theApiKeysPool ApiKeysConfig
 
 // InitApiKeysPool sets the global system-shared API keys pool.
 // Must be called during startup after loading the config file.
+// Fills in default provider names if not specified in config.
 func InitApiKeysPool(cfg ApiKeysConfig) {
+	if cfg.DefaultLLMProvider == "" {
+		cfg.DefaultLLMProvider = "deepseek"
+	}
+	if cfg.DefaultWebSearchProvider == "" {
+		cfg.DefaultWebSearchProvider = "zhipu"
+	}
+	if cfg.DefaultEmbeddingProvider == "" {
+		cfg.DefaultEmbeddingProvider = "zhipu"
+	}
 	theApiKeysPool = cfg
 }
 
 // GetApiKeysPool returns the global system-shared API keys pool.
 func GetApiKeysPool() ApiKeysConfig {
 	return theApiKeysPool
+}
+
+// GetDefaultLLMProvider returns the default LLM provider name.
+func GetDefaultLLMProvider() string {
+	return theApiKeysPool.DefaultLLMProvider
+}
+
+// GetDefaultWebSearchProvider returns the default web search provider name.
+func GetDefaultWebSearchProvider() string {
+	return theApiKeysPool.DefaultWebSearchProvider
+}
+
+// GetDefaultEmbeddingProvider returns the default embedding provider name.
+func GetDefaultEmbeddingProvider() string {
+	return theApiKeysPool.DefaultEmbeddingProvider
 }
 
 // ============================================================
@@ -115,18 +140,25 @@ func (c *Config) LoadFromFile(path string) error {
 // and is read-only thereafter, so no locking is required.
 // ============================================================
 
-// ApiKeysConfig holds a read-only pool of system-shared API keys.
+// ApiKeysConfig holds a read-only pool of system-shared API keys
+// and default provider names.
 type ApiKeysConfig struct {
-	keys map[string][]string
+	DefaultLLMProvider       string `toml:"default_llm_provider"`
+	DefaultWebSearchProvider string `toml:"default_web_search_provider"`
+	DefaultEmbeddingProvider string `toml:"default_embedding_provider"`
+	keys                     map[string][]string
 }
 
 // UnmarshalTOML implements toml.Unmarshaler to decode a [api-keys] section
-// directly into ApiKeysConfig. Each TOML key becomes a "purpose@provider"
-// entry mapping to a string slice of API keys.
+// directly into ApiKeysConfig. String values populate the default provider
+// fields; array values become "purpose@provider" entries in the key pool.
 //
 // TOML example:
 //
 //	[api-keys]
+//	default_llm_provider = "deepseek"
+//	default_web_search_provider = "zhipu"
+//	default_embedding_provider = "zhipu"
 //	llm@deepseek = ["sk-abc123", "sk-def456"]
 //	websearch@zhipu = ["key-789"]
 func (a *ApiKeysConfig) UnmarshalTOML(i interface{}) error {
@@ -134,20 +166,36 @@ func (a *ApiKeysConfig) UnmarshalTOML(i interface{}) error {
 	if !ok {
 		return nil
 	}
-	a.keys = make(map[string][]string, len(m))
 	for k, v := range m {
-		list, ok := v.([]interface{})
-		if !ok {
-			continue
-		}
-		strs := make([]string, 0, len(list))
-		for _, item := range list {
-			if s, ok := item.(string); ok {
-				strs = append(strs, s)
+		switch k {
+		case "default_llm_provider", "default_web_search_provider", "default_embedding_provider":
+			if s, ok := v.(string); ok {
+				switch k {
+				case "default_llm_provider":
+					a.DefaultLLMProvider = s
+				case "default_web_search_provider":
+					a.DefaultWebSearchProvider = s
+				case "default_embedding_provider":
+					a.DefaultEmbeddingProvider = s
+				}
 			}
-		}
-		if len(strs) > 0 {
-			a.keys[k] = strs
+		default:
+			list, ok := v.([]interface{})
+			if !ok {
+				continue
+			}
+			strs := make([]string, 0, len(list))
+			for _, item := range list {
+				if s, ok := item.(string); ok {
+					strs = append(strs, s)
+				}
+			}
+			if len(strs) > 0 {
+				if a.keys == nil {
+					a.keys = make(map[string][]string)
+				}
+				a.keys[k] = strs
+			}
 		}
 	}
 	return nil

@@ -118,12 +118,20 @@ func (h *Handler) OnSaveApiKeySettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !apis.Embedder.Private && apis.Embedder.ApiKey == "" {
-		if k := pool.GetOne("embedding", "zhipu"); k != "" {
+		embedderProvider := apis.Embedder.Provider
+		if embedderProvider == "" {
+			embedderProvider = config.GetDefaultEmbeddingProvider()
+		}
+		if k := pool.GetOne("embedding", embedderProvider); k != "" {
 			apis.Embedder.ApiKey = k
 		}
 	}
 	if !apis.Search.Private && apis.Search.ApiKey == "" {
-		if k := pool.GetOne("websearch", "zhipu"); k != "" {
+		searchProvider := apis.Search.Provider
+		if searchProvider == "" {
+			searchProvider = config.GetDefaultWebSearchProvider()
+		}
+		if k := pool.GetOne("websearch", searchProvider); k != "" {
 			apis.Search.ApiKey = k
 		}
 	}

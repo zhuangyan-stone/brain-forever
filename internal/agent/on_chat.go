@@ -10,6 +10,7 @@ import (
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/llmtypes"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/config"
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
@@ -327,12 +328,12 @@ func sessionLLMApiSetting(s *session.Session) store.ApiSetting {
 func sessionEmbedder(s *session.Session) embedder.Embedder {
 	provider := s.User.Settings.APIKey.Embedder.Provider
 	if provider == "" {
-		provider = ProviderAli
+		provider = config.GetDefaultEmbeddingProvider()
 	}
 	if e, ok := embedderClients[provider]; ok {
 		return e
 	}
-	return embedderClients[ProviderAli]
+	return embedderClients[config.GetDefaultEmbeddingProvider()]
 }
 
 // sessionEmbedderApiSetting returns the session user's personal Embedder ApiSetting.
@@ -350,11 +351,11 @@ func sessionWebSearchApiSetting(s *session.Session) store.ApiSetting {
 func sessionWebSearcher(s *session.Session) toolimp.WebSearcher {
 	provider := s.User.Settings.APIKey.Search.Provider
 	if provider == "" {
-		provider = ProviderBocha
+		provider = config.GetDefaultWebSearchProvider()
 	}
 	rawClient, ok := searcherClientByPvd[provider]
 	if !ok {
-		rawClient = searcherClientByPvd[ProviderBocha]
+		rawClient = searcherClientByPvd[config.GetDefaultWebSearchProvider()]
 	}
 	apiSetting := s.User.Settings.APIKey.Search
 	return &webSearchAdapter{

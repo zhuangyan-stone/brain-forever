@@ -355,12 +355,20 @@ func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool
 		}
 	}
 	if !userSettings.APIKey.Embedder.Private && userSettings.APIKey.Embedder.ApiKey == "" {
-		if k := pool.GetOne("embedding", "zhipu"); k != "" {
+		embedderProvider := userSettings.APIKey.Embedder.Provider
+		if embedderProvider == "" {
+			embedderProvider = config.GetDefaultEmbeddingProvider()
+		}
+		if k := pool.GetOne("embedding", embedderProvider); k != "" {
 			userSettings.APIKey.Embedder.ApiKey = k
 		}
 	}
 	if !userSettings.APIKey.Search.Private && userSettings.APIKey.Search.ApiKey == "" {
-		if k := pool.GetOne("websearch", "zhipu"); k != "" {
+		searchProvider := userSettings.APIKey.Search.Provider
+		if searchProvider == "" {
+			searchProvider = config.GetDefaultWebSearchProvider()
+		}
+		if k := pool.GetOne("websearch", searchProvider); k != "" {
 			userSettings.APIKey.Search.ApiKey = k
 		}
 	}
