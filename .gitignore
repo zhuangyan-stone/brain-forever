@@ -40,3 +40,4 @@ Thumbs.db
 
 # --- Captcha images (auto-generated, not committed) ---
 /frontend/static/img/captchas/
+bin/settings/server.toml
