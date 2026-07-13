@@ -69,22 +69,14 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 	targetID := sess.User.Chats[targetIndex].ID
 	sess.User.ChatsMu.Unlock()
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-
-	if err := chatStore.UpdateChatTitle(
+	if err := theChatStore.UpdateChatTitle(
 		targetID,
 		newTitle,
 		int8(titleState),
 	); err != nil {
-		h.closeChatDB(chatStore)
 		http.Error(w, i18n.T("db_update_chat_title_failed"), http.StatusInternalServerError)
 		return
 	}
-	h.closeChatDB(chatStore)
 
 	sess.User.ChatsMu.Lock()
 	for i := range sess.User.Chats {
@@ -195,20 +187,12 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 
 	var msgs []Message
 	if chatID != 0 {
-		chatStore, cerr := h.openChatDB(sess)
-		if cerr != nil {
-			http.Error(w, i18n.T("api_error_failed_to_open_chat_store_detail", map[string]any{"Error": cerr.Error()}), http.StatusInternalServerError)
-			return
-		}
-
-		dbMessages, err := chatStore.ListMessages(chatID)
+		dbMessages, err := theChatStore.ListMessages(chatID)
 		if err != nil {
-			h.closeChatDB(chatStore)
 			http.Error(w, i18n.T("api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 			return
 		}
-		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, chatStore, chatID)
-		h.closeChatDB(chatStore)
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, theChatStore, chatID)
 		if convErr != nil {
 			http.Error(w, i18n.T("api_error_failed_to_load_web_sources", map[string]any{"Error": convErr.Error()}), http.StatusInternalServerError)
 			return

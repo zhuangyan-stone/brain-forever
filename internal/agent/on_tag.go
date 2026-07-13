@@ -22,15 +22,7 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		h.logger.Errorf("failed to open chat store: %v", cerr)
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
-	groups, err := chatStore.SelectChatTitlesGroupByTags(sess.User.ID)
+	groups, err := theChatStore.SelectChatTitlesGroupByTags(sess.User.ID)
 	if err != nil {
 		h.logger.Errorf("failed to select chat title tag groups: %v", err)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
@@ -80,16 +72,8 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatStore2, cerr2 := h.openChatDB(sess)
-	if cerr2 != nil {
-		h.logger.Errorf("failed to open chat store: %v", cerr2)
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore2)
-
 	if taged {
-		existingTags, listErr := chatStore2.ListChatTagsByChatID(chatID)
+		existingTags, listErr := theChatStore.ListChatTagsByChatID(chatID)
 		var tags []string
 		if listErr == nil {
 			for _, ct := range existingTags {
@@ -103,7 +87,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		}
 
 		totalMessages := 0
-		if count, err := chatStore2.CountMessages(chatID); err == nil {
+		if count, err := theChatStore.CountMessages(chatID); err == nil {
 			totalMessages = count
 		}
 
@@ -120,11 +104,11 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	totalMessages := 0
-	if count, err := chatStore2.CountMessages(chatID); err == nil {
+	if count, err := theChatStore.CountMessages(chatID); err == nil {
 		totalMessages = count
 	}
 
-	tagUsageMap, _ := chatStore2.SelectNonEmptyTagsGroup()
+	tagUsageMap, _ := theChatStore.SelectNonEmptyTagsGroup()
 	tagsUsageStr := formatTagsUsage(tagUsageMap)
 
 	systemPrompt := i18n.SystemPrompt.TL(lang, "tag", map[string]interface{}{
@@ -133,7 +117,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	})
 
 	tagTool := toolimp.MakeChatTagTool(lang)
-	samplesTool := toolimp.MakeChatSamplesTool(lang, chatStore2, chatID, chatTitle, totalMessages)
+	samplesTool := toolimp.MakeChatSamplesTool(lang, theChatStore, chatID, chatTitle, totalMessages)
 	toolDefs := []llm.ToolDefinition{
 		samplesTool.GetDefinition(),
 		tagTool.GetDefinition(),
@@ -216,24 +200,24 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		tags = []string{}
 	}
 
-	if delErr := chatStore2.DeleteChatTagsByChatID(chatID); delErr != nil {
+	if delErr := theChatStore.DeleteChatTagsByChatID(chatID); delErr != nil {
 		h.logger.Errorf("failed to delete old chat tags for chat %d: %v", chatID, delErr)
 	}
 
 	if len(tags) == 0 {
-		if _, insErr := chatStore2.InsertChatTag(chatID, ""); insErr != nil {
+		if _, insErr := theChatStore.InsertChatTag(chatID, ""); insErr != nil {
 			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", chatID, insErr)
 		}
 	} else {
 		for _, tag := range tags {
-			if _, insErr := chatStore2.InsertChatTag(chatID, tag); insErr != nil {
+			if _, insErr := theChatStore.InsertChatTag(chatID, tag); insErr != nil {
 				h.logger.Errorf("failed to insert chat tag %q for chat %d: %v", tag, chatID, insErr)
 			}
 		}
 	}
 
 	if chatID > 0 {
-		if tagErr := chatStore2.UpdateChatTagged(chatID, true); tagErr != nil {
+		if tagErr := theChatStore.UpdateChatTagged(chatID, true); tagErr != nil {
 			h.logger.Errorf("failed to update chat taged flag for chat %s: %v", chatSN, tagErr)
 		}
 	}

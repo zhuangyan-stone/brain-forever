@@ -80,13 +80,6 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, err := h.openChatDB(sess)
-	if err != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store_detail", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
 	sess.Mu.Lock()
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
@@ -94,7 +87,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		lang = h.defaultLang
 	}
 
-	isNewChat := appendNewRequestMessage(sess, &req.Message, chatStore)
+	isNewChat := appendNewRequestMessage(sess, &req.Message, theChatStore)
 
 	if req.Message.ID <= 0 {
 		sess.Mu.Unlock()
@@ -117,7 +110,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	llmChatID := msgChatID
 	sess.Mu.Unlock()
 
-	llmMsgs, err := llmtypes.LoadMessagesAsLLMMessages(llmChatID, chatStore)
+	llmMsgs, err := llmtypes.LoadMessagesAsLLMMessages(llmChatID, theChatStore)
 	if err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
@@ -143,19 +136,11 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.TraitSearchEnabled {
-		traitsStore, terr := h.openBrainDB(sess)
-		if terr != nil {
-			h.logger.Errorf("failed to open traits store: %v", terr)
-		}
-		if traitsStore != nil {
-			defer h.closeBrainDB(traitsStore)
-		}
-
 		embedder := sessionEmbedder(sess)
 		embedderSetting := sessionEmbedderApiSetting(sess)
 		traitSearcher := &traitSearchAdapter{
 			client:     embedder,
-			store:      traitsStore,
+			store:      theBrainStore,
 			lang:       lang,
 			userID:     sess.User.ID,
 			apiSetting: embedderSetting,
@@ -183,7 +168,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 
 	if assistantMsg != nil {
 		sess.Mu.Lock()
-		persistMessageToDB(sess, assistantMsg, msgChatID, chatStore)
+		persistMessageToDB(sess, assistantMsg, msgChatID, theChatStore)
 		sess.Mu.Unlock()
 	}
 }

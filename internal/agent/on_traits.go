@@ -124,21 +124,14 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
-	dbMessages, err := chatStore.ListUnExtractMessages(foundChat.ID)
+	dbMessages, err := theChatStore.ListUnExtractMessages(foundChat.ID)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
 	if len(dbMessages) == 0 {
-		handleNoNewMessages(w, foundChat, chatStore)
+		handleNoNewMessages(w, foundChat, theChatStore)
 		return
 	}
 
@@ -157,10 +150,10 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 			toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 			return
 		}
-		chatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
-		updateExtractionProgress(foundChat, chatStore, storedCount)
+		theChatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
+		updateExtractionProgress(foundChat, theChatStore, storedCount)
 	} else {
-		updateExtractionProgress(foundChat, chatStore, 0)
+		updateExtractionProgress(foundChat, theChatStore, 0)
 	}
 
 	if foundChat.ExtractedAt != nil {
@@ -311,12 +304,6 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 	emb := sessionEmbedder(sess)
 	apiSetting := sessionEmbedderApiSetting(sess)
 
-	vs, err := h.openBrainDB(sess)
-	if err != nil {
-		return 0, fmt.Errorf("open traits store: %w", err)
-	}
-	defer h.closeBrainDB(vs)
-
 	// First pass: compute embeddings for all features and build insertion data
 	insertions := make([]store.TraitInsertion, 0, len(features))
 	for _, f := range features {
@@ -361,7 +348,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 	}
 
 	// Single atomic transaction for all traits
-	return vs.AddTraits(ctx, insertions)
+	return theBrainStore.AddTraits(ctx, insertions)
 }
 
 func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {

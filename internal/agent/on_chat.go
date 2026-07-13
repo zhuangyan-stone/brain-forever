@@ -67,17 +67,10 @@ func (h *ChatAgent) OnChatDelete(w http.ResponseWriter, r *http.Request) {
 	sess.Mu.Unlock()
 
 	// Phase 3: Soft-delete (logic delete) -move to trash
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	if err := chatStore.LogicDelete(sn); err != nil {
-		h.closeChatDB(chatStore)
+	if err := theChatStore.LogicDelete(sn); err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_delete_session"), http.StatusInternalServerError)
 		return
 	}
-	h.closeChatDB(chatStore)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -95,14 +88,7 @@ func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, err := h.openChatDB(sess)
-	if err != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
-	deletedChats, err := chatStore.ListDeletedChats(sess.User.ID, 100)
+	deletedChats, err := theChatStore.ListDeletedChats(sess.User.ID, 100)
 	if err != nil {
 		http.Error(w, i18n.T("db_list_deleted_chats_failed"), http.StatusInternalServerError)
 		return
@@ -134,21 +120,14 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
 	// Restore in DB
-	if err := chatStore.RestoreChat(sn); err != nil {
+	if err := theChatStore.RestoreChat(sn); err != nil {
 		http.Error(w, i18n.T("db_restore_chat_failed"), http.StatusInternalServerError)
 		return
 	}
 
 	// Reload the restored chat from DB and add back to in-memory list
-	chats, err := chatStore.ListChats(sess.User.ID, 100)
+	chats, err := theChatStore.ListChats(sess.User.ID, 100)
 	if err == nil {
 		sess.User.ChatsMu.Lock()
 		sess.User.Chats = chats
@@ -175,17 +154,7 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID := h.resolveSessionID(w, r)
-	sess := h.sessionManager.GetOrCreate(sessionID)
-
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
-	chat, err := chatStore.FindChatBySN(sn)
+	chat, err := theChatStore.FindChatBySN(sn)
 	if err != nil {
 		http.Error(w, i18n.T("db_session_not_found"), http.StatusNotFound)
 		return
@@ -194,18 +163,12 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	chatID := chat.ID
 
 	// Phase 1: Delete traits from brain DB (cross-table) BEFORE deleting the chat.
-	traitsStore, terr := h.openBrainDB(sess)
-	if terr != nil {
-		h.logger.Errorf("failed to open traits store for chat %s: %v", sn, terr)
-	} else {
-		if _, err := traitsStore.DeleteByChatSN(sn); err != nil {
-			h.logger.Errorf("failed to delete traits for chat %s: %v", sn, err)
-		}
-		h.closeBrainDB(traitsStore)
+	if _, err := theBrainStore.DeleteByChatSN(sn); err != nil {
+		h.logger.Errorf("failed to delete traits for chat %s: %v", sn, err)
 	}
 
 	// Phase 2: Delete the chat session from chats DB.
-	if err := chatStore.PhysicalDelete(int(chatID)); err != nil {
+	if err := theChatStore.PhysicalDelete(int(chatID)); err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_delete_session"), http.StatusInternalServerError)
 		return
 	}
@@ -226,38 +189,25 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
-	deletedChats, err := chatStore.ListDeletedChats(sess.User.ID, 1000)
+	deletedChats, err := theChatStore.ListDeletedChats(sess.User.ID, 1000)
 	if err != nil {
 		http.Error(w, i18n.T("db_list_deleted_chats_failed"), http.StatusInternalServerError)
 		return
 	}
 
-	traitsStore, terr := h.openBrainDB(sess)
-	if terr != nil {
-		h.logger.Errorf("failed to open traits store: %v", terr)
-	} else {
-		sns := make([]string, 0, len(deletedChats))
-		for _, c := range deletedChats {
-			if c.SN != "" {
-				sns = append(sns, c.SN)
-			}
+	sns := make([]string, 0, len(deletedChats))
+	for _, c := range deletedChats {
+		if c.SN != "" {
+			sns = append(sns, c.SN)
 		}
-		if len(sns) > 0 {
-			if _, err := traitsStore.DeleteTraitsByChatSNs(sns); err != nil {
-				h.logger.Errorf("failed to delete traits for trashed chats: %v", err)
-			}
+	}
+	if len(sns) > 0 {
+		if _, err := theBrainStore.DeleteTraitsByChatSNs(sns); err != nil {
+			h.logger.Errorf("failed to delete traits for trashed chats: %v", err)
 		}
-		h.closeBrainDB(traitsStore)
 	}
 
-	if err := chatStore.EmptyTrash(sess.User.ID); err != nil {
+	if err := theChatStore.EmptyTrash(sess.User.ID); err != nil {
 		http.Error(w, i18n.T("db_delete_trashed_sessions_failed"), http.StatusInternalServerError)
 		return
 	}
@@ -415,7 +365,7 @@ func NewChatHandler(
 		defaultLang = "en"
 	}
 	return &ChatAgent{
-		sessionManager: session.NewManager(),
+		sessionManager: session.NewManager(logger),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
 		avatarDir:      avatarDir,
@@ -433,22 +383,6 @@ func resolveUserSN(s *session.Session) string {
 
 func resolveUserID(s *session.Session) int64 {
 	return s.User.ID
-}
-
-func (h *ChatAgent) openChatDB(s *session.Session) (*store.ChatStore, error) {
-	return globalChatStore, nil
-}
-
-func (h *ChatAgent) openBrainDB(s *session.Session) (*store.BrainStore, error) {
-	return globalBrainStore, nil
-}
-
-func (h *ChatAgent) closeChatDB(cs *store.ChatStore) {
-	// No-op: ChatStore uses global connection pool, nothing to close
-}
-
-func (h *ChatAgent) closeBrainDB(vs *store.BrainStore) {
-	// No-op: BrainStore uses global connection pool, nothing to close
 }
 
 // ============================================================
@@ -484,20 +418,12 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 
 	var msgs []Message
 	if chatID != 0 {
-		chatStore, cerr := h.openChatDB(sess)
-		if cerr != nil {
-			http.Error(w, i18n.T("api_error_failed_to_open_chat_store_detail", map[string]any{"Error": cerr.Error()}), http.StatusInternalServerError)
-			return
-		}
-
-		dbMessages, err := chatStore.ListMessages(chatID)
+		dbMessages, err := theChatStore.ListMessages(chatID)
 		if err != nil {
-			h.closeChatDB(chatStore)
 			http.Error(w, i18n.T("api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 			return
 		}
-		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, chatStore, chatID)
-		h.closeChatDB(chatStore)
+		agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, theChatStore, chatID)
 		if convErr != nil {
 			http.Error(w, i18n.T("api_error_failed_to_load_web_sources", map[string]any{"Error": convErr.Error()}), http.StatusInternalServerError)
 			return
@@ -557,18 +483,10 @@ func (h *ChatAgent) OnChatPin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-
-	if err := chatStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
-		h.closeChatDB(chatStore)
+	if err := theChatStore.UpdateChatPin(targetChat.ID, pinned); err != nil {
 		http.Error(w, i18n.T("db_update_chat_pin_failed"), http.StatusInternalServerError)
 		return
 	}
-	h.closeChatDB(chatStore)
 
 	targetChat.Pinned = pinned
 

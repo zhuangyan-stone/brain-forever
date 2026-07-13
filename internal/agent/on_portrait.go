@@ -159,14 +159,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
-	vs, err := h.openBrainDB(sess)
-	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_traits_store_unavailable"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeBrainDB(vs)
-
-	allTraits, err := vs.ListAllTraitsByCreateTime(sess.User.ID)
+	allTraits, err := theBrainStore.ListAllTraitsByCreateTime(sess.User.ID)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
 		return
@@ -177,14 +170,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
-	tagUsageMap, _ := chatStore.SelectNonEmptyTagsGroup()
+	tagUsageMap, _ := theChatStore.SelectNonEmptyTagsGroup()
 	hotTags := formatHotTags(tagUsageMap)
 	tagsInfoStr := buildTagsInfoString(hotTags, lang)
 
@@ -199,7 +185,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	recentChatTitles, err := chatStore.ListChatTitles(sess.User.ID, 100)
+	recentChatTitles, err := theChatStore.ListChatTitles(sess.User.ID, 100)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
 			map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)

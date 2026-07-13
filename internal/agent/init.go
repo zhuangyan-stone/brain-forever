@@ -33,8 +33,8 @@ var (
 	searcherClientByPvd map[string]searcher.WebSearcher
 
 	// Global store instances (shared, no per-user file management)
-	globalChatStore  *store.ChatStore
-	globalBrainStore *store.BrainStore
+	theChatStore  *store.ChatStore
+	theBrainStore *store.BrainStore
 )
 
 // ============================================================
@@ -102,19 +102,9 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	searcherClientByPvd[ProviderBocha] = InitWebSearchRawClient(ProviderBocha, logger)
 	searcherClientByPvd[ProviderZhipu] = InitWebSearchRawClient(ProviderZhipu, logger)
 
-	defaultEmbedder := embedderClients[ProviderAli]
-
 	// Create global store instances (single shared connection pool via ThePGDB())
-	globalChatStore = store.NewChatStore()
-	globalBrainStore = store.NewBrainStore(defaultEmbedder.Dimension(), logger)
-
-	// Ensure schemas exist (idempotent)
-	if err := globalChatStore.EnsureSchema(); err != nil {
-		logger.Fatalf("failed to ensure chat schema: %v", err)
-	}
-	if err := globalBrainStore.EnsureSchema(); err != nil {
-		logger.Fatalf("failed to ensure brain schema: %v", err)
-	}
+	theChatStore = store.NewChatStore(logger)
+	theBrainStore = store.NewBrainStore(logger)
 
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
 

@@ -3,8 +3,6 @@ package store
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"BrainForever/infra/zylog"
@@ -51,60 +49,14 @@ type TraitKeyword struct {
 // BrainStore manages personal trait storage with vector similarity search
 // (based on pgvector) and keyword-based retrieval.
 type BrainStore struct {
-	dimension int
-	logger    zylog.Logger
+	logger zylog.Logger
 }
 
 // NewBrainStore creates a new BrainStore.
-func NewBrainStore(dimension int, logger zylog.Logger) *BrainStore {
+func NewBrainStore(logger zylog.Logger) *BrainStore {
 	return &BrainStore{
-		dimension: dimension,
-		logger:    logger,
+		logger: zylog.WrapWithSubject(logger, "store-brain"),
 	}
-}
-
-// EnsureSchema ensures the brain store schema exists (idempotent).
-func (s *BrainStore) EnsureSchema() error {
-	return s.initSchema()
-}
-
-// initSchema initializes the traits, keywords, and vector index tables.
-func (s *BrainStore) initSchema() error {
-	// Ensure pgvector extension is installed (idempotent)
-	_, err := ThePGDB().Exec("CREATE EXTENSION IF NOT EXISTS vector")
-	if err != nil {
-		return fmt.Errorf("failed to create pgvector extension: %w", err)
-	}
-
-	// Verify pgvector extension is loaded
-	var extVersion string
-	err = ThePGDB().QueryRow(
-		"SELECT extversion FROM pg_extension WHERE extname = 'vector'",
-	).Scan(&extVersion)
-	if err != nil {
-		return fmt.Errorf("pgvector extension not loaded after CREATE EXTENSION IF NOT EXISTS: %w", err)
-	}
-	s.logger.Infof("pgvector version: %s", extVersion)
-
-	// Read init.sql from settings directory
-	const initSQLPath = "bin/settings/init.sql"
-	schemaBytes, err := os.ReadFile(initSQLPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			s.logger.Warnf("init.sql not found at %s, skipping trait table initialization", initSQLPath)
-			return nil
-		}
-		return fmt.Errorf("failed to read %s: %w", initSQLPath, err)
-	}
-
-	// Replace {dimension} placeholder with the actual vector dimension
-	schema := strings.ReplaceAll(string(schemaBytes), "{dimension}", fmt.Sprintf("%d", s.dimension))
-
-	if _, err := ThePGDB().Exec(schema); err != nil {
-		return fmt.Errorf("failed to execute init.sql: %w", err)
-	}
-
-	return nil
 }
 
 // db returns the global PostgreSQL connection.
@@ -227,9 +179,9 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 	if category > 0 {
 		sqlQuery += " AND t.category = $3"
 		args = append(args, category)
-		sqlQuery += fmt.Sprintf(" ORDER BY distance LIMIT $4")
+		sqlQuery += " ORDER BY distance LIMIT $4"
 	} else {
-		sqlQuery += fmt.Sprintf(" ORDER BY distance LIMIT $3")
+		sqlQuery += " ORDER BY distance LIMIT $3"
 	}
 	args = append(args, topK)
 

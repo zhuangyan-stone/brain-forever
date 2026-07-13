@@ -18,14 +18,7 @@ func (h *ChatAgent) ListFavoriteChats(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
-	result, err := chatStore.SelectFavoritedChatTitlesGroupByTags(sess.User.ID)
+	result, err := theChatStore.SelectFavoritedChatTitlesGroupByTags(sess.User.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -51,13 +44,6 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
 	sess.User.ChatsMu.Lock()
 	var chatID int64
 	for _, c := range sess.User.Chats {
@@ -73,7 +59,7 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := chatStore.IsExistsFavoriteItem(chatID, customTag)
+	exists, err := theChatStore.IsExistsFavoriteItem(chatID, customTag)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -87,7 +73,7 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := chatStore.InsertFavoriteItem(chatID, customTag); err != nil {
+	if err := theChatStore.InsertFavoriteItem(chatID, customTag); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -108,13 +94,6 @@ func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	chatStore, cerr := h.openChatDB(sess)
-	if cerr != nil {
-		http.Error(w, i18n.T("api_error_failed_to_open_chat_store"), http.StatusInternalServerError)
-		return
-	}
-	defer h.closeChatDB(chatStore)
-
 	sess.User.ChatsMu.Lock()
 	var chatID int64
 	for _, c := range sess.User.Chats {
@@ -130,7 +109,7 @@ func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := chatStore.DeleteFavoriteItem(chatID, customTag); err != nil {
+	if err := theChatStore.DeleteFavoriteItem(chatID, customTag); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
