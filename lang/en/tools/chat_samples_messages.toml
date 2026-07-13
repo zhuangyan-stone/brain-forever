@@ -11,4 +11,4 @@ other = "All conversation messages have been loaded, no more content."
 other = "No more messages in this conversation."
 
 [fetch_samples_failed]
-other = "Failed to fetch chat samples: {{.Error}}"
+other = "Failed to fetch chat samples. {{.Error}}"

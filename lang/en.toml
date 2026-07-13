@@ -1,8 +1,8 @@
 [tool_execution_failed]
-other = "Tool execution failed: {{.Error}}"
+other = "Tool execution failed. {{.Error}}"
 
 [tool_argument_fail]
-other = "Failed to set tool arguments: {{.Error}}"
+other = "Failed to set tool arguments. {{.Error}}"
 
 [server_error]
 other = "Oops! Server error!\n{{.Error}}"
@@ -18,16 +18,16 @@ other = "Hello! Chat with me more, and I will become your second brain."
 other = "Traits store not available"
 
 [api_error_failed_to_read_traits]
-other = "Failed to read traits: {{.Error}}"
+other = "Failed to read traits. {{.Error}}"
 
 [api_error_no_traits_data]
 other = "No personal traits data available. Please start a conversation first"
 
 [api_error_failed_to_list_recent_chat_titles]
-other = "Failed to list recent chat titles: {{.Error}}"
+other = "Failed to list recent chat titles. {{.Error}}"
 
 [api_error_portrait_service_unavailable]
-other = "Portrait service temporarily unavailable: {{.Error}}"
+other = "Portrait service temporarily unavailable. {{.Error}}"
 
 [api_error_sn_required]
 other = "sn query parameter is required"
@@ -36,10 +36,10 @@ other = "sn query parameter is required"
 other = "Chat not found"
 
 [api_error_failed_to_list_messages]
-other = "Failed to list messages: {{.Error}}"
+other = "Failed to list messages. {{.Error}}"
 
 [api_error_failed_to_convert_messages]
-other = "Failed to convert messages: {{.Error}}"
+other = "Failed to convert messages. {{.Error}}"
 [api_error_llm_call_failed]
 other = "LLM call failed"
 
@@ -47,19 +47,19 @@ other = "LLM call failed"
 other = "Internal server error"
 
 [api_error_validation_failed]
-other = "validation failed: {{.Error}}"
+other = "validation failed. {{.Error}}"
 
 [api_error_failed_to_delete_session]
 other = "failed to delete session"
 
 [api_error_failed_to_parse_request]
-other = "failed to parse request: {{.Error}}"
+other = "failed to parse request. {{.Error}}"
 
 [api_error_login_failed]
-other = "login failed: {{.Error}}"
+other = "login failed. {{.Error}}"
 
 [api_error_sms_send_failed]
-other = "failed to send SMS code: {{.Error}}"
+other = "failed to send SMS code. {{.Error}}"
 
 [api_error_sms_code_invalid]
 other = "invalid or expired verification code"
@@ -74,16 +74,16 @@ other = "Captcha code expired, please request a new one"
 other = "Invalid captcha code"
 
 [api_error_failed_to_open_chat_store_detail]
-other = "failed to open chat store: {{.Error}}"
+other = "failed to open chat store. {{.Error}}"
 
 [api_error_failed_to_load_web_sources]
-other = "failed to load web sources: {{.Error}}"
+other = "failed to load web sources. {{.Error}}"
 
 [label_user]
-other = "User: "
+other = "User"
 
 [label_ai]
-other = "AI: "
+other = "AI"
 
 [portrait_hot_tags_prefix]
 other = "Topics you and AI talk about most often: "

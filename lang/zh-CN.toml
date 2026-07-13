@@ -5,10 +5,10 @@ other = "根目录"
 other = "该对话已在「{{.Tag}}」中收藏"
 
 [tool_execution_failed]
-other = "工具执行失败：{{.Error}}"
+other = "工具执行失败。{{.Error}}"
 
 [tool_argument_fail]
-other = "设置工具参数失败：{{.Error}}"
+other = "设置工具参数失败。{{.Error}}"
 
 [server_error]
 other = "哎呀！服务端出错啦！\n{{.Error}}"
@@ -24,31 +24,31 @@ other = "你好！和我平等对话，我会成为你的第2大脑"
 other = "特征存储不可用"
 
 [api_error_failed_to_read_traits]
-other = "读取个人特征失败：{{.Error}}"
+other = "读取个人特征失败。{{.Error}}"
 
 [api_error_no_traits_data]
 other = "暂无个人特征数据，请先进行对话和特征提取"
 
 [api_error_failed_to_list_recent_chat_titles]
-other = "列取最近对话标题信息失败：{{.Error}}"
+other = "列取最近对话标题信息失败。{{.Error}}"
 
 [api_error_portrait_service_unavailable]
-other = "画像服务暂时不可用：{{.Error}}"
+other = "画像服务暂时不可用。{{.Error}}"
 
 [api_error_failed_to_open_chat_store]
 other = "打开聊天数据库失败"
 
 [api_error_parameter_required]
-other = "缺少参数：{{.Param}}"
+other = "缺少参数。{{.Param}}"
 
 [api_error_chat_not_found]
 other = "对话不存在"
 
 [api_error_failed_to_list_messages]
-other = "读取消息列表失败：{{.Error}}"
+other = "读取消息列表失败。{{.Error}}"
 
 [api_error_failed_to_convert_messages]
-other = "转换消息格式失败：{{.Error}}"
+other = "转换消息格式失败。{{.Error}}"
 
 [api_error_llm_call_failed]
 other = "AI 模型调用失败"
@@ -57,19 +57,19 @@ other = "AI 模型调用失败"
 other = "服务内部错误"
 
 [api_error_validation_failed]
-other = "数据验证失败：{{.Error}}"
+other = "数据验证失败。{{.Error}}"
 
 [api_error_failed_to_delete_session]
 other = "删除会话失败"
 
 [api_error_failed_to_parse_request]
-other = "解析请求失败: {{.Error}}"
+other = "解析请求失败。{{.Error}}"
 
 [api_error_login_failed]
-other = "登录失败: {{.Error}}"
+other = "登录失败。{{.Error}}"
 
 [api_error_sms_send_failed]
-other = "发送验证码失败: {{.Error}}"
+other = "发送验证码失败。{{.Error}}"
 
 [api_error_sms_code_expired]
 other = "验证码已过期，请重新获取"
@@ -87,16 +87,16 @@ other = "图形校验码已过期，请重新获取"
 other = "图形校验码输入有误"
 
 [api_error_failed_to_open_chat_store_detail]
-other = "打开聊天数据库失败: {{.Error}}"
+other = "打开聊天数据库失败。{{.Error}}"
 
 [api_error_failed_to_load_web_sources]
-other = "加载网页资源失败: {{.Error}}"
+other = "加载网页资源失败。{{.Error}}"
 
 [label_user]
-other = "用户："
+other = "用户"
 
 [label_ai]
-other = "AI："
+other = "AI"
 
 [portrait_hot_tags_prefix]
 other = "你和AI最常谈到的领域有："
