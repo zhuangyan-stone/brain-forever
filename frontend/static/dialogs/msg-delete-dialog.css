@@ -5,7 +5,7 @@
     ============================================================ */
 
 /* ---- 删除对话框内容区可滚动 ---- */
-#deleteModal .dialog-body {
+#msgDeleteModal .dialog-body {
     max-height: 340px !important;
     overflow-y: auto !important;
     padding: 6px 16px 2px !important;
@@ -161,7 +161,7 @@
 }
 
 /* ---- 删除对话框底部按钮区与上方内容的间距 ---- */
-#deleteModal .dialog-footer {
+#msgDeleteModal .dialog-footer {
     margin-top: 20px !important;
 }
 

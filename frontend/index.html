@@ -88,7 +88,7 @@
     <link rel="stylesheet" href="/static/dialogs/portrait-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/apikey-dialog.css">
     <link rel="stylesheet" href="/static/components/wordcloud.css">
-    <link rel="stylesheet" href="/static/components/theme-dialog.css">
+    <link rel="stylesheet" href="/static/dialogs/theme-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
     <link rel="stylesheet" href="/static/responsive.css">
     <link rel="stylesheet" href="/static/components/toast.css">
@@ -126,6 +126,8 @@
         此文件为普通 <script>（非 ES Module），因为 Alpine 的 DOM 扫描
         时机早于 ES Module 的加载。 -->
     <script src="/static/alpine-store.js"></script>
+    <!-- Alpine API — 供 Alpine Store 调用的 API 函数，普通 <script> 以支持非模块调用 -->
+    <script src="/static/alpine-api.js"></script>
 
     <!-- Alpine 组件注册 — 通过 Alpine.data() 注册 x-data 组件，
         监听 alpine:init 事件，在 Alpine 初始化时完成注册。
@@ -133,7 +135,9 @@
         若用 ES Module 则执行时机晚于 Alpine 的 DOM 扫描。 -->
     <script src="/static/components/buttons.js"></script>
     <script src="/static/components/chat-container.js"></script>
-    <script src="/static/components/dialogs/dialogs.js"></script>
+    <script src="/static/dialogs/msg-delete-dialog.js"></script>
+    <script src="/static/dialogs/title-edit-dialog.js"></script>
+    <script src="/static/dialogs/favorite-edit-dialog.js"></script>
     <script src="/static/components/wordcloud.js"></script>
     <script src="/static/dialogs/portrait-dialog.js"></script>
     <script src="/static/components/sources-panel.js"></script>
@@ -795,7 +799,7 @@
     </div>
 
     <!-- 删除确认对话框 -->
-    <div class="dialog-overlay" id="deleteModal" x-data="deleteDialog()" :class="{ show: show }" @click.self="close">
+    <div class="dialog-overlay" id="msgDeleteModal" x-data="msgDeleteDialog()" :class="{ show: show }" @click.self="close">
         <div class="dialog-box">
             <div class="dialog-header">
                 <h3 id="modalTitle">删除对话消息组</h3>
@@ -1221,7 +1225,7 @@
     <!-- 外源主题加载器（必须在 Alpine store 之前加载） -->
     <script src="/static/theme-loader.js"></script>
     <!-- 主题选择对话框 Alpine 组件 -->
-    <script src="/static/components/theme-dialog.js"></script>
+    <script src="/static/dialogs/theme-dialog.js"></script>
     <!-- API-Key 设置对话框 Alpine 组件 -->
     <script src="/static/dialogs/apikey-dialog.js"></script>
 

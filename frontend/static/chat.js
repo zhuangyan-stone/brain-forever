@@ -9,11 +9,9 @@ import { initTickNav, updateTickNav } from './chat-ticknav.js';
 import { initTooltip } from './components/tooltip.js';
 import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
-import { initDeleteModal } from './dialogs/msg-delete-dialog.js';
 import { initPage } from './chat-init.js';
 import { clearAllStickyNotes } from './components/sticky-mgr.js';
 import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat, fetchLlmInfo } from './chat-api.js';
-import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
 import { clearActiveChat, updateChatTitleBySN } from './chat-list.js';
 import { ICON_TOGGLE_OPEN, ICON_TOGGLE_CLOSE } from './svg_icons_re.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
@@ -832,7 +830,7 @@ initTickNav();
             return;
         }
 
-        showTitleEditDialog({
+        window.showTitleEditDialog({
             currentTitle: currentTitle,
             onConfirm: async (newTitle) => {
                 // 先调后端 API 保存新标题
@@ -854,9 +852,6 @@ initTickNav();
 
 // 初始化复制按钮和消息操作按钮的事件委托
 initCopyHandlers();
-
-// 初始化删除模态框事件绑定
-initDeleteModal();
 
 // ============================================================
 // 登录按钮 — 供 Alpine 模板 @click 调用

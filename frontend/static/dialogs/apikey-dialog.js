@@ -192,9 +192,14 @@ document.addEventListener('alpine:init', function() {
                         },
                     }),
                 });
-                return response.ok;
+                if (!response.ok) {
+                    const t = await response.text();
+                    showToast('保存API-Key失败：' + t, 'error');
+                    return false;
+                }
+                return true;
             } catch (e) {
-                console.error('保存 API-Key 设置出错:', e);
+                console.error('保存API-Key设置出错:', e);
                 return false;
             }
         },
@@ -264,3 +269,30 @@ document.addEventListener('alpine:init', function() {
     }));
 
 });
+
+// ============================================================
+// onOpenApiKeyDialog — 打开 API-Key 设置对话框（注册到 window，供 @click 调用）
+// ============================================================
+window.onOpenApiKeyDialog = async function() {
+    try {
+        var dialogEl = document.getElementById('apikeyDialog');
+        if (!dialogEl) {
+            console.warn('API-Key 设置对话框组件未找到或未初始化');
+            return;
+        }
+        var dialogData = Alpine.$data(dialogEl);
+        if (!dialogData || typeof dialogData.open !== 'function') {
+            console.warn('API-Key 设置对话框组件未初始化');
+            return;
+        }
+
+        // API 调用委托给 alpine-api.js 中的 window.fetchApiKeySettings
+        var settings = typeof window.fetchApiKeySettings === 'function'
+            ? await window.fetchApiKeySettings()
+            : null;
+
+        dialogData.open({ settings: settings });
+    } catch (e) {
+        console.error('打开API-Key设置对话框失败:', e);
+    }
+};

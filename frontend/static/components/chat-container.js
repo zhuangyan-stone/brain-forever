@@ -84,7 +84,7 @@ document.addEventListener('alpine:init', function() {
             } catch(e) {}
 
             // 通过 Alpine 打开删除确认对话框
-            var deleteModal = document.getElementById('deleteModal');
+            var deleteModal = document.getElementById('msgDeleteModal');
             if (!deleteModal) return;
             Alpine.$data(deleteModal).open(idx);
         },

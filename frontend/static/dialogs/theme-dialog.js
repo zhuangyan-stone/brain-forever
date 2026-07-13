@@ -1,5 +1,5 @@
 // ============================================================
-// theme-dialog.js — 主题选择对话框 Alpine 组件
+// dialogs/theme-dialog.js — 主题选择对话框 Alpine 组件
 // ============================================================
 // 在用户头像下拉菜单中点击"选择颜色主题"时打开。
 // 从 /api/themes 加载可用主题列表，亮/暗两组 ComboBox，
@@ -69,6 +69,13 @@ document.addEventListener('alpine:init', function() {
              */
             _applyImmediately: function() {
                 Alpine.store('settings').setThemeSelection(this.selectedLight, this.selectedDark);
+                // 手动模式下同步主题选择到服务端
+                var settings = Alpine.store('settings');
+                if (settings.theme < 2 && settings.themeSync) {
+                    if (typeof window.fetchApplyThemeSelection === 'function') {
+                        window.fetchApplyThemeSelection(settings.theme, this.selectedLight, this.selectedDark);
+                    }
+                }
             },
 
             /**
@@ -231,6 +238,13 @@ document.addEventListener('alpine:init', function() {
                         this._initComplete = true;
                         // 先将原始主题 ID 持久化（不触发 ThemeLoader.apply，避免与模式恢复冲突）
                         Alpine.store('settings').setThemeSelection(this.selectedLight, this.selectedDark);
+                        // 同步恢复后的主题到服务端
+                        var settings = Alpine.store('settings');
+                        if (settings.theme < 2 && settings.themeSync) {
+                            if (typeof window.fetchApplyThemeSelection === 'function') {
+                                window.fetchApplyThemeSelection(settings.theme, this.selectedLight, this.selectedDark);
+                            }
+                        }
                         needRestore = true;
                     }
                 }
@@ -262,3 +276,22 @@ document.addEventListener('alpine:init', function() {
     });
 
 });
+
+// ============================================================
+// onOpenThemeDialog — 打开主题选择对话框（注册到 window，供 @click 调用）
+// ============================================================
+window.onOpenThemeDialog = function() {
+    try {
+        var dialogEl = document.getElementById('themeDialog');
+        if (dialogEl) {
+            var data = Alpine.$data(dialogEl);
+            if (data && typeof data.open === 'function') {
+                data.open();
+                return;
+            }
+        }
+        console.warn('主题选择对话框组件未找到或未初始化');
+    } catch (e) {
+        console.error('打开主题选择对话框失败:', e);
+    }
+};

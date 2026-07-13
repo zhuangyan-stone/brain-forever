@@ -388,9 +388,10 @@ document.addEventListener('alpine:init', function() {
                 // 发起 GET 请求到 local-server
                 fetch('/api/user/portrait?retouch=3', {
                     signal: signal,
-                }).then(function(response) {
+                }).then(async function(response) {
                     if (!response.ok) {
-                        throw new Error('请求失败 (' + response.status + ')');
+                        const t = await response.text();
+                        throw new Error(t || '请求失败');
                     }
 
                     // 读取 SSE 流
@@ -518,8 +519,13 @@ document.addEventListener('alpine:init', function() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: text }),
                     signal: this._titleAbortController.signal,
-                }).then(function(response) {
-                    if (!response.ok) return null;
+                }).then(async function(response) {
+                    if (!response.ok) {
+                        const t = await response.text();
+                        console.warn('获取AI印象标题失败:', t);
+                        showToast('获取AI印象标题失败：' + t, 'error');
+                        return null;
+                    }
                     return response.json();
                 }).then(function(data) {
                     if (data && data.title) {
@@ -626,3 +632,22 @@ document.addEventListener('alpine:init', function() {
     });
 
 });
+
+// ============================================================
+// onOpenUserTraits — 打开用户画像对话框（注册到 window，供 @click 调用）
+// ============================================================
+window.onOpenUserTraits = function() {
+    try {
+        var dialogEl = document.getElementById('portraitDialog');
+        if (dialogEl) {
+            var data = Alpine.$data(dialogEl);
+            if (data && typeof data.open === 'function') {
+                data.open();
+                return;
+            }
+        }
+        console.warn('用户画像对话框组件未找到或未初始化');
+    } catch (e) {
+        console.error('打开用户画像对话框失败:', e);
+    }
+};

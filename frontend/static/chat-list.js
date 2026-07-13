@@ -7,8 +7,6 @@ import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits, fetchChatTags, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
-import { showTitleEditDialog } from './dialogs/title-edit-dialog.js';
-import { showFavoriteEditDialog } from './dialogs/favorite-edit-dialog.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
@@ -218,7 +216,6 @@ async function selectChat(sn, source, subSource) {
     // 6. 调用后端 API 加载目标对话的消息
     const result = await switchChat(sn);
     if (!result) {
-        showToast('加载对话失败', 'error');
         return;
     }
 
@@ -703,7 +700,6 @@ async function handleExtractTraits(chat) {
     try {
         const result = await extractTraits(sn);
         if (!result) {
-            showToast('提取个人特征失败', 'error');
             return;
         }
 
@@ -775,12 +771,11 @@ async function handleRename(chat) {
         }
     } catch(e) {}
 
-    showTitleEditDialog({
+    window.showTitleEditDialog({
         currentTitle: chat.title || '',
         onConfirm: async (newTitle) => {
             const ok = await putChatTitle(newTitle, TITLE_STATE.USER, chat.sn);
             if (!ok) {
-                showToast('重命名失败', 'error');
                 return false;
             }
             // 更新本地数据
@@ -800,7 +795,6 @@ async function handleRename(chat) {
 async function handleUnfavorite(chat, customTag) {
     var ok = await removeFavoriteChat(chat.sn, customTag);
     if (!ok) {
-        showToast('取消收藏失败', 'error');
         return;
     }
     var chatsStore = window.Alpine.store('chats');
@@ -827,7 +821,7 @@ async function handleToggleFavorite(chat, defaultTag) {
         existingTags = Object.keys(chatsStore.favoritesGroups).filter(function(t) { return t !== ''; });
         existingTags.sort();
     }
-    showFavoriteEditDialog({
+    window.showFavoriteEditDialog({
         existingTags: existingTags,
         defaultTag: defaultTag || '',
         onConfirm: async function(customTag) {
@@ -846,7 +840,6 @@ async function handleToggleFavorite(chat, defaultTag) {
             }
             var ok = await addFavoriteChat(chat.sn, tag);
             if (!ok) {
-                showToast('添加收藏失败', 'error');
                 return false;
             }
             if (chatsStore && chatsStore.loadFavorites) {
@@ -995,7 +988,6 @@ async function handleTogglePin(chat) {
     const newPinned = !chat.pinned;
     const ok = await togglePinChat(chat.sn, newPinned);
     if (!ok) {
-        showToast('操作失败', 'error');
         return;
     }
     // 更新本地数据
@@ -1116,7 +1108,6 @@ async function handleDelete(chat) {
 
     const ok = await deleteChat(chat.sn);
     if (!ok) {
-        showToast('删除失败', 'error');
         return;
     }
 
@@ -1279,7 +1270,6 @@ async function handleDelete(chat) {
 async function handleRestore(chat) {
     const ok = await restoreChat(chat.sn);
     if (!ok) {
-        showToast('恢复失败', 'error');
         return;
     }
 
@@ -1322,7 +1312,6 @@ async function handlePermanentDelete(chat) {
 
     const ok = await permanentDeleteChat(chat.sn);
     if (!ok) {
-        showToast('永久删除失败', 'error');
         return;
     }
 
@@ -1401,7 +1390,6 @@ async function handleEmptyTrash() {
 
     const ok = await emptyTrash();
     if (!ok) {
-        showToast('清空回收站失败', 'error');
         return;
     }
 
