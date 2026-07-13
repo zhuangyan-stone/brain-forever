@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 
@@ -219,6 +220,29 @@ func (a *ApiKeysConfig) GetOne(purpose, provider string) string {
 	} else {
 		return vals[rand.Intn(len(vals))]
 	}
+}
+
+// ValidateDefaultProviders checks that each default provider
+// (LLM, WebSearch, Embedding) has at least one API key configured.
+// If any default provider's key array is empty (or missing entirely),
+// it returns an error listing which providers are missing keys.
+func (a ApiKeysConfig) ValidateDefaultProviders() error {
+	var missing []string
+
+	if a.GetOne("llm", a.DefaultLLMProvider) == "" {
+		missing = append(missing, "llm@"+a.DefaultLLMProvider)
+	}
+	if a.GetOne("websearch", a.DefaultWebSearchProvider) == "" {
+		missing = append(missing, "websearch@"+a.DefaultWebSearchProvider)
+	}
+	if a.GetOne("embedding", a.DefaultEmbeddingProvider) == "" {
+		missing = append(missing, "embedding@"+a.DefaultEmbeddingProvider)
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("default API provider(s) have no keys configured: %v", missing)
+	}
+	return nil
 }
 
 // ============================================================

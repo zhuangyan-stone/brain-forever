@@ -208,6 +208,14 @@ func main() {
 	// Initialize global API keys pool singleton (used by user package)
 	config.InitApiKeysPool(cfg.ApiKeys)
 
+	// Validate that all default providers have at least one API key configured.
+	// If any default provider's key array is empty (or missing entirely),
+	// the server cannot operate and must shut down immediately.
+	if err := config.GetApiKeysPool().ValidateDefaultProviders(); err != nil {
+		theLogger.Fatalf("API key configuration error: %v", err)
+	}
+	theLogger.Infof("API key pool validated — all default providers have keys")
+
 	// Initialize theme handler for manifest and user handler for user operations
 	themeHandler := theme.NewHandler()
 	userHandler := user.NewHandler(
