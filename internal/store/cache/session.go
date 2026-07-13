@@ -169,7 +169,7 @@ type GCStats struct {
 }
 
 // gcStatsKey is the Redis key for the latest GC stats.
-const gcStatsKey = "d2b.SESSIONS.GC.stats"
+const gcStatsKey = "d2b.SESSIONS.GC.scan"
 
 // SetGCStats writes the latest GC sweep statistics to Redis.
 func (rs *RedisSessionStore) SetGCStats(ctx context.Context, stats *GCStats) error {
