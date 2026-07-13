@@ -217,6 +217,16 @@ func NewBochaClient(cfg WebSearchClientConfig) *bochaClient {
 	}
 }
 
+// Name returns the provider name.
+func (c *bochaClient) Name() string {
+	return "Bocha"
+}
+
+// Website returns the provider's official website URL.
+func (c *bochaClient) Website() string {
+	return "https://bocha.cn"
+}
+
 // Search implements the WebSearcher interface.
 // apiKey: if non-empty, overrides the client's default API key for this request.
 func (c *bochaClient) Search(ctx context.Context, req WebSearchRequest, apiKey string) (*WebSearchResponse, error) {

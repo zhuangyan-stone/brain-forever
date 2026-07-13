@@ -8,6 +8,12 @@ type Embedder interface {
 	// apiKey: optional per-request API key override; empty means use the client's default.
 	Embed(ctx context.Context, text string, apiKey string) ([]float32, error)
 
+	// Name returns the provider name (e.g. "DashScope", "ZhiPu").
+	Name() string
+
+	// Website returns the provider's official website URL.
+	Website() string
+
 	// Model returns the current model name
 	Model() string
 

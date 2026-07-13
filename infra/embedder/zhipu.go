@@ -36,6 +36,16 @@ func NewZhipuEmbedder(apiKey string, dimension int) *ZhipuEmbedder {
 	}
 }
 
+// Name returns the provider name.
+func (z *ZhipuEmbedder) Name() string {
+	return "ZhiPu"
+}
+
+// Website returns the provider's official website URL.
+func (z *ZhipuEmbedder) Website() string {
+	return "https://open.bigmodel.cn"
+}
+
 // Model returns the current model name
 func (z *ZhipuEmbedder) Model() string {
 	return z.model

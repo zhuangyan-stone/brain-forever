@@ -32,6 +32,16 @@ func NewDashScopeEmbedder(apiKey string, dimension int) *DashScopeEmbedder {
 	}
 }
 
+// Name returns the provider name.
+func (d *DashScopeEmbedder) Name() string {
+	return "DashScope"
+}
+
+// Website returns the provider's official website URL.
+func (d *DashScopeEmbedder) Website() string {
+	return "https://dashscope.aliyun.com"
+}
+
 // Model returns the current model name
 func (d *DashScopeEmbedder) Model() string {
 	return d.model

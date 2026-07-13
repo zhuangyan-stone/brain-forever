@@ -111,6 +111,16 @@ func NewZhiPuClient(cfg WebSearchClientConfig) *zhiPuClient {
 	}
 }
 
+// Name returns the provider name.
+func (c *zhiPuClient) Name() string {
+	return "ZhiPu"
+}
+
+// Website returns the provider's official website URL.
+func (c *zhiPuClient) Website() string {
+	return "https://open.bigmodel.cn"
+}
+
 // Search implements the WebSearcher interface.
 // apiKey: if non-empty, overrides the client's default API key for this request.
 func (c *zhiPuClient) Search(ctx context.Context, req WebSearchRequest, apiKey string) (*WebSearchResponse, error) {
