@@ -4,6 +4,10 @@
 // 在用户头像下拉菜单中点击"选择颜色主题"时打开。
 // 从 /api/themes 加载可用主题列表，亮/暗两组 ComboBox，
 // 每组首项为"内置亮色"/"内置暗色"。
+//
+// theme 值位布局：
+//   bit 0 (0x01) — 当前亮暗显示模式：0=亮色，1=暗色
+//   bit 1 (0x02) — 跟随系统主题明暗变化：0=手动，1=跟随系统
 // ============================================================
 
 'use strict';
@@ -20,6 +24,7 @@ document.addEventListener('alpine:init', function() {
             selectedDark: '',     // 当前选中的暗色主题 ID
             selectedMode: 'light',// 立即启用：'light' | 'dark'
             linkThemes: true,     // 亮暗联动开关（默认开启）
+            followSystem: false,  // 跟随系统主题明暗变化（bit 1）
 
             /**
              * init — Alpine 初始化时注册 watcher，监听亮/暗主题选择变化
@@ -62,6 +67,12 @@ document.addEventListener('alpine:init', function() {
                         self._applyMode(value);
                     }
                 });
+                this.$watch('followSystem', function(value) {
+                    // 初始化完成后，切换跟随系统设置立即生效
+                    if (self._initComplete) {
+                        self._applyFollowSystem(value);
+                    }
+                });
             },
 
             /**
@@ -80,12 +91,32 @@ document.addEventListener('alpine:init', function() {
 
             /**
              * _applyMode — 将页面切换为指定亮/暗模式
+             * 保留 bit 1（跟随系统设置），只更新 bit 0
              * @param {'light'|'dark'} mode
              */
             _applyMode: function(mode) {
-                var themeVal = mode === 'dark' ? 1 : 0;
+                var bit0 = mode === 'dark' ? 1 : 0;
+                var bit1 = this.followSystem ? 2 : 0;
+                var themeVal = bit0 | bit1;
                 Alpine.store('settings').theme = themeVal;
                 Alpine.store('settings')._save();
+                document.dispatchEvent(new CustomEvent('theme-changed', {
+                    detail: { theme: themeVal }
+                }));
+            },
+
+            /**
+             * _applyFollowSystem — 应用跟随系统设置
+             * 只更新 bit 1，保留 bit 0（当前亮暗显示）
+             * @param {boolean} follow
+             */
+            _applyFollowSystem: function(follow) {
+                var settings = Alpine.store('settings');
+                var currentTheme = settings.theme;
+                var bit0 = currentTheme & 1;
+                var themeVal = (follow ? 2 : 0) | bit0;
+                settings.theme = themeVal;
+                settings._save();
                 document.dispatchEvent(new CustomEvent('theme-changed', {
                     detail: { theme: themeVal }
                 }));
@@ -168,10 +199,14 @@ document.addEventListener('alpine:init', function() {
                 }
 
                 // ★ 保存原始值，供取消时恢复
-                this._originalLight = savedLight || 'builtin-light';
-                this._originalDark  = savedDark || 'builtin-dark';
+                var currentTheme = Alpine.store('settings').theme;
+                this._originalTheme  = currentTheme;        // 保存完整 theme 值（含 bit 1）
+                this._originalLight  = savedLight || 'builtin-light';
+                this._originalDark   = savedDark || 'builtin-dark';
                 // ★ 保存当前亮暗模式，供取消时恢复（bit 0=1 为暗色）
-                this._originalMode = (Alpine.store('settings').theme & 1) ? 'dark' : 'light';
+                this._originalMode   = (currentTheme & 1) ? 'dark' : 'light';
+                // ★ 保存当前跟随系统设置（bit 1=1 为跟随系统）
+                this._originalFollow = !!(currentTheme & 2);
 
                 // ★ 在设置初始值之前禁用联动 watcher，防止 selectedLight/selectedDark
                 //   被重复赋值时触发 watcher 之间的级联反应（Alpine $watch 同步执行，
@@ -183,6 +218,7 @@ document.addEventListener('alpine:init', function() {
                 this.selectedLight = this._originalLight;
                 this.selectedDark  = this._originalDark;
                 this.selectedMode  = this._originalMode;
+                this.followSystem  = this._originalFollow;
 
                 this.linkThemes = prevLink;
 
@@ -227,7 +263,7 @@ document.addEventListener('alpine:init', function() {
             close: function() {
                 var needRestore = false;
 
-                // 1. 恢复主题选择（若变更）
+                // 1. 恢复主题 ID 选择（若变更）
                 if (this._originalLight !== undefined && this._originalDark !== undefined) {
                     var themeChanged = this.selectedLight !== this._originalLight
                         || this.selectedDark !== this._originalDark;
@@ -249,16 +285,17 @@ document.addEventListener('alpine:init', function() {
                     }
                 }
 
-                // 2. 恢复亮暗模式（若变更）
-                if (this._originalMode !== undefined && this.selectedMode !== this._originalMode) {
-                    this.selectedMode = this._originalMode;
-                    // _applyMode 会触发 ThemeLoader.apply，重新加载正确模式的主题 CSS
-                    this._applyMode(this._originalMode);
-                    needRestore = true;
-                } else if (needRestore) {
-                    // 主题变了但模式没变，手动触发 ThemeLoader 加载已恢复的主题 CSS
-                    if (window.ThemeLoader) {
-                        window.ThemeLoader.apply();
+                // 2. 恢复亮暗模式和跟随系统设置（若变更）
+                if (this._originalTheme !== undefined) {
+                    var currentTheme = Alpine.store('settings').theme;
+                    if (currentTheme !== this._originalTheme) {
+                        Alpine.store('settings').theme = this._originalTheme;
+                        Alpine.store('settings')._save();
+                        // 触发完整主题变更事件，使页面恢复到原始状态
+                        document.dispatchEvent(new CustomEvent('theme-changed', {
+                            detail: { theme: this._originalTheme }
+                        }));
+                        needRestore = true;
                     }
                 }
 
