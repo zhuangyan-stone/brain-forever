@@ -281,19 +281,27 @@ func (m *Manager) gc() {
 
 	m.Mu.RLock()
 	infos := make([]sessionInfo, 0, len(m.Sessions))
+	var anonymousCount, loggedInCount int
 	for id, s := range m.Sessions {
 		s.Mu.Lock()
+		isAnon := s.IsAnonymous()
 		infos = append(infos, sessionInfo{
 			id:           id,
 			lastActivity: s.LastActivity,
-			isAnonymous:  s.IsAnonymous(),
+			isAnonymous:  isAnon,
 		})
 		s.Mu.Unlock()
+		if isAnon {
+			anonymousCount++
+		} else {
+			loggedInCount++
+		}
 	}
 	m.Mu.RUnlock()
 
 	// Determine which sessions are expired.
 	var expired []string
+	var expiredAnon, expiredLoggedIn int
 	for _, info := range infos {
 		ttl := m.gcConfig.LoggedInTTL
 		if info.isAnonymous {
@@ -301,6 +309,11 @@ func (m *Manager) gc() {
 		}
 		if time.Since(info.lastActivity) > ttl {
 			expired = append(expired, info.id)
+			if info.isAnonymous {
+				expiredAnon++
+			} else {
+				expiredLoggedIn++
+			}
 		}
 	}
 
@@ -313,9 +326,12 @@ func (m *Manager) gc() {
 		}
 		m.Mu.Unlock()
 
-		m.logger.Infof("Session GC cleaned up %d expired session(s)", len(expired))
+		m.logger.Infof("Session GC cleaned up %d expired (%d anonymous, %d logged-in), %d remaining (%d in-memory)",
+			len(expired), expiredAnon, expiredLoggedIn,
+			len(infos)-len(expired), len(m.Sessions))
 	} else {
-		m.logger.Debugf("Session GC sweep: 0 expired, %d total", len(infos))
+		m.logger.Debugf("Session GC sweep: 0 expired, %d total (%d anonymous, %d logged-in)",
+			len(infos), anonymousCount, loggedInCount)
 	}
 }
 
