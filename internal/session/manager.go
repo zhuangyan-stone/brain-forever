@@ -268,22 +268,22 @@ func (m *Manager) gc() {
 		}
 	}
 
-	if len(expired) == 0 {
-		return
-	}
-
 	// Remove expired sessions under write lock.
-	m.Mu.Lock()
-	for _, id := range expired {
-		// Double-check the session still exists (might have been removed by GetOrCreate's
-		// Redis restore flow or a concurrent Remove call).
-		if _, ok := m.Sessions[id]; ok {
-			delete(m.Sessions, id)
+	if len(expired) > 0 {
+		m.Mu.Lock()
+		for _, id := range expired {
+			// Double-check the session still exists (might have been removed by GetOrCreate's
+			// Redis restore flow or a concurrent Remove call).
+			if _, ok := m.Sessions[id]; ok {
+				delete(m.Sessions, id)
+			}
 		}
-	}
-	m.Mu.Unlock()
+		m.Mu.Unlock()
 
-	m.logger.Infof("Session GC cleaned up %d expired session(s)", len(expired))
+		m.logger.Infof("Session GC cleaned up %d expired session(s)", len(expired))
+	} else {
+		m.logger.Debugf("Session GC sweep: 0 expired, %d total", len(infos))
+	}
 }
 
 // DeleteMessage deletes a user message and all associated messages (AI reply, etc.)
