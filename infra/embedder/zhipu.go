@@ -41,15 +41,16 @@ func (z *ZhipuEmbedder) Model() string {
 	return z.model
 }
 
-// Dimension returns the vector dimension (Zhipu embedding-3 fixed at 2048)
+// Dimension returns the vector dimension (Zhipu embedding-3 supports 256/512/1024/2048)
 func (z *ZhipuEmbedder) Dimension() int {
 	return z.dimension
 }
 
 // zhipuRequest is the Zhipu Embedding API request body (OpenAI compatible format)
 type zhipuRequest struct {
-	Model string `json:"model"`
-	Input string `json:"input"`
+	Model      string `json:"model"`
+	Input      string `json:"input"`
+	Dimensions int    `json:"dimensions,omitempty"`
 }
 
 // zhipuResponse is the Zhipu Embedding API response body (OpenAI compatible format)
@@ -75,8 +76,9 @@ func (z *ZhipuEmbedder) Embed(ctx context.Context, text string, apiKey string) (
 	}
 
 	reqBody := zhipuRequest{
-		Model: z.model,
-		Input: text,
+		Model:      z.model,
+		Input:      text,
+		Dimensions: z.dimension,
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
 

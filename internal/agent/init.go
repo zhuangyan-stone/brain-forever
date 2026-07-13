@@ -93,7 +93,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	llmClients = make(map[string]llm.Client)
 	llmClients[ProviderDeepSeek] = InitLLMClient(logger)
 
-	const embedderDimension = 2048
+	const embedderDimension = 1024
 	embedderClients = make(map[string]embedder.Embedder)
 	embedderClients[ProviderAli] = InitEmbedder(ProviderAli, embedderDimension, logger)
 	embedderClients[ProviderZhipu] = InitEmbedder(ProviderZhipu, embedderDimension, logger)

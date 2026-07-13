@@ -107,7 +107,7 @@ func main() {
 	// ============================================================
 	// Initialize all database schemas (single unified init.sql)
 	// ============================================================
-	const vectorDimension = 2048
+	const vectorDimension = 1024
 	if err := store.InitSchema(vectorDimension); err != nil {
 		theLogger.Fatalf("failed to initialize database schema: %v", err)
 	}
