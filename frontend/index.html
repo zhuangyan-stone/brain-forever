@@ -87,6 +87,7 @@
     <link rel="stylesheet" href="/static/dialogs/favorite-edit-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/portrait-dialog.css">
     <link rel="stylesheet" href="/static/dialogs/apikey-dialog.css">
+    <link rel="stylesheet" href="/static/dialogs/about-dialog.css">
     <link rel="stylesheet" href="/static/components/wordcloud.css">
     <link rel="stylesheet" href="/static/dialogs/theme-dialog.css">
     <link rel="stylesheet" href="/static/components/msgbox.css">
@@ -142,6 +143,7 @@
     <script src="/static/dialogs/portrait-dialog.js"></script>
     <script src="/static/components/sources-panel.js"></script>
     <script src="/static/components/format.js"></script>
+    <script src="/static/dialogs/about-dialog.js"></script>
 
     <!-- SVG 图标常量 — 必须在 Alpine.js 之前加载（普通<script>），
         将 svg_icons.js 中的所有图标字符串常量注册到 window 上，
@@ -510,7 +512,7 @@
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
                                         </svg>
-                                        API-Key 设置
+                                        设置 API-Keys
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
@@ -520,7 +522,20 @@
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                             x-html="ICON_USER"></svg>
-                                        生成个人画像
+                                        AI 眼中的你
+                                    </button>
+                                    <!-- 分隔线 -->
+                                    <div class="dropdown-divider"></div>
+                                    <!-- 关于"第2大脑" -->
+                                    <button class="dropdown-item" id="aboutDialogBtn"
+                                        @click="onOpenAboutDialog">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="16" x2="12" y2="12"/>
+                                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                        </svg>
+                                        关于……
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
@@ -1091,7 +1106,7 @@
         @click.self="close">
         <div class="dialog-box" style="position:relative">
             <div class="dialog-header">
-                <h3>设置 API-key</h3>
+                <h3>设置 API-Keys</h3>
                 <button class="dialog-close-btn" @click="close" aria-label="关闭">&times;</button>
             </div>
 
@@ -1205,22 +1220,87 @@
 
             <!-- 底部操作区 -->
             <div class="apikey-footer">
-                <button class="apikey-fee-btn" disabled>
-                    预充值：<span class="fee-amount" x-text="totalFee"></span> 元
-                </button>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
                     <div class="apikey-save-error" x-show="_saveError" x-text="_saveError" x-cloak></div>
-                    <button class="apikey-confirm-btn" @click="confirm" :disabled="_submitting">
-                        <span x-show="!_submitting">确认</span>
-                        <span x-show="_submitting" x-cloak>保存中…</span>
-                    </button>
+                    <div style="display:flex;gap:8px">
+                        <button class="dialog-btn dialog-btn-cancel" @click="close">取消</button>
+                        <button class="apikey-confirm-btn" @click="confirm" :disabled="_submitting">
+                            <span x-show="!_submitting">确认</span>
+                            <span x-show="_submitting" x-cloak>保存中…</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+<!-- AI 生成免责声明 — 页面加载后由 JS 动态插入模型名称及 [更多] 链接 -->
+<div class="ai-disclaimer" id="aiDisclaimer">内容由 AI 生成，请仔细甄别</div>
 
-    <!-- AI 生成免责声明 — 页面加载后由 JS 动态插入模型名称 -->
-    <div class="ai-disclaimer" id="aiDisclaimer">内容由 AI 生成，请仔细甄别</div>
+<!-- ============================================================
+     关于"第2大脑"对话框（Alpine 组件：aboutDialog）
+     ============================================================ -->
+<div class="about-overlay" id="aboutDialog"
+    x-data="aboutDialog()"
+    :class="{ show: show }"
+    @click.self="close">
+    <div class="about-box">
+        <div class="about-header">
+            <div class="about-header-title">
+                <img class="about-header-logo" src="/static/brain-forever.svg" alt="第2大脑" width="32" height="32">
+                <span>关于……</span>
+            </div>
+            <button class="about-close-btn" @click="close" aria-label="关闭">&times;</button>
+        </div>
+
+        <div class="about-body">
+            <div class="about-description">
+                <p>努力成为你的另一个大脑，一个不老的永生大脑——通过记忆您的个人特征。相比 “这次说完下次就忘” 的智能体，第2大脑可以更高效地提供紧密贴合您的回复。</p>
+            </div>
+
+            <div class="about-author">
+                <span class="about-author-link"><a href="https://www.d2school.com" target="_blank" rel="noopener"><img src="https://www.d2school.com/favicon.ico" />第2学堂 / d2school</a> 作品</span>
+            </div>
+
+            <!-- 第三方服务提供商信息 -->
+            <div class="about-providers" x-show="providers">
+                <div class="about-providers-title">第三方服务</div>
+
+                <!-- LLM -->
+                <template x-if="providers && providers.llm">
+                    <div class="about-provider-item">
+                        <span class="about-provider-label">语言模型</span>
+                        <span class="about-provider-value" x-html="getProviderName(providers.llm)"></span>
+                        <span class="about-provider-tip" x-show="getProviderModel(providers.llm)"
+                            x-text="getProviderModel(providers.llm)"></span>
+                    </div>
+                </template>
+
+                <!-- Embedder -->
+                <template x-if="providers && providers.embedder">
+                    <div class="about-provider-item">
+                        <span class="about-provider-label">矢量模型</span>
+                        <span class="about-provider-value" x-html="getProviderName(providers.embedder)"></span>
+                        <span class="about-provider-tip" x-show="getEmbedderDimension(providers.embedder)"
+                            x-text="getEmbedderDimension(providers.embedder)"></span>
+                    </div>
+                </template>
+
+                <!-- Web Search -->
+                <template x-if="providers && providers.web_search">
+                    <div class="about-provider-item">
+                        <span class="about-provider-label">联网搜索</span>
+                        <span class="about-provider-value" x-html="getProviderName(providers.web_search)"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div class="about-footer">
+            <button class="about-btn-close" @click="close">关闭</button>
+        </div>
+    </div>
+</div>
+
 
     <!-- 外源主题加载器（必须在 Alpine store 之前加载） -->
     <script src="/static/theme-loader.js"></script>

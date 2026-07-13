@@ -470,19 +470,24 @@ export async function switchChat(sn) {
 }
 
 /**
- * fetchLlmInfo 获取当前使用的 AI 信息（名称、模型、官网）。
- * @returns {Promise<{name: string, model?: string, website?: string}|null>}
+ * fetchProviderInfo 获取当前用户使用的第三方提供商信息。
+ * @returns {Promise<{
+ *   llm: {name: string, model: string, website: string},
+ *   embedder: {name: string, model: string, website: string, dimension: number},
+ *   web_search: {name: string, website: string},
+ *   api_key_info: {llm_provider: string, embedder_provider: string, search_provider: string, llm_private: boolean, embedder_private: boolean, search_private: boolean}
+ * }|null>}
  */
-export async function fetchLlmInfo() {
+export async function fetchProviderInfo() {
     try {
-        const response = await fetch('/api/info/llm/chat');
+        const response = await fetch('/api/info/3rd/providers');
         if (response.ok) {
             return await response.json();
         }
         const t = await response.text();
-        showToast('获取AI信息失败：' + t, 'error');
+        showToast('获取第三方服务信息失败：' + t, 'error');
     } catch (e) {
-        console.error('获取AI信息失败:', e);
+        console.error('获取第三方服务信息失败:', e);
     }
     return null;
 }

@@ -139,7 +139,7 @@ document.addEventListener('alpine:init', function() {
 
             // ---- 计算属性 ----
             get title() {
-                return '用户画像';
+                return 'AI 印象';
             },
 
             get showCancel() {

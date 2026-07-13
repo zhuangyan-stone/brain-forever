@@ -996,8 +996,8 @@ body:not(.small-screen-mode):has(.left-sidebar:not(.hidden)) .ai-disclaimer {
     text-decoration: none;
     font-weight: 500;
 }
-
 .ai-disclaimer a:hover {
     text-decoration: underline;
 }
+
 

@@ -11,7 +11,7 @@ import { sendMessage } from './chat-sse.js';
 import { initCopyHandlers } from './chat-copy.js';
 import { initPage } from './chat-init.js';
 import { clearAllStickyNotes } from './components/sticky-mgr.js';
-import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat, fetchLlmInfo } from './chat-api.js';
+import { fetchChatTitle, putChatTitle, TITLE_STATE, onChatLogin, onChatLogout, createBlankChat, fetchProviderInfo } from './chat-api.js';
 import { clearActiveChat, updateChatTitleBySN } from './chat-list.js';
 import { ICON_TOGGLE_OPEN, ICON_TOGGLE_CLOSE } from './svg_icons_re.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
@@ -870,16 +870,29 @@ window.addEventListener('DOMContentLoaded', async () => {
 	await initPage();
 });
 
-// 页面加载后获取当前使用的 AI 信息（名称、模型、官网），更新底部免责声明
+// 页面加载后获取当前使用的第三方提供商信息，更新底部免责声明
+// 同时缓存数据供 AboutDialog 使用
 window.addEventListener('DOMContentLoaded', async () => {
-    const data = await fetchLlmInfo();
+    const data = await fetchProviderInfo();
     if (!data) return;
+
+    // 缓存到 window.__providerInfo，供 about-dialog.js 读取
+    window.__providerInfo = data;
+
+    // 更新底部免责声明（LLM 信息），同时追加 [更多] 链接
     const disclaimer = document.getElementById('aiDisclaimer');
-    if (disclaimer && data.name && data.website) {
-        const modelTip = data.model ? `模型：${data.model}` : '';
-        disclaimer.innerHTML = `内容由 AI（<a href="${data.website}" target="_blank" rel="noopener noreferrer" data-tooltip="${modelTip}">${data.name}</a>）生成，请仔细甄别`;
-    } else if (disclaimer && data.name) {
-        disclaimer.textContent = `内容由 AI（${data.name}）生成，请仔细甄别`;
+    const llm = data.llm;
+    var disclaimerHTML = '';
+    if (llm.name && llm.website) {
+        const modelTip = llm.model ? `模型：${llm.model}` : '';
+        disclaimerHTML = `内容由 AI（<a href="${llm.website}" target="_blank" rel="noopener noreferrer" data-tooltip="${modelTip}">${llm.name}</a>）生成，请仔细甄别`;
+    } else if (llm.name) {
+        disclaimerHTML = `内容由 AI（${llm.name}）生成，请仔细甄别`;
+    } else {
+        disclaimerHTML = '内容由 AI 生成，请仔细甄别';
+    }
+    if (disclaimer) {
+        disclaimer.innerHTML = disclaimerHTML + '&nbsp;<a href="javascript:void(0)" onclick="window.onOpenAboutDialog()"> ⚙ 更多</a>';
     }
 });
 
