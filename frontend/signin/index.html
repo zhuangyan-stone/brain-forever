@@ -232,11 +232,12 @@
             questionEl.textContent = '请点击图片中的目标位置';
 
             fetch('/api/verify/captcha?action=' + captchaAction)
-                .then(function(resp) {
+                .then(async function(resp) {
                     if (resp.ok) {
                         return resp.json();
                     }
-                    throw new Error('获取验证码失败');
+                    var t = await resp.text();
+                    throw new Error(t || '获取验证码失败');
                 })
                 .then(function(data) {
                     if (data.src) {

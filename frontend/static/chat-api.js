@@ -103,7 +103,11 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
             url += '&sn=' + encodeURIComponent(sn);
         }
         const response = await fetch(url);
-        if (!response.ok) return;
+        if (!response.ok) {
+            const t = await response.text();
+            showToast('获取标题失败：' + t, 'error');
+            return;
+        }
         const data = await response.json();
 
         // 从返回数据中提取目标 chat SN，用于后续精确定位
@@ -211,7 +215,8 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 			method: 'PUT',
 		});
 		if (!response.ok) {
-			console.warn('更新标题失败:', response.status);
+			const t = await response.text();
+			showToast('更新标题失败：' + t, 'error');
 			return false;
 		}
 		// 如果更新的就是当前活跃 chat，同步更新本地 title 和 titleState
@@ -237,7 +242,8 @@ export async function createBlankChat() {
     try {
         const response = await fetch('/api/chat/new', { method: 'PUT' });
         if (!response.ok) {
-            console.warn('初始化对话失败:', response.status);
+            const t = await response.text();
+            showToast('初始化对话失败：' + t, 'error');
             return null;
         }
         return await response.json();
@@ -256,31 +262,21 @@ export async function createBlankChat() {
 	*/
 export async function onChatLogin(userNo) {
 	if (!userNo) return false;
-	try {
-		const response = await fetch('/api/user/login', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json; charset=utf-8' },
-			body: JSON.stringify({ user_no: userNo }),
-		});
-		if (!response.ok) {
-			console.warn('登录失败:', response.status);
-			return false;
+	// API 调用委托给 alpine-api.js 中的 window.fetchLogin
+	const data = typeof window.fetchLogin === 'function'
+		? await window.fetchLogin(userNo)
+		: null;
+	if (!data) return false;
+	if (data.status === 'ok') {
+		// 持久化 user_no 和 avatar 到 localStorage，用于页面刷新后恢复登录状态
+		localStorage.setItem('brainforever_user_no', userNo);
+		if (data.avatar) {
+			localStorage.setItem('brainforever_user_avatar', data.avatar);
 		}
-		const data = await response.json();
-		if (data.status === 'ok') {
-			// 持久化 user_no 和 avatar 到 localStorage，用于页面刷新后恢复登录状态
-			localStorage.setItem('brainforever_user_no', userNo);
-			if (data.avatar) {
-				localStorage.setItem('brainforever_user_avatar', data.avatar);
-			}
-			await switchToUser(data);
-			return true;
-		}
-		return false;
-	} catch (e) {
-		console.warn('登录出错:', e);
-		return false;
+		await switchToUser(data);
+		return true;
 	}
+	return false;
 }
 
 /**
@@ -402,53 +398,45 @@ console.warn('switchToUser: 刷新侧边栏失败', e);
  * @returns {Promise<boolean>} 是否成功
  */
 export async function onChatLogout() {
-	try {
-		const response = await fetch('/api/user/logout', {
-			method: 'POST',
-		});
-		if (!response.ok) {
-			console.warn('退出登录失败:', response.status);
-			return false;
-		}
-		const data = await response.json();
-		if (data.status === 'ok') {
-			// 清除持久化的 user_no 和 avatar
-			localStorage.removeItem('brainforever_user_no');
-			localStorage.removeItem('brainforever_user_avatar');
+	// API 调用委托给 alpine-api.js 中的 window.fetchLogout
+	const data = typeof window.fetchLogout === 'function'
+		? await window.fetchLogout()
+		: null;
+	if (!data) return false;
+	if (data.status === 'ok') {
+		// 清除持久化的 user_no 和 avatar
+		localStorage.removeItem('brainforever_user_no');
+		localStorage.removeItem('brainforever_user_avatar');
 
-			// 重置前端状态
-			resetTickState();
-			try {
-				var chats = window.Alpine.store('chats');
-				if (chats) {
-					chats.resetToBlank();
-					chats.currentUserNo = '';
-					chats.currentUserNickname = '';
-					chats.currentUserAvatar = '';
-				}
-			} catch(e) {}
-
-			// 移除消息 DOM
-			const chatContainer = document.getElementById('chatContainer');
-			if (chatContainer) {
-				chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
+		// 重置前端状态
+		resetTickState();
+		try {
+			var chats = window.Alpine.store('chats');
+			if (chats) {
+				chats.resetToBlank();
+				chats.currentUserNo = '';
+				chats.currentUserNickname = '';
+				chats.currentUserAvatar = '';
 			}
+		} catch(e) {}
 
-			// 清空刻度导航
-			const tickNav = document.getElementById('tickNav');
-			if (tickNav) {
-				tickNav.innerHTML = '';
-			}
-
-			// 跳转到登录页（replace 替换首页历史，不让后退回到已过期的首页）
-			window.location.replace('/signin/');
-			return true;
+		// 移除消息 DOM
+		const chatContainer = document.getElementById('chatContainer');
+		if (chatContainer) {
+			chatContainer.querySelectorAll('.message-group').forEach(el => el.remove());
 		}
-		return false;
-	} catch (e) {
-		console.warn('退出登录出错:', e);
-		return false;
+
+		// 清空刻度导航
+		const tickNav = document.getElementById('tickNav');
+		if (tickNav) {
+			tickNav.innerHTML = '';
+		}
+
+		// 跳转到登录页（replace 替换首页历史，不让后退回到已过期的首页）
+		window.location.replace('/signin/');
+		return true;
 	}
+	return false;
 }
 
 /**
@@ -461,7 +449,8 @@ export async function switchChat(sn) {
 	try {
 		const response = await fetch('/api/chat/switch?sn=' + encodeURIComponent(sn));
 		if (!response.ok) {
-			console.warn('切换会话失败:', response.status);
+			const t = await response.text();
+			showToast('切换会话失败：' + t, 'error');
 			return null;
 		}
 		
@@ -490,8 +479,10 @@ export async function fetchLlmInfo() {
         if (response.ok) {
             return await response.json();
         }
+        const t = await response.text();
+        showToast('获取AI信息失败：' + t, 'error');
     } catch (e) {
-        console.error('获取 AI 信息失败:', e);
+        console.error('获取AI信息失败:', e);
     }
     return null;
 }
@@ -508,7 +499,8 @@ export async function fetchChatTags(sn) {
             method: 'POST',
         });
         if (!response.ok) {
-            console.warn('获取话题标签失败:', response.status);
+            const t = await response.text();
+            showToast('获取话题标签失败：' + t, 'error');
             return null;
         }
         return await response.json();
@@ -526,7 +518,8 @@ export async function fetchChatGroups() {
     try {
         const response = await fetch('/api/chat/groups');
         if (!response.ok) {
-            console.warn('获取聊天分组失败:', response.status);
+            const t = await response.text();
+            showToast('获取聊天分组失败：' + t, 'error');
             return null;
         }
         return await response.json();
@@ -548,7 +541,12 @@ export async function fetchChatGroups() {
             const url = '/api/chat/favorites?sn=' + encodeURIComponent(sn) +
                 '&custom_tag=' + encodeURIComponent(customTag || '');
             const response = await fetch(url, { method: 'PUT' });
-            return response.ok;
+            if (!response.ok) {
+                const t = await response.text();
+                showToast('添加收藏失败：' + t, 'error');
+                return false;
+            }
+            return true;
         } catch (e) {
             console.warn('添加收藏失败:', e);
             return false;
@@ -567,7 +565,12 @@ export async function fetchChatGroups() {
             const url = '/api/chat/favorites?sn=' + encodeURIComponent(sn) +
                 '&custom_tag=' + encodeURIComponent(customTag || '');
             const response = await fetch(url, { method: 'DELETE' });
-            return response.ok;
+            if (!response.ok) {
+                const t = await response.text();
+                showToast('取消收藏失败：' + t, 'error');
+                return false;
+            }
+            return true;
         } catch (e) {
             console.warn('取消收藏失败:', e);
             return false;
@@ -582,7 +585,8 @@ export async function fetchChatGroups() {
         try {
             const response = await fetch('/api/chat/favorites');
             if (!response.ok) {
-                console.warn('获取收藏列表失败:', response.status);
+                const t = await response.text();
+                showToast('获取收藏列表失败：' + t, 'error');
                 return null;
             }
             return await response.json();
@@ -602,6 +606,8 @@ export async function fetchSession() {
         if (response.ok) {
             return await response.json();
         }
+        const t = await response.text();
+        showToast('获取session失败：' + t, 'error');
     } catch (e) {
         console.warn('session 初始化失败:', e);
     }
@@ -618,6 +624,8 @@ export async function fetchChatList() {
         if (response.ok) {
             return await response.json();
         }
+        const t = await response.text();
+        showToast('获取对话列表失败：' + t, 'error');
     } catch (e) {
         console.warn('获取对话列表失败:', e);
     }
@@ -635,7 +643,12 @@ export async function togglePinChat(sn, pinned) {
     try {
         const response = await fetch('/api/chat/pin?sn=' + encodeURIComponent(sn) +
             '&pinned=' + pinned, { method: 'PUT' });
-        return response.ok;
+        if (!response.ok) {
+            const t = await response.text();
+            showToast('切换对话置顶状态失败：' + t, 'error');
+            return false;
+        }
+        return true;
     } catch (e) {
         console.warn('切换置顶失败:', e);
         return false;
@@ -653,7 +666,12 @@ export async function deleteChat(sn) {
         const response = await fetch('/api/chat?sn=' + encodeURIComponent(sn), {
             method: 'DELETE',
         });
-        return response.ok;
+        if (!response.ok) {
+            const t = await response.text();
+            showToast('删除失败：' + t, 'error');
+            return false;
+        }
+        return true;
     } catch (e) {
         console.warn('删除对话失败:', e);
         return false;
@@ -671,6 +689,8 @@ export async function listDeletedChats() {
             const data = await response.json();
             return data.chats || [];
         }
+        const t = await response.text();
+        showToast('获取回收站列表失败：' + t, 'error');
     } catch (e) {
         console.warn('获取回收站列表失败:', e);
     }
@@ -688,7 +708,12 @@ export async function restoreChat(sn) {
         const response = await fetch('/api/chat/restore?sn=' + encodeURIComponent(sn), {
             method: 'PUT',
         });
-        return response.ok;
+        if (!response.ok) {
+            const t = await response.text();
+            showToast('恢复失败：' + t, 'error');
+            return false;
+        }
+        return true;
     } catch (e) {
         console.warn('恢复对话失败:', e);
         return false;
@@ -706,7 +731,12 @@ export async function permanentDeleteChat(sn) {
         const response = await fetch('/api/chat/permanent?sn=' + encodeURIComponent(sn), {
             method: 'DELETE',
         });
-        return response.ok;
+        if (!response.ok) {
+            const t = await response.text();
+            showToast('永久删除失败：' + t, 'error');
+            return false;
+        }
+        return true;
     } catch (e) {
         console.warn('永久删除对话失败:', e);
         return false;
@@ -810,99 +840,14 @@ export async function extractTraits(sn) {
 }
 
 // ============================================================
-// 打开用户画像 — 展示当前用户的个人特征/画像
-// 已登录用户展示其存储的特征，匿名用户展示匿名特征
-//
-// 通过 Alpine $data 调用 portrait-dialog.js 中注册的 userPortraitDialog 组件
-// ============================================================
-window.onOpenUserTraits = function() {
-    try {
-        var dialogEl = document.getElementById('portraitDialog');
-        if (dialogEl) {
-            var data = Alpine.$data(dialogEl);
-            if (data && typeof data.open === 'function') {
-                data.open();
-                return;
-            }
-        }
-        console.warn('用户画像对话框组件未找到或未初始化');
-    } catch (e) {
-        console.error('打开用户画像对话框失败:', e);
-    }
-};
-
-// ============================================================
-// 打开主题选择对话框
-// ============================================================
-window.onOpenThemeDialog = function() {
-    try {
-        var dialogEl = document.getElementById('themeDialog');
-        if (dialogEl) {
-            var data = Alpine.$data(dialogEl);
-            if (data && typeof data.open === 'function') {
-                data.open();
-                return;
-            }
-        }
-        console.warn('主题选择对话框组件未找到或未初始化');
-    } catch (e) {
-        console.error('打开主题选择对话框失败:', e);
-    }
-};
-
-// ============================================================
-// 打开 API-Key 设置对话框
-// ============================================================
-window.onOpenApiKeyDialog = async function() {
-    try {
-        var dialogEl = document.getElementById('apikeyDialog');
-        if (!dialogEl) {
-            console.warn('API-Key 设置对话框组件未找到或未初始化');
-            return;
-        }
-        var dialogData = Alpine.$data(dialogEl);
-        if (!dialogData || typeof dialogData.open !== 'function') {
-            console.warn('API-Key 设置对话框组件未初始化');
-            return;
-        }
-
-        // 先从后端获取当前设置（已脱敏）
-        var settings = null;
-        try {
-            var resp = await fetch('/api/user/settings/apikey');
-            if (resp.ok) {
-                settings = await resp.json();
-            }
-        } catch (e) {
-            console.warn('获取 API-Key 设置失败，使用默认值:', e);
-        }
-
-        dialogData.open({ settings: settings });
-    } catch (e) {
-        console.error('打开 API-Key 设置对话框失败:', e);
-    }
-};
-
-// ============================================================
-// 注册方法到 Alpine store + window — 供 HTML 模板中 @click 表达式调用
+// 注册方法到 window — 供 HTML 模板 @click 调用
 // chat-api.js 是 ES Module，export 的函数不会进入全局作用域。
-// 但 Alpine 模板 @click="onChatLogout" 需要在 Alpine 的表达式作用域
-// （Alpine store 或 window）中找到该函数。
-// 因此同时注册到 Alpine store（供 $store.chats.onChatLogout 调用）
-// 和 window（供裸名 onChatLogout 调用）。
+// Alpine 模板 @click="onChatLogout" 需要通过 window 解析函数名。
 // ============================================================
 try {
     if (typeof onChatLogout === 'function') {
         window.onChatLogout = onChatLogout;
     }
-    if (typeof onChatLogin === 'function') {
-        window.onChatLogin = onChatLogin;
-    }
-    var chatsApi = window.Alpine.store('chats');
-    if (chatsApi) {
-        chatsApi.onChatLogin = onChatLogin;
-        chatsApi.onChatLogout = onChatLogout;
-    }
 } catch(e) {
-    console.warn('chat-api: 注册到 window/Alpine store 失败', e);
+    console.warn('chat-api: 注册到 window 失败', e);
 }

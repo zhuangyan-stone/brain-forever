@@ -84,7 +84,10 @@ window.ThemeLoader = (function() {
         loadManifest: async function() {
             try {
                 var resp = await fetch('/api/themes/mainfes');
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                if (!resp.ok) {
+                    var t = await resp.text();
+                    throw new Error(t);
+                }
                 var data = await resp.json();
                 // 将内置主题作为完整对象注入到列表最前面，
                 // 使所有展示代码（tooltip、对话框等）无需特判内置/外源

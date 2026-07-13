@@ -310,6 +310,8 @@ export function showToast(message, type, duration) {
 
     Alpine.store('ui').showToast(message, type, duration);
 }
+// 注册到 window，供普通 <script>（如 alpine-api.js）在运行时调用
+window.showToast = showToast;
 
 /**
  * showToastHTML 显示支持 HTML 内容和点击回调的 Toast

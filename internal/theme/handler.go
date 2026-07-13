@@ -26,7 +26,7 @@ func NewHandler(_ ...interface{}) *Handler {
 func (h *Handler) GetThemeMainfes(w http.ResponseWriter, r *http.Request) {
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
-		http.Error(w, `{"error":"cannot read theme manifest"}`, http.StatusInternalServerError)
+		http.Error(w, "cannot read theme manifest", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

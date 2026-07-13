@@ -151,26 +151,13 @@ document.addEventListener('alpine:init', function() {
                 }));
                 console.log('[theme] theme:', this.theme);
                 if (this.themeSync) {
-                    this.syncThemeModeToServer();
+                    if (typeof window.fetchSyncThemeModeToServer === 'function') {
+                        window.fetchSyncThemeModeToServer(this.theme & 1);
+                    }
                 }
             }
         },
 
-        /**
-         * syncThemeModeToServer — 将当前亮暗模式同步到服务端
-         * 调用 PUT /api/user/theme/mode，传 mode 整数（0=亮, 1=暗）
-         */
-        syncThemeModeToServer: function() {
-            fetch('/api/user/theme/mode', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mode: this.theme & 1, // 只取 bit 0：0=亮, 1=暗
-                }),
-            }).catch(function(err) {
-                console.warn('同步亮暗模式到服务端失败:', err);
-            });
-        },
 
         /**
          * setThemeSelection — 设置外源主题选择
@@ -184,20 +171,6 @@ document.addEventListener('alpine:init', function() {
             // 触发 ThemeLoader 刷新外源 CSS
             if (window.ThemeLoader) {
                 window.ThemeLoader.apply();
-            }
-            // 仅在手动模式（theme < 2）且允许同步时，才上报到服务端
-            if (this.theme < 2 && this.themeSync) {
-                fetch('/api/user/theme/apply', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        actived: String(this.theme),
-                        'actived-light': lightId,
-                        'actived-dark': darkId,
-                    }),
-                }).catch(function(err) {
-                    console.warn('同步主题选择到服务端失败:', err);
-                });
             }
         },
 
@@ -593,8 +566,11 @@ document.addEventListener('alpine:init', function() {
             if (this.trashExpanded && !this.trashLoaded) {
                 var self = this;
                 fetch('/api/chat/deleted')
-                    .then(function(resp) {
-                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    .then(async function(resp) {
+                        if (!resp.ok) {
+                            const t = await resp.text();
+                            throw new Error(t);
+                        }
                         return resp.json();
                     })
                     .then(function(data) {
