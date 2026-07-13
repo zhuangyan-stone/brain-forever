@@ -47,28 +47,9 @@ document.addEventListener('alpine:init', function() {
         // 保存失败时的错误消息
         _saveError: '',
 
-        // 费用配置（单位：元/月）
-        fees: {
-            llm:      19.9,
-            search:   9.9,
-            embedder: 4.9,
-        },
-
         // ============================================================
         // 计算属性
         // ============================================================
-
-        /**
-         * 计算初始费用总额
-         * 仅统计使用公共 api-key 的服务费用
-         */
-        get totalFee() {
-            var total = 0;
-            if (!this.settings.llm.private)      total += this.fees.llm;
-            if (!this.settings.search.private)    total += this.fees.search;
-            if (!this.settings.embedder.private)  total += this.fees.embedder;
-            return total.toFixed(1);
-        },
 
         /**
          * LLM 是否使用私有 key
@@ -258,7 +239,7 @@ document.addEventListener('alpine:init', function() {
                 // 显示成功提示
                 try {
                     if (Alpine.store('ui') && Alpine.store('ui').showToast) {
-                        Alpine.store('ui').showToast('API-Key 设置已保存', 'success', 2000);
+                        Alpine.store('ui').showToast('API-Keys 设置已保存', 'success', 2000);
                     }
                 } catch(e) {}
             } else {

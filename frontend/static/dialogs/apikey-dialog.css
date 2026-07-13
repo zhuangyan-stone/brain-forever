@@ -151,26 +151,8 @@
 .apikey-footer {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding: 4px 20px 12px;
-}
-
-/* 初始费用按钮 — 左端 */
-.apikey-fee-btn {
-    padding: 8px 20px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 0.9rem;
-    font-family: inherit;
-    cursor: default;
-    background: var(--bg-input);
-    color: var(--text-secondary);
-    transition: background 0.2s, border-color 0.2s;
-}
-
-.apikey-fee-btn .fee-amount {
-    color: var(--accent);
-    font-weight: 700;
 }
 
 /* 确认按钮 — 右端，复用 dialog-btn-confirm 样式 */
@@ -353,7 +335,6 @@
         align-items: stretch;
     }
 
-    .apikey-fee-btn,
     .apikey-confirm-btn {
         text-align: center;
     }
