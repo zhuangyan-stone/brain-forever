@@ -213,6 +213,25 @@ func (m *Manager) StartGC(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	m.gcStop = cancel
 
+	// Validate GC configuration before starting.
+	const minRecommendedTTL = 5 * time.Minute
+	if m.gcConfig.AnonymousTTL < minRecommendedTTL {
+		m.logger.Warnf("Session GC: anonymous_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
+			m.gcConfig.AnonymousTTL, minRecommendedTTL)
+	}
+	if m.gcConfig.LoggedInTTL < minRecommendedTTL {
+		m.logger.Warnf("Session GC: logged_in_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
+			m.gcConfig.LoggedInTTL, minRecommendedTTL)
+	}
+	if m.gcConfig.Interval > m.gcConfig.AnonymousTTL {
+		m.logger.Warnf("Session GC: interval (%v) exceeds anonymous_ttl (%v). Expired anonymous sessions may persist in memory between sweeps.",
+			m.gcConfig.Interval, m.gcConfig.AnonymousTTL)
+	}
+	if m.gcConfig.Interval > m.gcConfig.LoggedInTTL {
+		m.logger.Warnf("Session GC: interval (%v) exceeds logged_in_ttl (%v). Expired logged-in sessions may persist in memory between sweeps.",
+			m.gcConfig.Interval, m.gcConfig.LoggedInTTL)
+	}
+
 	go func() {
 		ticker := time.NewTicker(m.gcConfig.Interval)
 		defer ticker.Stop()

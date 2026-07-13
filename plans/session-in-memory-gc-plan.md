@@ -265,29 +265,22 @@ T=+60min GC 扫描 → time.Since(T0) > 1h → 从 m.Sessions map 中删除
 1. 用户发消息后走开 >TTL 时间（匿名 1h / 已登录 24h），回来操作 → session 已重建，内存聊天列表、当前会话状态丢失
 2. 多标签页：A 标签页正在流式，B 标签页长时间无操作 → A 的流式可能被 GC 误删（极低概率）
 
-### 10.6 后续优化方向（可选）
+### 10.6 决定：不做运行时刷新，改为启动时配置校验
 
-如需彻底消除风险，可在 [`callLLMWithPipeline`](internal/agent/chatllm.go:174) 中定期刷新 `sess.LastActivity`，例如：
+经过分析，运行时每隔 5 分钟刷新 `LastActivity` 的方案虽可行，但**实际收益极低**：
 
-```go
-// 在流式回调中每隔 5 分钟刷新一次
-go func() {
-    ticker := time.NewTicker(5 * time.Minute)
-    defer ticker.Stop()
-    for {
-        select {
-        case <-ticker.C:
-            sess.Mu.Lock()
-            sess.LastActivity = time.Now()
-            sess.Mu.Unlock()
-        case <-ctx.Done():
-            return
-        }
-    }
-}()
-```
+- 已登录 TTL=24h、匿名 TTL=1h，均远大于任何 LLM 流式响应耗时
+- 即使 session 被 GC 回收，正在进行的请求不受影响（Go 指针持有），数据已写入 DB
+- 增加运行时刷新逻辑会引入不必要的代码复杂度
 
-但鉴于 TTL（1h/24h）远大于典型流式耗时，此优化优先级很低。
+**替代方案**：在 [`StartGC`](internal/session/manager.go:212) 启动时校验配置的合理性，对不合理的配置发出警告日志：
+
+| 校验规则 | 警告条件 | 说明 |
+|---|---|---|
+| TTL 过短 | `AnonymousTTL < 5min` 或 `LoggedInTTL < 5min` | 可能的流式响应超时导致 session 被误回收 |
+| Interval 超过 TTL | `Interval > AnonymousTTL` 或 `Interval > LoggedInTTL` | GC 扫描间隔过长，过期 session 不能及时清理 |
+
+默认配置（匿名 1h / 已登录 24h / 间隔 10min）不会触发任何警告。
 
 ## 实现顺序
 
