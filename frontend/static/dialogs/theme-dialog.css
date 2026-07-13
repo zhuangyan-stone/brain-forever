@@ -69,9 +69,12 @@
     gap: 8px;
 }
 
-/* "立即启用"文本标签：不折行、不收缩 */
+/* "立即启用"文本：不折行、不收缩 */
 .theme-mode-group > .theme-mode-label {
     flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary, #a0a0a0);
     margin-bottom: 0;
     white-space: nowrap;
     cursor: default;
@@ -188,6 +191,74 @@
 }
 
 .theme-link-toggle.active .theme-link-toggle-text {
+    color: var(--text-primary, #d4d4d4);
+}
+
+/* ============================================================
+   跟随系统主题明暗变化：checkbox 行
+   ============================================================ */
+.theme-follow-system-group {
+    padding: 6px 0;
+}
+
+.theme-follow-system-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.theme-follow-system-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.theme-follow-system-checkbox {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border, #3c3c3c);
+    border-radius: 3px;
+    background: var(--bg-input, #1a1a1a);
+    flex-shrink: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-follow-system-toggle.active .theme-follow-system-checkbox {
+    background: var(--btn-highlight-bg, var(--accent, #57C3C3));
+    border-color: var(--btn-highlight-bg, var(--accent, #57C3C3));
+}
+
+.theme-follow-system-checkbox::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.theme-follow-system-toggle.active .theme-follow-system-checkbox::after {
+    opacity: 1;
+}
+
+.theme-follow-system-text {
+    font-size: 13px;
+    color: var(--text-secondary, #a0a0a0);
+    white-space: nowrap;
+}
+
+.theme-follow-system-toggle.active .theme-follow-system-text {
     color: var(--text-primary, #d4d4d4);
 }
 

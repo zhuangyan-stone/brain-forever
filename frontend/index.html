@@ -1071,7 +1071,7 @@
                     <div class="theme-desc" x-show="selectedDark" x-text="selectedDarkDesc"></div>
                 </div>
                 <div class="theme-select-group theme-mode-group">
-                    <label class="theme-mode-label">立即启用</label>
+                    <span class="theme-mode-label">立即启用</span>
                     <div class="theme-mode-radios">
                         <input type="radio" name="themeMode" value="light" id="modeLight" x-model="selectedMode">
                         <input type="radio" name="themeMode" value="dark" id="modeDark" x-model="selectedMode">
@@ -1082,6 +1082,13 @@
                             <label for="modeDark"><span>暗色主题</span></label>
                         </div>
                     </div>
+                </div>
+                <div class="theme-select-group theme-follow-system-group">
+                    <span class="theme-follow-system-toggle" :class="{ active: followSystem }" @click="followSystem = !followSystem">
+                        <input type="checkbox" x-model="followSystem" />
+                        <span class="theme-follow-system-checkbox"></span>
+                        <span class="theme-follow-system-text">跟随系统变化亮/暗</span>
+                    </span>
                 </div>
             </div>
             <div class="dialog-footer">
@@ -1114,7 +1121,7 @@
             <div class="apikey-help-overlay" x-show="showHelp" @click.self="showHelp = false" x-cloak>
                 <div class="apikey-help-box">
                     <div class="apikey-help-header">
-                        <span>更多说明</span>
+                        <span>作用 & 费用</span>
                         <button class="apikey-help-close" @click="showHelp = false" type="button">&times;</button>
                     </div>
                     <div class="apikey-help-body">
@@ -1143,7 +1150,7 @@
                 <!-- 说明文本 -->
                 <div class="apikey-desc-row">
                     <span class="apikey-desc-text">请设置第三方服务商的 api-key  ：</span>
-                    <button class="apikey-help-btn" @click="showHelp = true" type="button">说明</button>
+                    <button class="apikey-help-btn" @click="showHelp = true" type="button">作用&费用</button>
                 </div>
 
                 <!-- ====== 第1个：LLM ====== -->
@@ -1254,12 +1261,12 @@
 
         <div class="about-body">
             <div class="about-description">
-                <p>努力成为你的另一个大脑，一个不老的永生大脑——通过记忆个人特征。
+                <p>通过记忆个人特征，成为你的另一个大脑，一个不老的在线大脑。
 相比 “这次说完下次还忘” 的智能体，第2大脑可以更高效地提供紧密贴合您的回复。</p>
             </div>
 
             <div class="about-author">
-                <span class="about-author-link"><a href="https://www.d2school.com" target="_blank" rel="noopener"><img src="https://www.d2school.com/favicon.ico" />第2学堂 / d2school</a> 作品</span>
+                <span class="about-author-link"><a href="https://www.d2school.com" target="_blank" rel="noopener"><img src="https://www.d2school.com/favicon.ico" class="about-author-icon" />第2学堂(d2school)</a> 作品</span>
             </div>
 
             <!-- 第三方服务提供商信息 -->
