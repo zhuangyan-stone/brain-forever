@@ -360,12 +360,13 @@ func NewChatHandler(
 	defaultLang string,
 	avatarDir string,
 	logger zylog.Logger,
+	gcConfig session.GCConfig,
 ) *ChatAgent {
 	if defaultLang == "" {
 		defaultLang = "en"
 	}
 	return &ChatAgent{
-		sessionManager: session.NewManager(logger),
+		sessionManager: session.NewManager(logger, gcConfig),
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
 		avatarDir:      avatarDir,
@@ -437,6 +438,7 @@ func (h *ChatAgent) OnSwitchChat(w http.ResponseWriter, r *http.Request) {
 	msgs = ensureAssistantForOrphanUser(msgs, lang)
 
 	sess.Mu.Lock()
+	sess.User.CurrentChat.Messages = msgs
 	title := sess.User.CurrentChat.Title
 	titleState := int(sess.User.CurrentChat.TitleState)
 	sess.Mu.Unlock()

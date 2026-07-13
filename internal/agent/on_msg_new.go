@@ -29,18 +29,11 @@ func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *
 		panic(fmt.Sprintf("new request message's ID is not 0, but %d", reqMsg.ID))
 	}
 
+	// Use in-memory cache to get the last message ID, avoiding a DB query.
 	var lastID int64 = 0
-
-	var dbChatID int64
-	if sess.User.CurrentChat.DBCHat != nil {
-		dbChatID = sess.User.CurrentChat.DBCHat.ID
-	}
-	if dbChatID != 0 {
-		dbMessages, err := chatStore.ListMessages(dbChatID)
-		if err == nil && len(dbMessages) > 0 {
-			lastMsg := dbMessages[len(dbMessages)-1]
-			lastID = int64(lastMsg.GroupIndex)
-		}
+	if len(sess.User.CurrentChat.Messages) > 0 {
+		lastMsg := sess.User.CurrentChat.Messages[len(sess.User.CurrentChat.Messages)-1]
+		lastID = lastMsg.ID
 	}
 
 	reqMsg.ID = lastID + 1
@@ -55,6 +48,9 @@ func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *
 
 	chatID := sess.User.CurrentChat.DBCHat.ID
 	persistMessageToDB(sess, reqMsg, chatID, chatStore)
+
+	// Append the new user message to the in-memory cache.
+	sess.User.CurrentChat.Messages = append(sess.User.CurrentChat.Messages, *reqMsg)
 
 	return isNewChat, nil
 }
@@ -84,7 +80,10 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 // data needed after the lock is released.
 // Returns ok=false if an error occurred (the error event has already been
 // sent via sseWriter).
-func prepareMessageForLLM(sess *session.Session, reqMsg *Message, frontSN string, chatStore *store.ChatStore, sseWriter *sse.Writer, lang string) (msgChatID int64, chatCreatedSN string, chatCreatedFrontSN string, ok bool) {
+//
+// cachedMsgs is a copy of the in-memory message cache, safe to use after
+// the lock is released. The caller must use this instead of querying the DB.
+func prepareMessageForLLM(sess *session.Session, reqMsg *Message, frontSN string, chatStore *store.ChatStore, sseWriter *sse.Writer, lang string) (msgChatID int64, cachedMsgs []Message, chatCreatedSN string, chatCreatedFrontSN string, ok bool) {
 	sess.Mu.Lock()
 	defer sess.Mu.Unlock()
 
@@ -94,12 +93,16 @@ func prepareMessageForLLM(sess *session.Session, reqMsg *Message, frontSN string
 			Type:    "error",
 			Message: i18n.TL(lang, "api_error_failed_to_create_session"),
 		})
-		return 0, "", "", false
+		return 0, nil, "", "", false
 	}
 
 	if reqMsg.ID <= 0 {
 		panic("new message's ID is zero still after append to messages")
 	}
+
+	// Copy cached messages for use outside the lock (prevents race conditions).
+	cachedMsgs = make([]Message, len(sess.User.CurrentChat.Messages))
+	copy(cachedMsgs, sess.User.CurrentChat.Messages)
 
 	if isNewChat && sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.SN != "" {
 		chatCreatedSN = sess.User.CurrentChat.DBCHat.SN
@@ -110,7 +113,7 @@ func prepareMessageForLLM(sess *session.Session, reqMsg *Message, frontSN string
 		msgChatID = sess.User.CurrentChat.DBCHat.ID
 	}
 
-	return msgChatID, chatCreatedSN, chatCreatedFrontSN, true
+	return msgChatID, cachedMsgs, chatCreatedSN, chatCreatedFrontSN, true
 }
 
 // OnNewMessage handles POST /api/chat requests
@@ -132,17 +135,13 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	// if session creation fails, preventing the frontend from hanging.
 	sseWriter := sse.NewSSEWriter(w)
 
-	msgChatID, chatCreatedSN, chatCreatedFrontSN, ok := prepareMessageForLLM(sess, &req.Message, req.FrontSN, theChatStore, sseWriter, lang)
+	msgChatID, cachedMsgs, chatCreatedSN, chatCreatedFrontSN, ok := prepareMessageForLLM(sess, &req.Message, req.FrontSN, theChatStore, sseWriter, lang)
 	if !ok {
 		return
 	}
-	llmChatID := msgChatID
 
-	llmMsgs, err := llmtypes.LoadMessagesAsLLMMessages(llmChatID, theChatStore)
-	if err != nil {
-		http.Error(w, i18n.T("api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
-		return
-	}
+	// Use in-memory cached messages instead of querying the DB.
+	llmMsgs := llmtypes.ConvertAgentMessagesToLLMMessages(cachedMsgs)
 
 	startSystemMsg := llm.Message{
 		Role:    llm.RoleSystem,
@@ -195,6 +194,10 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	if assistantMsg != nil {
 		sess.Mu.Lock()
 		persistMessageToDB(sess, assistantMsg, msgChatID, theChatStore)
+		// Update cache only if the current chat hasn't been switched during streaming.
+		if sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.ID == msgChatID {
+			sess.User.CurrentChat.Messages = append(sess.User.CurrentChat.Messages, *assistantMsg)
+		}
 		sess.Mu.Unlock()
 	}
 }

@@ -13,6 +13,49 @@ import (
 )
 
 // ============================================================
+// GCConfig — In-memory session garbage collector configuration
+// ============================================================
+
+// GCConfig holds the runtime configuration for the in-memory session GC.
+type GCConfig struct {
+	// AnonymousTTL is the max idle time before an anonymous session is evicted.
+	AnonymousTTL time.Duration
+	// LoggedInTTL is the max idle time before a logged-in session is evicted.
+	LoggedInTTL time.Duration
+	// Interval is how often the GC sweep runs.
+	Interval time.Duration
+}
+
+// DefaultGCConfig returns a GCConfig with sensible built-in defaults.
+func DefaultGCConfig() GCConfig {
+	return GCConfig{
+		AnonymousTTL: 1 * time.Hour,
+		LoggedInTTL:  24 * time.Hour,
+		Interval:     10 * time.Minute,
+	}
+}
+
+// FromTOMLConfig converts a TOML-derived session GC config (in minutes)
+// to a runtime GCConfig (with time.Duration).
+// Accepts a SessionGCConfigTOML struct which mirrors config.SessionGCConfig
+// to avoid a direct import dependency on the config package.
+func FromTOMLConfig(cfg SessionGCConfigTOML) GCConfig {
+	return GCConfig{
+		AnonymousTTL: time.Duration(cfg.AnonymousTTLMinutes) * time.Minute,
+		LoggedInTTL:  time.Duration(cfg.LoggedInTTLMinutes) * time.Minute,
+		Interval:     time.Duration(cfg.IntervalMinutes) * time.Minute,
+	}
+}
+
+// SessionGCConfigTOML mirrors config.SessionGCConfig to avoid a direct
+// import dependency from the session package to the config package.
+type SessionGCConfigTOML struct {
+	AnonymousTTLMinutes int
+	LoggedInTTLMinutes  int
+	IntervalMinutes     int
+}
+
+// ============================================================
 // Manager
 // ============================================================
 
@@ -27,6 +70,8 @@ type Manager struct {
 	redis    *cache.RedisSessionStore // unexported: use Redis() or HasRedis()
 	Ctx      context.Context          // Background context for Redis operations
 	logger   zylog.Logger
+	gcConfig GCConfig           // new: in-memory session GC config
+	gcStop   context.CancelFunc // new: cancels the GC goroutine
 }
 
 // SetRedisStore attaches a Redis session store to the Manager.
@@ -50,9 +95,14 @@ func (m *Manager) HasRedis() bool {
 	return m.redis != nil
 }
 
-// Close releases all sessions. No database stores to close since
-// they are opened on-demand and closed after use.
+// Close releases all sessions and stops the GC goroutine.
+// No database stores to close since they are opened on-demand and closed after use.
 func (m *Manager) Close() {
+	// Stop the GC goroutine first
+	if m.gcStop != nil {
+		m.gcStop()
+	}
+
 	m.Mu.Lock()
 	defer m.Mu.Unlock()
 
@@ -60,12 +110,14 @@ func (m *Manager) Close() {
 	m.Sessions = make(map[string]*Session)
 }
 
-// NewManager creates a Manager.
-func NewManager(logger zylog.Logger) *Manager {
+// NewManager creates a Manager with the given GC configuration.
+// Pass DefaultGCConfig() if no custom config is needed.
+func NewManager(logger zylog.Logger, gcConfig GCConfig) *Manager {
 	return &Manager{
 		Sessions: make(map[string]*Session),
 		Ctx:      context.Background(),
 		logger:   logger,
+		gcConfig: gcConfig,
 	}
 }
 
@@ -149,6 +201,91 @@ func (m *Manager) Remove(sessionID string) {
 	delete(m.Sessions, sessionID)
 }
 
+// ============================================================
+// GC — In-memory session garbage collector
+// ============================================================
+
+// StartGC starts the background session GC goroutine.
+// It periodically sweeps expired sessions from memory.
+// The goroutine stops when ctx is cancelled.
+// Must only be called once per Manager.
+func (m *Manager) StartGC(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	m.gcStop = cancel
+
+	go func() {
+		ticker := time.NewTicker(m.gcConfig.Interval)
+		defer ticker.Stop()
+
+		// Log GC startup
+		m.logger.Infof("Session GC started (interval=%s, anonymous_ttl=%s, logged_in_ttl=%s)",
+			m.gcConfig.Interval, m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL)
+
+		for {
+			select {
+			case <-ticker.C:
+				m.gc()
+			case <-ctx.Done():
+				m.logger.Infof("Session GC stopped")
+				return
+			}
+		}
+	}()
+}
+
+// gc performs one sweep of expired sessions.
+// Called periodically by the GC goroutine.
+func (m *Manager) gc() {
+	// Snapshot the current state under read lock.
+	type sessionInfo struct {
+		id           string
+		lastActivity time.Time
+		isAnonymous  bool
+	}
+
+	m.Mu.RLock()
+	infos := make([]sessionInfo, 0, len(m.Sessions))
+	for id, s := range m.Sessions {
+		s.Mu.Lock()
+		infos = append(infos, sessionInfo{
+			id:           id,
+			lastActivity: s.LastActivity,
+			isAnonymous:  s.IsAnonymous(),
+		})
+		s.Mu.Unlock()
+	}
+	m.Mu.RUnlock()
+
+	// Determine which sessions are expired.
+	var expired []string
+	for _, info := range infos {
+		ttl := m.gcConfig.LoggedInTTL
+		if info.isAnonymous {
+			ttl = m.gcConfig.AnonymousTTL
+		}
+		if time.Since(info.lastActivity) > ttl {
+			expired = append(expired, info.id)
+		}
+	}
+
+	if len(expired) == 0 {
+		return
+	}
+
+	// Remove expired sessions under write lock.
+	m.Mu.Lock()
+	for _, id := range expired {
+		// Double-check the session still exists (might have been removed by GetOrCreate's
+		// Redis restore flow or a concurrent Remove call).
+		if _, ok := m.Sessions[id]; ok {
+			delete(m.Sessions, id)
+		}
+	}
+	m.Mu.Unlock()
+
+	m.logger.Infof("Session GC cleaned up %d expired session(s)", len(expired))
+}
+
 // DeleteMessage deletes a user message and all associated messages (AI reply, etc.)
 // that share the same source ID. It finds the first message with the given msgID,
 // then removes all consecutive messages with the same ID. Stops at the first message
@@ -173,7 +310,20 @@ func (m *Manager) DeleteMessage(sessionID string, msgID int64) error {
 		return fmt.Errorf("no DB session")
 	}
 
-	// Use global ChatStore (PostgreSQL connection pool)
+	// Delete from DB first
 	chatStore := store.NewChatStore(m.logger)
-	return chatStore.DeleteMessageGroup(chatID, int(msgID))
+	if err := chatStore.DeleteMessageGroup(chatID, int(msgID)); err != nil {
+		return err
+	}
+
+	// Remove deleted messages from the in-memory cache.
+	kept := make([]llmtypes.Message, 0, len(s.User.CurrentChat.Messages))
+	for _, m := range s.User.CurrentChat.Messages {
+		if m.ID != msgID {
+			kept = append(kept, m)
+		}
+	}
+	s.User.CurrentChat.Messages = kept
+
+	return nil
 }

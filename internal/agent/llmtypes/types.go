@@ -32,10 +32,13 @@ const (
 
 // Chat represents a single chat conversation's in-memory state.
 // DBCHat is the bridge to the database record (never nil after creation).
+// Messages holds the in-memory cache of all messages for this chat,
+// populated on switch and updated incrementally during conversation.
 type Chat struct {
 	DBCHat     *store.Chat // Bridge to store.Chat (never nil after creation)
 	Title      string      // Session title, generated from the first user message content
 	TitleState TitleState  // Title modification state
+	Messages   []Message   // In-memory message cache for the current chat
 }
 
 // ============================================================
@@ -242,6 +245,16 @@ func LoadMessagesAsLLMMessages(chatID int64, chatStore *store.ChatStore) ([]llm.
 		result = append(result, llm.Message{Role: role, Content: m.Content})
 	}
 	return result, nil
+}
+
+// ConvertAgentMessagesToLLMMessages converts the agent-layer Message slice
+// (from the in-memory cache) to an llm.Message slice suitable for LLM API calls.
+func ConvertAgentMessagesToLLMMessages(msgs []Message) []llm.Message {
+	result := make([]llm.Message, 0, len(msgs))
+	for _, m := range msgs {
+		result = append(result, llm.Message{Role: m.Role, Content: m.Content})
+	}
+	return result
 }
 
 // EnsureAssistantForOrphanUser checks if the last message is an orphan user message

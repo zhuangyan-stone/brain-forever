@@ -110,12 +110,25 @@ default_web_search_provider = "zhipu"
 default_embedding_provider  = "zhipu"
 
 # LLM 对话（DeepSeek）
-# "llm@deepseek" = []
+"llm@deepseek" = []
 
 # 联网搜索（智谱/博查）
-# "websearch@zhipu" = []
-# "websearch@bocha" = []
+"websearch@zhipu" = []
+"websearch@bocha" = []
 
 # 文本嵌入（阿里 DashScope/智谱）
-# "embedding@ali" = []
-# "embedding@zhipu" = []
+"embedding@ali" = []
+"embedding@zhipu" = []
+
+# ============================================================
+# Session 内存 GC 配置（可选）
+# 控制内存中 session 对象的自动清理，防止长时间运行后内存泄漏。
+# 如果未配置此节，使用 DefaultConfig() 中的内置默认值。
+# ============================================================
+[session-gc]
+# 匿名 session 无活动超过此时间（分钟）则从内存中清除
+anonymous_ttl_minutes = 60
+# 已登录 session 无活动超过此时间（分钟）则从内存中清除
+logged_in_ttl_minutes = 1440
+# GC 扫描间隔（分钟）
+interval_minutes = 10

@@ -8,6 +8,7 @@ import (
 	"BrainForever/infra/searcher"
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/config"
+	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
 )
@@ -108,11 +109,18 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
 
+	gcCfg := session.FromTOMLConfig(session.SessionGCConfigTOML{
+		AnonymousTTLMinutes: cfg.SessionGC.AnonymousTTLMinutes,
+		LoggedInTTLMinutes:  cfg.SessionGC.LoggedInTTLMinutes,
+		IntervalMinutes:     cfg.SessionGC.IntervalMinutes,
+	})
+
 	chatHandler := NewChatHandler(
 		cookieName,
 		defaultLang,
 		avatarDir,
 		logger,
+		gcCfg,
 	)
 
 	redisStore := InitRedisStore(cfg.Redis)
@@ -130,6 +138,9 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	} else {
 		logger.Fatalf("Redis not configured")
 	}
+
+	// Start the in-memory session GC.
+	chatHandler.GetSessionManager().StartGC(ctx)
 
 	return chatHandler, nil
 }

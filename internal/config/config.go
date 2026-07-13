@@ -60,14 +60,15 @@ func GetDefaultEmbeddingProvider() string {
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
-	Logger   LoggerConfig
-	Server   ServerConfig
-	Frontend FrontendConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Data     DataConfig
-	Captcha  CaptchaConfig
-	ApiKeys  ApiKeysConfig `toml:"api-keys"`
+	Logger    LoggerConfig
+	Server    ServerConfig
+	Frontend  FrontendConfig
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	Data      DataConfig
+	Captcha   CaptchaConfig
+	SessionGC SessionGCConfig `toml:"session-gc"`
+	ApiKeys   ApiKeysConfig   `toml:"api-keys"`
 }
 
 // DefaultConfig returns a Config populated with built-in default values.
@@ -108,6 +109,11 @@ func DefaultConfig() Config {
 		Captcha: CaptchaConfig{
 			URLBase: "/static/img/captchas/",
 			DirBase: "./frontend/static/img/captchas/",
+		},
+		SessionGC: SessionGCConfig{
+			AnonymousTTLMinutes: 60,   // 1 hour
+			LoggedInTTLMinutes:  1440, // 24 hours
+			IntervalMinutes:     10,   // 10 minutes
 		},
 	}
 }
@@ -346,4 +352,27 @@ type CaptchaConfig struct {
 	// e.g., "./data/captchas/". It contains d1/ and d2/ subdirectories,
 	// each with png/ and json/ subdirectories.
 	DirBase string
+}
+
+// ============================================================
+// SessionGCConfig — In-memory session garbage collector
+// ============================================================
+
+// SessionGCConfig configures the in-memory session garbage collector.
+// These values are read from the TOML config file under [session-gc].
+// If not configured, DefaultConfig() provides sensible defaults.
+type SessionGCConfig struct {
+	// AnonymousTTLMinutes is the max idle time (minutes) before an
+	// anonymous (not logged in) session is evicted from memory.
+	// Default: 60 (1 hour).
+	AnonymousTTLMinutes int `toml:"anonymous_ttl_minutes"`
+
+	// LoggedInTTLMinutes is the max idle time (minutes) before a
+	// logged-in session is evicted from memory.
+	// Default: 1440 (24 hours).
+	LoggedInTTLMinutes int `toml:"logged_in_ttl_minutes"`
+
+	// IntervalMinutes is how often (minutes) the GC sweep runs.
+	// Default: 10.
+	IntervalMinutes int `toml:"interval_minutes"`
 }

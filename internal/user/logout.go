@@ -18,9 +18,14 @@ func (h *Handler) OnLogout(w http.ResponseWriter, r *http.Request) {
 	sessionID := session.ResolveSessionID(w, r, h.cookieName)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
+	// Record the user SN before clearing the session state.
+	userSN := sess.User.SN
+
 	sess.SwitchToUser(&session.SessionUser{})
 
-	store.TheUserStore().Logout(sess.User.SN)
+	if userSN != "" {
+		store.TheUserStore().Logout(userSN)
+	}
 
 	if err := h.sessionManager.Redis().DelLoginSession(h.sessionManager.Ctx, sessionID); err != nil {
 		h.logger.Warnf("failed to remove login session from Redis. %v", err)
