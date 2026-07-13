@@ -214,31 +214,39 @@ func (m *Manager) StartGC(ctx context.Context) {
 	m.gcStop = cancel
 
 	// Validate GC configuration before starting.
-	// If any value is zero or negative, fall back to defaults.
+	// Expected ordering: 0 < Interval <= AnonymousTTL <= LoggedInTTL.
+	// If violated, fall back to defaults.
+	needFallback := false
+
 	if m.gcConfig.AnonymousTTL <= 0 || m.gcConfig.LoggedInTTL <= 0 || m.gcConfig.Interval <= 0 {
 		m.logger.Errorf("Session GC: invalid config (anonymous_ttl=%v, logged_in_ttl=%v, interval=%v). Falling back to defaults.",
 			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL, m.gcConfig.Interval)
+		needFallback = true
+	} else if m.gcConfig.AnonymousTTL > m.gcConfig.LoggedInTTL {
+		m.logger.Errorf("Session GC: anonymous_ttl (%v) > logged_in_ttl (%v). Anonymous sessions should expire sooner. Falling back to defaults.",
+			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL)
+		needFallback = true
+	} else if m.gcConfig.Interval > m.gcConfig.AnonymousTTL {
+		m.logger.Errorf("Session GC: interval (%v) > anonymous_ttl (%v). GC interval must not exceed the shorter TTL. Falling back to defaults.",
+			m.gcConfig.Interval, m.gcConfig.AnonymousTTL)
+		needFallback = true
+	}
+
+	if needFallback {
 		m.gcConfig = DefaultGCConfig()
 		m.logger.Infof("Session GC: using defaults (anonymous_ttl=%v, logged_in_ttl=%v, interval=%v)",
 			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL, m.gcConfig.Interval)
-	}
-
-	const minRecommendedTTL = 5 * time.Minute
-	if m.gcConfig.AnonymousTTL < minRecommendedTTL {
-		m.logger.Warnf("Session GC: anonymous_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
-			m.gcConfig.AnonymousTTL, minRecommendedTTL)
-	}
-	if m.gcConfig.LoggedInTTL < minRecommendedTTL {
-		m.logger.Warnf("Session GC: logged_in_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
-			m.gcConfig.LoggedInTTL, minRecommendedTTL)
-	}
-	if m.gcConfig.Interval > m.gcConfig.AnonymousTTL {
-		m.logger.Warnf("Session GC: interval (%v) exceeds anonymous_ttl (%v). Expired anonymous sessions may persist in memory between sweeps.",
-			m.gcConfig.Interval, m.gcConfig.AnonymousTTL)
-	}
-	if m.gcConfig.Interval > m.gcConfig.LoggedInTTL {
-		m.logger.Warnf("Session GC: interval (%v) exceeds logged_in_ttl (%v). Expired logged-in sessions may persist in memory between sweeps.",
-			m.gcConfig.Interval, m.gcConfig.LoggedInTTL)
+	} else {
+		// Warn about suboptimal but valid configurations.
+		const minRecommendedTTL = 5 * time.Minute
+		if m.gcConfig.AnonymousTTL < minRecommendedTTL {
+			m.logger.Warnf("Session GC: anonymous_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
+				m.gcConfig.AnonymousTTL, minRecommendedTTL)
+		}
+		if m.gcConfig.LoggedInTTL < minRecommendedTTL {
+			m.logger.Warnf("Session GC: logged_in_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
+				m.gcConfig.LoggedInTTL, minRecommendedTTL)
+		}
 	}
 
 	go func() {

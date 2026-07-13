@@ -275,13 +275,17 @@ T=+60min GC 扫描 → time.Since(T0) > 1h → 从 m.Sessions map 中删除
 
 **替代方案**：在 [`StartGC`](internal/session/manager.go:212) 启动时校验配置的合理性，对不合理的配置发出警告日志：
 
-| 校验规则 | 处理方式 | 说明 |
-|---|---|---|
-| 任意值为 0 或负数 | `Errorf` 日志 + 回退到 `DefaultGCConfig()` + `Infof` 日志 | 配置完全无效，自动恢复安全默认值 |
-| TTL 过短 | `Warnf` 日志 | `AnonymousTTL < 5min` 或 `LoggedInTTL < 5min`，可能的流式响应超时导致 session 被误回收 |
-| Interval 超过 TTL | `Warnf` 日志 | `Interval > AnonymousTTL` 或 `Interval > LoggedInTTL`，GC 扫描间隔过长，过期 session 不能及时清理 |
+预期大小顺序：**`0 < Interval <= AnonymousTTL <= LoggedInTTL`**
 
-默认配置（匿名 1h / 已登录 24h / 间隔 10min）不会触发任何警告。
+| 违反规则 | 处理方式 | 说明 |
+|---|---|---|
+| 任意值 ≤ 0 | `Errorf` + 回退默认值 | 空值或负数，完全无效 |
+| `AnonymousTTL > LoggedInTTL` | `Errorf` + 回退默认值 | 匿名 session 的 TTL 不应超过已登录用户 |
+| `Interval > AnonymousTTL` | `Errorf` + 回退默认值 | 扫描间隔必须 ≤ 较短的 TTL，否则 GC 无法及时清理 |
+| `AnonymousTTL < 5min`（可选） | `Warnf` 日志（仅当配置通过前三项校验） | TTL 过短，长流式响应可能导致 session 被误回收 |
+| `LoggedInTTL < 5min`（可选） | `Warnf` 日志（仅当配置通过前三项校验） | 同上 |
+
+默认配置（匿名 1h ≤ 已登录 24h，间隔 10min ≤ 匿名 1h）不会触发任何错误或警告。
 
 ## 实现顺序
 
