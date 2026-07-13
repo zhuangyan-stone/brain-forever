@@ -317,7 +317,7 @@ func pickRandomAvatar(avatarDir string) string {
 // persist to Redis, and respond.
 func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool, sess *session.Session) {
 	var chats []store.Chat
-	cs := store.NewChatStore()
+	cs := store.NewChatStore(h.logger)
 	chats, err := cs.ListChats(user.ID, 100)
 	if err != nil || chats == nil {
 		chats = []store.Chat{}

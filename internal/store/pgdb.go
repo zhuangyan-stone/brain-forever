@@ -2,6 +2,8 @@ package store
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // Register pgx driver for sqlx
 	"github.com/jmoiron/sqlx"
@@ -48,6 +50,38 @@ func ThePGDB() *sqlx.DB {
 		panic("PostgreSQL DB not initialized - call InitPGDB first")
 	}
 	return thePGDBC
+}
+
+// InitSchema initializes all database schemas by reading bin/settings/init.sql.
+// This is the single entry point for schema initialization — replaces all
+// per-store EnsureSchema() calls.
+//
+// Must be called after InitPGDB. The dimension parameter is used to replace
+// the {dimension} placeholder in VECTOR({dimension}) column definitions.
+func InitSchema(dimension int) error {
+	const initSQLPath = "bin/settings/init.sql"
+	schemaBytes, err := os.ReadFile(initSQLPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("init.sql not found at %s", initSQLPath)
+		}
+		return fmt.Errorf("failed to read %s: %w", initSQLPath, err)
+	}
+
+	// Replace {dimension} placeholder with the actual vector dimension
+	schema := strings.ReplaceAll(string(schemaBytes), "{dimension}", fmt.Sprintf("%d", dimension))
+
+	// Ensure pgvector extension is installed (idempotent)
+	if _, err := ThePGDB().Exec("CREATE EXTENSION IF NOT EXISTS vector"); err != nil {
+		return fmt.Errorf("failed to create pgvector extension: %w", err)
+	}
+
+	// Execute the full schema
+	if _, err := ThePGDB().Exec(schema); err != nil {
+		return fmt.Errorf("failed to execute init.sql: %w", err)
+	}
+
+	return nil
 }
 
 // ClosePGDB closes the global PostgreSQL database connection.

@@ -4,18 +4,22 @@ import (
 	"fmt"
 	"time"
 
+	"BrainForever/infra/zylog"
+
 	"github.com/jmoiron/sqlx"
 )
 
 // ChatStore provides access to chat-related tables in the global PostgreSQL database.
 // It uses ThePGDB() internally, no per-user file management needed.
 type ChatStore struct {
-	// No per-user db field — uses ThePGDB() global singleton.
+	logger zylog.Logger
 }
 
 // NewChatStore creates a new ChatStore backed by the global PostgreSQL connection.
-func NewChatStore() *ChatStore {
-	return &ChatStore{}
+func NewChatStore(logger zylog.Logger) *ChatStore {
+	return &ChatStore{
+		logger: zylog.WrapWithSubject(logger, "store-chat"),
+	}
 }
 
 /*
@@ -42,95 +46,6 @@ type Chat struct {
 
 	CreateAt time.Time `db:"create_at" json:"create_at"`
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
-}
-
-// EnsureSchema ensures the chat database schema exists (idempotent).
-// This runs CREATE TABLE IF NOT EXISTS and migration statements.
-func (s *ChatStore) EnsureSchema() error {
-	return s.initSchema()
-}
-
-// initSchema initializes chat-related table schemas.
-func (s *ChatStore) initSchema() error {
-	schema := `
-		CREATE TABLE IF NOT EXISTS chat_sessions (
-			id             BIGSERIAL PRIMARY KEY,
-			sn             VARCHAR(32)  NOT NULL UNIQUE,
-			user_id        BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			role_no        BIGINT       NOT NULL DEFAULT 0,
-			title          TEXT         NOT NULL DEFAULT '',
-			title_state    SMALLINT     NOT NULL DEFAULT 0,
-			extract_mode   SMALLINT     NOT NULL DEFAULT 0,
-			extracted_at   TIMESTAMPTZ,
-			extracted_count INTEGER     NOT NULL DEFAULT 0,
-			deleted        BOOLEAN      NOT NULL DEFAULT FALSE,
-			pinned         BOOLEAN      NOT NULL DEFAULT FALSE,
-			taged          BOOLEAN      NOT NULL DEFAULT FALSE,
-			create_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-			update_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-		);
-
-		CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
-		CREATE INDEX IF NOT EXISTS idx_chat_sessions_sn      ON chat_sessions(sn);
-		CREATE INDEX IF NOT EXISTS idx_chat_sessions_pinned  ON chat_sessions(pinned);
-
-		CREATE TABLE IF NOT EXISTS chat_messages (
-			id         BIGSERIAL PRIMARY KEY,
-			chat_id    BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-			group_index INTEGER     NOT NULL,
-			role       SMALLINT     NOT NULL,
-			reasoning  TEXT,
-			content    TEXT         NOT NULL,
-			extracted  BOOLEAN      NOT NULL DEFAULT FALSE,
-			interrupted SMALLINT    NOT NULL DEFAULT 0,
-			create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-			update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-		);
-
-		CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id ON chat_messages(chat_id);
-
-		CREATE TABLE IF NOT EXISTS web_sources (
-			id           BIGSERIAL PRIMARY KEY,
-			chat_id      BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-			msg_id       BIGINT       NOT NULL,
-			title        TEXT         NOT NULL DEFAULT '',
-			content      TEXT         NOT NULL DEFAULT '',
-			url          TEXT         NOT NULL DEFAULT '',
-			site_name    TEXT         NOT NULL DEFAULT '',
-			site_icon    TEXT         NOT NULL DEFAULT '',
-			publish_date TEXT         NOT NULL DEFAULT '',
-			score        REAL         NOT NULL DEFAULT 0,
-			create_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-		);
-
-		CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg ON web_sources(chat_id, msg_id);
-
-		CREATE TABLE IF NOT EXISTS chat_tags (
-			id        BIGSERIAL PRIMARY KEY,
-			chat_id   BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-			tag       TEXT         NOT NULL,
-			create_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-		);
-
-		CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_id ON chat_tags(chat_id);
-		CREATE INDEX IF NOT EXISTS idx_chat_tags_tag     ON chat_tags(tag);
-
-		CREATE TABLE IF NOT EXISTS chat_favorites (
-			id         BIGSERIAL PRIMARY KEY,
-			chat_id    BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
-			custom_tag TEXT         NOT NULL DEFAULT '',
-			create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-			update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-		);
-
-		CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_favorites_unique ON chat_favorites(chat_id, custom_tag);
-	`
-
-	if _, err := ThePGDB().Exec(schema); err != nil {
-		return fmt.Errorf("failed to initialize chat tables: %w", err)
-	}
-
-	return nil
 }
 
 // db returns the global PostgreSQL connection.

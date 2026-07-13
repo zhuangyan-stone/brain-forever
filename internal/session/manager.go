@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/llmtypes"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
@@ -25,6 +26,7 @@ type Manager struct {
 	Sessions map[string]*Session
 	redis    *cache.RedisSessionStore // unexported: use Redis() or HasRedis()
 	Ctx      context.Context          // Background context for Redis operations
+	logger   zylog.Logger
 }
 
 // SetRedisStore attaches a Redis session store to the Manager.
@@ -59,10 +61,11 @@ func (m *Manager) Close() {
 }
 
 // NewManager creates a Manager.
-func NewManager() *Manager {
+func NewManager(logger zylog.Logger) *Manager {
 	return &Manager{
 		Sessions: make(map[string]*Session),
 		Ctx:      context.Background(),
+		logger:   logger,
 	}
 }
 
@@ -171,6 +174,6 @@ func (m *Manager) DeleteMessage(sessionID string, msgID int64) error {
 	}
 
 	// Use global ChatStore (PostgreSQL connection pool)
-	chatStore := store.NewChatStore()
+	chatStore := store.NewChatStore(m.logger)
 	return chatStore.DeleteMessageGroup(chatID, int(msgID))
 }

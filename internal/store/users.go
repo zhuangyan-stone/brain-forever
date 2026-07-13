@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"BrainForever/infra/i18n"
+	"BrainForever/infra/zylog"
 	"BrainForever/toolset"
 )
 
@@ -42,58 +43,20 @@ type User struct {
 
 // UserStore manages user storage
 type UserStore struct {
-	// No db field — uses the global ThePGDB() singleton.
-}
-
-// EnsureSchema creates the users and roles tables if they don't exist (idempotent).
-func (s *UserStore) EnsureSchema() error {
-	schema := `
-		CREATE TABLE IF NOT EXISTS users (
-			id            BIGSERIAL PRIMARY KEY,
-			sn            VARCHAR(32)  NOT NULL UNIQUE,
-			no            VARCHAR(6)   NOT NULL UNIQUE,
-			tel           VARCHAR(18)  NOT NULL DEFAULT '',
-			nickname      VARCHAR(38)  NOT NULL,
-			password      VARCHAR(32)  NOT NULL,
-			salt          VARCHAR(32)  NOT NULL,
-			deleted       BOOLEAN      NOT NULL DEFAULT FALSE,
-			settings_ver  INTEGER      NOT NULL DEFAULT 0,
-			settings      JSONB        NOT NULL DEFAULT '{}',
-			create_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-			update_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-		);
-
-		CREATE INDEX IF NOT EXISTS idx_users_sn  ON users(sn);
-		CREATE INDEX IF NOT EXISTS idx_users_no  ON users(no);
-		CREATE INDEX IF NOT EXISTS idx_users_tel ON users(tel);
-
-		CREATE TABLE IF NOT EXISTS roles (
-			id         BIGSERIAL PRIMARY KEY,
-			user_id    BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			role_no    INTEGER      NOT NULL,
-			role_name  VARCHAR(60)  NOT NULL,
-			uuid       VARCHAR(32)  NOT NULL,
-			is_public  BOOLEAN      NOT NULL DEFAULT FALSE,
-			is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
-			create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-			update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-		);
-
-		CREATE INDEX IF NOT EXISTS idx_roles_user_id ON roles(user_id);
-	`
-	_, err := ThePGDB().Exec(schema)
-	return err
+	logger zylog.Logger
 }
 
 // OpenUserStore creates a UserStore backed by the global PostgreSQL connection.
-func OpenUserStore() (*UserStore, error) {
-	return &UserStore{}, nil
+func OpenUserStore(logger zylog.Logger) (*UserStore, error) {
+	return &UserStore{
+		logger: zylog.WrapWithSubject(logger, "store-user"),
+	}, nil
 }
 
 // NewUserStore creates a new UserStore.
 // Deprecated: Use OpenUserStore instead.
-func NewUserStore() (*UserStore, error) {
-	return OpenUserStore()
+func NewUserStore(logger zylog.Logger) (*UserStore, error) {
+	return OpenUserStore(logger)
 }
 
 // ============================================================
@@ -114,8 +77,8 @@ func TheUserStore() *UserStore {
 }
 
 // InitTheUserStore creates the global UserStore singleton.
-func InitTheUserStore(dbDir string) error {
-	s, err := OpenUserStore()
+func InitTheUserStore(dbDir string, logger zylog.Logger) error {
+	s, err := OpenUserStore(logger)
 	if err != nil {
 		return err
 	}
@@ -392,7 +355,7 @@ func (s *UserStore) ListUsers() ([]User, error) {
 
 // loadChats loads a user's chat list from the unified PostgreSQL database.
 func (s *UserStore) loadChats(userID int64) ([]Chat, error) {
-	chatStore := NewChatStore()
+	chatStore := NewChatStore(s.logger)
 	chats, err := chatStore.ListAllChats(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load chats for user %d: %w", userID, err)

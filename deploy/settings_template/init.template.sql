@@ -2,7 +2,135 @@
 -- BrainForever database initialization script
 -- ============================================================
 
+-- ============================================================
+-- users table: stores user accounts
+-- ============================================================
+CREATE TABLE IF NOT EXISTS users (
+	id            BIGSERIAL PRIMARY KEY,
+	sn            VARCHAR(32)  NOT NULL UNIQUE,
+	no            VARCHAR(6)   NOT NULL UNIQUE,
+	tel           VARCHAR(18)  NOT NULL DEFAULT '',
+	nickname      VARCHAR(38)  NOT NULL,
+	password      VARCHAR(32)  NOT NULL,
+	salt          VARCHAR(32)  NOT NULL,
+	deleted       BOOLEAN      NOT NULL DEFAULT FALSE,
+	settings_ver  INTEGER      NOT NULL DEFAULT 0,
+	settings      JSONB        NOT NULL DEFAULT '{}',
+	create_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+	update_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_sn  ON users(sn);
+CREATE INDEX IF NOT EXISTS idx_users_no  ON users(no);
+CREATE INDEX IF NOT EXISTS idx_users_tel ON users(tel);
+
+-- ============================================================
+-- roles table: stores user roles/personalities
+-- ============================================================
+CREATE TABLE IF NOT EXISTS roles (
+	id         BIGSERIAL PRIMARY KEY,
+	user_id    BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	role_no    INTEGER      NOT NULL,
+	role_name  VARCHAR(60)  NOT NULL,
+	uuid       VARCHAR(32)  NOT NULL,
+	is_public  BOOLEAN      NOT NULL DEFAULT FALSE,
+	is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
+	create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+	update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_roles_user_id ON roles(user_id);
+
+-- ============================================================
+-- chat_sessions table: stores conversation sessions
+-- ============================================================
+CREATE TABLE IF NOT EXISTS chat_sessions (
+	id             BIGSERIAL PRIMARY KEY,
+	sn             VARCHAR(32)  NOT NULL UNIQUE,
+	user_id        BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	role_no        BIGINT       NOT NULL DEFAULT 0,
+	title          TEXT         NOT NULL DEFAULT '',
+	title_state    SMALLINT     NOT NULL DEFAULT 0,
+	extract_mode   SMALLINT     NOT NULL DEFAULT 0,
+	extracted_at   TIMESTAMPTZ,
+	extracted_count INTEGER     NOT NULL DEFAULT 0,
+	deleted        BOOLEAN      NOT NULL DEFAULT FALSE,
+	pinned         BOOLEAN      NOT NULL DEFAULT FALSE,
+	taged          BOOLEAN      NOT NULL DEFAULT FALSE,
+	create_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+	update_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_sn      ON chat_sessions(sn);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_pinned  ON chat_sessions(pinned);
+
+-- ============================================================
+-- chat_messages table: stores messages within chat sessions
+-- ============================================================
+CREATE TABLE IF NOT EXISTS chat_messages (
+	id          BIGSERIAL PRIMARY KEY,
+	chat_id     BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+	group_index INTEGER      NOT NULL,
+	role        SMALLINT     NOT NULL,
+	reasoning   TEXT,
+	content     TEXT         NOT NULL,
+	extracted   BOOLEAN      NOT NULL DEFAULT FALSE,
+	interrupted SMALLINT    NOT NULL DEFAULT 0,
+	create_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+	update_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id ON chat_messages(chat_id);
+
+-- ============================================================
+-- web_sources table: stores web sources cited in messages
+-- ============================================================
+CREATE TABLE IF NOT EXISTS web_sources (
+	id           BIGSERIAL PRIMARY KEY,
+	chat_id      BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+	msg_id       BIGINT       NOT NULL,
+	title        TEXT         NOT NULL DEFAULT '',
+	content      TEXT         NOT NULL DEFAULT '',
+	url          TEXT         NOT NULL DEFAULT '',
+	site_name    TEXT         NOT NULL DEFAULT '',
+	site_icon    TEXT         NOT NULL DEFAULT '',
+	publish_date TEXT         NOT NULL DEFAULT '',
+	score        REAL         NOT NULL DEFAULT 0,
+	create_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg ON web_sources(chat_id, msg_id);
+
+-- ============================================================
+-- chat_tags table: stores tags for chat sessions
+-- ============================================================
+CREATE TABLE IF NOT EXISTS chat_tags (
+	id        BIGSERIAL PRIMARY KEY,
+	chat_id   BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+	tag       TEXT         NOT NULL,
+	create_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_id ON chat_tags(chat_id);
+CREATE INDEX IF NOT EXISTS idx_chat_tags_tag     ON chat_tags(tag);
+
+-- ============================================================
+-- chat_favorites table: stores favorited chat sessions
+-- ============================================================
+CREATE TABLE IF NOT EXISTS chat_favorites (
+	id         BIGSERIAL PRIMARY KEY,
+	chat_id    BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+	custom_tag TEXT         NOT NULL DEFAULT '',
+	create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+	update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_favorites_unique ON chat_favorites(chat_id, custom_tag);
+
+-- ============================================================
 -- traits table: stores personal trait (feature) entities
+-- ============================================================
 CREATE TABLE IF NOT EXISTS traits (
 	id             BIGSERIAL PRIMARY KEY,
 	user_id        BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,

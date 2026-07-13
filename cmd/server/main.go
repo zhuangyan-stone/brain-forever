@@ -105,15 +105,20 @@ func main() {
 	theLogger.Infof("PostgreSQL connection established")
 
 	// ============================================================
+	// Initialize all database schemas (single unified init.sql)
+	// ============================================================
+	const vectorDimension = 2048
+	if err := store.InitSchema(vectorDimension); err != nil {
+		theLogger.Fatalf("failed to initialize database schema: %v", err)
+	}
+	theLogger.Infof("database schema initialized (dimension=%d)", vectorDimension)
+
+	// ============================================================
 	// Initialize global UserStore singleton (based on PostgreSQL)
 	// Opens before HTTP server starts, closes after it stops
 	// ============================================================
-	if err := store.InitTheUserStore(cfg.Data.Dir); err != nil {
+	if err := store.InitTheUserStore(cfg.Data.Dir, theLogger); err != nil {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
-	}
-	// Ensure users/roles tables exist (idempotent)
-	if err := store.TheUserStore().EnsureSchema(); err != nil {
-		theLogger.Fatalf("failed to ensure user schema: %v", err)
 	}
 	defer store.CloseTheUserStore()
 	theLogger.Infof("user store (PostgreSQL) initialized")
