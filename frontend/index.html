@@ -1132,7 +1132,7 @@
                             <li>或者你在三方服务商自行购买的 api-key</li>
                         </ol>
                         <div class="apikey-help-note">
-                            <p>依据您的选择，对话框左下位置将动态计算需在第2大脑充值的最低金额</p>
+                            <p>使用第三方 key，你向他们充值 ，使用第2大脑公共 key，您向需向本站充值</p>
                             <p style="font-size: small">第三方服务商网址：<a href="https://www.deepseek.com/">DeepSeek</a>&nbsp;<a href="https://open.bigmodel.cn//">智谱</a></p>
                         </div>
                     </div>
@@ -1226,7 +1226,7 @@
                         <button class="dialog-btn dialog-btn-cancel" @click="close">取消</button>
                         <button class="apikey-confirm-btn" @click="confirm" :disabled="_submitting">
                             <span x-show="!_submitting">确认</span>
-                            <span x-show="_submitting" x-cloak>保存中…</span>
+                            <span x-show="_submitting" x-cloak>保存中……</span>
                         </button>
                     </div>
                 </div>
@@ -1254,7 +1254,8 @@
 
         <div class="about-body">
             <div class="about-description">
-                <p>努力成为你的另一个大脑，一个不老的永生大脑——通过记忆您的个人特征。相比 “这次说完下次就忘” 的智能体，第2大脑可以更高效地提供紧密贴合您的回复。</p>
+                <p>努力成为你的另一个大脑，一个不老的永生大脑——通过记忆个人特征。
+相比 “这次说完下次还忘” 的智能体，第2大脑可以更高效地提供紧密贴合您的回复。</p>
             </div>
 
             <div class="about-author">
