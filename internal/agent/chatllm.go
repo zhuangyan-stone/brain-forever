@@ -80,7 +80,7 @@ func (atc *pipelineImp) OnText(text string) {
 func (ate *pipelineImp) OnError(err error) {
 	e := ate.sseWriter.WriteEvent(ErrorEvent{
 		Type:    "error",
-		Message: i18n.TL(ate.lang, "server_error", map[string]interface{}{"Error": err.Error()}),
+		Message: i18n.TL(ate.lang, "server_error", map[string]any{"Error": err.Error()}),
 	})
 
 	if e != nil {

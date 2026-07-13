@@ -23,7 +23,8 @@ import (
 // ensures a DB session exists, and persists the message to DB.
 // Must be called with Mu held.
 // Returns true if a new DB chat session was created as a result of this call.
-func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *store.ChatStore) bool {
+// Returns an error if the DB session could not be created.
+func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *store.ChatStore) (bool, error) {
 	if reqMsg.ID != 0 {
 		panic(fmt.Sprintf("new request message's ID is not 0, but %d", reqMsg.ID))
 	}
@@ -44,11 +45,18 @@ func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *
 
 	reqMsg.ID = lastID + 1
 
-	isNewChat := ensureSessionDBForChat(sess, chatStore)
+	isNewChat, err := ensureSessionDBForChat(sess, chatStore)
+	if err != nil {
+		return false, err
+	}
+	if sess.User.CurrentChat.DBCHat == nil {
+		return false, fmt.Errorf("DBCHat is nil after ensureSessionDBForChat")
+	}
+
 	chatID := sess.User.CurrentChat.DBCHat.ID
 	persistMessageToDB(sess, reqMsg, chatID, chatStore)
 
-	return isNewChat
+	return isNewChat, nil
 }
 
 // resolveNewMessageRequest parses and validates the incoming chat request.
@@ -70,6 +78,41 @@ func (h *ChatAgent) resolveNewMessageRequest(w http.ResponseWriter, r *http.Requ
 	return &req
 }
 
+// prepareMessageForLLM performs the locked section of OnNewMessage.
+// It acquires and releases the session lock internally.
+// Calls appendNewRequestMessage (which requires Mu held), then extracts
+// data needed after the lock is released.
+// Returns ok=false if an error occurred (the error event has already been
+// sent via sseWriter).
+func prepareMessageForLLM(sess *session.Session, reqMsg *Message, frontSN string, chatStore *store.ChatStore, sseWriter *sse.Writer, lang string) (msgChatID int64, chatCreatedSN string, chatCreatedFrontSN string, ok bool) {
+	sess.Mu.Lock()
+	defer sess.Mu.Unlock()
+
+	isNewChat, err := appendNewRequestMessage(sess, reqMsg, chatStore)
+	if err != nil {
+		sseWriter.WriteEvent(ErrorEvent{
+			Type:    "error",
+			Message: i18n.TL(lang, "api_error_failed_to_create_session"),
+		})
+		return 0, "", "", false
+	}
+
+	if reqMsg.ID <= 0 {
+		panic("new message's ID is zero still after append to messages")
+	}
+
+	if isNewChat && sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.SN != "" {
+		chatCreatedSN = sess.User.CurrentChat.DBCHat.SN
+		chatCreatedFrontSN = frontSN
+	}
+
+	if sess.User.CurrentChat.DBCHat != nil {
+		msgChatID = sess.User.CurrentChat.DBCHat.ID
+	}
+
+	return msgChatID, chatCreatedSN, chatCreatedFrontSN, true
+}
+
 // OnNewMessage handles POST /api/chat requests
 func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	req := h.resolveNewMessageRequest(w, r)
@@ -80,35 +123,20 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
-	sess.Mu.Lock()
-
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
 		lang = h.defaultLang
 	}
 
-	isNewChat := appendNewRequestMessage(sess, &req.Message, theChatStore)
+	// Create SSE writer early so we can send an error event to the frontend
+	// if session creation fails, preventing the frontend from hanging.
+	sseWriter := sse.NewSSEWriter(w)
 
-	if req.Message.ID <= 0 {
-		sess.Mu.Unlock()
-		panic("new message's ID is zero still after append to messages")
+	msgChatID, chatCreatedSN, chatCreatedFrontSN, ok := prepareMessageForLLM(sess, &req.Message, req.FrontSN, theChatStore, sseWriter, lang)
+	if !ok {
+		return
 	}
-
-	var chatCreatedSN string
-	var chatCreatedFrontSN string
-	if isNewChat && sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.SN != "" {
-		chatCreatedSN = sess.User.CurrentChat.DBCHat.SN
-		chatCreatedFrontSN = req.FrontSN
-	}
-
-	var msgChatID int64
-	if sess.User.CurrentChat.DBCHat != nil {
-		msgChatID = sess.User.CurrentChat.DBCHat.ID
-	}
-
-	// Extract chatID for loading messages, then release lock
 	llmChatID := msgChatID
-	sess.Mu.Unlock()
 
 	llmMsgs, err := llmtypes.LoadMessagesAsLLMMessages(llmChatID, theChatStore)
 	if err != nil {
@@ -123,8 +151,6 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 	messages := make([]llm.Message, 0, 1+len(llmMsgs))
 	messages = append(messages, startSystemMsg)
 	messages = append(messages, llmMsgs...)
-
-	sseWriter := sse.NewSSEWriter(w)
 
 	timeQueryToolImp := toolimp.MakeTimeQueryTool(lang)
 	toolsImp := []llm.ToolIMP{timeQueryToolImp}

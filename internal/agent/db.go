@@ -5,6 +5,7 @@ import (
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/toolset"
+	"fmt"
 )
 
 // ============================================================
@@ -21,9 +22,10 @@ func generateSessionSN() string {
 // record and sets DBCHat.
 // Must be called with Mu held.
 // Returns true if a new DB session was created, false if one already existed.
-func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore) bool {
+// Returns an error if the DB insert fails.
+func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore) (bool, error) {
 	if sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.ID != 0 {
-		return false // Already has a DB session
+		return false, nil // Already has a DB session
 	}
 
 	sn := generateSessionSN()
@@ -31,7 +33,7 @@ func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore) b
 
 	dbChat, err := chatStore.InsertChat(sn, sess.User.ID, 0, title, 0)
 	if err != nil {
-		return false
+		return false, fmt.Errorf("failed to ensure DB session for chat. %w", err)
 	}
 
 	sess.User.CurrentChat.DBCHat = dbChat
@@ -39,7 +41,7 @@ func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore) b
 	// Add the new chat to the in-memory list so it immediately appears
 	// in the left sidebar's chat list.
 	sess.AddChatToList(*dbChat)
-	return true
+	return true, nil
 }
 
 // persistMessageToDB inserts a single message into the chat_messages table.

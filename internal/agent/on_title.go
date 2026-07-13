@@ -89,7 +89,7 @@ func (h *ChatAgent) OnPutChatTitle(w http.ResponseWriter, r *http.Request) {
 	sess.User.ChatsMu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"status": "ok",
 	})
 }
@@ -169,7 +169,7 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 
 		if !found {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			json.NewEncoder(w).Encode(map[string]any{
 				"sn":      chatSN,
 				"title":   originalTitle,
 				"changed": false,
@@ -206,7 +206,7 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	msgs = nil
 
 	systemPromptBuilder := &strings.Builder{}
-	systemPromptBuilder.WriteString(i18n.SystemPrompt.TL(lang, "title", map[string]interface{}{"Title": originalTitle}))
+	systemPromptBuilder.WriteString(i18n.SystemPrompt.TL(lang, "title", map[string]any{"Title": originalTitle}))
 	systemPromptBuilder.WriteString("\n------")
 
 	for _, msg := range samples {
@@ -247,7 +247,7 @@ func (h *ChatAgent) OnGetSuggestedChatTitle(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"sn":      chatSN,
 		"title":   newTitle,
 		"changed": titleChanged,

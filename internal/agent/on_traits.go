@@ -46,7 +46,7 @@ type traitsKeyword struct {
 
 type traitsResponse struct {
 	Features []traitsFeature `json:"features,omitempty"`
-	Usage    interface{}     `json:"usage,omitempty"`
+	Usage    any     `json:"usage,omitempty"`
 	Error    string          `json:"error,omitempty"`
 
 	ExtractedAt    *string `json:"extracted_at,omitempty"`
@@ -265,7 +265,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, title string, dbMessages 
 }
 
 func getTraitSystemPrompt(lang string, chatTitle string) string {
-	return i18n.SystemPrompt.TL(lang, "trip_trait", map[string]interface{}{
+	return i18n.SystemPrompt.TL(lang, "trip_trait", map[string]any{
 		"CurrentLocalTime": time.Now().In(time.Local).Format("2006-01-02 15:04:05 (MST)"),
 		"ChatTitle":        chatTitle,
 	})

@@ -41,7 +41,7 @@ func (t portraitTraitItem) ToString(lang string, index int) string {
 
 	confLevel := i18n.TL(lang, "trait_confidence_"+confidenceLevelKey(t.Confidence))
 
-	return i18n.TL(lang, "trait_item_format", map[string]interface{}{
+	return i18n.TL(lang, "trait_item_format", map[string]any{
 		"Index":         index,
 		"Text":          t.Text,
 		"CatID":         t.Category,
@@ -84,6 +84,34 @@ type portraitChatTitleItem struct {
 	CrateAt string `json:"create_at"`
 }
 
+// tryListUserTraits reads the user's personal traits from the store.
+// On read error or empty result, writes an error response and returns ok=false.
+func (h *ChatAgent) tryListUserTraits(w http.ResponseWriter, lang string, userID int64) (allTraits []store.PersonalTrait, ok bool) {
+	allTraits, err := theBrainStore.ListAllTraitsByCreateTime(userID)
+	if err != nil {
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
+		return nil, false
+	}
+
+	if len(allTraits) == 0 {
+		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_no_traits_data"), http.StatusNotFound)
+		return nil, false
+	}
+
+	return allTraits, true
+}
+
+func getRetouch(r *http.Request) int {
+	retouchStr := r.URL.Query().Get("retouch")
+	retouch := 3
+	if retouchStr != "" {
+		if v, err := strconv.Atoi(retouchStr); err == nil && v >= 0 && v <= 5 {
+			retouch = v
+		}
+	}
+	return retouch
+}
+
 func formatChatTitles(items []portraitChatTitleItem, lang string) string {
 	if len(items) == 0 {
 		return ""
@@ -98,7 +126,7 @@ func formatChatTitles(items []portraitChatTitleItem, lang string) string {
 		if i > 0 {
 			sb.WriteString("\n")
 		}
-		sb.WriteString(i18n.TL(lang, "chat_title_item_format", map[string]interface{}{
+		sb.WriteString(i18n.TL(lang, "chat_title_item_format", map[string]any{
 			"Index":    i + 1,
 			"Title":    item.Title,
 			"CreateAt": item.CrateAt,
@@ -117,11 +145,11 @@ type hotTagItem struct {
 // ============================================================
 
 type ssePortraitEvent struct {
-	Event string      `json:"event"`
-	Data  interface{} `json:"data"`
+	Event string `json:"event"`
+	Data  any    `json:"data"`
 }
 
-func sendPortraitSSE(sw *sse.Writer, eventType string, data interface{}) {
+func sendPortraitSSE(sw *sse.Writer, eventType string, data any) {
 	msg := ssePortraitEvent{Event: eventType, Data: data}
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
@@ -136,6 +164,14 @@ func sendPortraitSSE(sw *sse.Writer, eventType string, data interface{}) {
 	_ = sw.WriteRaw(string(raw))
 }
 
+// flushAndDrainBody flushes the SSE writer and drains the HTTP request body.
+// Ensures the client receives pending SSE events and the HTTP connection can
+// be reused after the handler returns.
+func flushAndDrainBody(flusher http.Flusher, r *http.Request) {
+	flusher.Flush()
+	io.Copy(io.Discard, r.Body)
+}
+
 type PortraitHighlights struct {
 	CoreTraits    []string `json:"core_traits"`
 	KeyHighlights []string `json:"key_highlights"`
@@ -146,79 +182,23 @@ type PortraitHighlights struct {
 // ============================================================
 
 func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
-	retouchStr := r.URL.Query().Get("retouch")
-	retouch := 3
-	if retouchStr != "" {
-		if v, err := strconv.Atoi(retouchStr); err == nil && v >= 0 && v <= 5 {
-			retouch = v
-		}
-	}
+	retouch := getRetouch(r)
 
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
-	allTraits, err := theBrainStore.ListAllTraitsByCreateTime(sess.User.ID)
-	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
+	allTraits, ok := h.tryListUserTraits(w, lang, sess.User.ID)
+	if !ok {
 		return
 	}
 
-	if len(allTraits) == 0 {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_no_traits_data"), http.StatusNotFound)
-		return
-	}
-
-	tagUsageMap, _ := theChatStore.SelectNonEmptyTagsGroup()
-	hotTags := formatHotTags(tagUsageMap)
-	tagsInfoStr := buildTagsInfoString(hotTags, lang)
-
-	traitItems := make([]portraitTraitItem, 0, len(allTraits))
-	for _, t := range allTraits {
-		traitItems = append(traitItems, portraitTraitItem{
-			Text:       t.Trait,
-			Category:   t.Category,
-			Confidence: t.Confidence,
-			HalfLife:   t.HalfLife,
-			CreateAt:   t.CreateAt.Local().Format(time.RFC3339),
-		})
-	}
-
-	recentChatTitles, err := theChatStore.ListChatTitles(sess.User.ID, 100)
+	llmMsgs, hotTags, err := h.preparePortraitLLMMessages(allTraits, lang, sess.User.ID, retouch)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
-			map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
+			map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
-	}
-
-	chatTitleItems := make([]portraitChatTitleItem, 0, len(recentChatTitles))
-	for _, t := range recentChatTitles {
-		chatTitleItems = append(chatTitleItems, portraitChatTitleItem{
-			ID:      t.ID,
-			Title:   t.Title,
-			CrateAt: t.CrateAt.Local().Format(time.RFC3339),
-		})
-	}
-
-	traitsDesc := formatTraitItems(traitItems, lang)
-	chatTitlesStr := formatChatTitles(chatTitleItems, lang)
-
-	systemContent := i18n.SystemPrompt.TL(lang, "portrait", map[string]interface{}{
-		"Retouch":          retouch,
-		"TraitsJSON":       traitsDesc,
-		"TagsInfo":         tagsInfoStr,
-		"RecentChatTitles": chatTitlesStr,
-	})
-
-	userContent := i18n.SystemPrompt.TL(lang, "portrait_user_prompt", map[string]interface{}{
-		"TraitCount": len(allTraits),
-		"Retouch":    retouch,
-	})
-
-	llmMsgs := []llm.Message{
-		{Role: llm.RoleSystem, Content: systemContent},
-		{Role: llm.RoleUser, Content: userContent},
 	}
 
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -239,11 +219,41 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 
-	acceptLang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
-
 	client := sessionLLMClient(sess)
 	llmApiSettings := sessionLLMApiSetting(sess)
 
+	totalContent, ok := h.runPortraitLLMStream(r.Context(), sw, flusher, client, llmMsgs, llmApiSettings.ApiKey, r)
+	if !ok {
+		return
+	}
+
+	if totalContent != "" {
+		meta := extractPortraitHighlights(r.Context(), client, lang, totalContent, llmApiSettings.ApiKey)
+		if meta != nil {
+			sendPortraitSSE(sw, "meta", meta)
+			flusher.Flush()
+		}
+	}
+
+	sendPortraitSSE(sw, "done", map[string]any{})
+	flusher.Flush()
+}
+
+// streamPortraitContent reads the LLM streaming response and sends text chunks
+// as SSE events. Returns the concatenated content. Returns ok=false if the
+// request was cancelled.
+// runPortraitLLMStream creates an LLM streaming request, starts the stream,
+// reads all content via streamPortraitContent, and checks post-stream errors.
+// Returns ok=false if any stream error occurred.
+func (h *ChatAgent) runPortraitLLMStream(
+	ctx context.Context,
+	sw *sse.Writer,
+	flusher http.Flusher,
+	client llm.Client,
+	llmMsgs []llm.Message,
+	apiKey string,
+	r *http.Request,
+) (totalContent string, ok bool) {
 	streamReq := llm.ChatCompletionRequest{
 		Model:    client.Model(),
 		Messages: llmMsgs,
@@ -251,16 +261,39 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 	streamReq.IncludeUsage(true)
 
-	stream := client.ChatStreamWithOptions(r.Context(), streamReq, llmApiSettings.ApiKey)
+	stream := client.ChatStreamWithOptions(ctx, streamReq, apiKey)
 	if err := stream.Err(); err != nil {
 		sendPortraitSSE(sw, "error", fmt.Sprintf("LLM stream failed. %v", err))
-		flusher.Flush()
-		io.Copy(io.Discard, r.Body)
-		return
+		flushAndDrainBody(flusher, r)
+		return "", false
 	}
 	defer stream.Close()
 
-	totalContent := ""
+	totalContent, ok = h.streamPortraitContent(ctx, sw, flusher, stream, client)
+	if !ok {
+		return "", false
+	}
+
+	if err := stream.Err(); err != nil {
+		sendPortraitSSE(sw, "error", fmt.Sprintf("stream error. %v", err))
+		flushAndDrainBody(flusher, r)
+		return "", false
+	}
+
+	return totalContent, true
+}
+
+// streamPortraitContent iterates over the LLM streaming response chunks,
+// sending each non-empty text delta as an SSE "text" event and flushing
+// after every chunk. Concatenates and returns the full response content.
+// Returns ok=false if the request context is cancelled.
+func (h *ChatAgent) streamPortraitContent(
+	ctx context.Context,
+	sw *sse.Writer,
+	flusher http.Flusher,
+	stream *llm.ChatCompletionChunkDecoder,
+	client llm.Client,
+) (totalContent string, ok bool) {
 	for stream.Next() {
 		chunk := stream.CurrentChatCompletionChunk()
 
@@ -277,37 +310,79 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		}
 
 		select {
-		case <-r.Context().Done():
+		case <-ctx.Done():
 			sendPortraitSSE(sw, "error", "request cancelled")
-			return
+			return "", false
 		default:
 		}
 
 		flusher.Flush()
 	}
+	return totalContent, true
+}
 
-	if err := stream.Err(); err != nil {
-		sendPortraitSSE(sw, "error", fmt.Sprintf("stream error. %v", err))
-		flusher.Flush()
-		return
+// preparePortraitLLMMessages reads hot tags and recent chat titles, then builds
+// the system and user messages for the portrait LLM call.
+func (h *ChatAgent) preparePortraitLLMMessages(
+	allTraits []store.PersonalTrait,
+	lang string,
+	userID int64,
+	retouch int,
+) (llmMsgs []llm.Message, hotTags []hotTagItem, err error) {
+	tagUsageMap, _ := theChatStore.SelectNonEmptyTagsGroup()
+	hotTags = formatHotTags(tagUsageMap)
+	tagsInfoStr := buildTagsInfoString(hotTags, lang)
+
+	traitItems := make([]portraitTraitItem, 0, len(allTraits))
+	for _, t := range allTraits {
+		traitItems = append(traitItems, portraitTraitItem{
+			Text:       t.Trait,
+			Category:   t.Category,
+			Confidence: t.Confidence,
+			HalfLife:   t.HalfLife,
+			CreateAt:   t.CreateAt.Local().Format(time.RFC3339),
+		})
 	}
 
-	if totalContent != "" {
-		meta := extractPortraitHighlights(r.Context(), client, acceptLang, totalContent, llmApiSettings.ApiKey)
-		if meta != nil {
-			sendPortraitSSE(sw, "meta", meta)
-			flusher.Flush()
-		}
+	recentChatTitles, err := theChatStore.ListChatTitles(userID, 100)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	sendPortraitSSE(sw, "done", map[string]interface{}{})
-	flusher.Flush()
+	chatTitleItems := make([]portraitChatTitleItem, 0, len(recentChatTitles))
+	for _, t := range recentChatTitles {
+		chatTitleItems = append(chatTitleItems, portraitChatTitleItem{
+			ID:      t.ID,
+			Title:   t.Title,
+			CrateAt: t.CrateAt.Local().Format(time.RFC3339),
+		})
+	}
 
-	io.Copy(io.Discard, r.Body)
+	traitsDesc := formatTraitItems(traitItems, lang)
+	chatTitlesStr := formatChatTitles(chatTitleItems, lang)
+
+	systemContent := i18n.SystemPrompt.TL(lang, "portrait", map[string]any{
+		"Retouch":          retouch,
+		"TraitsJSON":       traitsDesc,
+		"TagsInfo":         tagsInfoStr,
+		"RecentChatTitles": chatTitlesStr,
+	})
+
+	userContent := i18n.SystemPrompt.TL(lang, "portrait_user_prompt", map[string]any{
+		"TraitCount": len(allTraits),
+		"Retouch":    retouch,
+	})
+
+	llmMsgs = []llm.Message{
+		{Role: llm.RoleSystem, Content: systemContent},
+		{Role: llm.RoleUser, Content: userContent},
+	}
+
+	return llmMsgs, hotTags, nil
 }
 
 func extractPortraitHighlights(ctx context.Context, client llm.Client, lang, portraitText string, apiKey string) *PortraitHighlights {
-	systemContent := i18n.SystemPrompt.TL(lang, "highlights", map[string]interface{}{
+	systemContent := i18n.SystemPrompt.TL(lang, "highlights", map[string]any{
 		"PortraitText": portraitText,
 	})
 

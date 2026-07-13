@@ -22,7 +22,7 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 		sess.Mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"sn":          "",
 			"title":       "",
 			"title_state": 0,
@@ -35,7 +35,7 @@ func (h *ChatAgent) OnNewChat(w http.ResponseWriter, r *http.Request) {
 	sess.Mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"sn":          "",
 		"title":       "",
 		"title_state": 0,

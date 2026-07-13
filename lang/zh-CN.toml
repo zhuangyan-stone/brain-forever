@@ -44,6 +44,9 @@ other = "缺少参数。{{.Param}}"
 [api_error_chat_not_found]
 other = "对话不存在"
 
+[api_error_failed_to_create_session]
+other = "创建对话失败"
+
 [api_error_failed_to_list_messages]
 other = "读取消息列表失败。{{.Error}}"
 

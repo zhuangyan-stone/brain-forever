@@ -318,7 +318,7 @@ func (imp *TraitSearchByKeywordToolImp) Execute() (result string, err error) {
 	// Convert kind letter (A-F) to integer (1-6) for the searcher interface.
 	kindInt := kindLetterToInt(imp.kind)
 	if kindInt == 0 {
-		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_invalid_kind_letter", map[string]interface{}{"Kind": imp.kind}))
+		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_invalid_kind_letter", map[string]any{"Kind": imp.kind}))
 	}
 
 	var traits []TraitSource
