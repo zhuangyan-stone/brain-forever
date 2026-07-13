@@ -27,6 +27,14 @@
     <script>
         (function () {
             try {
+                // forceThemeMode 优先级最高：登录页传递的亮度位，不读系统偏好
+                var forceRaw = localStorage.getItem('brainforever_forceThemeMode');
+                if (forceRaw !== null && (forceRaw === '0' || forceRaw === '1')) {
+                    var themeStr = forceRaw === '1' ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', themeStr);
+                    return;
+                }
+
                 var raw = localStorage.getItem('brainforever_settings');
                 if (raw) {
                     var settings = JSON.parse(raw);

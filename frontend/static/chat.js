@@ -70,27 +70,58 @@ function applyTheme(themeVal) {
     }
 }
 
-// 初始化主题
-applyTheme(Alpine.store('settings').theme);
+// 初始化主题（消费 forceThemeMode 后立即删除）
+(function() {
+    var forceRaw = localStorage.getItem('brainforever_forceThemeMode');
+    if (forceRaw !== null && (forceRaw === '0' || forceRaw === '1')) {
+        var forceBit = parseInt(forceRaw, 10);
+        var settings = Alpine.store('settings');
+        // effectiveTheme = forceBit | (原 theme 高位)，不修改高位（是否跟随系统）
+        var effectiveTheme = forceBit | (settings.theme & 2);
+        var themeStr = forceBit === 1 ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', themeStr);
+        switchHighlightTheme(themeStr);
+        if (window.ThemeLoader) {
+            window.ThemeLoader.apply();
+        }
+        settings.theme = effectiveTheme;
+        settings._save();
+        localStorage.removeItem('brainforever_forceThemeMode');
+        console.log('[theme] forceThemeMode applied, effective theme:', effectiveTheme);
+    } else {
+        applyTheme(Alpine.store('settings').theme);
+    }
+})();
 
-// 监听 Alpine store 发起的主题变更事件
+// 监听 Alpine store 发起的主题变更事件（手动模式 0/1）
 document.addEventListener('theme-changed', (e) => {
     applyTheme(e.detail.theme);
 });
 
-// 监听系统主题变化（跟随系统模式下自动切换）
+// 监听跟随系统模式下手动切换显示事件（不改变 theme 值）
+document.addEventListener('theme-toggled', (e) => {
+    const mode = e.detail.mode;
+    switchHighlightTheme(mode);
+    if (window.ThemeLoader) {
+        window.ThemeLoader.apply();
+    }
+});
+
+// 监听系统主题变化：resolveTheme 内部决定是否跟随（theme<2 返回固定值，theme>=2 跟随系统）
 (function() {
     const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
-    darkMq.addEventListener('change', (e) => {
+    darkMq.addEventListener('change', () => {
         const settings = Alpine.store('settings');
-        const mode = e.matches ? 'dark' : 'light';
-        // 只在跟随系统模式（theme >= 2）时自动切换
         if (settings.theme >= 2) {
-            applyTheme(settings.theme); // resolveTheme 会根据 prefers-color-scheme 重新计算
-            console.log('[theme] system change — follow system, theme:', settings.theme, 'mode:', mode);
+            // 跟随系统模式：同步 theme 的 bit 0 匹配系统，确保图标响应式更新
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            settings.theme = (settings.theme & 2) | (isDark ? 1 : 0);
+            applyTheme(settings.theme);
+            settings._save();
         } else {
-            console.log('[theme] system change — ignored (manual mode', settings.theme, ')');
+            applyTheme(settings.theme);
         }
+        console.log('[theme] system change — theme:', settings.theme);
     });
 })();
 

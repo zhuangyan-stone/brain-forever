@@ -117,16 +117,12 @@
             '<line x1="4.22" y1="19.78" x2="5.64" y2="18.32"/>' +
             '<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
 
-        // 内存标记：用户是否手动切换过主题（登录页无状态，不用 localStorage）
-        var _userToggledTheme = false;
-
         function getCurrentTheme() {
             return document.documentElement.getAttribute('data-theme') || 'light';
         }
 
         function setTheme(mode) {
             document.documentElement.setAttribute('data-theme', mode);
-            _userToggledTheme = true;
             updateThemeIcon(mode);
         }
 
@@ -149,11 +145,10 @@
         // 初始化主题图标
         updateThemeIcon(getCurrentTheme());
 
-        // 监听系统主题变化：用户未手动切换过时才自动跟随
+        // 始终跟随系统主题变化
         (function() {
             var darkMq = window.matchMedia('(prefers-color-scheme: dark)');
             darkMq.addEventListener('change', function(e) {
-                if (_userToggledTheme) return;
                 var mode = e.matches ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', mode);
                 updateThemeIcon(mode);
@@ -477,6 +472,8 @@
                             settings.theme = (curTheme & 2) | loginBrightBit;
                             settings.themeSync = !!data.theme.sync;
                             localStorage.setItem('brainforever_settings', JSON.stringify(settings));
+                            // 记录 forceThemeMode，首页加载时用此值覆盖亮度位，而非读取系统偏好
+                            localStorage.setItem('brainforever_forceThemeMode', String(loginBrightBit));
                         } catch(e) {}
                         document.documentElement.setAttribute('data-theme', loginBrightBit === 1 ? 'dark' : 'light');
                     }

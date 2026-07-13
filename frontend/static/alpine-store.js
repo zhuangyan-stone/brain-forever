@@ -129,17 +129,30 @@ document.addEventListener('alpine:init', function() {
         },
 
         toggleTheme: function() {
-            // 只翻转 bit 0（亮/暗），永不修改 bit 1（是否跟随系统）
-            // 0↔1, 2↔3
-            this.theme = this.theme ^ 1;
-            this._save();
-            document.dispatchEvent(new CustomEvent('theme-changed', {
-                detail: { theme: this.theme }
-            }));
-            console.log('[theme] theme:', this.theme);
-            // 手动模式（0/1）且允许同步时，上报到服务端
-            if (this.theme < 2 && this.themeSync) {
-                this.syncThemeModeToServer();
+            if (this.theme >= 2) {
+                // 跟随系统模式（theme=2/3）：翻转 theme 值（更新图标）+ 直接翻转显示
+                // 后续系统 change 事件会覆盖本次手动切换（最后发生者获胜）
+                this.theme = this.theme ^ 1;  // 2↔3，Alpine 响应式更新图标
+                var root = document.documentElement;
+                var currentStr = root.getAttribute('data-theme') || 'light';
+                var newStr = currentStr === 'dark' ? 'light' : 'dark';
+                root.setAttribute('data-theme', newStr);
+                this._save();
+                document.dispatchEvent(new CustomEvent('theme-toggled', {
+                    detail: { mode: newStr }
+                }));
+                console.log('[theme] toggle in follow-system mode, display:', newStr);
+            } else {
+                // 手动模式（theme=0/1）：翻转 bit 0
+                this.theme = this.theme ^ 1;
+                this._save();
+                document.dispatchEvent(new CustomEvent('theme-changed', {
+                    detail: { theme: this.theme }
+                }));
+                console.log('[theme] theme:', this.theme);
+                if (this.themeSync) {
+                    this.syncThemeModeToServer();
+                }
             }
         },
 
