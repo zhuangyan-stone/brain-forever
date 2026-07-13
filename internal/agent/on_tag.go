@@ -27,7 +27,7 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 	groups, err := theChatStore.SelectChatTitlesGroupByTags(sess.User.ID)
 	if err != nil {
 		h.logger.Errorf("failed to select chat title tag groups. %v", err)
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	chatSN := r.URL.Query().Get("sn")
 	if chatSN == "" {
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_sn_required"), http.StatusBadRequest)
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_sn_required"), http.StatusBadRequest)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	chatTitle, taged, chatID := searchChatBySN(sess, chatSN)
 
 	if chatID == 0 {
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	tags, viewedCount, allViewed, err := h.generateTagsViaLLM(r.Context(), sess, chatID, chatTitle, totalMessages, lang)
 	if err != nil {
 		h.logger.Errorf("%v", err)
-		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_llm_call_failed"), http.StatusInternalServerError)
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_llm_call_failed"), http.StatusInternalServerError)
 		return
 	}
 

@@ -106,12 +106,12 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	var req traitsFrontendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
+		toolset.WriteError(w, i18n.TL(lang, "api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
 		return
 	}
 
 	if req.SN == "" {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
+		toolset.WriteError(w, i18n.TL(lang, "api_error_parameter_required", map[string]any{"Param": "sn"}), http.StatusBadRequest)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		// session's in-memory list (e.g., session expired or recreated).
 		dbChat, err := theChatStore.FindChatBySN(req.SN)
 		if err != nil || dbChat.Deleted {
-			toolset.WriteJSONError(w, i18n.TL(lang, "api_error_chat_not_found"), http.StatusNotFound)
+			toolset.WriteError(w, i18n.TL(lang, "api_error_chat_not_found"), http.StatusNotFound)
 			return
 		}
 		// Add to in-memory list so subsequent lookups succeed.
@@ -134,7 +134,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	dbMessages, err := theChatStore.ListUnExtractMessages(foundChat.ID)
 	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
+		toolset.WriteError(w, i18n.TL(lang, "api_error_failed_to_list_messages", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	remoteResp, err := h.callTraitsLLM(r.Context(), foundChat.Title, dbMessages, lang, sess)
 	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
+		toolset.WriteError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.SN)
 		if err != nil {
 			h.logger.Errorf("store traits to brain.db failed (chatSN=%s). %v", foundChat.SN, err)
-			toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
+			toolset.WriteError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 			return
 		}
 		theChatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)

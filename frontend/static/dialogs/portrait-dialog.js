@@ -390,14 +390,7 @@ document.addEventListener('alpine:init', function() {
                     signal: signal,
                 }).then(function(response) {
                     if (!response.ok) {
-                        return response.json().then(function(data) {
-                            throw new Error(data.error || '请求失败 (' + response.status + ')');
-                        }).catch(function(e) {
-                            if (e instanceof SyntaxError) {
-                                throw new Error('画像服务暂时不可用 (' + response.status + ')');
-                            }
-                            throw e;
-                        });
+                        throw new Error('请求失败 (' + response.status + ')');
                     }
 
                     // 读取 SSE 流

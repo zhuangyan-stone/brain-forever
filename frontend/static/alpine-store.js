@@ -593,7 +593,10 @@ document.addEventListener('alpine:init', function() {
             if (this.trashExpanded && !this.trashLoaded) {
                 var self = this;
                 fetch('/api/chat/deleted')
-                    .then(function(resp) { return resp.json(); })
+                    .then(function(resp) {
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        return resp.json();
+                    })
                     .then(function(data) {
                         self.deletedChats = data.chats || [];
                         self.trashLoaded = true;

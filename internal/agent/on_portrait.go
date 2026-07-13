@@ -89,12 +89,12 @@ type portraitChatTitleItem struct {
 func (h *ChatAgent) tryListUserTraits(w http.ResponseWriter, lang string, userID int64) (allTraits []store.PersonalTrait, ok bool) {
 	allTraits, err := theBrainStore.ListAllTraitsByCreateTime(userID)
 	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
+		toolset.WriteError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return nil, false
 	}
 
 	if len(allTraits) == 0 {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_no_traits_data"), http.StatusNotFound)
+		toolset.WriteError(w, i18n.TL(lang, "api_error_no_traits_data"), http.StatusNotFound)
 		return nil, false
 	}
 
@@ -196,7 +196,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 	llmMsgs, hotTags, err := h.preparePortraitLLMMessages(allTraits, lang, sess.User.ID, retouch)
 	if err != nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
+		toolset.WriteError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
 			map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}

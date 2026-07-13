@@ -23,12 +23,12 @@ type portraitTitleRequest struct {
 func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 	var req portraitTitleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		toolset.WriteJSONError(w, "invalid JSON body", http.StatusBadRequest)
+		toolset.WriteError(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
 	if req.Content == "" {
-		toolset.WriteJSONError(w, "content is required", http.StatusBadRequest)
+		toolset.WriteError(w, "content is required", http.StatusBadRequest)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *ChatAgent) OnGetPortraitTitle(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := client.Chat(titleCtx, messages, llmApiSettings.ApiKey)
 	if err != nil {
-		toolset.WriteJSONError(w, "failed to generate title: "+err.Error(), http.StatusInternalServerError)
+		toolset.WriteError(w, "failed to generate title: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
