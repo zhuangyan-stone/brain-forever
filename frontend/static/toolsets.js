@@ -74,12 +74,12 @@ export function truncateByVisualLength(str, maxLen) {
 }
 
 /**
- * truncate 截断字符串到指定长度，超出部分以 "..." 结尾
+ * truncate 截断字符串到指定长度，超出部分以 "……" 结尾
  * @param {string} str
  * @param {number} maxLen
  * @returns {string}
  */
 export function truncate(str, maxLen) {
     if (str.length <= maxLen) return str;
-    return str.slice(0, maxLen) + '...';
+    return str.slice(0, maxLen) + '……';
 }

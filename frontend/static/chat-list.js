@@ -698,7 +698,7 @@ async function handleExtractTraits(chat) {
         return;
     }
 
-    showToast('正在提取个人特征...', 'info', 5000);
+    showToast('正在提取个人特征……', 'info', 5000);
 
     try {
         const result = await extractTraits(sn);
