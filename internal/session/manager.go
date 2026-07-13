@@ -348,7 +348,7 @@ func (m *Manager) gc() {
 		m.Redis().SetGCStats(m.Ctx, &cache.GCStats{
 			ExpiredAnonymous: expiredAnon,
 			ExpiredLoggedIn:  expiredLoggedIn,
-			OnlineUsers:      remainingLoggedIn,
+			LoggedInUsers:    remainingLoggedIn,
 			AnonymousUsers:   remainingAnon,
 		})
 	}

@@ -164,7 +164,7 @@ func (rs *RedisSessionStore) RefreshTTL(ctx context.Context, sessionID string) e
 type GCStats struct {
 	ExpiredAnonymous int `json:"expired_anonymous"`
 	ExpiredLoggedIn  int `json:"expired_logged_in"`
-	OnlineUsers      int `json:"online_users"`
+	LoggedInUsers    int `json:"logged_in_users"`
 	AnonymousUsers   int `json:"anonymous_users"`
 }
 
@@ -176,7 +176,7 @@ func (rs *RedisSessionStore) SetGCStats(ctx context.Context, stats *GCStats) err
 	return rs.client.HSet(ctx, gcStatsKey,
 		"expired_anonymous", stats.ExpiredAnonymous,
 		"expired_logged_in", stats.ExpiredLoggedIn,
-		"online_users", stats.OnlineUsers,
+		"logged_in_users", stats.LoggedInUsers,
 		"anonymous_users", stats.AnonymousUsers,
 		"updated_at", time.Now().UTC().Format(time.RFC3339),
 	).Err()
@@ -200,8 +200,8 @@ func (rs *RedisSessionStore) GetGCStats(ctx context.Context) (*GCStats, error) {
 	if v, err := strconv.Atoi(data["expired_logged_in"]); err == nil {
 		stats.ExpiredLoggedIn = v
 	}
-	if v, err := strconv.Atoi(data["online_users"]); err == nil {
-		stats.OnlineUsers = v
+	if v, err := strconv.Atoi(data["logged_in_users"]); err == nil {
+		stats.LoggedInUsers = v
 	}
 	if v, err := strconv.Atoi(data["anonymous_users"]); err == nil {
 		stats.AnonymousUsers = v
