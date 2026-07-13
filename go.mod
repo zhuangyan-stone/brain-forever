@@ -1,10 +1,9 @@
 module BrainForever
 
-go 1.25.1
+go 1.26.1
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.1

@@ -34,7 +34,7 @@ func main() {
 	// ============================================================
 	// Command-line flags
 	// ============================================================
-	withNginx := flag.Bool("with-nginx", false, "启用 Nginx 反向代理模式：关闭内置静态文件服务")
+	withNginx := flag.Bool("with-nginx", false, "Enable Nginx reverse proxy mode: disable built-in static file serving")
 	flag.Parse()
 
 	// ============================================================

@@ -35,6 +35,12 @@ func InitPGDB(dsn string) error {
 		return fmt.Errorf("failed to ping PostgreSQL: %w", err)
 	}
 
+	// Set session timezone to UTC for consistent NOW() behavior
+	if _, err := db.Exec("SET timezone TO 'UTC'"); err != nil {
+		db.Close()
+		return fmt.Errorf("failed to set timezone to UTC: %w", err)
+	}
+
 	// Configure connection pool
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
