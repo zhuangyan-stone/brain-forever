@@ -369,7 +369,7 @@ func NewChatHandler(
 		cookieName:     cookieName,
 		defaultLang:    defaultLang,
 		avatarDir:      avatarDir,
-		logger:         logger,
+		logger:         zylog.WrapWithSubject(logger, "agent"),
 	}
 }
 
