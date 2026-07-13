@@ -251,10 +251,10 @@ go run cmd/server/main.go
 
 项目启动时会依次执行：
 
-1. 连接 PostgreSQL（[`internal/store/pgdb.go:24`](../internal/store/pgdb.go:24)）
-2. 创建聊天相关表（[`internal/store/chats.go`](../internal/store/chats.go)）
-3. 创建 pgvector 扩展（[`internal/store/traits.go:74`](../internal/store/traits.go:74)）
-4. 创建 trait 向量相关表（[`internal/store/traits.go:90-105`](../internal/store/traits.go:90:105)）
+1. 连接 PostgreSQL（[`internal/store/pgdb.go:26`](../internal/store/pgdb.go:26)）
+2. 检查 pgvector 扩展是否已安装（[`internal/store/pgdb.go:80`](../internal/store/pgdb.go:80)）
+3. 创建聊天相关表（[`internal/store/chats.go`](../internal/store/chats.go)）
+4. 创建 trait 向量相关表（[`internal/store/traits.go`](../internal/store/traits.go)）
 
 如果所有步骤正常，不会出现任何数据库相关错误。
 
@@ -310,7 +310,24 @@ ERROR: extension "vector" is not available (SQLSTATE 0A000)
 
 **解决方法**: 参考上方 [第 4 节 - 安装 pgvector 扩展](#4-安装-pgvector-扩展)。
 
-### 7.3 数据库端口被占用
+### 7.3 permission denied to create extension "vector"
+
+**错误信息**:
+```
+ERROR: permission denied to create extension "vector" (SQLSTATE 42501)
+```
+
+**原因**: 当前数据库用户没有创建扩展的权限。`CREATE EXTENSION` 需要数据库级别的 `CREATE` 权限，通常只有超级用户（如 `postgres`）或数据库拥有者才具备。
+
+**解决方法**: 用超级用户预先创建好扩展，应用不再尝试自动创建：
+
+```bash
+sudo -u postgres psql -d d2brain -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
+
+创建后重新启动应用即可。
+
+### 7.5 数据库端口被占用
 
 ```bash
 # 检查端口占用
@@ -324,14 +341,14 @@ sudo vi /etc/postgresql/16/main/postgresql.conf
 sudo systemctl restart postgresql
 ```
 
-### 7.4 重置密码
+### 7.6 重置密码
 
 ```bash
 # 将 <用户名> 和 <新密码> 替换为实际值
 sudo -u postgres psql -c "ALTER USER \"<用户名>\" WITH PASSWORD '<新密码>';"
 ```
 
-### 7.5 删除并重建数据库
+### 7.7 删除并重建数据库
 
 ```bash
 # 将 <用户名> 替换为实际值

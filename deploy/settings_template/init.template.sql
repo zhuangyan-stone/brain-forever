@@ -7,7 +7,7 @@
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
 	id            BIGSERIAL PRIMARY KEY,
-	sn            VARCHAR(32)  NOT NULL UNIQUE,
+	sn            VARCHAR(48)  NOT NULL UNIQUE,
 	no            VARCHAR(6)   NOT NULL UNIQUE,
 	tel           VARCHAR(18)  NOT NULL DEFAULT '',
 	nickname      VARCHAR(38)  NOT NULL,
@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_roles_user_id ON roles(user_id);
 -- ============================================================
 CREATE TABLE IF NOT EXISTS chat_sessions (
 	id             BIGSERIAL PRIMARY KEY,
-	sn             VARCHAR(32)  NOT NULL UNIQUE,
+	sn             VARCHAR(48)  NOT NULL UNIQUE,
 	user_id        BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	role_no        BIGINT       NOT NULL DEFAULT 0,
 	title          TEXT         NOT NULL DEFAULT '',
@@ -174,6 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_keywords_kind          ON keywords(kind);
 CREATE INDEX IF NOT EXISTS idx_keywords_trait_kind    ON keywords(trait_id, kind);
 
 -- HNSW index for vector similarity search (requires pgvector >= 0.5.0)
+-- 1024-dim vectors: HNSW dimension limit is 2000 in pgvector ≤ 0.7.x, ok here.
 CREATE INDEX IF NOT EXISTS idx_trait_vectors_hnsw
 	ON trait_vectors USING hnsw (embedding vector_cosine_ops)
 	WITH (m = 16, ef_construction = 64);

@@ -77,9 +77,10 @@ func InitSchema(dimension int) error {
 	// Replace {dimension} placeholder with the actual vector dimension
 	schema := strings.ReplaceAll(string(schemaBytes), "{dimension}", fmt.Sprintf("%d", dimension))
 
-	// Ensure pgvector extension is installed (idempotent)
-	if _, err := ThePGDB().Exec("CREATE EXTENSION IF NOT EXISTS vector"); err != nil {
-		return fmt.Errorf("failed to create pgvector extension: %w", err)
+	// Verify pgvector extension is already installed (must be created by DBA beforehand)
+	var extExists int
+	if err := ThePGDB().Get(&extExists, "SELECT 1 FROM pg_extension WHERE extname = 'vector'"); err != nil {
+		return fmt.Errorf("pgvector extension is not installed: run 'CREATE EXTENSION vector' as a superuser first: %w", err)
 	}
 
 	// Execute the full schema

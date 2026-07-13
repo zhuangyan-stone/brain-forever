@@ -36,7 +36,7 @@ func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSou
 			src.SiteName, src.SiteIcon, src.PublishDate, src.Score,
 		)
 		if err != nil {
-			s.logger.Errorf("SQL [%s] args=[chatID=%d msgID=%d]: %v", sqlStr, chatID, msgID, err)
+			s.logger.Errorf("SQL [%s] args=[chatID=%d msgID=%d]:\n%v", sqlStr, chatID, msgID, err)
 			return fmt.Errorf("failed to insert web source: %w", err)
 		}
 	}
@@ -53,7 +53,7 @@ func (s *ChatStore) ListWebSourcesByChat(chatID int64) (map[int64][]WebSource, e
 	var sources []WebSource
 	err := s.db().Select(&sources, sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list web sources: %w", err)
 	}
 

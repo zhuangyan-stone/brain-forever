@@ -135,7 +135,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	remoteResp, err := h.callTraitsLLM(r.Context(), req.SN, foundChat.Title, dbMessages, lang, sess)
+	remoteResp, err := h.callTraitsLLM(r.Context(), foundChat.Title, dbMessages, lang, sess)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 		return
@@ -165,7 +165,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(remoteResp)
 }
 
-func (h *ChatAgent) callTraitsLLM(ctx context.Context, sn, title string, dbMessages []store.Message, lang string, sess *session.Session) (*traitsResponse, error) {
+func (h *ChatAgent) callTraitsLLM(ctx context.Context, title string, dbMessages []store.Message, lang string, sess *session.Session) (*traitsResponse, error) {
 	systemContent := getTraitSystemPrompt(lang, title)
 
 	llmMsgs := make([]llm.Message, 0, 1+len(dbMessages))

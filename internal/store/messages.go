@@ -29,7 +29,7 @@ func (s *ChatStore) InsertMessage(chatID int64, groupIndex int, role int,
 		 VALUES($1, $2, $3, $4, $5, $6)`
 	_, err := s.db().Exec(sqlStr, chatID, groupIndex, role, reasoning, content, interrupted)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d groupIndex=%d]: %v", sqlStr, chatID, groupIndex, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d groupIndex=%d]:\n%v", sqlStr, chatID, groupIndex, err)
 		return fmt.Errorf("failed to insert message: %w", err)
 	}
 	return nil
@@ -45,7 +45,7 @@ func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	var msgs []Message
 	err := s.db().Select(&msgs, sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list messages: %w", err)
 	}
 	return msgs, nil
@@ -62,7 +62,7 @@ func (s *ChatStore) ListMessagesByRange(chatID int64, startID int64, limit int) 
 	var msgs []Message
 	err := s.db().Select(&msgs, sqlStr, chatID, startID, limit)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d startID=%d]: %v", sqlStr, chatID, startID, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d startID=%d]:\n%v", sqlStr, chatID, startID, err)
 		return nil, fmt.Errorf("failed to list messages by range: %w", err)
 	}
 	return msgs, nil
@@ -78,7 +78,7 @@ func (s *ChatStore) ListUnExtractMessages(chatID int64) ([]Message, error) {
 	var msgs []Message
 	err := s.db().Select(&msgs, sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list unextracted messages: %w", err)
 	}
 	return msgs, nil
@@ -90,7 +90,7 @@ func (s *ChatStore) CountMessages(chatID int64) (int, error) {
 	var count int
 	err := s.db().Get(&count, sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return 0, fmt.Errorf("failed to count messages: %w", err)
 	}
 	return count, nil
@@ -110,7 +110,7 @@ func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 	sqlDelWeb := "DELETE FROM web_sources WHERE chat_id = $1 AND msg_id = $2"
 	_, err = tx.Exec(sqlDelWeb, chatID, groupIndex)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d groupIndex=%d]: %v", sqlDelWeb, chatID, groupIndex, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d groupIndex=%d]:\n%v", sqlDelWeb, chatID, groupIndex, err)
 		return fmt.Errorf("failed to delete web sources for message group: %w", err)
 	}
 
@@ -118,7 +118,7 @@ func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 	sqlDelMsg := "DELETE FROM chat_messages WHERE chat_id = $1 AND group_index = $2"
 	_, err = tx.Exec(sqlDelMsg, chatID, groupIndex)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d groupIndex=%d]: %v", sqlDelMsg, chatID, groupIndex, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d groupIndex=%d]:\n%v", sqlDelMsg, chatID, groupIndex, err)
 		return fmt.Errorf("failed to delete message group: %w", err)
 	}
 
@@ -133,7 +133,7 @@ func (s *ChatStore) FindMessageByID(msgID int64) (*Message, error) {
 	var msg Message
 	err := s.db().Get(&msg, sqlStr, msgID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[msgID=%d]: %v", sqlStr, msgID, err)
+		s.logger.Errorf("SQL [%s] args=[msgID=%d]:\n%v", sqlStr, msgID, err)
 		return nil, fmt.Errorf("message not found (id=%d): %w", msgID, err)
 	}
 	return &msg, nil

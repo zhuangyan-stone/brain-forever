@@ -175,7 +175,7 @@ func (s *UserStore) FindOrCreateByTel(tel string) (user *User, isNew bool, err e
 	sqlUpdateTel := "UPDATE users SET tel = $1 WHERE id = $2"
 	_, execErr := ThePGDB().Exec(sqlUpdateTel, tel, createdUser.ID)
 	if execErr != nil {
-		s.logger.Errorf("SQL [%s] args=[tel=%s id=%d]: %v", sqlUpdateTel, tel, createdUser.ID, execErr)
+		s.logger.Errorf("SQL [%s] args=[tel=%s id=%d]:\n%v", sqlUpdateTel, tel, createdUser.ID, execErr)
 		err = fmt.Errorf("failed to set tel for new user: %w", execErr)
 		return
 	}
@@ -209,7 +209,7 @@ func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
 		if strings.Contains(err.Error(), "duplicate key") {
 			return nil, fmt.Errorf("duplicate sn: %w", err)
 		}
-		s.logger.Errorf("SQL [%s] args=[nickname=%s no=%s sn=%s]: %v", sqlStr, nickname, no, sn, err)
+		s.logger.Errorf("SQL [%s] args=[nickname=%s no=%s sn=%s]:\n%v", sqlStr, nickname, no, sn, err)
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 	return &user, nil
@@ -227,7 +227,7 @@ func (s *UserStore) GetUserByID(id int64, includeDeleted bool) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found (id=%d)", id)
 		}
-		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", query, id, err)
+		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", query, id, err)
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	return &u, nil
@@ -245,7 +245,7 @@ func (s *UserStore) GetUserByNO(no string, includeDeleted bool) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by no=%s", no)
 		}
-		s.logger.Errorf("SQL [%s] args=[no=%s]: %v", query, no, err)
+		s.logger.Errorf("SQL [%s] args=[no=%s]:\n%v", query, no, err)
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	return &u, nil
@@ -266,7 +266,7 @@ func (s *UserStore) GetUserByTel(tel string, includeDeleted bool) (*User, error)
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		s.logger.Errorf("SQL [%s] args=[tel=%s]: %v", query, tel, err)
+		s.logger.Errorf("SQL [%s] args=[tel=%s]:\n%v", query, tel, err)
 		return nil, fmt.Errorf("failed to query user by tel: %w", err)
 	}
 	return &u, nil
@@ -284,7 +284,7 @@ func (s *UserStore) GetUserBySN(sn string, includeDeleted bool) (*User, error) {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by sn=%s", sn)
 		}
-		s.logger.Errorf("SQL [%s] args=[sn=%s]: %v", query, sn, err)
+		s.logger.Errorf("SQL [%s] args=[sn=%s]:\n%v", query, sn, err)
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 	return &u, nil
@@ -304,7 +304,7 @@ func (s *UserStore) UpdateNickname(id int64, newNickname string) error {
 	sqlStr := "UPDATE users SET nickname = $1 WHERE id = $2"
 	result, err := ThePGDB().Exec(sqlStr, newNickname, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[nickname=%s id=%d]: %v", sqlStr, newNickname, id, err)
+		s.logger.Errorf("SQL [%s] args=[nickname=%s id=%d]:\n%v", sqlStr, newNickname, id, err)
 		return fmt.Errorf("failed to update nickname: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -329,7 +329,7 @@ func (s *UserStore) UpdatePassword(id int64, newRawPassword string) error {
 	sqlStr := "UPDATE users SET password = $1 WHERE id = $2"
 	_, err = ThePGDB().Exec(sqlStr, newPassword, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
+		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 	return nil
@@ -340,7 +340,7 @@ func (s *UserStore) DeleteUser(id int64) error {
 	sqlStr := "DELETE FROM users WHERE id = $1"
 	result, err := ThePGDB().Exec(sqlStr, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
+		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -356,7 +356,7 @@ func (s *UserStore) ListUsers() ([]User, error) {
 	sqlStr := "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users ORDER BY id"
 	err := ThePGDB().Select(&users, sqlStr)
 	if err != nil {
-		s.logger.Errorf("SQL [%s]: %v", sqlStr, err)
+		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 	return users, nil

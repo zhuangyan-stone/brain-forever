@@ -46,7 +46,7 @@ func InitEmbedder(provider string, dimension int, logger zylog.Logger) embedder.
 		provider = ProviderAli
 	}
 	if dimension <= 0 {
-		dimension = 2048
+		dimension = 1024 // NOTE: limit by pg-vector
 	}
 
 	var e embedder.Embedder
