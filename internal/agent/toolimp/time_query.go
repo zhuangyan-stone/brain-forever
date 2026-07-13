@@ -46,12 +46,12 @@ func timeQueryToolDefinition(lang string) llm.ToolDefinition {
 
 	schemaBytes, err := json.Marshal(schema)
 	if err != nil {
-		panic(fmt.Sprintf("failed to marshal time query schema: %v", err))
+		panic(fmt.Sprintf("failed to marshal time query schema. %v", err))
 	}
 
 	var paramsMap map[string]any
 	if err := json.Unmarshal(schemaBytes, &paramsMap); err != nil {
-		panic(fmt.Sprintf("failed to parse time query schema: %v", err))
+		panic(fmt.Sprintf("failed to parse time query schema. %v", err))
 	}
 
 	strict := true

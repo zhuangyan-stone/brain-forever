@@ -146,7 +146,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	if len(remoteResp.Features) > 0 {
 		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.SN)
 		if err != nil {
-			h.logger.Errorf("store traits to brain.db failed (chatSN=%s): %v", foundChat.SN, err)
+			h.logger.Errorf("store traits to brain.db failed (chatSN=%s). %v", foundChat.SN, err)
 			toolset.WriteJSONError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 			return
 		}
@@ -218,7 +218,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, title string, dbMessages 
 
 	resp, err := client.ChatWithOptions(ctx, reqBody, apiSetting.ApiKey)
 	if err != nil {
-		return nil, fmt.Errorf("LLM call failed: %w", err)
+		return nil, fmt.Errorf("LLM call failed. %w", err)
 	}
 
 	result := &traitsResponse{}
@@ -313,7 +313,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 
 		vector, err := emb.Embed(ctx, f.FeatureText, apiSetting.ApiKey)
 		if err != nil {
-			return 0, fmt.Errorf("embed trait failed: %w", err)
+			return 0, fmt.Errorf("embed trait failed. %w", err)
 		}
 
 		trait := store.PersonalTrait{

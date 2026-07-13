@@ -60,7 +60,7 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 		// loadAndStore clears stale data internally before re-populating.
 		count, err := p.loadAndStore(ctx, dir)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load captcha dir %q: %w", dir, err)
+			return nil, fmt.Errorf("failed to load captcha dir %q. %w", dir, err)
 		}
 		// Detect activeDir while iterating
 		if _, err := os.Stat(filepath.Join(captchaDirBase, dir+".active")); err == nil {
@@ -87,7 +87,7 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, er
 	// when the files on disk have changed since the last load.
 	redisKey := "CAPTCHAS_store." + dir
 	if err := p.store.Del(ctx, redisKey); err != nil {
-		return 0, fmt.Errorf("failed to clear captcha store %q before reload: %w", redisKey, err)
+		return 0, fmt.Errorf("failed to clear captcha store %q before reload. %w", redisKey, err)
 	}
 
 	pngDir := filepath.Join(p.captchaDirBase, dir, "png")
@@ -95,13 +95,13 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, er
 
 	// Ensure png subdirectory exists
 	if err := os.MkdirAll(pngDir, 0755); err != nil {
-		return 0, fmt.Errorf("cannot create png dir %q: %w", pngDir, err)
+		return 0, fmt.Errorf("cannot create png dir %q. %w", pngDir, err)
 	}
 
 	// Read all .png files, extract filenames (without extension)
 	pngEntries, err := os.ReadDir(pngDir)
 	if err != nil {
-		return 0, fmt.Errorf("cannot read png dir %q: %w", pngDir, err)
+		return 0, fmt.Errorf("cannot read png dir %q. %w", pngDir, err)
 	}
 
 	var pngNames []string
@@ -118,13 +118,13 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, er
 
 	// Ensure json subdirectory exists
 	if err := os.MkdirAll(jsonDir, 0755); err != nil {
-		return 0, fmt.Errorf("cannot create json dir %q: %w", jsonDir, err)
+		return 0, fmt.Errorf("cannot create json dir %q. %w", jsonDir, err)
 	}
 
 	// Read all .json files into a map
 	jsonEntries, err := os.ReadDir(jsonDir)
 	if err != nil {
-		return 0, fmt.Errorf("cannot read json dir %q: %w", jsonDir, err)
+		return 0, fmt.Errorf("cannot read json dir %q. %w", jsonDir, err)
 	}
 
 	jsonMap := make(map[string][]byte, len(jsonEntries))
@@ -152,7 +152,7 @@ func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, er
 			continue // no matching JSON, skip
 		}
 		if err := p.store.HSet(ctx, redisKey, name, string(data)); err != nil {
-			return count, fmt.Errorf("failed to hset captcha %q: %w", name, err)
+			return count, fmt.Errorf("failed to hset captcha %q. %w", name, err)
 		}
 		count++
 	}
@@ -185,7 +185,7 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 	// HRANDFIELD gets a random field (image name)
 	fields, err := p.store.HRandField(ctx, redisKey, 1)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hrandfield from %q: %w", redisKey, err)
+		return nil, fmt.Errorf("failed to hrandfield from %q. %w", redisKey, err)
 	}
 	if len(fields) == 0 {
 		return nil, fmt.Errorf("no captcha available in %q", redisKey)
@@ -196,12 +196,12 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 	// HGET retrieves JSON data
 	val, err := p.store.HGet(ctx, redisKey, field)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hget %q field %q: %w", redisKey, field, err)
+		return nil, fmt.Errorf("failed to hget %q field %q. %w", redisKey, field, err)
 	}
 
 	var data CaptchaData
 	if err := json.Unmarshal([]byte(val), &data); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal captcha data for %q: %w", field, err)
+		return nil, fmt.Errorf("failed to unmarshal captcha data for %q. %w", field, err)
 	}
 
 	return &CaptchaItem{
@@ -230,7 +230,7 @@ func (p *CaptchaProvider) Refresh(ctx context.Context, activeDir string) error {
 	// Reload
 	count, err := p.loadAndStore(ctx, activeDir)
 	if err != nil {
-		return fmt.Errorf("failed to reload captcha dir %q: %w", activeDir, err)
+		return fmt.Errorf("failed to reload captcha dir %q. %w", activeDir, err)
 	}
 
 	p.activeDir = activeDir

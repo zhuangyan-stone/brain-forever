@@ -240,7 +240,7 @@ func (a ApiKeysConfig) ValidateDefaultProviders() error {
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("default API provider(s) have no keys configured: %v", missing)
+		return fmt.Errorf("default API provider(s) have no keys configured. %v", missing)
 	}
 	return nil
 }

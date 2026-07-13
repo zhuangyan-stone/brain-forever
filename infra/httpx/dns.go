@@ -107,7 +107,7 @@ func NewDNSFallbackDialContext(dialer *net.Dialer, fallbackServers []string) fun
 					firstErr = err
 				}
 			}
-			return nil, fmt.Errorf("all fallback DNS servers unavailable: %w", firstErr)
+			return nil, fmt.Errorf("all fallback DNS servers unavailable. %w", firstErr)
 		},
 	}
 
@@ -131,7 +131,7 @@ func NewDNSFallbackDialContext(dialer *net.Dialer, fallbackServers []string) fun
 
 		// Both failed -return the original system DNS error for clarity
 		if err != nil {
-			return nil, fmt.Errorf("DNS lookup failed for %s (tried system and fallback DNS): %w", host, err)
+			return nil, fmt.Errorf("DNS lookup failed for %s (tried system and fallback DNS). %w", host, err)
 		}
 		return nil, fmt.Errorf("DNS lookup returned no addresses for %s", host)
 	}

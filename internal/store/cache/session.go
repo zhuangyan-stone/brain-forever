@@ -102,7 +102,7 @@ func (rs *RedisSessionStore) SetLoginSession(ctx context.Context, sessionID stri
 		"last_active", now,
 	).Err()
 	if err != nil {
-		return fmt.Errorf("redis: failed to set login session: %w", err)
+		return fmt.Errorf("redis: failed to set login session. %w", err)
 	}
 
 	// Set TTL so expired sessions are automatically cleaned up
@@ -117,7 +117,7 @@ func (rs *RedisSessionStore) GetLoginSession(ctx context.Context, sessionID stri
 
 	data, err := rs.client.HGetAll(ctx, key).Result()
 	if err != nil {
-		return nil, fmt.Errorf("redis: failed to get login session: %w", err)
+		return nil, fmt.Errorf("redis: failed to get login session. %w", err)
 	}
 
 	if len(data) == 0 {

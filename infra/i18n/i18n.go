@@ -81,7 +81,7 @@ func Init(langDir string) {
 		return nil
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[i18n] failed to walk translation directory: %v\n", err)
+		fmt.Fprintf(os.Stderr, "[i18n] failed to walk translation directory. %v\n", err)
 		return
 	}
 
@@ -98,12 +98,12 @@ func Init(langDir string) {
 		if dir == "." {
 			// Top-level file (e.g., en.toml) -load as-is, no prefix.
 			if _, err := bundle.LoadMessageFile(file); err != nil {
-				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
+				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s. %v\n", file, err)
 			}
 		} else {
 			// Subdirectory file (e.g., en/tools/current_time.toml) -prefix message IDs.
 			if err := loadWithPrefix(file, langDir); err != nil {
-				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s: %v\n", file, err)
+				fmt.Fprintf(os.Stderr, "[i18n] failed to load translation file %s. %v\n", file, err)
 			}
 		}
 	}
@@ -124,7 +124,7 @@ func loadWithPrefix(filePath string, langDir string) error {
 	// Read the file content
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return fmt.Errorf("failed to read file. %w", err)
 	}
 
 	// Determine the language tag from the directory structure.
@@ -152,7 +152,7 @@ func loadWithPrefix(filePath string, langDir string) error {
 	//   other = "..."
 	var rawData map[string]interface{}
 	if err := toml.Unmarshal(data, &rawData); err != nil {
-		return fmt.Errorf("failed to unmarshal toml: %w", err)
+		return fmt.Errorf("failed to unmarshal toml. %w", err)
 	}
 
 	// Extract the file name without extension as the prefix
@@ -191,7 +191,7 @@ func loadWithPrefix(filePath string, langDir string) error {
 		}
 
 		if err := bundle.AddMessages(tag, msg); err != nil {
-			return fmt.Errorf("failed to add message %s: %w", msg.ID, err)
+			return fmt.Errorf("failed to add message %s. %w", msg.ID, err)
 		}
 	}
 
@@ -327,7 +327,7 @@ func MustLocalize(lang, messageID string, templateData ...map[string]interface{}
 
 	localized, err := localizer.Localize(config)
 	if err != nil {
-		panic(fmt.Sprintf("[i18n] missing translation for %s in %s: %v", messageID, lang, err))
+		panic(fmt.Sprintf("[i18n] missing translation for %s in %s. %v", messageID, lang, err))
 	}
 
 	return localized

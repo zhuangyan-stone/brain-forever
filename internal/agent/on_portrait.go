@@ -253,7 +253,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 	stream := client.ChatStreamWithOptions(r.Context(), streamReq, llmApiSettings.ApiKey)
 	if err := stream.Err(); err != nil {
-		sendPortraitSSE(sw, "error", fmt.Sprintf("LLM stream failed: %v", err))
+		sendPortraitSSE(sw, "error", fmt.Sprintf("LLM stream failed. %v", err))
 		flusher.Flush()
 		io.Copy(io.Discard, r.Body)
 		return
@@ -287,7 +287,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := stream.Err(); err != nil {
-		sendPortraitSSE(sw, "error", fmt.Sprintf("stream error: %v", err))
+		sendPortraitSSE(sw, "error", fmt.Sprintf("stream error. %v", err))
 		flusher.Flush()
 		return
 	}

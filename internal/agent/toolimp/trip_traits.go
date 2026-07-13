@@ -167,7 +167,7 @@ func (t *TripTraitsTool) SetArgument(arguments string) error {
 	// Fallback: extract features using byte-level scanning + json.Marshal re-encoding
 	result, err := parseLenientJSON(arguments)
 	if err != nil {
-		return fmt.Errorf("parse arguments failed: %w", err)
+		return fmt.Errorf("parse arguments failed. %w", err)
 	}
 
 	t.params = TripTraitsParams{Features: filterValidFeatures(result)}

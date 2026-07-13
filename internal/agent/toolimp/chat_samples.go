@@ -43,12 +43,12 @@ func chatSamplesToolDefinition(lang string) llm.ToolDefinition {
 
 	schemaBytes, err := json.Marshal(schema)
 	if err != nil {
-		panic(fmt.Sprintf("failed to marshal chat samples schema: %v", err))
+		panic(fmt.Sprintf("failed to marshal chat samples schema. %v", err))
 	}
 
 	var paramsMap map[string]any
 	if err := json.Unmarshal(schemaBytes, &paramsMap); err != nil {
-		panic(fmt.Sprintf("failed to parse chat samples schema: %v", err))
+		panic(fmt.Sprintf("failed to parse chat samples schema. %v", err))
 	}
 
 	strict := true
@@ -170,7 +170,7 @@ func (f *ChatSamplesToolImp) Execute() (string, error) {
 	// Load the next batch of messages from DB using chatID.
 	dbMessages, err := f.chatsStore.ListMessagesByRange(f.chatID, f.nextStartMessageID, pageSize)
 	if err != nil {
-		return "", fmt.Errorf("failed to load messages: %w", err)
+		return "", fmt.Errorf("failed to load messages. %w", err)
 	}
 
 	if len(dbMessages) == 0 {

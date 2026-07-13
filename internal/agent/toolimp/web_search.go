@@ -38,7 +38,7 @@ func webSearchArguments(arguments string) (string, error) {
 		SearchQueries string `json:"search_queries"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", fmt.Errorf("unmarshal arguments: %w", err)
+		return "", fmt.Errorf("unmarshal arguments. %w", err)
 	}
 	return result.SearchQueries, nil
 }
@@ -76,12 +76,12 @@ func webSearchToolDefinition(lang string) llm.ToolDefinition {
 
 	schemaBytes, err := json.Marshal(schema)
 	if err != nil {
-		panic(fmt.Sprintf("failed to marshal web search tool schema: %v", err))
+		panic(fmt.Sprintf("failed to marshal web search tool schema. %v", err))
 	}
 
 	var paramsMap map[string]any
 	if err := json.Unmarshal(schemaBytes, &paramsMap); err != nil {
-		panic(fmt.Sprintf("failed to parse web search tool schema: %v", err))
+		panic(fmt.Sprintf("failed to parse web search tool schema. %v", err))
 	}
 
 	strict := true
@@ -137,7 +137,7 @@ func (imp *WebSearchToolImp) GetPendingText() string {
 func (imp *WebSearchToolImp) SetArgument(arguments string) (err error) {
 	imp.q, err = webSearchArguments(arguments)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.TL(imp.lang, "web_search_error_unmarshal_args", nil), err)
+		return fmt.Errorf("%s. %w", i18n.TL(imp.lang, "web_search_error_unmarshal_args", nil), err)
 	}
 	return
 }

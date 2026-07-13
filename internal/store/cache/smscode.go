@@ -108,7 +108,7 @@ func (c *SMSCodeCache) Generate(ctx context.Context, purpose, tel string, provid
 
 	err := c.client.HSet(ctx, key, data).Err()
 	if err != nil {
-		return "", fmt.Errorf("redis: failed to set SMS code: %w", err)
+		return "", fmt.Errorf("redis: failed to set SMS code. %w", err)
 	}
 
 	ttl := getTTL(purpose)
@@ -168,7 +168,7 @@ func (c *SMSCodeCache) GetData(ctx context.Context, purpose, tel string) (*SmsCo
 
 	data, err := c.client.HGetAll(ctx, key).Result()
 	if err != nil {
-		return nil, fmt.Errorf("redis: failed to get SMS code data: %w", err)
+		return nil, fmt.Errorf("redis: failed to get SMS code data. %w", err)
 	}
 
 	if len(data) == 0 {

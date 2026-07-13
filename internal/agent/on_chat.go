@@ -164,7 +164,7 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Phase 1: Delete traits from brain DB (cross-table) BEFORE deleting the chat.
 	if _, err := theBrainStore.DeleteByChatSN(sn); err != nil {
-		h.logger.Errorf("failed to delete traits for chat %s: %v", sn, err)
+		h.logger.Errorf("failed to delete traits for chat %s. %v", sn, err)
 	}
 
 	// Phase 2: Delete the chat session from chats DB.
@@ -203,7 +203,7 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(sns) > 0 {
 		if _, err := theBrainStore.DeleteTraitsByChatSNs(sns); err != nil {
-			h.logger.Errorf("failed to delete traits for trashed chats: %v", err)
+			h.logger.Errorf("failed to delete traits for trashed chats. %v", err)
 		}
 	}
 

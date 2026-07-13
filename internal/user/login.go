@@ -94,14 +94,14 @@ func (h *Handler) OnGetVerifyCaptcha(w http.ResponseWriter, r *http.Request) {
 
 	item, err := h.captchaProvider.GetOne(r.Context())
 	if err != nil {
-		h.logger.Errorf("failed to get captcha: %v", err)
+		h.logger.Errorf("failed to get captcha. %v", err)
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
 	// Cache in Redis for subsequent verification
 	if err := h.storeCaptchaItem(r.Context(), sessionID, action, item); err != nil {
-		h.logger.Errorf("failed to cache captcha item: %v", err)
+		h.logger.Errorf("failed to cache captcha item. %v", err)
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
@@ -179,12 +179,12 @@ func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 
 	// Verification passed, consume the captcha
 	if err := h.deleteCaptchaItem(r.Context(), sessionID, action); err != nil {
-		h.logger.Warnf("failed to delete consumed captcha: %v", err)
+		h.logger.Warnf("failed to delete consumed captcha. %v", err)
 	}
 
 	verifyCode, err := h.smsCodeCache.Generate(context.Background(), action, tel)
 	if err != nil {
-		h.logger.Errorf("failed to generate SMS verify code for %s: %v", tel, err)
+		h.logger.Errorf("failed to generate SMS verify code for %s. %v", tel, err)
 		http.Error(w, i18n.T("api_error_sms_send_failed", map[string]any{"Error": err.Error()}), http.StatusInternalServerError)
 		return
 	}
@@ -325,7 +325,7 @@ func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool
 
 	var userSettings store.UserSettings
 	if err := userSettings.FromString(user.Settings); err != nil {
-		h.logger.Errorf("failed to parse user settings for user %s: %v", user.SN, err)
+		h.logger.Errorf("failed to parse user settings for user %s. %v", user.SN, err)
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}
@@ -388,7 +388,7 @@ func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool
 			Settings: userSettings.ToString(),
 		},
 	); err != nil {
-		h.logger.Errorf("failed to persist login session to Redis: %v", err)
+		h.logger.Errorf("failed to persist login session to Redis. %v", err)
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
 	}

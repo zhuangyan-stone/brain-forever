@@ -478,13 +478,13 @@ func NewLogger(cfg Config) (Logger, error) {
 		// Ensure the log directory exists
 		dir := filepath.Dir(cfg.File)
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create log directory: %w", err)
+			return nil, fmt.Errorf("failed to create log directory. %w", err)
 		}
 
 		// Open the log file (append mode)
 		file, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open log file: %w", err)
+			return nil, fmt.Errorf("failed to open log file. %w", err)
 		}
 
 		// If log rotation is configured, use the custom rotating writer
@@ -564,7 +564,7 @@ func (w *rotatingWriter) Write(p []byte) (n int, err error) {
 	if w.currentSize+int64(len(p)) > int64(w.cfg.MaxSize)*1024*1024 {
 		if err := w.rotate(); err != nil {
 			// If rotation fails, continue writing to the current file
-			log.Printf("Log rotation failed: %v", err)
+			log.Printf("Log rotation failed. %v", err)
 		}
 	}
 
@@ -578,20 +578,20 @@ func (w *rotatingWriter) Write(p []byte) (n int, err error) {
 func (w *rotatingWriter) rotate() error {
 	// Close the current file
 	if err := w.file.Close(); err != nil {
-		return fmt.Errorf("failed to close log file: %w", err)
+		return fmt.Errorf("failed to close log file. %w", err)
 	}
 
 	// Rename the current file
 	timestamp := time.Now().Format("2006_01_02-15_04_05")
 	backupPath := w.cfg.File + "." + timestamp
 	if err := os.Rename(w.cfg.File, backupPath); err != nil {
-		return fmt.Errorf("failed to rename log file: %w", err)
+		return fmt.Errorf("failed to rename log file. %w", err)
 	}
 
 	// Create a new file
 	file, err := os.OpenFile(w.cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to create new log file: %w", err)
+		return fmt.Errorf("failed to create new log file. %w", err)
 	}
 
 	w.file = file

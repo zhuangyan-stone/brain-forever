@@ -30,7 +30,7 @@ func (s *ChatStore) SelectTagsGroup() (map[string]int, error) {
 	err := s.db().Select(&rows, sqlStr)
 	if err != nil {
 		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
-		return nil, fmt.Errorf("failed to select tag groups: %w", err)
+		return nil, fmt.Errorf("failed to select tag groups. %w", err)
 	}
 
 	result := make(map[string]int, len(rows))
@@ -54,7 +54,7 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 	err := s.db().Select(&rows, sqlStr)
 	if err != nil {
 		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
-		return nil, fmt.Errorf("failed to select non-empty tag groups: %w", err)
+		return nil, fmt.Errorf("failed to select non-empty tag groups. %w", err)
 	}
 
 	result := make(map[string]int, len(rows))
@@ -73,7 +73,7 @@ func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 	err := s.db().Get(&chatTag, sqlStr, chatID, tag)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
-		return nil, fmt.Errorf("failed to insert chat tag: %w", err)
+		return nil, fmt.Errorf("failed to insert chat tag. %w", err)
 	}
 	return &chatTag, nil
 }
@@ -88,7 +88,7 @@ func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
 	err := s.db().Select(&tags, sqlStr, chatID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
-		return nil, fmt.Errorf("failed to list chat tags: %w", err)
+		return nil, fmt.Errorf("failed to list chat tags. %w", err)
 	}
 	return tags, nil
 }
@@ -99,7 +99,7 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to delete chat tag: %w", err)
+		return fmt.Errorf("failed to delete chat tag. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -114,7 +114,7 @@ func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
 	_, err := s.db().Exec(sqlStr, chatID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
-		return fmt.Errorf("failed to delete chat tags for chat (id=%d): %w", chatID, err)
+		return fmt.Errorf("failed to delete chat tags for chat (id=%d). %w", chatID, err)
 	}
 	return nil
 }

@@ -101,7 +101,7 @@ func (h *Handler) OnSaveApiKeySettings(w http.ResponseWriter, r *http.Request) {
 		dbApis.Search.ApiKey = ""
 	}
 	if err := store.TheUserStore().UpdateUserSettingsAPIKey(sess.User.ID, &dbApis); err != nil {
-		h.logger.Errorf("failed to save API key settings for user %d: %v", sess.User.ID, err)
+		h.logger.Errorf("failed to save API key settings for user %d. %v", sess.User.ID, err)
 		http.Error(w, "failed to save settings", http.StatusInternalServerError)
 		return
 	}
@@ -155,7 +155,7 @@ func (h *Handler) OnSaveApiKeySettings(w http.ResponseWriter, r *http.Request) {
 				Settings: settingsStr,
 			},
 		); err != nil {
-			h.logger.Warnf("failed to update Redis login session after API key save: %v", err)
+			h.logger.Warnf("failed to update Redis login session after API key save. %v", err)
 		}
 	}
 

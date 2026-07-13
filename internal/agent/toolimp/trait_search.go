@@ -132,7 +132,7 @@ func traitSearchByTextArguments(arguments string) (text string, category int, er
 		Category int    `json:"category"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", 0, fmt.Errorf("unmarshal arguments: %w", err)
+		return "", 0, fmt.Errorf("unmarshal arguments. %w", err)
 	}
 	return result.Text, result.Category, nil
 }
@@ -144,7 +144,7 @@ func traitSearchByKeywordArguments(arguments string) (keyword string, kind strin
 		Kind    string `json:"kind"`
 	}
 	if err := json.Unmarshal([]byte(arguments), &result); err != nil {
-		return "", "", fmt.Errorf("unmarshal arguments: %w", err)
+		return "", "", fmt.Errorf("unmarshal arguments. %w", err)
 	}
 	return result.Keyword, result.Kind, nil
 }
@@ -261,7 +261,7 @@ func (imp *TraitSearchByTextToolImp) GetPendingText() string {
 func (imp *TraitSearchByTextToolImp) SetArgument(arguments string) (err error) {
 	imp.q, imp.category, err = traitSearchByTextArguments(arguments)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_unmarshal_args", nil), err)
+		return fmt.Errorf("%s. %w", i18n.TL(imp.lang, "trait_search_error_unmarshal_args", nil), err)
 	}
 	return
 }
@@ -277,7 +277,7 @@ func (imp *TraitSearchByTextToolImp) Execute() (result string, err error) {
 	var traits []TraitSource
 	traits, err = imp.searcher.SearchByText(imp.ctx, imp.q, imp.category, imp.topK)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_search_failed", nil), err)
+		return "", fmt.Errorf("%s. %w", i18n.TL(imp.lang, "trait_search_error_search_failed", nil), err)
 	}
 
 	// Accumulate results across multiple tool calls in the same reasoning cycle.
@@ -302,7 +302,7 @@ func (imp *TraitSearchByKeywordToolImp) GetPendingText() string {
 func (imp *TraitSearchByKeywordToolImp) SetArgument(arguments string) (err error) {
 	imp.keyword, imp.kind, err = traitSearchByKeywordArguments(arguments)
 	if err != nil {
-		return fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_unmarshal_args", nil), err)
+		return fmt.Errorf("%s. %w", i18n.TL(imp.lang, "trait_search_error_unmarshal_args", nil), err)
 	}
 	return
 }
@@ -324,7 +324,7 @@ func (imp *TraitSearchByKeywordToolImp) Execute() (result string, err error) {
 	var traits []TraitSource
 	traits, err = imp.searcher.SearchByKeyword(imp.ctx, imp.keyword, kindInt)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", i18n.TL(imp.lang, "trait_search_error_search_failed", nil), err)
+		return "", fmt.Errorf("%s. %w", i18n.TL(imp.lang, "trait_search_error_search_failed", nil), err)
 	}
 
 	// Accumulate results across multiple tool calls in the same reasoning cycle.

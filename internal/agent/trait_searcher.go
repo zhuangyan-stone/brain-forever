@@ -69,13 +69,13 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 	// 1. Use the client (embedder.Embedder) to compute the vector for queryText
 	vector, err := a.client.Embed(ctx, queryText, a.apiSetting.ApiKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to embed query text: %w", err)
+		return nil, fmt.Errorf("failed to embed query text. %w", err)
 	}
 
 	// 2. Call store.SearchByVector() to perform the query, get []store.PersonalTrait, then convert to []toolimp.TraitSource
 	traits, err := a.store.SearchByVector(a.userID, vector, category, topK)
 	if err != nil {
-		return nil, fmt.Errorf("failed to search traits: %w", err)
+		return nil, fmt.Errorf("failed to search traits. %w", err)
 	}
 
 	// 3. During []store.PersonalTrait -> []toolimp.TraitSource conversion, filter out traits with similarity < 0.58
@@ -103,14 +103,14 @@ func (a *traitSearchAdapter) SearchByKeyword(ctx context.Context, queryKeyword s
 	// 1. Try exact match first
 	traits, err := a.store.SearchByKeyword(a.userID, queryKeyword, queryType, 20)
 	if err != nil {
-		return nil, fmt.Errorf("failed to search traits by keyword: %w", err)
+		return nil, fmt.Errorf("failed to search traits by keyword. %w", err)
 	}
 
 	// 2. If exact match returns no results, fall back to fuzzy LIKE %keyword% search
 	if len(traits) == 0 {
 		traits, err = a.store.SearchByKeywordFuzzy(a.userID, queryKeyword, queryType, 20)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fuzzy search traits by keyword: %w", err)
+			return nil, fmt.Errorf("failed to fuzzy search traits by keyword. %w", err)
 		}
 	}
 

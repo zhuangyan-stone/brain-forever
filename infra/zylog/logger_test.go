@@ -73,7 +73,7 @@ func TestSetGetLevel(t *testing.T) {
 
 	logger, err := NewLogger(cfg)
 	if err != nil {
-		t.Fatalf("failed to create logger: %v", err)
+		t.Fatalf("failed to create logger. %v", err)
 	}
 
 	// Test getting the initial level
@@ -177,7 +177,7 @@ func TestConcurrentLevelAccess(t *testing.T) {
 
 	logger, err := NewLogger(cfg)
 	if err != nil {
-		t.Fatalf("failed to create logger: %v", err)
+		t.Fatalf("failed to create logger. %v", err)
 	}
 
 	// Start multiple goroutines reading and writing the level simultaneously

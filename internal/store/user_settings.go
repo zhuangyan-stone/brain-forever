@@ -144,7 +144,7 @@ func (s *UserSettings) FromString(jsonStr string) error {
 		return nil
 	}
 	if err := json.Unmarshal([]byte(jsonStr), s); err != nil {
-		return fmt.Errorf("failed to parse UserSettings JSON: %w", err)
+		return fmt.Errorf("failed to parse UserSettings JSON. %w", err)
 	}
 	return nil
 }
@@ -175,12 +175,12 @@ func (s *UserStore) GetUserSettings(id int64) (*UserSettings, error) {
 			return nil, fmt.Errorf("user not found (id=%d)", id)
 		}
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return nil, fmt.Errorf("failed to query user settings: %w", err)
+		return nil, fmt.Errorf("failed to query user settings. %w", err)
 	}
 
 	var settings UserSettings
 	if err := settings.FromString(jsonStr); err != nil {
-		return nil, fmt.Errorf("failed to parse user settings: %w", err)
+		return nil, fmt.Errorf("failed to parse user settings. %w", err)
 	}
 
 	// Normalize: empty Active defaults to "system"
@@ -199,7 +199,7 @@ func (s *UserStore) SetUserSettings(id int64, settings *UserSettings) error {
 	result, err := ThePGDB().Exec(sqlStr, jsonStr, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update user settings: %w", err)
+		return fmt.Errorf("failed to update user settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -220,7 +220,7 @@ func (s *UserStore) UpdateThemeActiveMode(id int64, active string) error {
 	result, err := ThePGDB().Exec(sqlStr, active, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update user settings: %w", err)
+		return fmt.Errorf("failed to update user settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -237,7 +237,7 @@ func (s *UserStore) UpdateThemeSyncMode(id int64, sync bool) error {
 	result, err := ThePGDB().Exec(sqlStr, sync, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update theme sync mode: %w", err)
+		return fmt.Errorf("failed to update theme sync mode. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -255,14 +255,14 @@ func (s *UserStore) UpdateThemeSyncMode(id int64, sync bool) error {
 func (s *UserStore) UpdateUserSettingsAPIKey(id int64, apis *UserSettingsAPIKey) error {
 	jsonBytes, err := json.Marshal(apis)
 	if err != nil {
-		return fmt.Errorf("failed to marshal API key settings: %w", err)
+		return fmt.Errorf("failed to marshal API key settings. %w", err)
 	}
 
 	sqlStr := "UPDATE users SET settings = jsonb_set(settings, '{api_key}', $1::jsonb) WHERE id = $2"
 	result, err := ThePGDB().Exec(sqlStr, string(jsonBytes), id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update user API key settings: %w", err)
+		return fmt.Errorf("failed to update user API key settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -286,7 +286,7 @@ func (s *UserStore) UpdateThemes(id int64, light, dark, active string) error {
 	result, err := ThePGDB().Exec(sqlStr, light, dark, active, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update user settings: %w", err)
+		return fmt.Errorf("failed to update user settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {

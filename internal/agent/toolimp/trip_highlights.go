@@ -101,7 +101,7 @@ func (t *TripHighlightsTool) GetPendingText() string {
 func (t *TripHighlightsTool) Execute() (string, error) {
 	result, err := json.Marshal(t.params)
 	if err != nil {
-		return "", fmt.Errorf("marshal trip_highlights result failed: %w", err)
+		return "", fmt.Errorf("marshal trip_highlights result failed. %w", err)
 	}
 	return string(result), nil
 }

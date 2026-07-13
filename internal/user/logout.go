@@ -23,7 +23,7 @@ func (h *Handler) OnLogout(w http.ResponseWriter, r *http.Request) {
 	store.TheUserStore().Logout(sess.User.SN)
 
 	if err := h.sessionManager.Redis().DelLoginSession(h.sessionManager.Ctx, sessionID); err != nil {
-		h.logger.Warnf("failed to remove login session from Redis: %v", err)
+		h.logger.Warnf("failed to remove login session from Redis. %v", err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -24,7 +24,7 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 
 	groups, err := theChatStore.SelectChatTitlesGroupByTags(sess.User.ID)
 	if err != nil {
-		h.logger.Errorf("failed to select chat title tag groups: %v", err)
+		h.logger.Errorf("failed to select chat title tag groups. %v", err)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
 		return
 	}
@@ -144,7 +144,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 
 		resp, err := client.ChatWithOptions(r.Context(), req, llmApiSettings.ApiKey)
 		if err != nil {
-			h.logger.Errorf("chat tag LLM call failed: %v", err)
+			h.logger.Errorf("chat tag LLM call failed. %v", err)
 			toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_llm_call_failed"), http.StatusInternalServerError)
 			return
 		}
@@ -160,7 +160,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		case toolimp.ChatSamplesToolName:
 			sampleContent, err := samplesTool.Execute()
 			if err != nil {
-				h.logger.Errorf("chat samples tool execute failed: %v", err)
+				h.logger.Errorf("chat samples tool execute failed. %v", err)
 				sampleContent = i18n.Tools.TL(lang, "chat_samples_messages", "fetch_samples_failed", map[string]interface{}{"Error": err.Error()})
 			}
 
@@ -188,7 +188,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 			if err := tagTool.SetArgument(toolCall.Function.Arguments); err == nil {
 				tags = tagTool.Tags
 			} else {
-				h.logger.Errorf("failed to parse chat tag arguments: %v", err)
+				h.logger.Errorf("failed to parse chat tag arguments. %v", err)
 			}
 			gotit = true
 		default:
@@ -201,24 +201,24 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if delErr := theChatStore.DeleteChatTagsByChatID(chatID); delErr != nil {
-		h.logger.Errorf("failed to delete old chat tags for chat %d: %v", chatID, delErr)
+		h.logger.Errorf("failed to delete old chat tags for chat %d. %v", chatID, delErr)
 	}
 
 	if len(tags) == 0 {
 		if _, insErr := theChatStore.InsertChatTag(chatID, ""); insErr != nil {
-			h.logger.Errorf("failed to insert empty chat tag for chat %d: %v", chatID, insErr)
+			h.logger.Errorf("failed to insert empty chat tag for chat %d. %v", chatID, insErr)
 		}
 	} else {
 		for _, tag := range tags {
 			if _, insErr := theChatStore.InsertChatTag(chatID, tag); insErr != nil {
-				h.logger.Errorf("failed to insert chat tag %q for chat %d: %v", tag, chatID, insErr)
+				h.logger.Errorf("failed to insert chat tag %q for chat %d. %v", tag, chatID, insErr)
 			}
 		}
 	}
 
 	if chatID > 0 {
 		if tagErr := theChatStore.UpdateChatTagged(chatID, true); tagErr != nil {
-			h.logger.Errorf("failed to update chat taged flag for chat %s: %v", chatSN, tagErr)
+			h.logger.Errorf("failed to update chat taged flag for chat %s. %v", chatSN, tagErr)
 		}
 	}
 

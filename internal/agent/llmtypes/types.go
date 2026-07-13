@@ -179,7 +179,7 @@ func ConvertDBMessagesToAgentMessages(dbMessages []store.Message, chatStore *sto
 		var err error
 		sourcesByMsgID, err = chatStore.ListWebSourcesByChat(chatID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list web sources for chat %d: %w", chatID, err)
+			return nil, fmt.Errorf("failed to list web sources for chat %d. %w", chatID, err)
 		}
 	}
 

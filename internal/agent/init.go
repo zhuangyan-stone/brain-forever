@@ -118,7 +118,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	redisStore := InitRedisStore(cfg.Redis)
 	if redisStore != nil {
 		if err := redisStore.Ping(ctx); err != nil {
-			logger.Fatalf("Redis is configured but unreachable: %v", err)
+			logger.Fatalf("Redis is configured but unreachable. %v", err)
 		}
 
 		chatHandler.SetRedisStore(redisStore)

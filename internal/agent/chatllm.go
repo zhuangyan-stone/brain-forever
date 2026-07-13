@@ -73,7 +73,7 @@ func (atc *pipelineImp) OnText(text string) {
 		Type:    "text",
 		Content: text,
 	}); err != nil {
-		atc.agent.logger.Errorf("failed to write text event: %v", err)
+		atc.agent.logger.Errorf("failed to write text event. %v", err)
 	}
 }
 
@@ -84,7 +84,7 @@ func (ate *pipelineImp) OnError(err error) {
 	})
 
 	if e != nil {
-		ate.agent.logger.Errorf("failed to write error event: %v", e)
+		ate.agent.logger.Errorf("failed to write error event. %v", e)
 	}
 }
 
@@ -94,7 +94,7 @@ func (atc *pipelineImp) OnWebSource(sources []toolimp.WebSource) {
 		Type:       "web_source",
 		WebSources: sources,
 	}); err != nil {
-		atc.agent.logger.Errorf("failed to write web sources event: %v", err)
+		atc.agent.logger.Errorf("failed to write web sources event. %v", err)
 	}
 }
 

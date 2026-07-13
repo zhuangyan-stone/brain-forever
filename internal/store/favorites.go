@@ -27,7 +27,7 @@ func (s *ChatStore) InsertFavoriteItem(chatID int64, customTag string) error {
 	_, err := s.db().Exec(sqlStr, chatID, customTag)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
-		return fmt.Errorf("failed to insert favorite: %w", err)
+		return fmt.Errorf("failed to insert favorite. %w", err)
 	}
 	return nil
 }
@@ -40,7 +40,7 @@ func (s *ChatStore) UpdateFavoriteItemsCustomTag(oldCustomTag, newCustomTag stri
 	result, err := s.db().Exec(sqlStr, newCustomTag, oldCustomTag)
 	if err != nil {
 		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
-		return 0, fmt.Errorf("failed to update custom tag: %w", err)
+		return 0, fmt.Errorf("failed to update custom tag. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	return rows, nil
@@ -54,7 +54,7 @@ func (s *ChatStore) UpdateFavoriteItemChatCustomTag(id int64, oldCustomTag, newC
 	result, err := s.db().Exec(sqlStr, newCustomTag, id, oldCustomTag)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update favorite item custom tag: %w", err)
+		return fmt.Errorf("failed to update favorite item custom tag. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -70,7 +70,7 @@ func (s *ChatStore) IsExistsFavoriteItem(chatID int64, customTag string) (bool, 
 	err := s.db().Get(&exists, sqlStr, chatID, customTag)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
-		return false, fmt.Errorf("failed to check favorite existence: %w", err)
+		return false, fmt.Errorf("failed to check favorite existence. %w", err)
 	}
 	return exists, nil
 }
@@ -82,7 +82,7 @@ func (s *ChatStore) DeleteFavoriteItem(chatID int64, customTag string) error {
 	result, err := s.db().Exec(sqlStr, chatID, customTag)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
-		return fmt.Errorf("failed to delete favorite: %w", err)
+		return fmt.Errorf("failed to delete favorite. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -97,7 +97,7 @@ func (s *ChatStore) DeleteFavoriteItemsByChatID(chatID int64) (int64, error) {
 	result, err := s.db().Exec(sqlStr, chatID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
-		return 0, fmt.Errorf("failed to delete favorite: %w", err)
+		return 0, fmt.Errorf("failed to delete favorite. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	return rows, nil
@@ -124,7 +124,7 @@ func (s *ChatStore) SelectFavoritedChatTitlesGroupByTags(userID int64) (map[stri
 	err := s.db().Select(&rows, sqlStr, userID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
-		return nil, fmt.Errorf("failed to select favorited chat titles: %w", err)
+		return nil, fmt.Errorf("failed to select favorited chat titles. %w", err)
 	}
 
 	result := make(map[string][]FavoritedChatTitleTag)

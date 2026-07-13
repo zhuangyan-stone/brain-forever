@@ -26,19 +26,19 @@ var thePGDBC *sqlx.DB
 func InitPGDB(dsn string) error {
 	db, err := sqlx.Open("pgx", dsn)
 	if err != nil {
-		return fmt.Errorf("failed to open PostgreSQL connection: %w", err)
+		return fmt.Errorf("failed to open PostgreSQL connection. %w", err)
 	}
 
 	// Verify the connection is actually reachable
 	if err := db.Ping(); err != nil {
 		db.Close()
-		return fmt.Errorf("failed to ping PostgreSQL: %w", err)
+		return fmt.Errorf("failed to ping PostgreSQL. %w", err)
 	}
 
 	// Set session timezone to UTC for consistent NOW() behavior
 	if _, err := db.Exec("SET timezone TO 'UTC'"); err != nil {
 		db.Close()
-		return fmt.Errorf("failed to set timezone to UTC: %w", err)
+		return fmt.Errorf("failed to set timezone to UTC. %w", err)
 	}
 
 	// Configure connection pool
@@ -71,7 +71,7 @@ func InitSchema(dimension int) error {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("init.sql not found at %s", initSQLPath)
 		}
-		return fmt.Errorf("failed to read %s: %w", initSQLPath, err)
+		return fmt.Errorf("failed to read %s. %w", initSQLPath, err)
 	}
 
 	// Replace {dimension} placeholder with the actual vector dimension
@@ -80,12 +80,12 @@ func InitSchema(dimension int) error {
 	// Verify pgvector extension is already installed (must be created by DBA beforehand)
 	var extExists int
 	if err := ThePGDB().Get(&extExists, "SELECT 1 FROM pg_extension WHERE extname = 'vector'"); err != nil {
-		return fmt.Errorf("pgvector extension is not installed: run 'CREATE EXTENSION vector' as a superuser first: %w", err)
+		return fmt.Errorf("pgvector extension is not installed. run 'CREATE EXTENSION vector' as a superuser first. %w", err)
 	}
 
 	// Execute the full schema
 	if _, err := ThePGDB().Exec(schema); err != nil {
-		return fmt.Errorf("failed to execute init.sql: %w", err)
+		return fmt.Errorf("failed to execute init.sql. %w", err)
 	}
 
 	return nil

@@ -69,7 +69,7 @@ func (s *ChatStore) InsertChat(sn string, userID int64, roleNO int, title string
 	err := s.db().Get(&chat, sqlStr, sn, userID, roleNO, title, extractMode)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[sn=%s userID=%d]:\n%v", sqlStr, sn, userID, err)
-		return nil, fmt.Errorf("failed to insert chat: %w", err)
+		return nil, fmt.Errorf("failed to insert chat. %w", err)
 	}
 	return &chat, nil
 }
@@ -80,7 +80,7 @@ func (s *ChatStore) LogicDelete(sn string) error {
 	result, err := s.db().Exec(sqlStr, sn)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[sn=%s]:\n%v", sqlStr, sn, err)
-		return fmt.Errorf("failed to delete session: %w", err)
+		return fmt.Errorf("failed to delete session. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -97,7 +97,7 @@ func (s *ChatStore) PhysicalDelete(id int) error {
 	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to delete session: %w", err)
+		return fmt.Errorf("failed to delete session. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -116,7 +116,7 @@ func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
 	err := s.db().Get(&chat, sqlStr, sn)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[sn=%s]:\n%v", sqlStr, sn, err)
-		return nil, fmt.Errorf("session not found (sn=%s): %w", sn, err)
+		return nil, fmt.Errorf("session not found (sn=%s). %w", sn, err)
 	}
 	return &chat, nil
 }
@@ -134,7 +134,7 @@ func (s *ChatStore) ListDeletedChats(userID int64, n int) ([]Chat, error) {
 	err := s.db().Select(&chats, sqlStr, userID, n)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
-		return nil, fmt.Errorf("failed to list deleted chats: %w", err)
+		return nil, fmt.Errorf("failed to list deleted chats. %w", err)
 	}
 	return chats, nil
 }
@@ -145,7 +145,7 @@ func (s *ChatStore) RestoreChat(sn string) error {
 	result, err := s.db().Exec(sqlStr, sn)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[sn=%s]:\n%v", sqlStr, sn, err)
-		return fmt.Errorf("failed to restore chat: %w", err)
+		return fmt.Errorf("failed to restore chat. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -167,7 +167,7 @@ func (s *ChatStore) ListChats(userID int64, n int) ([]Chat, error) {
 	err := s.db().Select(&chats, sqlStr, userID, n)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
-		return nil, fmt.Errorf("failed to list chats: %w", err)
+		return nil, fmt.Errorf("failed to list chats. %w", err)
 	}
 	return chats, nil
 }
@@ -184,7 +184,7 @@ func (s *ChatStore) ListAllChats(userID int64) ([]Chat, error) {
 	err := s.db().Select(&chats, sqlStr, userID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
-		return nil, fmt.Errorf("failed to list chats: %w", err)
+		return nil, fmt.Errorf("failed to list chats. %w", err)
 	}
 	return chats, nil
 }
@@ -195,7 +195,7 @@ func (s *ChatStore) UpdateChatTitle(id int64, title string, titleState int8) err
 	result, err := s.db().Exec(sqlStr, title, titleState, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update chat title: %w", err)
+		return fmt.Errorf("failed to update chat title. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -210,7 +210,7 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 	result, err := s.db().Exec(sqlStr, pinned, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update chat pin: %w", err)
+		return fmt.Errorf("failed to update chat pin. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -225,7 +225,7 @@ func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 	result, err := s.db().Exec(sqlStr, taged, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to update chat tag: %w", err)
+		return fmt.Errorf("failed to update chat tag. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -240,7 +240,7 @@ func (s *ChatStore) EmptyTrash(userID int64) error {
 	_, err := s.db().Exec(sqlStr, userID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
-		return fmt.Errorf("failed to delete trashed sessions: %w", err)
+		return fmt.Errorf("failed to delete trashed sessions. %w", err)
 	}
 	return nil
 }
@@ -258,7 +258,7 @@ func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) er
 	result, err := s.db().Exec(sqlStr, increment, chatID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d increment=%d]:\n%v", sqlStr, chatID, increment, err)
-		return fmt.Errorf("failed to update extraction progress: %w", err)
+		return fmt.Errorf("failed to update extraction progress. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -276,7 +276,7 @@ func (s *ChatStore) UpdateMessagesExtracted(chatID int64, upToID int64, extracte
 	_, err := s.db().Exec(sqlStr, extracted, chatID, upToID, !extracted)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[chatID=%d upToID=%d]:\n%v", sqlStr, chatID, upToID, err)
-		return fmt.Errorf("failed to mark messages as extracted: %w", err)
+		return fmt.Errorf("failed to mark messages as extracted. %w", err)
 	}
 	return nil
 }
@@ -292,7 +292,7 @@ func (s *ChatStore) TouchChat(id int64) error {
 	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
-		return fmt.Errorf("failed to touch chat update_at: %w", err)
+		return fmt.Errorf("failed to touch chat update_at. %w", err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -318,7 +318,7 @@ func (s *ChatStore) ListChatTitles(userID int64, n int) ([]ChatTitle, error) {
 	err := s.db().Select(&titles, sqlStr, userID, n)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
-		return nil, fmt.Errorf("failed to list chat titles: %w", err)
+		return nil, fmt.Errorf("failed to list chat titles. %w", err)
 	}
 	return titles, nil
 }
@@ -343,7 +343,7 @@ func (s *ChatStore) SelectChatTitlesGroupByTags(userID int64) (map[string][]Chat
 	err := s.db().Select(&rows, sqlStr, userID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
-		return nil, fmt.Errorf("failed to select chat title tag groups: %w", err)
+		return nil, fmt.Errorf("failed to select chat title tag groups. %w", err)
 	}
 
 	result := make(map[string][]ChatTitleTag)
