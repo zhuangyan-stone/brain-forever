@@ -339,7 +339,7 @@ func (m *Manager) gc() {
 		remainingAnon = anonymousCount
 		remainingLoggedIn = loggedInCount
 
-		m.logger.Debugf("Session GC sweep: 0 expired, %d total (%d anonymous, %d logged-in)",
+		m.logger.Infof("Session GC sweep: 0 expired, %d total (%d anonymous, %d logged-in)",
 			len(infos), anonymousCount, loggedInCount)
 	}
 
