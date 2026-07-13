@@ -68,27 +68,28 @@ func (s *BrainStore) db() *sqlx.DB {
 func (s *BrainStore) AddTrait(ctx context.Context, userID int64, trait *PersonalTrait, embedding []float32) (int64, error) {
 	tx, err := s.db().Begin()
 	if err != nil {
+		s.logger.Errorf("BEGIN transaction failed: %v", err)
 		return 0, err
 	}
 	defer tx.Rollback()
 
-	var traitID int64
-	err = tx.QueryRow(
-		`INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_sn)
+	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_sn)
 		 VALUES($1, $2, $3, $4, $5, $6, $7)
-		 RETURNING id`,
+		 RETURNING id`
+	var traitID int64
+	err = tx.QueryRow(sqlInsertTrait,
 		userID, trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.PrivacyLevel, trait.ChatSN,
 	).Scan(&traitID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s]: %v", sqlInsertTrait, err)
 		return 0, fmt.Errorf("failed to insert trait: %w", err)
 	}
 
 	pgVec := pgvector.NewVector(embedding)
-	_, err = tx.Exec(
-		"INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)",
-		traitID, pgVec,
-	)
+	sqlInsertVec := "INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)"
+	_, err = tx.Exec(sqlInsertVec, traitID, pgVec)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[traitID=%d]: %v", sqlInsertVec, traitID, err)
 		return 0, fmt.Errorf("failed to insert trait vector: %w", err)
 	}
 
@@ -107,44 +108,46 @@ type TraitInsertion struct {
 func (s *BrainStore) AddTraits(ctx context.Context, insertions []TraitInsertion) (int, error) {
 	tx, err := s.db().Begin()
 	if err != nil {
+		s.logger.Errorf("BEGIN transaction failed: %v", err)
 		return 0, err
 	}
 	defer tx.Rollback()
 
+	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_sn)
+			 VALUES($1, $2, $3, $4, $5, $6, $7)
+			 RETURNING id`
+	sqlInsertVec := "INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)"
+	sqlInsertKw := "INSERT INTO keywords(word, kind, trait_id) VALUES($1, $2, $3)"
+
 	for _, ins := range insertions {
 		var traitID int64
-		err = tx.QueryRow(
-			`INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_sn)
-			 VALUES($1, $2, $3, $4, $5, $6, $7)
-			 RETURNING id`,
+		err = tx.QueryRow(sqlInsertTrait,
 			ins.UserID, ins.Trait.Trait, ins.Trait.Category, ins.Trait.Confidence,
 			ins.Trait.HalfLife, ins.Trait.PrivacyLevel, ins.Trait.ChatSN,
 		).Scan(&traitID)
 		if err != nil {
+			s.logger.Errorf("SQL [%s]: %v", sqlInsertTrait, err)
 			return 0, fmt.Errorf("failed to insert trait: %w", err)
 		}
 
 		pgVec := pgvector.NewVector(ins.Vector)
-		_, err = tx.Exec(
-			"INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)",
-			traitID, pgVec,
-		)
+		_, err = tx.Exec(sqlInsertVec, traitID, pgVec)
 		if err != nil {
+			s.logger.Errorf("SQL [%s] args=[traitID=%d]: %v", sqlInsertVec, traitID, err)
 			return 0, fmt.Errorf("failed to insert trait vector: %w", err)
 		}
 
 		for _, kw := range ins.Keywords {
-			_, err := tx.Exec(
-				"INSERT INTO keywords(word, kind, trait_id) VALUES($1, $2, $3)",
-				kw.Word, kw.Kind, traitID,
-			)
+			_, err := tx.Exec(sqlInsertKw, kw.Word, kw.Kind, traitID)
 			if err != nil {
+				s.logger.Errorf("SQL [%s] args=[traitID=%d word=%s kind=%d]: %v", sqlInsertKw, traitID, kw.Word, kw.Kind, err)
 				return 0, fmt.Errorf("failed to insert keyword: %w", err)
 			}
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
+		s.logger.Errorf("COMMIT transaction failed: %v", err)
 		return 0, fmt.Errorf("failed to commit traits transaction: %w", err)
 	}
 	return len(insertions), nil
@@ -152,12 +155,11 @@ func (s *BrainStore) AddTraits(ctx context.Context, insertions []TraitInsertion)
 
 // AddKeyword inserts a keyword associated with a trait.
 func (s *BrainStore) AddKeyword(kw *TraitKeyword) (int64, error) {
+	sqlStr := "INSERT INTO keywords(word, kind, trait_id) VALUES($1, $2, $3) RETURNING id"
 	var id int64
-	err := s.db().QueryRow(
-		"INSERT INTO keywords(word, kind, trait_id) VALUES($1, $2, $3) RETURNING id",
-		kw.Word, kw.Kind, kw.TraitID,
-	).Scan(&id)
+	err := s.db().QueryRow(sqlStr, kw.Word, kw.Kind, kw.TraitID).Scan(&id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s]: %v", sqlStr, err)
 		return 0, fmt.Errorf("failed to insert keyword: %w", err)
 	}
 	return id, nil
@@ -187,6 +189,7 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 
 	rows, err := s.db().Query(sqlQuery, args...)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlQuery, userID, err)
 		return nil, fmt.Errorf("vector search failed: %w", err)
 	}
 	defer rows.Close()
@@ -223,6 +226,7 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
+		s.logger.Errorf("rows iteration error: %v", err)
 		return nil, err
 	}
 
@@ -259,6 +263,7 @@ func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit 
 
 	rows, err := s.db().Query(query, args...)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d word=%s]: %v", query, userID, word, err)
 		return nil, fmt.Errorf("keyword search failed: %w", err)
 	}
 	defer rows.Close()
@@ -276,6 +281,7 @@ func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit 
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
+		s.logger.Errorf("rows iteration error: %v", err)
 		return nil, err
 	}
 
@@ -312,6 +318,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 
 	rows, err := s.db().Query(query, args...)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d word=%s]: %v", query, userID, word, err)
 		return nil, fmt.Errorf("fuzzy keyword search failed: %w", err)
 	}
 	defer rows.Close()
@@ -329,6 +336,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
+		s.logger.Errorf("rows iteration error: %v", err)
 		return nil, err
 	}
 
@@ -338,8 +346,10 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 // Delete removes a personal trait by ID.
 func (s *BrainStore) Delete(id int64) error {
 	// CASCADE will handle trait_vectors and keywords
-	result, err := s.db().Exec("DELETE FROM traits WHERE id = $1", id)
+	sqlStr := "DELETE FROM traits WHERE id = $1"
+	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to delete trait: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -355,8 +365,10 @@ func (s *BrainStore) DeleteByChatSN(chatSN string) (int, error) {
 		return 0, fmt.Errorf("empty chat SN")
 	}
 
-	result, err := s.db().Exec("DELETE FROM traits WHERE chat_sn = $1", chatSN)
+	sqlStr := "DELETE FROM traits WHERE chat_sn = $1"
+	result, err := s.db().Exec(sqlStr, chatSN)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatSN=%s]: %v", sqlStr, chatSN, err)
 		return 0, fmt.Errorf("failed to delete traits by chat SN: %w", err)
 	}
 	n, _ := result.RowsAffected()
@@ -378,14 +390,13 @@ func (s *BrainStore) DeleteTraitsByChatSNs(chatSNs []string) (int, error) {
 
 // ListTraitsByChat returns all traits for a given chat SN.
 func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
-	rows, err := s.db().Query(
-		`SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
+	sqlStr := `SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
 		 FROM traits
 		 WHERE chat_sn = $1
-		 ORDER BY create_at DESC`,
-		chatSN,
-	)
+		 ORDER BY create_at DESC`
+	rows, err := s.db().Query(sqlStr, chatSN)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatSN=%s]: %v", sqlStr, chatSN, err)
 		return nil, fmt.Errorf("failed to list traits by chat: %w", err)
 	}
 	defer rows.Close()
@@ -403,6 +414,7 @@ func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
+		s.logger.Errorf("rows iteration error: %v", err)
 		return nil, err
 	}
 
@@ -411,14 +423,13 @@ func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 
 // ListAllTraitsByCreateTime returns all personal traits for a user ordered by create_at desc.
 func (s *BrainStore) ListAllTraitsByCreateTime(userID int64) ([]PersonalTrait, error) {
-	rows, err := s.db().Query(
-		`SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
+	sqlStr := `SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
 		 FROM traits
 		 WHERE user_id = $1
-		 ORDER BY create_at DESC`,
-		userID,
-	)
+		 ORDER BY create_at DESC`
+	rows, err := s.db().Query(sqlStr, userID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlStr, userID, err)
 		return nil, fmt.Errorf("failed to list all traits: %w", err)
 	}
 	defer rows.Close()
@@ -436,6 +447,7 @@ func (s *BrainStore) ListAllTraitsByCreateTime(userID int64) ([]PersonalTrait, e
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
+		s.logger.Errorf("rows iteration error: %v", err)
 		return nil, err
 	}
 

@@ -24,12 +24,12 @@ func (s *ChatStore) SelectTagsGroup() (map[string]int, error) {
 		Count int    `db:"cnt"`
 	}
 
-	err := s.db().Select(&rows,
-		`SELECT tag, COUNT(1) AS cnt
+	sqlStr := `SELECT tag, COUNT(1) AS cnt
 		 FROM chat_tags
-		 GROUP BY tag`,
-	)
+		 GROUP BY tag`
+	err := s.db().Select(&rows, sqlStr)
 	if err != nil {
+		s.logger.Errorf("SQL [%s]: %v", sqlStr, err)
 		return nil, fmt.Errorf("failed to select tag groups: %w", err)
 	}
 
@@ -47,13 +47,13 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 		Count int    `db:"cnt"`
 	}
 
-	err := s.db().Select(&rows,
-		`SELECT tag, COUNT(1) AS cnt
+	sqlStr := `SELECT tag, COUNT(1) AS cnt
 		 FROM chat_tags
 		 WHERE tag != ''
-		 GROUP BY tag`,
-	)
+		 GROUP BY tag`
+	err := s.db().Select(&rows, sqlStr)
 	if err != nil {
+		s.logger.Errorf("SQL [%s]: %v", sqlStr, err)
 		return nil, fmt.Errorf("failed to select non-empty tag groups: %w", err)
 	}
 
@@ -66,14 +66,13 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 
 // InsertChatTag creates a new chat tag and returns it.
 func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
-	var chatTag ChatTag
-	err := s.db().Get(&chatTag,
-		`INSERT INTO chat_tags(chat_id, tag)
+	sqlStr := `INSERT INTO chat_tags(chat_id, tag)
 		 VALUES($1, $2)
-		 RETURNING id, chat_id, tag, create_at`,
-		chatID, tag,
-	)
+		 RETURNING id, chat_id, tag, create_at`
+	var chatTag ChatTag
+	err := s.db().Get(&chatTag, sqlStr, chatID, tag)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to insert chat tag: %w", err)
 	}
 	return &chatTag, nil
@@ -81,15 +80,14 @@ func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 
 // ListChatTagsByChatID returns all tags for a given chat session.
 func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
-	var tags []ChatTag
-	err := s.db().Select(&tags,
-		`SELECT id, chat_id, tag, create_at
+	sqlStr := `SELECT id, chat_id, tag, create_at
 		 FROM chat_tags
 		 WHERE chat_id = $1
-		 ORDER BY create_at ASC`,
-		chatID,
-	)
+		 ORDER BY create_at ASC`
+	var tags []ChatTag
+	err := s.db().Select(&tags, sqlStr, chatID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list chat tags: %w", err)
 	}
 	return tags, nil
@@ -97,11 +95,10 @@ func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
 
 // DeleteChatTag deletes a single chat tag by its ID.
 func (s *ChatStore) DeleteChatTag(id int64) error {
-	result, err := s.db().Exec(
-		"DELETE FROM chat_tags WHERE id = $1",
-		id,
-	)
+	sqlStr := "DELETE FROM chat_tags WHERE id = $1"
+	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to delete chat tag: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -113,11 +110,10 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 
 // DeleteChatTagsByChatID deletes all tags for a given chat session.
 func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
-	_, err := s.db().Exec(
-		"DELETE FROM chat_tags WHERE chat_id = $1",
-		chatID,
-	)
+	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1"
+	_, err := s.db().Exec(sqlStr, chatID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
 		return fmt.Errorf("failed to delete chat tags for chat (id=%d): %w", chatID, err)
 	}
 	return nil

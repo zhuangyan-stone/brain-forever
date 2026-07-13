@@ -26,16 +26,17 @@ func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSou
 		return nil
 	}
 
-	for _, src := range sources {
-		_, err := s.db().Exec(
-			`INSERT INTO web_sources(chat_id, msg_id, title, content, url,
+	sqlStr := `INSERT INTO web_sources(chat_id, msg_id, title, content, url,
 			                         site_name, site_icon, publish_date, score)
-			 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+			 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	for _, src := range sources {
+		_, err := s.db().Exec(sqlStr,
 			chatID, msgID,
 			src.Title, src.Content, src.URL,
 			src.SiteName, src.SiteIcon, src.PublishDate, src.Score,
 		)
 		if err != nil {
+			s.logger.Errorf("SQL [%s] args=[chatID=%d msgID=%d]: %v", sqlStr, chatID, msgID, err)
 			return fmt.Errorf("failed to insert web source: %w", err)
 		}
 	}
@@ -44,16 +45,15 @@ func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSou
 
 // ListWebSourcesByChat queries all web sources for a given chat, grouped by msg_id.
 func (s *ChatStore) ListWebSourcesByChat(chatID int64) (map[int64][]WebSource, error) {
-	var sources []WebSource
-	err := s.db().Select(&sources,
-		`SELECT id, chat_id, msg_id, title, content, url,
+	sqlStr := `SELECT id, chat_id, msg_id, title, content, url,
 		        site_name, site_icon, publish_date, score, create_at
 		 FROM web_sources
 		 WHERE chat_id = $1
-		 ORDER BY msg_id ASC, id ASC`,
-		chatID,
-	)
+		 ORDER BY msg_id ASC, id ASC`
+	var sources []WebSource
+	err := s.db().Select(&sources, sqlStr, chatID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]: %v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list web sources: %w", err)
 	}
 

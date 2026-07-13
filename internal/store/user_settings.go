@@ -167,12 +167,14 @@ func (s *UserSettings) ToString() string {
 // Returns nil if the user is not found.
 // Normalizes Theme.Active: empty string is treated as "system".
 func (s *UserStore) GetUserSettings(id int64) (*UserSettings, error) {
+	sqlStr := "SELECT settings FROM users WHERE id = $1"
 	var jsonStr string
-	err := TheMySQLDB().Get(&jsonStr, "SELECT settings FROM users WHERE id = ?", id)
+	err := ThePGDB().Get(&jsonStr, sqlStr, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found (id=%d)", id)
 		}
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return nil, fmt.Errorf("failed to query user settings: %w", err)
 	}
 
@@ -193,8 +195,10 @@ func (s *UserStore) GetUserSettings(id int64) (*UserSettings, error) {
 func (s *UserStore) SetUserSettings(id int64, settings *UserSettings) error {
 	jsonStr := settings.ToString()
 
-	result, err := TheMySQLDB().Exec("UPDATE users SET settings = ? WHERE id = ?", jsonStr, id)
+	sqlStr := "UPDATE users SET settings = $1::jsonb WHERE id = $2"
+	result, err := ThePGDB().Exec(sqlStr, jsonStr, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user settings: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -212,11 +216,10 @@ func (s *UserStore) SetUserSettings(id int64, settings *UserSettings) error {
 // active should be one of "light", "dark", or "system".
 // Uses MySQL JSON_SET to update only the $.theme.active field in-place.
 func (s *UserStore) UpdateThemeActiveMode(id int64, active string) error {
-	result, err := TheMySQLDB().Exec(
-		"UPDATE users SET settings = JSON_SET(settings, '$.theme.active', ?) WHERE id = ?",
-		active, id,
-	)
+	sqlStr := "UPDATE users SET settings = jsonb_set(settings, '{theme,active}', to_jsonb($1::text)) WHERE id = $2"
+	result, err := ThePGDB().Exec(sqlStr, active, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user settings: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -230,11 +233,10 @@ func (s *UserStore) UpdateThemeActiveMode(id int64, active string) error {
 // Uses MySQL JSON_SET to update only the $.theme.sync field in-place.
 // sync is true to enable cross-device theme sync, false to disable.
 func (s *UserStore) UpdateThemeSyncMode(id int64, sync bool) error {
-	result, err := TheMySQLDB().Exec(
-		"UPDATE users SET settings = JSON_SET(settings, '$.theme.sync', ?) WHERE id = ?",
-		sync, id,
-	)
+	sqlStr := "UPDATE users SET settings = jsonb_set(settings, '{theme,sync}', to_jsonb($1)) WHERE id = $2"
+	result, err := ThePGDB().Exec(sqlStr, sync, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update theme sync mode: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -256,11 +258,10 @@ func (s *UserStore) UpdateUserSettingsAPIKey(id int64, apis *UserSettingsAPIKey)
 		return fmt.Errorf("failed to marshal API key settings: %w", err)
 	}
 
-	result, err := TheMySQLDB().Exec(
-		"UPDATE users SET settings = JSON_SET(settings, '$.api_key', CAST(? AS JSON)) WHERE id = ?",
-		string(jsonBytes), id,
-	)
+	sqlStr := "UPDATE users SET settings = jsonb_set(settings, '{api_key}', $1::jsonb) WHERE id = $2"
+	result, err := ThePGDB().Exec(sqlStr, string(jsonBytes), id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user API key settings: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -275,11 +276,16 @@ func (s *UserStore) UpdateUserSettingsAPIKey(id int64, apis *UserSettingsAPIKey)
 // active should be one of "light", "dark", or "system".
 // Uses MySQL JSON_SET to update all three $.theme.* fields in a single call.
 func (s *UserStore) UpdateThemes(id int64, light, dark, active string) error {
-	result, err := TheMySQLDB().Exec(
-		"UPDATE users SET settings = JSON_SET(settings, '$.theme.light', ?, '$.theme.dark', ?, '$.theme.active', ?) WHERE id = ?",
-		light, dark, active, id,
-	)
+	sqlStr := `UPDATE users SET settings = jsonb_set(
+		jsonb_set(
+			jsonb_set(settings, '{theme,light}', to_jsonb($1::text)),
+			'{theme,dark}', to_jsonb($2::text)
+		),
+		'{theme,active}', to_jsonb($3::text)
+	) WHERE id = $4`
+	result, err := ThePGDB().Exec(sqlStr, light, dark, active, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user settings: %w", err)
 	}
 	rows, _ := result.RowsAffected()

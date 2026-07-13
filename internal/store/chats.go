@@ -60,16 +60,15 @@ func (s *ChatStore) db() *sqlx.DB {
 // InsertChat creates a new chat session and returns it.
 // userID is required for data isolation.
 func (s *ChatStore) InsertChat(sn string, userID int64, roleNO int, title string, extractMode int8) (*Chat, error) {
-	var chat Chat
-	err := s.db().Get(&chat,
-		`INSERT INTO chat_sessions(sn, user_id, role_no, title, extract_mode)
+	sqlStr := `INSERT INTO chat_sessions(sn, user_id, role_no, title, extract_mode)
 		 VALUES($1, $2, $3, $4, $5)
 		 RETURNING id, sn, role_no, title, title_state, extract_mode,
 		           extracted_at, extracted_count,
-		           deleted, pinned, taged, create_at, update_at`,
-		sn, userID, roleNO, title, extractMode,
-	)
+		           deleted, pinned, taged, create_at, update_at`
+	var chat Chat
+	err := s.db().Get(&chat, sqlStr, sn, userID, roleNO, title, extractMode)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[sn=%s userID=%d]: %v", sqlStr, sn, userID, err)
 		return nil, fmt.Errorf("failed to insert chat: %w", err)
 	}
 	return &chat, nil
@@ -77,11 +76,10 @@ func (s *ChatStore) InsertChat(sn string, userID int64, roleNO int, title string
 
 // LogicDelete soft-deletes the session identified by SN by setting deleted to true.
 func (s *ChatStore) LogicDelete(sn string) error {
-	result, err := s.db().Exec(
-		"UPDATE chat_sessions SET deleted = TRUE WHERE sn = $1",
-		sn,
-	)
+	sqlStr := "UPDATE chat_sessions SET deleted = TRUE WHERE sn = $1"
+	result, err := s.db().Exec(sqlStr, sn)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[sn=%s]: %v", sqlStr, sn, err)
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -95,11 +93,10 @@ func (s *ChatStore) LogicDelete(sn string) error {
 // Related rows (messages, web sources, tags, favorites) are automatically
 // removed via ON DELETE CASCADE (PostgreSQL FK enforcement).
 func (s *ChatStore) PhysicalDelete(id int) error {
-	result, err := s.db().Exec(
-		"DELETE FROM chat_sessions WHERE id = $1",
-		id,
-	)
+	sqlStr := "DELETE FROM chat_sessions WHERE id = $1"
+	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -111,14 +108,14 @@ func (s *ChatStore) PhysicalDelete(id int) error {
 
 // FindChatBySN finds a chat by its SN (regardless of deleted status).
 func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
-	var chat Chat
-	err := s.db().Get(&chat,
-		`SELECT id, sn, role_no, title, title_state, extract_mode,
+	sqlStr := `SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
 		        deleted, pinned, taged, create_at, update_at
-		 FROM chat_sessions WHERE sn = $1`, sn,
-	)
+		 FROM chat_sessions WHERE sn = $1`
+	var chat Chat
+	err := s.db().Get(&chat, sqlStr, sn)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[sn=%s]: %v", sqlStr, sn, err)
 		return nil, fmt.Errorf("session not found (sn=%s): %w", sn, err)
 	}
 	return &chat, nil
@@ -126,18 +123,17 @@ func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
 
 // ListDeletedChats lists the most recent N deleted chat records for a user, ordered by update_at descending.
 func (s *ChatStore) ListDeletedChats(userID int64, n int) ([]Chat, error) {
-	var chats []Chat
-	err := s.db().Select(&chats,
-		`SELECT id, sn, role_no, title, title_state, extract_mode,
+	sqlStr := `SELECT id, sn, role_no, title, title_state, extract_mode,
 		    extracted_at, extracted_count,
 		    deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions
 		 WHERE user_id = $1 AND deleted = TRUE
 		 ORDER BY update_at DESC
-		 LIMIT $2`,
-		userID, n,
-	)
+		 LIMIT $2`
+	var chats []Chat
+	err := s.db().Select(&chats, sqlStr, userID, n)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlStr, userID, err)
 		return nil, fmt.Errorf("failed to list deleted chats: %w", err)
 	}
 	return chats, nil
@@ -145,11 +141,10 @@ func (s *ChatStore) ListDeletedChats(userID int64, n int) ([]Chat, error) {
 
 // RestoreChat restores a soft-deleted chat by setting deleted = false.
 func (s *ChatStore) RestoreChat(sn string) error {
-	result, err := s.db().Exec(
-		"UPDATE chat_sessions SET deleted = FALSE WHERE sn = $1",
-		sn,
-	)
+	sqlStr := "UPDATE chat_sessions SET deleted = FALSE WHERE sn = $1"
+	result, err := s.db().Exec(sqlStr, sn)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[sn=%s]: %v", sqlStr, sn, err)
 		return fmt.Errorf("failed to restore chat: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -161,18 +156,17 @@ func (s *ChatStore) RestoreChat(sn string) error {
 
 // ListChats lists the most recent N non-deleted chat records for a user, ordered by pinned first, then create_at descending.
 func (s *ChatStore) ListChats(userID int64, n int) ([]Chat, error) {
-	var chats []Chat
-	err := s.db().Select(&chats,
-		`SELECT id, sn, role_no, title, title_state, extract_mode,
+	sqlStr := `SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
 		        deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions
 		 WHERE user_id = $1 AND deleted = FALSE
 		 ORDER BY pinned DESC, create_at DESC
-		 LIMIT $2`,
-		userID, n,
-	)
+		 LIMIT $2`
+	var chats []Chat
+	err := s.db().Select(&chats, sqlStr, userID, n)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlStr, userID, err)
 		return nil, fmt.Errorf("failed to list chats: %w", err)
 	}
 	return chats, nil
@@ -180,17 +174,16 @@ func (s *ChatStore) ListChats(userID int64, n int) ([]Chat, error) {
 
 // ListAllChats lists all non-deleted chats for a user (no limit).
 func (s *ChatStore) ListAllChats(userID int64) ([]Chat, error) {
-	var chats []Chat
-	err := s.db().Select(&chats,
-		`SELECT id, sn, role_no, title, title_state, extract_mode,
+	sqlStr := `SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
 		        deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions
 		 WHERE user_id = $1 AND deleted = FALSE
-		 ORDER BY pinned DESC, create_at DESC`,
-		userID,
-	)
+		 ORDER BY pinned DESC, create_at DESC`
+	var chats []Chat
+	err := s.db().Select(&chats, sqlStr, userID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlStr, userID, err)
 		return nil, fmt.Errorf("failed to list chats: %w", err)
 	}
 	return chats, nil
@@ -198,11 +191,10 @@ func (s *ChatStore) ListAllChats(userID int64) ([]Chat, error) {
 
 // UpdateChatTitle updates the chat title and title state.
 func (s *ChatStore) UpdateChatTitle(id int64, title string, titleState int8) error {
-	result, err := s.db().Exec(
-		"UPDATE chat_sessions SET title = $1, title_state = $2 WHERE id = $3",
-		title, titleState, id,
-	)
+	sqlStr := "UPDATE chat_sessions SET title = $1, title_state = $2 WHERE id = $3"
+	result, err := s.db().Exec(sqlStr, title, titleState, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update chat title: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -214,11 +206,10 @@ func (s *ChatStore) UpdateChatTitle(id int64, title string, titleState int8) err
 
 // UpdateChatPin updates the pinned state of a chat.
 func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
-	result, err := s.db().Exec(
-		"UPDATE chat_sessions SET pinned = $1 WHERE id = $2",
-		pinned, id,
-	)
+	sqlStr := "UPDATE chat_sessions SET pinned = $1 WHERE id = $2"
+	result, err := s.db().Exec(sqlStr, pinned, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update chat pin: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -230,11 +221,10 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 
 // UpdateChatTagged updates the tagged state of a chat.
 func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
-	result, err := s.db().Exec(
-		"UPDATE chat_sessions SET taged = $1 WHERE id = $2",
-		taged, id,
-	)
+	sqlStr := "UPDATE chat_sessions SET taged = $1 WHERE id = $2"
+	result, err := s.db().Exec(sqlStr, taged, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to update chat tag: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -246,11 +236,10 @@ func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 
 // EmptyTrash permanently deletes all soft-deleted chats for a user.
 func (s *ChatStore) EmptyTrash(userID int64) error {
-	_, err := s.db().Exec(
-		"DELETE FROM chat_sessions WHERE user_id = $1 AND deleted = TRUE",
-		userID,
-	)
+	sqlStr := "DELETE FROM chat_sessions WHERE user_id = $1 AND deleted = TRUE"
+	_, err := s.db().Exec(sqlStr, userID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlStr, userID, err)
 		return fmt.Errorf("failed to delete trashed sessions: %w", err)
 	}
 	return nil
@@ -262,14 +251,13 @@ func (s *ChatStore) EmptyTrash(userID int64) error {
 
 // UpdateExtractionCountAndTime updates the trait extraction progress for a chat.
 func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) error {
-	result, err := s.db().Exec(
-		`UPDATE chat_sessions
+	sqlStr := `UPDATE chat_sessions
 		 SET extracted_at = NOW(),
 		     extracted_count = extracted_count + $1
-		 WHERE id = $2`,
-		increment, chatID,
-	)
+		 WHERE id = $2`
+	result, err := s.db().Exec(sqlStr, increment, chatID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d increment=%d]: %v", sqlStr, chatID, increment, err)
 		return fmt.Errorf("failed to update extraction progress: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -282,13 +270,12 @@ func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) er
 // UpdateMessagesExtracted marks all messages in a chat up to (and including) the
 // given message id as extracted (extracted = true).
 func (s *ChatStore) UpdateMessagesExtracted(chatID int64, upToID int64, extracted bool) error {
-	_, err := s.db().Exec(
-		`UPDATE chat_messages
+	sqlStr := `UPDATE chat_messages
 		 SET extracted = $1
-		 WHERE chat_id = $2 AND id <= $3 AND extracted = $4`,
-		extracted, chatID, upToID, !extracted,
-	)
+		 WHERE chat_id = $2 AND id <= $3 AND extracted = $4`
+	_, err := s.db().Exec(sqlStr, extracted, chatID, upToID, !extracted)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d upToID=%d]: %v", sqlStr, chatID, upToID, err)
 		return fmt.Errorf("failed to mark messages as extracted: %w", err)
 	}
 	return nil
@@ -301,11 +288,10 @@ func (s *ChatStore) Close() error {
 
 // TouchChat updates the update_at timestamp of a chat session to the current time.
 func (s *ChatStore) TouchChat(id int64) error {
-	result, err := s.db().Exec(
-		"UPDATE chat_sessions SET update_at = NOW() WHERE id = $1",
-		id,
-	)
+	sqlStr := "UPDATE chat_sessions SET update_at = NOW() WHERE id = $1"
+	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]: %v", sqlStr, id, err)
 		return fmt.Errorf("failed to touch chat update_at: %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -323,16 +309,15 @@ type ChatTitle struct {
 
 // ListChatTitles lists the titles of the most recent N non-deleted chat sessions for a user.
 func (s *ChatStore) ListChatTitles(userID int64, n int) ([]ChatTitle, error) {
-	var titles []ChatTitle
-	err := s.db().Select(&titles,
-		`SELECT id, title, create_at
+	sqlStr := `SELECT id, title, create_at
 		 FROM chat_sessions
 		 WHERE user_id = $1 AND deleted = FALSE
 		 ORDER BY create_at DESC
-		 LIMIT $2`,
-		userID, n,
-	)
+		 LIMIT $2`
+	var titles []ChatTitle
+	err := s.db().Select(&titles, sqlStr, userID, n)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlStr, userID, err)
 		return nil, fmt.Errorf("failed to list chat titles: %w", err)
 	}
 	return titles, nil
@@ -349,16 +334,15 @@ type ChatTitleTag struct {
 
 // SelectChatTitlesGroupByTags queries all tagged chats for a user, grouped by tag.
 func (s *ChatStore) SelectChatTitlesGroupByTags(userID int64) (map[string][]ChatTitleTag, error) {
-	var rows []ChatTitleTag
-	err := s.db().Select(&rows,
-		`SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
+	sqlStr := `SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
 		 FROM chat_sessions cs
 		 JOIN chat_tags ct ON cs.id = ct.chat_id
 		 WHERE cs.user_id = $1 AND cs.deleted = FALSE
-		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`,
-		userID,
-	)
+		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`
+	var rows []ChatTitleTag
+	err := s.db().Select(&rows, sqlStr, userID)
 	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]: %v", sqlStr, userID, err)
 		return nil, fmt.Errorf("failed to select chat title tag groups: %w", err)
 	}
 
