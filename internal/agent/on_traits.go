@@ -348,6 +348,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 			Trait:    trait,
 			Vector:   vector,
 			Keywords: keywords,
+			UserID:   sess.User.ID,
 		})
 	}
 
