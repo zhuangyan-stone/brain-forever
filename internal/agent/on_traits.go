@@ -46,7 +46,7 @@ type traitsKeyword struct {
 
 type traitsResponse struct {
 	Features []traitsFeature `json:"features,omitempty"`
-	Usage    any     `json:"usage,omitempty"`
+	Usage    any             `json:"usage,omitempty"`
 	Error    string          `json:"error,omitempty"`
 
 	ExtractedAt    *string `json:"extracted_at,omitempty"`
@@ -120,8 +120,16 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	foundChat := sess.FindChatBySN(req.SN)
 	if foundChat == nil {
-		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_chat_not_found"), http.StatusNotFound)
-		return
+		// Fallback: query database directly when the chat is not in the
+		// session's in-memory list (e.g., session expired or recreated).
+		dbChat, err := theChatStore.FindChatBySN(req.SN)
+		if err != nil || dbChat.Deleted {
+			toolset.WriteJSONError(w, i18n.TL(lang, "api_error_chat_not_found"), http.StatusNotFound)
+			return
+		}
+		// Add to in-memory list so subsequent lookups succeed.
+		sess.AddChatToList(*dbChat)
+		foundChat = dbChat
 	}
 
 	dbMessages, err := theChatStore.ListUnExtractMessages(foundChat.ID)
