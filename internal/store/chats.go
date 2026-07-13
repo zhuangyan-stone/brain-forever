@@ -62,9 +62,7 @@ func (s *ChatStore) db() *sqlx.DB {
 func (s *ChatStore) InsertChat(sn string, userID int64, roleNO int, title string, extractMode int8) (*Chat, error) {
 	sqlStr := `INSERT INTO chat_sessions(sn, user_id, role_no, title, extract_mode)
 		 VALUES($1, $2, $3, $4, $5)
-		 RETURNING id, sn, role_no, title, title_state, extract_mode,
-		           extracted_at, extracted_count,
-		           deleted, pinned, taged, create_at, update_at`
+		 RETURNING id, create_at, update_at`
 	var chat Chat
 	err := s.db().Get(&chat, sqlStr, sn, userID, roleNO, title, extractMode)
 	if err != nil {

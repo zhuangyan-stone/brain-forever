@@ -68,7 +68,7 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 	sqlStr := `INSERT INTO chat_tags(chat_id, tag)
 		 VALUES($1, $2)
-		 RETURNING id, chat_id, tag, create_at`
+		 RETURNING id, create_at`
 	var chatTag ChatTag
 	err := s.db().Get(&chatTag, sqlStr, chatID, tag)
 	if err != nil {

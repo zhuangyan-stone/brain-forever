@@ -199,7 +199,7 @@ func (s *UserStore) CreateUser(nickname, rawPassword, tel string) (*User, error)
 
 	sqlStr := `INSERT INTO users(nickname, no, sn, salt, password, tel, settings_ver, settings)
 		 VALUES($1, $2, $3, $4, $5, $6, 0, $7)
-		 RETURNING id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at`
+		 RETURNING id, create_at, update_at`
 	var user User
 	err := ThePGDB().Get(&user, sqlStr, nickname, no, sn, salt, password, tel, "{}")
 	if err != nil {
