@@ -287,6 +287,26 @@ T=+60min GC 扫描 → time.Since(T0) > 1h → 从 m.Sessions map 中删除
 
 默认配置（匿名 1h ≤ 已登录 24h，间隔 10min ≤ 匿名 1h）不会触发任何错误或警告。
 
+### 10.7 未来优化方向：优先队列避免全遍历
+
+当前 [`gc()`](internal/session/manager.go:274) 每次扫描要遍历全部 session（O(n)）。当 session 数量达到**十万级**时，可以考虑引入最小堆：
+
+**思路：** 用 `container/heap` 按 `LastActivity` 排序，GC 只从堆顶（最不活跃）开始检查，遇到第一个没过期的就停止。
+
+```
+GC 扫描：     pop 堆顶 → 检查 → 已过期则 delete，重复 → 遇到未过期 → 停止
+GetOrCreate： 更新 LastActivity → heap.Fix(index)  O(log n)
+```
+
+**成本权衡：**
+
+| 操作 | 当前 O(n) 遍历 | 堆方案 |
+|---|---|---|
+| GC 每次扫描 | O(n) | O(k log n)，k = 已过期数量，通常 ≈ 0 |
+| 每次 `GetOrCreate` | O(1) | **O(log n)**（每条 HTTP 必经之路） |
+
+**结论：** `GetOrCreate` 的调用频率远高于 GC，堆方案把 GC 成本转移到每次请求上。在 session 数量未达十万级之前，当前 O(n) 遍历更简单高效。届时再做改造。
+
 ## 实现顺序
 
 1. 在 `config.go` 中定义 `SessionGCConfig` 结构体和默认值
