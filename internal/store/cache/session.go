@@ -25,7 +25,7 @@ import (
 
 const (
 	// sessionKeyPrefix is the Redis key prefix for session data.
-	sessionKeyPrefix = "session:"
+	sessionKeyPrefix = "d2b.S:"
 
 	// sessionTTL is the time-to-live for session entries in Redis.
 	// Must match the cookie MaxAge (7 days).
@@ -169,7 +169,7 @@ type GCStats struct {
 }
 
 // gcStatsKey is the Redis key for the latest GC stats.
-const gcStatsKey = "session:gc_stats"
+const gcStatsKey = "d2b.SESSIONS.GC.stats"
 
 // SetGCStats writes the latest GC sweep statistics to Redis.
 func (rs *RedisSessionStore) SetGCStats(ctx context.Context, stats *GCStats) error {

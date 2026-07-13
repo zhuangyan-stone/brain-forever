@@ -31,8 +31,9 @@ var validActions = map[string]bool{
 }
 
 // captchaCacheKey builds the captcha cache key in Redis.
+// Format: d2b.captcha:{action}:{sessionID}
 func captchaCacheKey(sessionID, action string) string {
-	return sessionID + "::captcha::" + action
+	return "d2b.captcha:" + action + ":" + sessionID
 }
 
 // storeCaptchaItem stores a captcha item in Redis cache (2-minute TTL).

@@ -38,8 +38,8 @@ var SMS4TTL = map[string]time.Duration{
 
 const (
 	// smsCodeKeyPrefix is the Redis key prefix for SMS codes.
-	// Full key format: smscode:{purpose}:{tel}
-	smsCodeKeyPrefix = "smscode:"
+	// Full key format: d2b.smscode:{purpose}:{tel}
+	smsCodeKeyPrefix = "d2b.smscode:"
 
 	// maxVerifyAttempts is the maximum number of failed verification attempts
 	// before the code is automatically invalidated (防暴力破解).

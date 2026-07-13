@@ -85,7 +85,7 @@ func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase stri
 func (p *CaptchaProvider) loadAndStore(ctx context.Context, dir string) (int, error) {
 	// Clear stale data first to avoid accumulating orphaned entries
 	// when the files on disk have changed since the last load.
-	redisKey := "CAPTCHAS_store." + dir
+	redisKey := "d2b.CAPTCHAS:store:" + dir
 	if err := p.store.Del(ctx, redisKey); err != nil {
 		return 0, fmt.Errorf("failed to clear captcha store %q before reload. %w", redisKey, err)
 	}
@@ -180,7 +180,7 @@ func (p *CaptchaProvider) GetOne(ctx context.Context) (*CaptchaItem, error) {
 	activeDir := p.activeDir
 	p.mu.RUnlock()
 
-	redisKey := "CAPTCHAS_store." + activeDir
+	redisKey := "d2b.CAPTCHAS:store:" + activeDir
 
 	// HRANDFIELD gets a random field (image name)
 	fields, err := p.store.HRandField(ctx, redisKey, 1)
