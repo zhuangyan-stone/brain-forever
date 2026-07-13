@@ -272,11 +272,8 @@ func (m *Manager) gc() {
 	if len(expired) > 0 {
 		m.Mu.Lock()
 		for _, id := range expired {
-			// Double-check the session still exists (might have been removed by GetOrCreate's
-			// Redis restore flow or a concurrent Remove call).
-			if _, ok := m.Sessions[id]; ok {
-				delete(m.Sessions, id)
-			}
+			// delete is safe even if the key no longer exists (GC concurrent safety).
+			delete(m.Sessions, id)
 		}
 		m.Mu.Unlock()
 
