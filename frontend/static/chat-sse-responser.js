@@ -222,51 +222,73 @@ export class SSEResponser {
     onChatCreated(event) {
         if (!event.sn) return;
         var frontSN = event.front_sn;
+        console.log('[chat_created] 收到事件, sn=' + event.sn + ', front_sn=' + (frontSN || '(空)') + ' (stream此前的sn=' + (this.stream ? this.stream.sn : 'N/A') + ')');
         try {
             var chats = window.Alpine.store('chats');
-            if (!chats) return;
+            if (!chats) {
+                console.warn('[chat_created] Alpine store "chats" 不可用');
+                return;
+            }
 
             if (frontSN) {
                 // 1. 先迁移 ChatStreamMgr 的 Map key（避免 Alpine store 先更新后查找不到）
                 var stream = chatStreamMgr.streams.get(frontSN);
+                console.log('[chat_created] Step1 ChatStreamMgr: streams中查找 frontSN=' + frontSN + ' -> ' + (stream ? '找到' : '未找到'));
                 if (stream) {
                     chatStreamMgr.streams.delete(frontSN);
                     chatStreamMgr.streams.set(event.sn, stream);
                     stream.sn = event.sn;
+                    console.log('[chat_created] Step1完成: streams Map key已从 ' + frontSN + ' 迁移到 ' + event.sn);
                 }
 
                 // 2. 再更新 Alpine store items[].sn（原地更新，active.sn 自动反映新值）
                 var idx = chats.items.findIndex(function(c) { return c.sn === frontSN; });
+                console.log('[chat_created] Step2 items[]: 查找 frontSN=' + frontSN + ', items.length=' + chats.items.length + ', findIndex=' + idx);
                 if (idx >= 0) {
+                    var oldSn = chats.items[idx].sn;
                     chats.items[idx].sn = event.sn;
+                    console.log('[chat_created] Step2完成: items[' + idx + '].sn 已从 ' + oldSn + ' 更新为 ' + event.sn);
+                } else {
+                    console.log('[chat_created] Step2跳过: items[] 中未找到 frontSN=' + frontSN + ' (items=' + JSON.stringify(chats.items.map(function(c){return c.sn;})) + ')');
                 }
 
                 // 3. 更新侧边栏 store.chats 中的 SN
                 // ★ 直接操作 Alpine store，不再依赖 chat-list.js 的模块变量
                 try {
                     var chatList = chats.chats;
+                    console.log('[chat_created] Step3 chats.chats: ' + (chatList ? '存在, length=' + chatList.length : '为 null/undefined'));
                     if (chatList) {
                         var chatIdx = chatList.findIndex(function(c) { return c.sn === frontSN; });
+                        console.log('[chat_created] Step3 chats.chats: 查找 frontSN=' + frontSN + ', findIndex=' + chatIdx + ' (chats=' + JSON.stringify(chatList.map(function(c){return c.sn;})) + ')');
                         if (chatIdx >= 0) {
+                            var oldChatSn = chatList[chatIdx].sn;
                             chatList[chatIdx].sn = event.sn;
+                            console.log('[chat_created] Step3完成: chats[' + chatIdx + '].sn 已从 ' + oldChatSn + ' 更新为 ' + event.sn);
                             // ★ 同步更新 activeChatSN：如果之前指向临时 SN，更新为真实 SN
                             //   否则侧边栏 chat-item 的 SN 已变为真实 SN，但 activeChatSN 仍为临时 SN，
                             //   导致 :class="{ active: chat.sn === $store.chats.activeChatSN }" 匹配失败。
                             if (chats.activeChatSN === frontSN) {
                                 chats.activeChatSN = event.sn;
+                                console.log('[chat_created] activeChatSN 已从 ' + frontSN + ' 更新为 ' + event.sn);
+                            } else {
+                                console.log('[chat_created] activeChatSN=' + chats.activeChatSN + ', 不等于 frontSN=' + frontSN + ', 无需更新');
                             }
                             // restructChatLists 会重新加工聊天列表
                             chats.restructChatLists(chatList, chats.activeChatSN);
+                            console.log('[chat_created] restructChatLists 完成');
+                        } else {
+                            console.log('[chat_created] Step3跳过: chats.chats 中未找到 frontSN=' + frontSN);
                         }
                     }
                 } catch(e) {
-                    // 侧边栏更新失败不阻塞主流程
+                    console.warn('[chat_created] Step3 侧边栏更新异常:', e);
                 }
 
                 // 4. stream.sn 已在第 1 步中更新，无需重复赋值
             } else {
-             // 没有 frontSN 时走旧逻辑：直接更新 stream SN
-             this.stream.sn = event.sn;
+                console.log('[chat_created] front_sn 为空, 走旧逻辑: this.stream.sn=' + this.stream.sn + ' -> ' + event.sn);
+                // 没有 frontSN 时走旧逻辑：直接更新 stream SN
+                this.stream.sn = event.sn;
             }
         } catch(e) {
             console.warn('[SSE] onChatCreated 处理失败:', e);
