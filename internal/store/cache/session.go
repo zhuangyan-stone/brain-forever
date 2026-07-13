@@ -159,3 +159,25 @@ func (rs *RedisSessionStore) RefreshTTL(ctx context.Context, sessionID string) e
 	key := sessionKey(sessionID)
 	return rs.client.Expire(ctx, key, sessionTTL).Err()
 }
+
+// GCStats holds the result of a single session GC sweep.
+type GCStats struct {
+	ExpiredAnonymous int `json:"expired_anonymous"`
+	ExpiredLoggedIn  int `json:"expired_logged_in"`
+	OnlineUsers      int `json:"online_users"`
+	AnonymousUsers   int `json:"anonymous_users"`
+}
+
+// gcStatsKey is the Redis key for the latest GC stats.
+const gcStatsKey = "session:gc_stats"
+
+// SetGCStats writes the latest GC sweep statistics to Redis.
+func (rs *RedisSessionStore) SetGCStats(ctx context.Context, stats *GCStats) error {
+	return rs.client.HSet(ctx, gcStatsKey,
+		"expired_anonymous", stats.ExpiredAnonymous,
+		"expired_logged_in", stats.ExpiredLoggedIn,
+		"online_users", stats.OnlineUsers,
+		"anonymous_users", stats.AnonymousUsers,
+		"updated_at", time.Now().UTC().Format(time.RFC3339),
+	).Err()
+}

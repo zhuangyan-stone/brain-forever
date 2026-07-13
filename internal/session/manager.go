@@ -318,6 +318,7 @@ func (m *Manager) gc() {
 	}
 
 	// Remove expired sessions under write lock.
+	var remainingAnon, remainingLoggedIn int
 	if len(expired) > 0 {
 		m.Mu.Lock()
 		for _, id := range expired {
@@ -326,14 +327,30 @@ func (m *Manager) gc() {
 		}
 		m.Mu.Unlock()
 
+		remainingAnon = anonymousCount - expiredAnon
+		remainingLoggedIn = loggedInCount - expiredLoggedIn
+
 		m.logger.Infof("Session GC cleaned up %d expired (anonymous: %d/%d, logged-in: %d/%d), %d remaining",
 			len(expired),
 			expiredAnon, anonymousCount,
 			expiredLoggedIn, loggedInCount,
 			len(m.Sessions))
 	} else {
+		remainingAnon = anonymousCount
+		remainingLoggedIn = loggedInCount
+
 		m.logger.Debugf("Session GC sweep: 0 expired, %d total (%d anonymous, %d logged-in)",
 			len(infos), anonymousCount, loggedInCount)
+	}
+
+	// Write GC stats to Redis (best-effort, non-blocking).
+	if m.HasRedis() {
+		m.Redis().SetGCStats(m.Ctx, &cache.GCStats{
+			ExpiredAnonymous: expiredAnon,
+			ExpiredLoggedIn:  expiredLoggedIn,
+			OnlineUsers:      remainingLoggedIn,
+			AnonymousUsers:   remainingAnon,
+		})
 	}
 }
 
