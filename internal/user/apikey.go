@@ -113,25 +113,26 @@ func (h *Handler) OnSaveApiKeySettings(w http.ResponseWriter, r *http.Request) {
 	// ============================================================
 	pool := config.GetApiKeysPool()
 	if !apis.LLM.Private && apis.LLM.ApiKey == "" {
-		if k := pool.GetOne("llm", "deepseek"); k != "" {
+		if apis.LLM.Provider == "" {
+			apis.LLM.Provider = config.GetDefaultLLMProvider()
+		}
+		if k := pool.GetOne("llm", apis.LLM.Provider); k != "" {
 			apis.LLM.ApiKey = k
 		}
 	}
 	if !apis.Embedder.Private && apis.Embedder.ApiKey == "" {
-		embedderProvider := apis.Embedder.Provider
-		if embedderProvider == "" {
-			embedderProvider = config.GetDefaultEmbeddingProvider()
+		if apis.Embedder.Provider == "" {
+			apis.Embedder.Provider = config.GetDefaultEmbeddingProvider()
 		}
-		if k := pool.GetOne("embedding", embedderProvider); k != "" {
+		if k := pool.GetOne("embedding", apis.Embedder.Provider); k != "" {
 			apis.Embedder.ApiKey = k
 		}
 	}
 	if !apis.Search.Private && apis.Search.ApiKey == "" {
-		searchProvider := apis.Search.Provider
-		if searchProvider == "" {
-			searchProvider = config.GetDefaultWebSearchProvider()
+		if apis.Search.Provider == "" {
+			apis.Search.Provider = config.GetDefaultWebSearchProvider()
 		}
-		if k := pool.GetOne("websearch", searchProvider); k != "" {
+		if k := pool.GetOne("websearch", apis.Search.Provider); k != "" {
 			apis.Search.ApiKey = k
 		}
 	}

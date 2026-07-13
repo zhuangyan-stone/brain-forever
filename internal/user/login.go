@@ -350,25 +350,26 @@ func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool
 	// ============================================================
 	pool := config.GetApiKeysPool()
 	if !userSettings.APIKey.LLM.Private && userSettings.APIKey.LLM.ApiKey == "" {
-		if k := pool.GetOne("llm", "deepseek"); k != "" {
+		if userSettings.APIKey.LLM.Provider == "" {
+			userSettings.APIKey.LLM.Provider = config.GetDefaultLLMProvider()
+		}
+		if k := pool.GetOne("llm", userSettings.APIKey.LLM.Provider); k != "" {
 			userSettings.APIKey.LLM.ApiKey = k
 		}
 	}
 	if !userSettings.APIKey.Embedder.Private && userSettings.APIKey.Embedder.ApiKey == "" {
-		embedderProvider := userSettings.APIKey.Embedder.Provider
-		if embedderProvider == "" {
-			embedderProvider = config.GetDefaultEmbeddingProvider()
+		if userSettings.APIKey.Embedder.Provider == "" {
+			userSettings.APIKey.Embedder.Provider = config.GetDefaultEmbeddingProvider()
 		}
-		if k := pool.GetOne("embedding", embedderProvider); k != "" {
+		if k := pool.GetOne("embedding", userSettings.APIKey.Embedder.Provider); k != "" {
 			userSettings.APIKey.Embedder.ApiKey = k
 		}
 	}
 	if !userSettings.APIKey.Search.Private && userSettings.APIKey.Search.ApiKey == "" {
-		searchProvider := userSettings.APIKey.Search.Provider
-		if searchProvider == "" {
-			searchProvider = config.GetDefaultWebSearchProvider()
+		if userSettings.APIKey.Search.Provider == "" {
+			userSettings.APIKey.Search.Provider = config.GetDefaultWebSearchProvider()
 		}
-		if k := pool.GetOne("websearch", searchProvider); k != "" {
+		if k := pool.GetOne("websearch", userSettings.APIKey.Search.Provider); k != "" {
 			userSettings.APIKey.Search.ApiKey = k
 		}
 	}
