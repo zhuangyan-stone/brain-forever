@@ -326,9 +326,9 @@ func (m *Manager) gc() {
 		}
 		m.Mu.Unlock()
 
-		m.logger.Infof("Session GC cleaned up %d expired (%d anonymous, %d logged-in), %d remaining (%d in-memory)",
+		m.logger.Infof("Session GC cleaned up %d expired (%d anonymous, %d logged-in), %d remaining (pre-cleanup: %d total, %d anonymous, %d logged-in)",
 			len(expired), expiredAnon, expiredLoggedIn,
-			len(infos)-len(expired), len(m.Sessions))
+			len(m.Sessions), len(infos), anonymousCount, loggedInCount)
 	} else {
 		m.logger.Debugf("Session GC sweep: 0 expired, %d total (%d anonymous, %d logged-in)",
 			len(infos), anonymousCount, loggedInCount)
