@@ -116,16 +116,3 @@ func persistMessageToDB(sess *session.Session, msg *Message, chatID int64, chatS
 	}
 	sess.User.ChatsMu.Unlock()
 }
-
-// deduplicateChats removes duplicate entries from the in-memory chat list
-func deduplicateChats(chats []store.Chat) []store.Chat {
-	seen := make(map[int64]bool, len(chats))
-	result := make([]store.Chat, 0, len(chats))
-	for _, c := range chats {
-		if !seen[c.ID] {
-			seen[c.ID] = true
-			result = append(result, c)
-		}
-	}
-	return result
-}
