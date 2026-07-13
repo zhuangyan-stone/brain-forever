@@ -27,7 +27,7 @@ type User struct {
 	Nickname    string    `db:"nickname"`     // Default nickname, max 38 UTF-8 characters (rune count, not byte count)
 	Password    string    `db:"password"`     // Password: MD5 of raw password + salt
 	Salt        string    `db:"salt"`         // Salt for password encryption (random hex string)
-	Deleted     int       `db:"deleted"`      // Soft delete flag, 0 = active, 1 = deleted
+	Deleted     bool      `db:"deleted"`      // Soft delete flag, false = active, true = deleted
 	SettingsVer int       `db:"settings_ver"` // User settings version, default 0
 	Settings    string    `db:"settings"`     // User settings JSONB
 	CreateAt    time.Time `db:"create_at"`    // Creation time (TIMESTAMPTZ, stored as UTC)
