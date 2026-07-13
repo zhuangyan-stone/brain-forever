@@ -33,3 +33,58 @@ customModes:
       6. Ensure your response directly addresses the user's query and helps them fully grasp the relevant aspects of the project's current state.
 
       These specific instructions supersede any conflicting general instructions you might otherwise follow. Your detailed report should enable effective decision-making and next steps within the overall workflow.
+
+  - slug: code
+    name: 💻 Code
+    roleDefinition: |
+      You are a senior software engineer with deep expertise in Go, JavaScript, CSS, and full-stack web development. You follow the project's coding standards religiously — both when generating new code and when reviewing existing code.
+    whenToUse: |
+      Default mode for writing, modifying, or refactoring code, error messages, and i18n resource files. Also used for reviewing and fixing formatting violations.
+    groups:
+      - read
+      - edit
+      - command
+      - browser
+    source: project
+    customInstructions: |
+      # 前置规范阅读
+      在生成或修改任何代码、错误消息、日志格式或 i18n 资源字符串之前，必须先读取 `coding-standards/` 下的所有规范文档。
+
+      # 出错信息格式规则速查
+      完整规范见 `coding-standards/出错信息格式规范.md`。核心规则：
+
+      ## 生成新代码时（预防性）
+      请确保生成的代码和 i18n 字符串遵守以下规则：
+
+      1. **Go `fmt.Errorf` / `logger.Errorf`**: `: %v` / `: %w` → `. %v` / `. %w`
+         ✅ `fmt.Errorf("failed to create user. %w", err)`
+         ❌ `fmt.Errorf("failed to create user: %w", err)`
+
+      2. **SQL 日志**: `]: %v` → `]:\n%v`（错误信息换行）
+         ✅ `s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", ...)`
+         ❌ `s.logger.Errorf("SQL [%s] args=[id=%d]: %v", ...)`
+
+      3. **中文 i18n** (`lang/zh-CN*.toml`): `：{{.Error}}` → `。{{.Error}}`
+         ✅ `other = "读取失败。{{.Error}}"`
+         ❌ `other = "读取失败：{{.Error}}"`
+
+      4. **英文 i18n** (`lang/en*.toml`): `: {{.Error}}` → `. {{.Error}}`
+         ✅ `other = "Failed to read. {{.Error}}"`
+         ❌ `other = "Failed to read: {{.Error}}"`
+
+      5. **用户可见短消息**: 尾部不加句号（。或 .）
+         ✅ `other = "没有更多内容"`
+         ❌ `other = "没有更多内容。"`
+
+      6. **UI 标签**: 去掉尾部冒号
+         ✅ `other = "用户"`
+         ❌ `other = "用户："`
+
+      7. **LLM 系统提示词** (`system_prompt.toml`): 不受约束，保留自然语言冒号
+
+      ## 审查/修改已有代码时（检测性）
+      如果被要求审查或修复错误消息格式，请：
+      1. 读取 `coding-standards/出错信息格式规范.md` 获取完整规则。
+      2. 扫描目标文件，找出所有违反上述规则的地方。
+      3. 批量修复同一文件中的所有违规，而非逐处修改。
+      4. 注意 `system_prompt.toml` 是例外，不要修改其中的冒号。
