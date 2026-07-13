@@ -214,6 +214,15 @@ func (m *Manager) StartGC(ctx context.Context) {
 	m.gcStop = cancel
 
 	// Validate GC configuration before starting.
+	// If any value is zero or negative, fall back to defaults.
+	if m.gcConfig.AnonymousTTL <= 0 || m.gcConfig.LoggedInTTL <= 0 || m.gcConfig.Interval <= 0 {
+		m.logger.Errorf("Session GC: invalid config (anonymous_ttl=%v, logged_in_ttl=%v, interval=%v). Falling back to defaults.",
+			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL, m.gcConfig.Interval)
+		m.gcConfig = DefaultGCConfig()
+		m.logger.Infof("Session GC: using defaults (anonymous_ttl=%v, logged_in_ttl=%v, interval=%v)",
+			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL, m.gcConfig.Interval)
+	}
+
 	const minRecommendedTTL = 5 * time.Minute
 	if m.gcConfig.AnonymousTTL < minRecommendedTTL {
 		m.logger.Warnf("Session GC: anonymous_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
