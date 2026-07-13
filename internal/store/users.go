@@ -150,6 +150,7 @@ func (s *UserStore) generateUserNO() string {
 // ============================================================
 
 // FindOrCreateByTel looks up a user by phone number.
+// If the user does not exist, auto-registers a new user.
 func (s *UserStore) FindOrCreateByTel(tel string) (user *User, isNew bool, err error) {
 	existing, lookupErr := s.GetUserByTel(tel, false)
 	if lookupErr != nil {
@@ -166,17 +167,12 @@ func (s *UserStore) FindOrCreateByTel(tel string) (user *User, isNew bool, err e
 		nickname = "U" + tel[len(tel)-4:]
 	}
 
-	createdUser, createErr := s.CreateUser(nickname, tel)
+	// CreateUser now sets tel directly in the INSERT, eliminating the
+	// two-step INSERT+UPDATE pattern that could produce dirty data
+	// (tel='') if the UPDATE failed after a successful INSERT.
+	createdUser, createErr := s.CreateUser(nickname, tel /* rawPassword */, tel)
 	if createErr != nil {
 		err = fmt.Errorf("failed to auto-register user. %w", createErr)
-		return
-	}
-
-	sqlUpdateTel := "UPDATE users SET tel = $1 WHERE id = $2"
-	_, execErr := ThePGDB().Exec(sqlUpdateTel, tel, createdUser.ID)
-	if execErr != nil {
-		s.logger.Errorf("SQL [%s] args=[tel=%s id=%d]:\n%v", sqlUpdateTel, tel, createdUser.ID, execErr)
-		err = fmt.Errorf("failed to set tel for new user. %w", execErr)
 		return
 	}
 
@@ -191,7 +187,8 @@ func (s *UserStore) FindOrCreateByTel(tel string) (user *User, isNew bool, err e
 }
 
 // CreateUser creates a new user.
-func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
+// tel is the phone number to store; pass empty string if unknown.
+func (s *UserStore) CreateUser(nickname, rawPassword, tel string) (*User, error) {
 	sn := toolset.GenerateSN("u-")
 	no := s.generateUserNO()
 	if no == "" {
@@ -204,7 +201,7 @@ func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
 		 VALUES($1, $2, $3, $4, $5, $6, 0, $7)
 		 RETURNING id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at`
 	var user User
-	err := ThePGDB().Get(&user, sqlStr, nickname, no, sn, salt, password, "", "{}")
+	err := ThePGDB().Get(&user, sqlStr, nickname, no, sn, salt, password, tel, "{}")
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
 			return nil, fmt.Errorf("duplicate sn. %w", err)
