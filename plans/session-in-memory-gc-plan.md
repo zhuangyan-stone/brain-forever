@@ -210,7 +210,7 @@ flowchart TD
 | 场景 | 处理方式 |
 |------|----------|
 | GC 正在删除一个 session 的同时，有请求进来 `GetOrCreate` | 写锁保证互斥；请求会创建新 session |
-| Session 正在 streaming 时被 GC 删除 | 业务代码应通过 `Mu` 保护；GC 仅检查 `LastActivity`，streaming 期间会不断更新该字段，不会被误删 |
+| Session 正在 streaming 时被 GC 删除 | **⚠️ 存在风险。** `LastActivity` 仅在 [`GetOrCreate`](internal/session/manager.go:128) 中更新，streaming 期间**不会**更新该字段。长时间流式（>TTL）会导致 session 被误删。详见下方 §10 |
 | 匿名和已登录用户使用不同 TTL | `IsAnonymous()` 已在 [`Session`](internal/session/session.go:164) 中实现，可以直接复用 |
 | 服务关闭 | 通过 `ctx.Done()` 通知 GC goroutine 退出 |
 | TOML 文件未配置 `[session-gc]` | `DefaultConfig()` 提供合理的默认值 |
@@ -224,6 +224,70 @@ flowchart TD
 | [`internal/agent/init.go`](internal/agent/init.go) | 在 `InitAgent` 中将配置传入 `NewChatHandler`，末尾调用 `StartGC(ctx)` |
 | [`internal/agent/on_chat.go`](internal/agent/on_chat.go) | 修改 `NewChatHandler` 签名接受 `session.GCConfig` |
 | [`deploy/settings_template/server.template.toml`](deploy/settings_template/server.template.toml) | 新增 `[session-gc]` 配置节 |
+
+## 10. 实际风险分析——正在聊天的会话是否可能被误回收
+
+### 10.1 `LastActivity` 更新时机
+
+仅有的更新点：[`GetOrCreate`](internal/session/manager.go:128) 在每次 HTTP 请求进入 handler 时调用。
+
+```go
+sessionID := h.resolveSessionID(w, r)
+sess := h.sessionManager.GetOrCreate(sessionID)  // ← 仅在这里更新 LastActivity
+```
+
+在 [`callLLMWithPipeline`](internal/agent/chatllm.go:174)（流式响应的整个生命周期）中，**没有任何代码更新 `LastActivity`**。
+
+### 10.2 时序风险
+
+```
+（匿名用户，TTL=1h）
+T=0      用户发送 → OnNewMessage → GetOrCreate() 设置 LastActivity=T0
+T=~10s   流式进行中...（LastActivity 不再更新）
+T=+60min GC 扫描 → time.Since(T0) > 1h → 从 m.Sessions map 中删除
+```
+
+### 10.3 不同用户类型的风险等级
+
+| 用户类型 | TTL | 风险 | 原因 |
+|---|---|---|---|
+| **已登录用户** | **24h** | ✅ **几乎没有** | 没有任何 LLM 流式响应持续 24 小时 |
+| **匿名用户** | **1h** | ⚠️ **极低** | 典型流式几秒~几分钟；持续 >1h 的流式极罕见 |
+
+### 10.4 被回收后的影响
+
+- **不会崩溃**：GC 仅从 `m.Sessions` map 中删除键值对；正在执行的 handler 仍持有 [`*session.Session`](internal/session/session.go:81) 指针，可继续写入
+- **状态丢失**：用户发起新请求时，[`GetOrCreate`](internal/session/manager.go:163) 会创建**全新 session**，内存状态（`CurrentChat.Messages` 消息缓存等）丢失
+- **数据不丢**：流式结果已在 [`persistMessageToDB`](internal/agent/on_msg_new.go:196) 中写入 DB
+
+### 10.5 最可能的出问题场景
+
+1. 用户发消息后走开 >TTL 时间（匿名 1h / 已登录 24h），回来操作 → session 已重建，内存聊天列表、当前会话状态丢失
+2. 多标签页：A 标签页正在流式，B 标签页长时间无操作 → A 的流式可能被 GC 误删（极低概率）
+
+### 10.6 后续优化方向（可选）
+
+如需彻底消除风险，可在 [`callLLMWithPipeline`](internal/agent/chatllm.go:174) 中定期刷新 `sess.LastActivity`，例如：
+
+```go
+// 在流式回调中每隔 5 分钟刷新一次
+go func() {
+    ticker := time.NewTicker(5 * time.Minute)
+    defer ticker.Stop()
+    for {
+        select {
+        case <-ticker.C:
+            sess.Mu.Lock()
+            sess.LastActivity = time.Now()
+            sess.Mu.Unlock()
+        case <-ctx.Done():
+            return
+        }
+    }
+}()
+```
+
+但鉴于 TTL（1h/24h）远大于典型流式耗时，此优化优先级很低。
 
 ## 实现顺序
 
