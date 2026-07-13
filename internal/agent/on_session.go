@@ -31,8 +31,8 @@ func (h *ChatAgent) OnSession(w http.ResponseWriter, r *http.Request) {
 // Session info handler -GET /api/info/sessions
 // ============================================================
 
-// OnSessionsInfo handles GET /api/info/sessions -returns GC stats from Redis.
-func (h *ChatAgent) OnSessionsInfo(w http.ResponseWriter, r *http.Request) {
+// OnSessionsScanInfo handles GET /api/info/sessions -returns GC stats from Redis.
+func (h *ChatAgent) OnSessionsScanInfo(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.sessionManager.Redis().GetGCStats(r.Context())
 	if err != nil {
 		http.Error(w, "failed to read GC stats", http.StatusInternalServerError)

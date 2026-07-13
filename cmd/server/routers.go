@@ -69,8 +69,10 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// /api/chat/trash -- DELETE
 	srv.DELETE("/api/chat/trash", chatHandler.RequireAuth(chatHandler.OnEmptyTrash))
 
-	// /api/info/llm/chat -- GET
-	srv.GET("/api/info/llm/chat", chatHandler.RequireAuth(chatHandler.OnGetLLMInfo))
+	// /api/info/3rd/providers -- GET
+	srv.GET("/api/info/3rd/providers", chatHandler.RequireAuth(chatHandler.Get3rdProviderInfo))
+	// /api/info/sessions/scan -- GET (session GC scan stats from Redis)
+	srv.GET("/api/info/sessions/scan", chatHandler.RequireAuth(chatHandler.OnSessionsScanInfo))
 
 	// /api/user/logout -- POST
 	srv.POST("/api/user/logout", chatHandler.RequireAuth(userHandler.OnLogout))
@@ -125,9 +127,6 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 
 	// /api/session -- GET
 	srv.GET("/api/session", chatHandler.OnSession)
-
-	// /api/info/sessions/scan -- GET (session GC scan stats from Redis)
-	srv.GET("/api/info/sessions/scan", chatHandler.OnSessionsInfo)
 
 	// Health check endpoint
 	srv.GET("/api/health", func(w http.ResponseWriter, r *http.Request) {

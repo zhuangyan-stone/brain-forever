@@ -235,25 +235,103 @@ type ChatAgent struct {
 	logger zylog.Logger
 }
 
-// LLMInfo is the response for the LLM info endpoint.
-type LLMInfo struct {
+// ============================================================
+// Provider info response types
+// ============================================================
+
+// LLMProviderInfo is the LLM provider info part of the response.
+type LLMProviderInfo struct {
 	Name    string `json:"name"`
 	Model   string `json:"model"`
 	Website string `json:"website"`
 }
 
-// OnGetLLMInfo handles GET /api/info/llm/chat requests.
-func (h *ChatAgent) OnGetLLMInfo(w http.ResponseWriter, r *http.Request) {
+// EmbedderProviderInfo is the embedder provider info part of the response.
+type EmbedderProviderInfo struct {
+	Name      string `json:"name"`
+	Model     string `json:"model"`
+	Website   string `json:"website"`
+	Dimension int    `json:"dimension"`
+}
+
+// WebSearchProviderInfo is the web search provider info part of the response.
+type WebSearchProviderInfo struct {
+	Name    string `json:"name"`
+	Website string `json:"website"`
+}
+
+// APIKeyInfo is the API key info part of the response (no actual key exposed).
+type APIKeyInfo struct {
+	LLMProvider      string `json:"llm_provider"`
+	EmbedderProvider string `json:"embedder_provider"`
+	SearchProvider   string `json:"search_provider"`
+	LLMPrivate       bool   `json:"llm_private"`
+	EmbedderPrivate  bool   `json:"embedder_private"`
+	SearchPrivate    bool   `json:"search_private"`
+}
+
+// ProviderInfoResponse is the response for the 3rd party provider info endpoint.
+type ProviderInfoResponse struct {
+	LLM        LLMProviderInfo       `json:"llm"`
+	Embedder   EmbedderProviderInfo  `json:"embedder"`
+	WebSearch  WebSearchProviderInfo `json:"web_search"`
+	APIKeyInfo APIKeyInfo            `json:"api_key_info"`
+}
+
+// Get3rdProviderInfo handles GET /api/info/llm/chat requests.
+// Returns current user's 3rd-party provider info (LLM, Embedder, Web Search)
+// and API key metadata (provider + private flag), without exposing keys.
+func (h *ChatAgent) Get3rdProviderInfo(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
-	client := sessionLLMClient(sess)
+
+	// LLM provider info
+	llmClient := sessionLLMClient(sess)
+
+	// Embedder provider info
+	embedderClient := sessionEmbedder(sess)
+
+	// Web search provider info (look up raw client by provider name)
+	searchProvider := sess.User.Settings.APIKey.Search.Provider
+	if searchProvider == "" {
+		searchProvider = config.GetDefaultWebSearchProvider()
+	}
+	rawSearchClient, ok := searcherClientByPvd[searchProvider]
+	if !ok {
+		rawSearchClient = searcherClientByPvd[config.GetDefaultWebSearchProvider()]
+	}
+
+	// API key metadata (no actual keys)
+	apiKeySettings := sess.User.Settings.APIKey
+
+	resp := ProviderInfoResponse{
+		LLM: LLMProviderInfo{
+			Name:    llmClient.Name(),
+			Model:   llmClient.Model(),
+			Website: llmClient.Website(),
+		},
+		Embedder: EmbedderProviderInfo{
+			Name:      embedderClient.Name(),
+			Model:     embedderClient.Model(),
+			Website:   embedderClient.Website(),
+			Dimension: embedderClient.Dimension(),
+		},
+		WebSearch: WebSearchProviderInfo{
+			Name:    rawSearchClient.Name(),
+			Website: rawSearchClient.Website(),
+		},
+		APIKeyInfo: APIKeyInfo{
+			LLMProvider:      apiKeySettings.LLM.Provider,
+			EmbedderProvider: apiKeySettings.Embedder.Provider,
+			SearchProvider:   apiKeySettings.Search.Provider,
+			LLMPrivate:       apiKeySettings.LLM.Private,
+			EmbedderPrivate:  apiKeySettings.Embedder.Private,
+			SearchPrivate:    apiKeySettings.Search.Private,
+		},
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(LLMInfo{
-		Name:    client.Name(),
-		Model:   client.Model(),
-		Website: client.Website(),
-	})
+	json.NewEncoder(w).Encode(resp)
 }
 
 // sessionLLMClient returns the LLM client for the user's configured provider.
