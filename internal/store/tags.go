@@ -11,10 +11,10 @@ import (
 
 // ChatTag represents a tag associated with a chat session.
 type ChatTag struct {
-	ID       int64     `db:"id" json:"id"`               // Auto-increment primary key
-	ChatID   int64     `db:"chat_id" json:"chat_id"`     // References chat_sessions.id
-	Tag      string    `db:"tag" json:"tag"`             // Tag string (topic classification)
-	CreateAt time.Time `db:"create_at" json:"create_at"` // Creation time
+	ID       int64     `db:"id" json:"id"`
+	ChatID   int64     `db:"chat_id" json:"chat_id"`
+	Tag      string    `db:"tag" json:"tag"`
+	CreateAt time.Time `db:"create_at" json:"create_at"`
 }
 
 // SelectTagsGroup groups all tags by their value and returns a map of tag -> count.
@@ -24,7 +24,7 @@ func (s *ChatStore) SelectTagsGroup() (map[string]int, error) {
 		Count int    `db:"cnt"`
 	}
 
-	err := s.db.Select(&rows,
+	err := s.db().Select(&rows,
 		`SELECT tag, COUNT(1) AS cnt
 		 FROM chat_tags
 		 GROUP BY tag`,
@@ -41,15 +41,13 @@ func (s *ChatStore) SelectTagsGroup() (map[string]int, error) {
 }
 
 // SelectNonEmptyTagsGroup is like SelectTagsGroup but filters out empty-string tags.
-// This is used when building the LLM prompt, so the empty placeholder tag
-// (saved when LLM returns no tags) doesn't pollute the tag usage statistics.
 func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 	var rows []struct {
 		Tag   string `db:"tag"`
 		Count int    `db:"cnt"`
 	}
 
-	err := s.db.Select(&rows,
+	err := s.db().Select(&rows,
 		`SELECT tag, COUNT(1) AS cnt
 		 FROM chat_tags
 		 WHERE tag != ''
@@ -68,35 +66,26 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 
 // InsertChatTag creates a new chat tag and returns it.
 func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
-	result, err := s.db.Exec(
-		"INSERT INTO chat_tags(chat_id, tag) VALUES(?, ?)",
+	var chatTag ChatTag
+	err := s.db().Get(&chatTag,
+		`INSERT INTO chat_tags(chat_id, tag)
+		 VALUES($1, $2)
+		 RETURNING id, chat_id, tag, create_at`,
 		chatID, tag,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert chat tag: %w", err)
 	}
-
-	id, _ := result.LastInsertId()
-
-	var chatTag ChatTag
-	err = s.db.Get(&chatTag,
-		`SELECT id, chat_id, tag, create_at
-		 FROM chat_tags WHERE id = ?`, id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query inserted chat tag: %w", err)
-	}
 	return &chatTag, nil
 }
 
-// ListChatTagsByChatID returns all tags for a given chat session,
-// ordered by create_at ascending.
+// ListChatTagsByChatID returns all tags for a given chat session.
 func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
 	var tags []ChatTag
-	err := s.db.Select(&tags,
+	err := s.db().Select(&tags,
 		`SELECT id, chat_id, tag, create_at
 		 FROM chat_tags
-		 WHERE chat_id = ?
+		 WHERE chat_id = $1
 		 ORDER BY create_at ASC`,
 		chatID,
 	)
@@ -108,8 +97,8 @@ func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
 
 // DeleteChatTag deletes a single chat tag by its ID.
 func (s *ChatStore) DeleteChatTag(id int64) error {
-	result, err := s.db.Exec(
-		"DELETE FROM chat_tags WHERE id = ?",
+	result, err := s.db().Exec(
+		"DELETE FROM chat_tags WHERE id = $1",
 		id,
 	)
 	if err != nil {
@@ -124,8 +113,8 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 
 // DeleteChatTagsByChatID deletes all tags for a given chat session.
 func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
-	_, err := s.db.Exec(
-		"DELETE FROM chat_tags WHERE chat_id = ?",
+	_, err := s.db().Exec(
+		"DELETE FROM chat_tags WHERE chat_id = $1",
 		chatID,
 	)
 	if err != nil {

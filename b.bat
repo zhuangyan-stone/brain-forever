@@ -1,19 +1,13 @@
 @echo off
 REM ============================================
 REM BrainForever Build Script (Windows)
-REM Sets CGO and GCC path, builds brain-forever
+REM Builds brain-forever
 REM ============================================
 
 REM Set console encoding to UTF-8 (Windows)
 chcp 65001 >nul
 
 setlocal
-
-REM Set GCC path (adjust if your MinGW is elsewhere)
-set "PATH=C:\msys64\ucrt64\bin;%PATH%"
-
-REM Enable CGO (required for go-sqlite3)
-set "CGO_ENABLED=1"
 
 echo === d2Brain Builder ===
 echo.

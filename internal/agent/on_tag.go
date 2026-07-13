@@ -30,7 +30,7 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 	}
 	defer h.closeChatDB(chatStore)
 
-	groups, err := chatStore.SelectChatTitlesGroupByTags()
+	groups, err := chatStore.SelectChatTitlesGroupByTags(sess.User.ID)
 	if err != nil {
 		h.logger.Errorf("failed to select chat title tag groups: %v", err)
 		toolset.WriteJSONError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)

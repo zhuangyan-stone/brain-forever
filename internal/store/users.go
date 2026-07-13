@@ -1,4 +1,4 @@
-// Uses the global MySQL connection (theMySQLDBC) to store user information.
+// Uses the global PostgreSQL connection (thePGDBC) to store user information.
 package store
 
 import (
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"BrainForever/infra/i18n"
-	"BrainForever/internal/store/dbpath"
 	"BrainForever/toolset"
 )
 
@@ -38,20 +37,55 @@ type User struct {
 // UserStore
 //
 // UserStore does NOT hold its own *sqlx.DB connection.
-// It uses the global MySQL connection via TheMySQLDB().
-// This allows multiple stores (UserStore, future PaymentStore, etc.)
-// to share the same MySQL connection pool.
+// It uses the global PostgreSQL connection via ThePGDB().
 // ============================================================
 
 // UserStore manages user storage
 type UserStore struct {
-	// No db field — uses the global TheMySQLDB() singleton.
+	// No db field — uses the global ThePGDB() singleton.
 }
 
-// OpenUserStore creates a UserStore backed by the global MySQL connection.
-// The MySQL tables (users, etc.) are assumed to already exist —
-// they must be created manually or via migration script before starting the server.
-// The actual MySQL connection is managed globally via InitMySQLDB / TheMySQLDB().
+// EnsureSchema creates the users and roles tables if they don't exist (idempotent).
+func (s *UserStore) EnsureSchema() error {
+	schema := `
+		CREATE TABLE IF NOT EXISTS users (
+			id            BIGSERIAL PRIMARY KEY,
+			sn            VARCHAR(32)  NOT NULL UNIQUE,
+			no            VARCHAR(6)   NOT NULL UNIQUE,
+			tel           VARCHAR(18)  NOT NULL DEFAULT '',
+			nickname      VARCHAR(38)  NOT NULL,
+			password      VARCHAR(32)  NOT NULL,
+			salt          VARCHAR(32)  NOT NULL,
+			deleted       BOOLEAN      NOT NULL DEFAULT FALSE,
+			settings_ver  INTEGER      NOT NULL DEFAULT 0,
+			settings      JSONB        NOT NULL DEFAULT '{}',
+			create_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+			update_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_users_sn  ON users(sn);
+		CREATE INDEX IF NOT EXISTS idx_users_no  ON users(no);
+		CREATE INDEX IF NOT EXISTS idx_users_tel ON users(tel);
+
+		CREATE TABLE IF NOT EXISTS roles (
+			id         BIGSERIAL PRIMARY KEY,
+			user_id    BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			role_no    INTEGER      NOT NULL,
+			role_name  VARCHAR(60)  NOT NULL,
+			uuid       VARCHAR(32)  NOT NULL,
+			is_public  BOOLEAN      NOT NULL DEFAULT FALSE,
+			is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
+			create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+			update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_roles_user_id ON roles(user_id);
+	`
+	_, err := ThePGDB().Exec(schema)
+	return err
+}
+
+// OpenUserStore creates a UserStore backed by the global PostgreSQL connection.
 func OpenUserStore() (*UserStore, error) {
 	return &UserStore{}, nil
 }
@@ -68,11 +102,10 @@ func NewUserStore() (*UserStore, error) {
 
 var (
 	theUserStore *UserStore
-	theDBDir     string // database directory, used by Login/Logout
+	theDBDir     string // database directory, kept for backward compatibility
 )
 
 // TheUserStore returns the global UserStore singleton.
-// Panics if InitTheUserStore has not been called.
 func TheUserStore() *UserStore {
 	if theUserStore == nil {
 		panic("TheUserStore is nil - call InitTheUserStore first")
@@ -80,10 +113,7 @@ func TheUserStore() *UserStore {
 	return theUserStore
 }
 
-// InitTheUserStore creates the global UserStore singleton and ensures its schema.
-// dbDir is the directory for per-user SQLite database files, e.g. "localdb".
-// The MySQL connection must already be initialized via InitMySQLDB() before calling this.
-// Opens before HTTP server starts listening.
+// InitTheUserStore creates the global UserStore singleton.
 func InitTheUserStore(dbDir string) error {
 	s, err := OpenUserStore()
 	if err != nil {
@@ -95,7 +125,6 @@ func InitTheUserStore(dbDir string) error {
 }
 
 // CloseTheUserStore closes the global UserStore.
-// Called after HTTP server stops listening (via defer in main).
 func CloseTheUserStore() {
 	if theUserStore != nil {
 		theUserStore.Close()
@@ -106,45 +135,30 @@ func CloseTheUserStore() {
 // Password utility functions
 // ============================================================
 
-// md5Hash computes the MD5 hash and returns a 32-character lowercase hex string
 func md5Hash(s string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }
 
-// encryptPassword encrypts the raw password using salt with MD5.
-// Rule: MD5(rawPassword + salt)
 func encryptPassword(rawPassword, salt string) string {
 	return md5Hash(rawPassword + salt)
 }
 
-// ============================================================
-// Salt generation utilities
-// ============================================================
-
-// generateSalt generates a random 32-character hex string for use as a password salt.
 func generateSalt() string {
-	b := make([]byte, 16) // 16 bytes -> 32 hex chars
+	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		// Fallback: should never happen on modern OS
 		return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d", time.Now().UnixNano()))))
 	}
 	return fmt.Sprintf("%x", b)
 }
 
-// generateUserNO generates a unique 6-character user number.
-// Format: 1 uppercase letter (excluding I, O, Z) + 5 random digits.
-// Checks DB for duplicates and retries up to 5 times.
-// Returns empty string if all attempts fail due to collisions.
 func (s *UserStore) generateUserNO() string {
-	const letters = "ABCDEFGHJKLMNPQRSTUVWXY" // A-Z excluding I, O, Z (23 letters)
+	const letters = "ABCDEFGHJKLMNPQRSTUVWXY"
 
 	for attempt := 0; attempt < 5; attempt++ {
-		// Pick a random letter
 		lb := make([]byte, 1)
 		rand.Read(lb)
 		letter := letters[int(lb[0])%len(letters)]
 
-		// Generate 5 random digits
 		db := make([]byte, 5)
 		rand.Read(db)
 		digits := fmt.Sprintf("%05d",
@@ -156,61 +170,51 @@ func (s *UserStore) generateUserNO() string {
 
 		candidate := string(letter) + digits
 
-		// Check if already exists (uses unique index, no full scan)
-		var exists int
-		err := TheMySQLDB().Get(&exists, "SELECT EXISTS(SELECT 1 FROM users WHERE no = ?)", candidate)
+		var exists bool
+		err := ThePGDB().Get(&exists, "SELECT EXISTS(SELECT 1 FROM users WHERE no = $1)", candidate)
 		if err != nil {
-			continue // DB error, try again
+			continue
 		}
-		if exists == 0 {
+		if !exists {
 			return candidate
 		}
 	}
-	return "" // All 5 attempts failed due to collisions
+	return ""
 }
 
 // ============================================================
 // User operations
 // ============================================================
 
-// FindOrCreateByTel looks up a user by phone number (excluding deleted users).
-// If found, returns the existing user.
-// If not found, creates a new user with the given tel as nickname prefix and a default password.
-// FindOrCreateByTel returns an existing user by tel, or creates a new one if not found.
-// isNew is true when a new user was created.
+// FindOrCreateByTel looks up a user by phone number.
 func (s *UserStore) FindOrCreateByTel(tel string) (user *User, isNew bool, err error) {
-	// Try to find existing user by tel (exclude deleted)
 	existing, lookupErr := s.GetUserByTel(tel, false)
 	if lookupErr != nil {
 		err = lookupErr
 		return
 	}
 	if existing != nil {
-		user = existing // already registered
+		user = existing
 		return
 	}
 
-	// Auto-register new user
-	// Use tel suffix as nickname (last 4 digits for privacy)
 	nickname := tel
 	if len(tel) >= 4 {
 		nickname = "U" + tel[len(tel)-4:]
 	}
 
-	createdUser, createErr := s.CreateUser(nickname, tel) // use tel as the default password
+	createdUser, createErr := s.CreateUser(nickname, tel)
 	if createErr != nil {
 		err = fmt.Errorf("failed to auto-register user: %w", createErr)
 		return
 	}
 
-	// Update the tel field after creation
-	_, execErr := TheMySQLDB().Exec("UPDATE users SET tel = ? WHERE id = ?", tel, createdUser.ID)
+	_, execErr := ThePGDB().Exec("UPDATE users SET tel = $1 WHERE id = $2", tel, createdUser.ID)
 	if execErr != nil {
 		err = fmt.Errorf("failed to set tel for new user: %w", execErr)
 		return
 	}
 
-	// Re-fetch to get updated user
 	user, lookupErr = s.GetUserByID(createdUser.ID, false)
 	if lookupErr != nil {
 		err = lookupErr
@@ -222,9 +226,6 @@ func (s *UserStore) FindOrCreateByTel(tel string) (user *User, isNew bool, err e
 }
 
 // CreateUser creates a new user.
-// nickname is the default nickname (max 38 chars), rawPassword is the raw password.
-// sn is auto-generated via toolset.GenerateSN("u-"), salt is auto-generated randomly,
-// password is automatically computed as MD5(rawPassword + salt).
 func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
 	sn := toolset.GenerateSN("u-")
 	no := s.generateUserNO()
@@ -234,31 +235,30 @@ func (s *UserStore) CreateUser(nickname, rawPassword string) (*User, error) {
 	salt := generateSalt()
 	password := encryptPassword(rawPassword, salt)
 
-	result, err := TheMySQLDB().Exec(
-		"INSERT INTO users(nickname, no, sn, salt, password, tel, settings_ver, settings) VALUES(?, ?, ?, ?, ?, ?, 0, ?)",
+	var user User
+	err := ThePGDB().Get(&user,
+		`INSERT INTO users(nickname, no, sn, salt, password, tel, settings_ver, settings)
+		 VALUES($1, $2, $3, $4, $5, $6, 0, $7)
+		 RETURNING id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at`,
 		nickname, no, sn, salt, password, "", "{}",
 	)
 	if err != nil {
-		// Check for sn duplicate
-		if strings.Contains(err.Error(), "Duplicate entry") {
+		if strings.Contains(err.Error(), "duplicate key") {
 			return nil, fmt.Errorf("duplicate sn: %w", err)
 		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
-
-	id, _ := result.LastInsertId()
-	return s.GetUserByID(id, false)
+	return &user, nil
 }
 
 // GetUserByID retrieves a user by ID.
-// If includeDeleted is false, only active (deleted=0) users are returned.
 func (s *UserStore) GetUserByID(id int64, includeDeleted bool) (*User, error) {
 	var u User
-	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE id = ?"
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE id = $1"
 	if !includeDeleted {
-		query += " AND deleted = 0"
+		query += " AND deleted = FALSE"
 	}
-	err := TheMySQLDB().Get(&u, query, id)
+	err := ThePGDB().Get(&u, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found (id=%d)", id)
@@ -268,15 +268,14 @@ func (s *UserStore) GetUserByID(id int64, includeDeleted bool) (*User, error) {
 	return &u, nil
 }
 
-// GetUserByNO retrieves a user by no (user number).
-// If includeDeleted is false, only active (deleted=0) users are returned.
+// GetUserByNO retrieves a user by no.
 func (s *UserStore) GetUserByNO(no string, includeDeleted bool) (*User, error) {
 	var u User
-	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE no = ?"
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE no = $1"
 	if !includeDeleted {
-		query += " AND deleted = 0"
+		query += " AND deleted = FALSE"
 	}
-	err := TheMySQLDB().Get(&u, query, no)
+	err := ThePGDB().Get(&u, query, no)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by no=%s", no)
@@ -286,22 +285,20 @@ func (s *UserStore) GetUserByNO(no string, includeDeleted bool) (*User, error) {
 	return &u, nil
 }
 
-// GetUserByTel retrieves a user by phone number (tel field).
-// If includeDeleted is false, only active (deleted=0) users are returned.
-// Returns nil if the tel is empty or not found.
+// GetUserByTel retrieves a user by phone number.
 func (s *UserStore) GetUserByTel(tel string, includeDeleted bool) (*User, error) {
 	if tel == "" {
 		return nil, fmt.Errorf("tel is empty")
 	}
 	var u User
-	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE tel = ?"
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE tel = $1"
 	if !includeDeleted {
-		query += " AND deleted = 0"
+		query += " AND deleted = FALSE"
 	}
-	err := TheMySQLDB().Get(&u, query, tel)
+	err := ThePGDB().Get(&u, query, tel)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // not found, not an error
+			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to query user by tel: %w", err)
 	}
@@ -309,14 +306,13 @@ func (s *UserStore) GetUserByTel(tel string, includeDeleted bool) (*User, error)
 }
 
 // GetUserBySN retrieves a user by sn.
-// If includeDeleted is false, only active (deleted=0) users are returned.
 func (s *UserStore) GetUserBySN(sn string, includeDeleted bool) (*User, error) {
 	var u User
-	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE sn = ?"
+	query := "SELECT id, nickname, no, sn, salt, password, tel, deleted, settings_ver, settings, create_at, update_at FROM users WHERE sn = $1"
 	if !includeDeleted {
-		query += " AND deleted = 0"
+		query += " AND deleted = FALSE"
 	}
-	err := TheMySQLDB().Get(&u, query, sn)
+	err := ThePGDB().Get(&u, query, sn)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found by sn=%s", sn)
@@ -327,7 +323,6 @@ func (s *UserStore) GetUserBySN(sn string, includeDeleted bool) (*User, error) {
 }
 
 // VerifyPassword verifies if the user's password is correct.
-// rawPassword is the raw password to verify; it computes MD5 with the user's salt and compares.
 func (s *UserStore) VerifyPassword(sn, rawPassword string) (bool, error) {
 	u, err := s.GetUserBySN(sn, false)
 	if err != nil {
@@ -338,7 +333,7 @@ func (s *UserStore) VerifyPassword(sn, rawPassword string) (bool, error) {
 
 // UpdateNickname updates the user's nickname
 func (s *UserStore) UpdateNickname(id int64, newNickname string) error {
-	result, err := TheMySQLDB().Exec("UPDATE users SET nickname = ? WHERE id = ?", newNickname, id)
+	result, err := ThePGDB().Exec("UPDATE users SET nickname = $1 WHERE id = $2", newNickname, id)
 	if err != nil {
 		return fmt.Errorf("failed to update nickname: %w", err)
 	}
@@ -350,20 +345,18 @@ func (s *UserStore) UpdateNickname(id int64, newNickname string) error {
 }
 
 // UpdatePassword updates the user's password.
-// Automatically re-computes MD5 using the existing salt.
 func (s *UserStore) UpdatePassword(id int64, newRawPassword string) error {
 	if len(newRawPassword) == 0 {
 		return fmt.Errorf("password cannot be empty")
 	}
 
-	// First get user info to obtain salt
 	u, err := s.GetUserByID(id, false)
 	if err != nil {
 		return err
 	}
 
 	newPassword := encryptPassword(newRawPassword, u.Salt)
-	_, err = TheMySQLDB().Exec("UPDATE users SET password = ? WHERE id = ?", newPassword, id)
+	_, err = ThePGDB().Exec("UPDATE users SET password = $1 WHERE id = $2", newPassword, id)
 	if err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
@@ -372,7 +365,7 @@ func (s *UserStore) UpdatePassword(id int64, newRawPassword string) error {
 
 // DeleteUser deletes a user.
 func (s *UserStore) DeleteUser(id int64) error {
-	result, err := TheMySQLDB().Exec("DELETE FROM users WHERE id = ?", id)
+	result, err := ThePGDB().Exec("DELETE FROM users WHERE id = $1", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
@@ -386,7 +379,7 @@ func (s *UserStore) DeleteUser(id int64) error {
 // ListUsers lists all users
 func (s *UserStore) ListUsers() ([]User, error) {
 	var users []User
-	err := TheMySQLDB().Select(&users, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users ORDER BY id")
+	err := ThePGDB().Select(&users, "SELECT id, nickname, no, sn, salt, password, tel, settings_ver, settings, create_at, update_at FROM users ORDER BY id")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
@@ -397,27 +390,23 @@ func (s *UserStore) ListUsers() ([]User, error) {
 // Login / Logout
 // ============================================================
 
-// loadChats opens a user's chat database and loads the chat list.
-func (s *UserStore) loadChats(userID int64, userSN string) ([]Chat, error) {
-	p := dbpath.ForUser(theDBDir, userID, userSN, "chats")
-	chatStore, err := CreateLocalChat(p)
+// loadChats loads a user's chat list from the unified PostgreSQL database.
+func (s *UserStore) loadChats(userID int64) ([]Chat, error) {
+	chatStore := NewChatStore()
+	chats, err := chatStore.ListAllChats(userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open chats for %s: %w", userSN, err)
+		return nil, fmt.Errorf("failed to load chats for user %d: %w", userID, err)
 	}
-	defer chatStore.Close()
-	return chatStore.ListChats(100)
+	return chats, nil
 }
 
 // LoginByPassword authenticates a user by no and password.
-// Returns the authenticated user. Caller should load chats separately.
 func (s *UserStore) LoginByPassword(no, password string) (*User, error) {
-	// Look up user by no (exclude deleted)
 	u, err := s.GetUserByNO(no, false)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", i18n.T("api_error_login_failed"), err)
 	}
 
-	// Verify password
 	if u.Password != encryptPassword(password, u.Salt) {
 		return nil, fmt.Errorf("%s: %w", i18n.T("api_error_login_failed"), fmt.Errorf("incorrect password"))
 	}
@@ -425,19 +414,17 @@ func (s *UserStore) LoginByPassword(no, password string) (*User, error) {
 	return u, nil
 }
 
-// LoadChats loads a logged-in user's chat list by their SN (no authentication).
-// Used to reload chat data for an already authenticated session.
-func (s *UserStore) LoadChats(userID int64, userSN string) ([]Chat, error) {
-	return s.loadChats(userID, userSN)
+// LoadChats loads a logged-in user's chat list.
+func (s *UserStore) LoadChats(userID int64) ([]Chat, error) {
+	return s.loadChats(userID)
 }
 
-// Logout is called when a user logs out. Currently a placeholder.
+// Logout is called when a user logs out.
 func (s *UserStore) Logout(userSN string) {
-	_ = userSN // Future: update last_logout timestamp, etc.
+	_ = userSN
 }
 
-// Close is a no-op because UserStore does not own the MySQL connection.
-// The global MySQL connection is closed via CloseMySQLDB().
+// Close is a no-op because UserStore does not own the PG connection.
 func (s *UserStore) Close() error {
 	return nil
 }

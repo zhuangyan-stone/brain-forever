@@ -157,6 +157,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 			client:     embedder,
 			store:      traitsStore,
 			lang:       lang,
+			userID:     sess.User.ID,
 			apiSetting: embedderSetting,
 		}
 		traitSearchByTextToolImp := toolimp.MakeTraitSearchByTextTool(r.Context(), traitSearcher, lang)

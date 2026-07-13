@@ -14,6 +14,7 @@ type traitSearchAdapter struct {
 	client embedder.Embedder
 	store  *store.BrainStore
 	lang   string
+	userID int64 // user ID for data isolation
 
 	// apiSetting is the user's personal embedder API setting (empty ApiKey = use client default).
 	apiSetting store.ApiSetting
@@ -72,7 +73,7 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 	}
 
 	// 2. Call store.SearchByVector() to perform the query, get []store.PersonalTrait, then convert to []toolimp.TraitSource
-	traits, err := a.store.SearchByVector(vector, category, topK)
+	traits, err := a.store.SearchByVector(a.userID, vector, category, topK)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search traits: %w", err)
 	}
@@ -100,14 +101,14 @@ func (a *traitSearchAdapter) SearchByText(ctx context.Context, queryText string,
 
 func (a *traitSearchAdapter) SearchByKeyword(ctx context.Context, queryKeyword string, queryType int) ([]toolimp.TraitSource, error) {
 	// 1. Try exact match first
-	traits, err := a.store.SearchByKeyword(queryKeyword, queryType, 20)
+	traits, err := a.store.SearchByKeyword(a.userID, queryKeyword, queryType, 20)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search traits by keyword: %w", err)
 	}
 
 	// 2. If exact match returns no results, fall back to fuzzy LIKE %keyword% search
 	if len(traits) == 0 {
-		traits, err = a.store.SearchByKeywordFuzzy(queryKeyword, queryType, 20)
+		traits, err = a.store.SearchByKeywordFuzzy(a.userID, queryKeyword, queryType, 20)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fuzzy search traits by keyword: %w", err)
 		}

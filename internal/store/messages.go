@@ -6,17 +6,17 @@ import (
 )
 
 type Message struct {
-	ID     int64 `db:"id"`      // Auto-increment ID
-	ChatID int64 `db:"chat_id"` // Belonging chat ID (chat_sessions.id)
+	ID     int64 `db:"id" json:"id"`           // Auto-increment ID
+	ChatID int64 `db:"chat_id" json:"chat_id"` // Belonging chat ID (chat_sessions.id)
 
-	GroupIndex int  `db:"group_index"` // Message group index
-	Role       int8 `db:"role"`        // 0: user 1: assistant
+	GroupIndex int  `db:"group_index" json:"group_index"` // Message group index
+	Role       int8 `db:"role" json:"role"`               // 0: user 1: assistant
 
 	Reasoning *string `db:"reasoning"`
 	Content   string  `db:"content"` // Content
 
-	Extracted   bool `db:"extracted"`   // Whether extracted, default 0
-	Interrupted int  `db:"interrupted"` // 0=done, 1=user-interrupted, 2=backend-error
+	Extracted   bool `db:"extracted" json:"extracted"`     // Whether extracted
+	Interrupted int  `db:"interrupted" json:"interrupted"` // 0=done, 1=user-interrupted, 2=backend-error
 
 	CreateAt time.Time `db:"create_at"`
 	UpdateAt time.Time `db:"update_at"`
@@ -25,9 +25,9 @@ type Message struct {
 // InsertMessage records a new message.
 func (s *ChatStore) InsertMessage(chatID int64, groupIndex int, role int,
 	content string, reasoning *string, interrupted int) error {
-	_, err := s.db.Exec(
+	_, err := s.db().Exec(
 		`INSERT INTO chat_messages(chat_id, group_index, role, reasoning, content, interrupted)
-		 VALUES(?, ?, ?, ?, ?, ?)`,
+		 VALUES($1, $2, $3, $4, $5, $6)`,
 		chatID, groupIndex, role, reasoning, content, interrupted,
 	)
 	if err != nil {
@@ -39,11 +39,11 @@ func (s *ChatStore) InsertMessage(chatID int64, groupIndex int, role int,
 // ListMessages queries all messages of a given chat, sorted by group_index and id.
 func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	var msgs []Message
-	err := s.db.Select(&msgs,
+	err := s.db().Select(&msgs,
 		`SELECT id, chat_id, group_index, role, reasoning, content,
 		        extracted, interrupted, create_at, update_at
 		 FROM chat_messages
-		 WHERE chat_id = ?
+		 WHERE chat_id = $1
 		 ORDER BY group_index ASC, id ASC`,
 		chatID,
 	)
@@ -53,18 +53,16 @@ func (s *ChatStore) ListMessages(chatID int64) ([]Message, error) {
 	return msgs, nil
 }
 
-// ListMessagesByRange queries messages of a given chat starting from a specific message ID,
-// limited to a specific count, ordered by id ASC.
-// If startID is 0, starts from the first message (id > 0).
+// ListMessagesByRange queries messages of a given chat starting from a specific message ID.
 func (s *ChatStore) ListMessagesByRange(chatID int64, startID int64, limit int) ([]Message, error) {
 	var msgs []Message
-	err := s.db.Select(&msgs,
+	err := s.db().Select(&msgs,
 		`SELECT id, chat_id, group_index, role, reasoning, content,
 		        extracted, interrupted, create_at, update_at
 		 FROM chat_messages
-		 WHERE chat_id = ? AND id > ?
+		 WHERE chat_id = $1 AND id > $2
 		 ORDER BY id ASC
-		 LIMIT ?`,
+		 LIMIT $3`,
 		chatID, startID, limit,
 	)
 	if err != nil {
@@ -73,16 +71,14 @@ func (s *ChatStore) ListMessagesByRange(chatID int64, startID int64, limit int) 
 	return msgs, nil
 }
 
-// ListUnExtractMessages queries only un-extracted messages (extracted = 0) of a given chat,
-// sorted by group_index and id. This is used by the trait extraction handler to avoid
-// fetching already-extracted messages from the database layer.
+// ListUnExtractMessages queries only un-extracted messages of a given chat.
 func (s *ChatStore) ListUnExtractMessages(chatID int64) ([]Message, error) {
 	var msgs []Message
-	err := s.db.Select(&msgs,
+	err := s.db().Select(&msgs,
 		`SELECT id, chat_id, group_index, role, reasoning, content,
 		        extracted, interrupted, create_at, update_at
 		 FROM chat_messages
-		 WHERE chat_id = ? AND extracted = 0
+		 WHERE chat_id = $1 AND extracted = FALSE
 		 ORDER BY group_index ASC, id ASC`,
 		chatID,
 	)
@@ -95,8 +91,8 @@ func (s *ChatStore) ListUnExtractMessages(chatID int64) ([]Message, error) {
 // CountMessages returns the total number of messages in a chat.
 func (s *ChatStore) CountMessages(chatID int64) (int, error) {
 	var count int
-	err := s.db.Get(&count,
-		`SELECT COUNT(1) FROM chat_messages WHERE chat_id = ?`,
+	err := s.db().Get(&count,
+		`SELECT COUNT(1) FROM chat_messages WHERE chat_id = $1`,
 		chatID,
 	)
 	if err != nil {
@@ -108,15 +104,15 @@ func (s *ChatStore) CountMessages(chatID int64) (int, error) {
 // DeleteMessageGroup physically deletes messages and their associated web sources
 // for the given chat ID and group index (transaction-safe).
 func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
-	tx, err := s.db.Beginx()
+	tx, err := s.db().Beginx()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Delete web sources first (foreign key or not, clean up orphans)
+	// Delete web sources first
 	_, err = tx.Exec(
-		"DELETE FROM web_sources WHERE chat_id = ? AND msg_id = ?",
+		"DELETE FROM web_sources WHERE chat_id = $1 AND msg_id = $2",
 		chatID, groupIndex,
 	)
 	if err != nil {
@@ -125,7 +121,7 @@ func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 
 	// Delete messages
 	_, err = tx.Exec(
-		"DELETE FROM chat_messages WHERE chat_id = ? AND group_index = ?",
+		"DELETE FROM chat_messages WHERE chat_id = $1 AND group_index = $2",
 		chatID, groupIndex,
 	)
 	if err != nil {
@@ -133,4 +129,19 @@ func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 	}
 
 	return tx.Commit()
+}
+
+// FindMessageByID finds a message by its ID.
+func (s *ChatStore) FindMessageByID(msgID int64) (*Message, error) {
+	var msg Message
+	err := s.db().Get(&msg,
+		`SELECT id, chat_id, group_index, role, reasoning, content,
+		        extracted, interrupted, create_at, update_at
+		 FROM chat_messages WHERE id = $1`,
+		msgID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("message not found (id=%d): %w", msgID, err)
+	}
+	return &msg, nil
 }

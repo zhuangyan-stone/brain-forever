@@ -14,7 +14,6 @@ import (
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
-	"BrainForever/internal/store/dbc"
 )
 
 // ============================================================
@@ -103,7 +102,7 @@ func (h *ChatAgent) OnListDeletedChats(w http.ResponseWriter, r *http.Request) {
 	}
 	defer h.closeChatDB(chatStore)
 
-	deletedChats, err := chatStore.ListDeletedChats(100)
+	deletedChats, err := chatStore.ListDeletedChats(sess.User.ID, 100)
 	if err != nil {
 		http.Error(w, i18n.T("db_list_deleted_chats_failed"), http.StatusInternalServerError)
 		return
@@ -149,7 +148,7 @@ func (h *ChatAgent) OnRestoreChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reload the restored chat from DB and add back to in-memory list
-	chats, err := chatStore.ListChats(100)
+	chats, err := chatStore.ListChats(sess.User.ID, 100)
 	if err == nil {
 		sess.User.ChatsMu.Lock()
 		sess.User.Chats = chats
@@ -206,7 +205,7 @@ func (h *ChatAgent) OnPermanentDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Phase 2: Delete the chat session from chats DB.
-	if err := chatStore.PhysicalDelete(int(chatID), sn); err != nil {
+	if err := chatStore.PhysicalDelete(int(chatID)); err != nil {
 		http.Error(w, i18n.T("api_error_failed_to_delete_session"), http.StatusInternalServerError)
 		return
 	}
@@ -234,7 +233,7 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 	}
 	defer h.closeChatDB(chatStore)
 
-	deletedChats, err := chatStore.ListDeletedChats(1000)
+	deletedChats, err := chatStore.ListDeletedChats(sess.User.ID, 1000)
 	if err != nil {
 		http.Error(w, i18n.T("db_list_deleted_chats_failed"), http.StatusInternalServerError)
 		return
@@ -258,7 +257,7 @@ func (h *ChatAgent) OnEmptyTrash(w http.ResponseWriter, r *http.Request) {
 		h.closeBrainDB(traitsStore)
 	}
 
-	if err := chatStore.EmptyTrash(); err != nil {
+	if err := chatStore.EmptyTrash(sess.User.ID); err != nil {
 		http.Error(w, i18n.T("db_delete_trashed_sessions_failed"), http.StatusInternalServerError)
 		return
 	}
@@ -437,19 +436,19 @@ func resolveUserID(s *session.Session) int64 {
 }
 
 func (h *ChatAgent) openChatDB(s *session.Session) (*store.ChatStore, error) {
-	return dbc.OpenLocalChatDB(resolveUserID(s), resolveUserSN(s))
+	return globalChatStore, nil
 }
 
 func (h *ChatAgent) openBrainDB(s *session.Session) (*store.BrainStore, error) {
-	return dbc.OpenLocalBrainDB(resolveUserID(s), resolveUserSN(s))
+	return globalBrainStore, nil
 }
 
 func (h *ChatAgent) closeChatDB(cs *store.ChatStore) {
-	dbc.CloseLocalChatDB(cs)
+	// No-op: ChatStore uses global connection pool, nothing to close
 }
 
 func (h *ChatAgent) closeBrainDB(vs *store.BrainStore) {
-	dbc.CloseLocalBrainDB(vs)
+	// No-op: BrainStore uses global connection pool, nothing to close
 }
 
 // ============================================================

@@ -25,7 +25,7 @@ func (h *ChatAgent) ListFavoriteChats(w http.ResponseWriter, r *http.Request) {
 	}
 	defer h.closeChatDB(chatStore)
 
-	result, err := chatStore.SelectFavoritedChatTitlesGroupByTags()
+	result, err := chatStore.SelectFavoritedChatTitlesGroupByTags(sess.User.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

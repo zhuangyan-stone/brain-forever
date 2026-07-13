@@ -166,7 +166,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	}
 	defer h.closeBrainDB(vs)
 
-	allTraits, err := vs.ListAllTraitsByCreateTime()
+	allTraits, err := vs.ListAllTraitsByCreateTime(sess.User.ID)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_read_traits", map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)
 		return
@@ -199,7 +199,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	recentChatTitles, err := chatStore.ListChatTitles(100)
+	recentChatTitles, err := chatStore.ListChatTitles(sess.User.ID, 100)
 	if err != nil {
 		toolset.WriteJSONError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
 			map[string]interface{}{"Error": err.Error()}), http.StatusInternalServerError)

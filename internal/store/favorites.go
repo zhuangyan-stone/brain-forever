@@ -11,22 +11,20 @@ import (
 
 // FavoriteItem represents a favorited chat session with an optional custom tag.
 type FavoriteItem struct {
-	ID int64 `db:"id" json:"id"` // Auto-increment primary key
+	ID int64 `db:"id" json:"id"`
 
-	ChatID    int64  `db:"chat_id" json:"chat_id"`       // References chat_sessions.id
-	CustomTag string `db:"custom_tag" json:"custom_tag"` // User-defined custom tag for grouping favorites
+	ChatID    int64  `db:"chat_id" json:"chat_id"`
+	CustomTag string `db:"custom_tag" json:"custom_tag"`
 
 	CreateAt time.Time `db:"create_at" json:"create_at"`
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// InsertFavoriteItem inserts a new favorite record for the given chat ID
-// with the specified custom tag. Duplicate (chat_id, custom_tag) pairs
-// are allowed since there is no UNIQUE constraint on the combination.
+// InsertFavoriteItem inserts a new favorite record for the given chat ID.
 func (s *ChatStore) InsertFavoriteItem(chatID int64, customTag string) error {
-	_, err := s.db.Exec(
+	_, err := s.db().Exec(
 		`INSERT INTO chat_favorites(chat_id, custom_tag)
-		 VALUES(?, ?)`,
+		 VALUES($1, $2)`,
 		chatID, customTag,
 	)
 	if err != nil {
@@ -35,13 +33,12 @@ func (s *ChatStore) InsertFavoriteItem(chatID int64, customTag string) error {
 	return nil
 }
 
-// UpdateFavoriteItemsCustomTag renames all occurrences of oldCustomTag to newCustomTag
-// across all favorite records. Returns the number of rows updated.
+// UpdateFavoriteItemsCustomTag renames all occurrences of oldCustomTag to newCustomTag.
 func (s *ChatStore) UpdateFavoriteItemsCustomTag(oldCustomTag, newCustomTag string) (int64, error) {
-	result, err := s.db.Exec(
+	result, err := s.db().Exec(
 		`UPDATE chat_favorites
-		 SET custom_tag = ?
-		 WHERE custom_tag = ?`,
+		 SET custom_tag = $1
+		 WHERE custom_tag = $2`,
 		newCustomTag, oldCustomTag,
 	)
 	if err != nil {
@@ -51,15 +48,12 @@ func (s *ChatStore) UpdateFavoriteItemsCustomTag(oldCustomTag, newCustomTag stri
 	return rows, nil
 }
 
-// UpdateFavoriteItemChatCustomTag updates the custom_tag of a single favorite record
-// identified by its primary key id, but only if its current custom_tag matches oldCustomTag.
-// This acts as an optimistic lock to prevent concurrent overwrites.
-// Returns an error if no matching record is found (id not found or tag mismatch).
+// UpdateFavoriteItemChatCustomTag updates the custom_tag of a single favorite record.
 func (s *ChatStore) UpdateFavoriteItemChatCustomTag(id int64, oldCustomTag, newCustomTag string) error {
-	result, err := s.db.Exec(
+	result, err := s.db().Exec(
 		`UPDATE chat_favorites
-		 SET custom_tag = ?
-		 WHERE id = ? AND custom_tag = ?`,
+		 SET custom_tag = $1
+		 WHERE id = $2 AND custom_tag = $3`,
 		newCustomTag, id, oldCustomTag,
 	)
 	if err != nil {
@@ -72,12 +66,11 @@ func (s *ChatStore) UpdateFavoriteItemChatCustomTag(id int64, oldCustomTag, newC
 	return nil
 }
 
-// IsExistsFavoriteItem checks whether a favorite record exists for the given
-// chat ID and custom tag combination. Returns true if found, false otherwise.
+// IsExistsFavoriteItem checks whether a favorite record exists.
 func (s *ChatStore) IsExistsFavoriteItem(chatID int64, customTag string) (bool, error) {
 	var exists bool
-	err := s.db.Get(&exists,
-		"SELECT COUNT(1) FROM chat_favorites WHERE chat_id = ? AND custom_tag = ?",
+	err := s.db().Get(&exists,
+		"SELECT COUNT(1) FROM chat_favorites WHERE chat_id = $1 AND custom_tag = $2",
 		chatID, customTag,
 	)
 	if err != nil {
@@ -86,12 +79,11 @@ func (s *ChatStore) IsExistsFavoriteItem(chatID int64, customTag string) (bool, 
 	return exists, nil
 }
 
-// DeleteFavoriteItem deletes a favorite record matching the given chat ID
-// and custom tag. If no matching record is found, returns an error.
+// DeleteFavoriteItem deletes a favorite record.
 func (s *ChatStore) DeleteFavoriteItem(chatID int64, customTag string) error {
-	result, err := s.db.Exec(
+	result, err := s.db().Exec(
 		`DELETE FROM chat_favorites
-		 WHERE chat_id = ? AND custom_tag = ?`,
+		 WHERE chat_id = $1 AND custom_tag = $2`,
 		chatID, customTag,
 	)
 	if err != nil {
@@ -105,10 +97,9 @@ func (s *ChatStore) DeleteFavoriteItem(chatID int64, customTag string) error {
 }
 
 // DeleteFavoriteItemsByChatID deletes all favorite records for the given chat ID.
-// Returns the number of rows deleted.
 func (s *ChatStore) DeleteFavoriteItemsByChatID(chatID int64) (int64, error) {
-	result, err := s.db.Exec(
-		`DELETE FROM chat_favorites WHERE chat_id = ?`,
+	result, err := s.db().Exec(
+		`DELETE FROM chat_favorites WHERE chat_id = $1`,
 		chatID,
 	)
 	if err != nil {
@@ -118,34 +109,29 @@ func (s *ChatStore) DeleteFavoriteItemsByChatID(chatID int64) (int64, error) {
 	return rows, nil
 }
 
-// FavoritedChatTitleTag represents a chat session that has been favorited,
-// joined with its custom tag from the chat_favorites table.
+// FavoritedChatTitleTag represents a chat session that has been favorited.
 type FavoritedChatTitleTag struct {
 	SN        string `db:"sn" json:"sn"`
 	Title     string `db:"title" json:"title"`
 	CustomTag string `db:"custom_tag" json:"custom_tag"`
 
-	CreateAt time.Time `db:"create_at" json:"create_at"` // chat session's create_at
-	UpdateAt time.Time `db:"update_at" json:"update_at"` // chat session's update_at
+	CreateAt time.Time `db:"create_at" json:"create_at"`
+	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// SelectFavoritedChatTitlesGroupByTags queries all favorited (non-deleted) chat sessions,
-// grouped by their custom_tag. Within each group, results are ordered by
-// the chat session's update_at descending, then create_at descending.
-//
-// Returns a map where the key is the custom_tag value and the value is a slice
-// of FavoritedChatTitleTag entries sorted as described above.
-func (s *ChatStore) SelectFavoritedChatTitlesGroupByTags() (map[string][]FavoritedChatTitleTag, error) {
+// SelectFavoritedChatTitlesGroupByTags queries all favorited chat sessions for a user.
+func (s *ChatStore) SelectFavoritedChatTitlesGroupByTags(userID int64) (map[string][]FavoritedChatTitleTag, error) {
 	var rows []FavoritedChatTitleTag
-	err := s.db.Select(&rows,
+	err := s.db().Select(&rows,
 		`SELECT cs.sn, cs.title, cf.custom_tag, cs.create_at, cs.update_at
 		 FROM chat_sessions cs
 		 JOIN chat_favorites cf ON cs.id = cf.chat_id
-		 WHERE cs.deleted = 0
+		 WHERE cs.user_id = $1 AND cs.deleted = FALSE
 		 ORDER BY cf.custom_tag, cs.update_at DESC, cs.create_at DESC`,
+		userID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select favorited chat titles grouped by tags: %w", err)
+		return nil, fmt.Errorf("failed to select favorited chat titles: %w", err)
 	}
 
 	result := make(map[string][]FavoritedChatTitleTag)

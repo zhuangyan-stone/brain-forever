@@ -16,7 +16,6 @@ import (
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
-	"BrainForever/internal/store/dbc"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -318,12 +317,8 @@ func pickRandomAvatar(avatarDir string) string {
 // persist to Redis, and respond.
 func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool, sess *session.Session) {
 	var chats []store.Chat
-	cs, bs, err := dbc.InitUserDB(user.ID, user.SN)
-	if err == nil {
-		chats, err = cs.ListChats(100)
-		dbc.CloseLocalChatDB(cs)
-		dbc.CloseLocalBrainDB(bs)
-	}
+	cs := store.NewChatStore()
+	chats, err := cs.ListChats(user.ID, 100)
 	if err != nil || chats == nil {
 		chats = []store.Chat{}
 	}

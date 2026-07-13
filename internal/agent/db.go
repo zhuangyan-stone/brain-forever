@@ -29,7 +29,7 @@ func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore) b
 	sn := generateSessionSN()
 	title := sess.User.CurrentChat.Title
 
-	dbChat, err := chatStore.InsertChat(sn, 0, title, 0)
+	dbChat, err := chatStore.InsertChat(sn, sess.User.ID, 0, title, 0)
 	if err != nil {
 		return false
 	}

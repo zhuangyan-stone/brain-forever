@@ -29,15 +29,22 @@ file = "log/brain-forever.log"
 level = "TRACE"
 
 # ============================================================
-# MySQL 数据库配置
-# 用户数据（users 表）存储在 MySQL 中。
-# 请通过环境变量 MYSQL_DSN_d2brain 设置连接字符串，格式：
-#   MYSQL_DSN_d2brain="user:password@tcp(127.0.0.1:3306)/d2brain"
+# PostgreSQL 数据库配置
+# 所有数据统一存储在 PostgreSQL 中（含 pgvector 扩展）。
+# 请通过环境变量 PG_DSN 设置连接字符串，格式：
+#   PG_DSN="postgres://user:password@127.0.0.1:5432/d2brain?sslmode=disable"
 # 不要在此文件中写入密码！
 # ============================================================
 [database]
-# MySQL 数据源名称（必须设置，否则程序无法启动）
-# 或通过环境变量 MYSQL_DSN_d2brain 指定
+# PostgreSQL 数据源名称（必须设置，否则程序无法启动）
+# 或通过环境变量 PG_DSN 指定（优先级高于此文件中的 dsn 值）
+#
+# 连接字符串格式（URL 格式）：
+#   dsn = "postgres://user:password@127.0.0.1:5432/d2brain?sslmode=disable"
+#
+# 键值对格式（pgx 原生）：
+#   dsn = "host=127.0.0.1 port=5432 user=dev-d2brain password=dev123456 dbname=d2brain sslmode=disable"
+#
 dsn = ""
 
 # ============================================================

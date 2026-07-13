@@ -8,8 +8,8 @@ import (
 	"BrainForever/infra/searcher"
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/config"
+	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
-	"BrainForever/internal/store/dbc"
 )
 
 // ============================================================
@@ -25,25 +25,22 @@ const (
 
 // ============================================================
 // Provider client registries (package-level singletons)
-//
-// All clients are initialized with empty API keys. Per-user API
-// keys are provided at runtime via session LLM/Embedder/Search
-// API key accessors.
 // ============================================================
 
 var (
 	llmClients          map[string]llm.Client
 	embedderClients     map[string]embedder.Embedder
-	searcherClientByPvd map[string]searcher.WebSearcher // underlying search clients (no API key)
+	searcherClientByPvd map[string]searcher.WebSearcher
+
+	// Global store instances (shared, no per-user file management)
+	globalChatStore  *store.ChatStore
+	globalBrainStore *store.BrainStore
 )
 
 // ============================================================
 // Agent initialization
 // ============================================================
 
-// InitEmbedder creates an embedder for the given provider.
-// The embedder is created with an empty API key; callers must
-// provide the per-user API key at embed-time.
 func InitEmbedder(provider string, dimension int, logger zylog.Logger) embedder.Embedder {
 	if provider == "" {
 		provider = ProviderAli
@@ -65,17 +62,11 @@ func InitEmbedder(provider string, dimension int, logger zylog.Logger) embedder.
 	return e
 }
 
-// InitLLMClient creates the default DeepSeek LLM client.
-// The client is created with an empty API key; callers must
-// provide the per-user API key at call time.
 func InitLLMClient(logger zylog.Logger) llm.Client {
 	logger.Infof("? Using DeepSeek LLM client")
 	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{})
 }
 
-// InitWebSearchRawClient creates a raw search client for the given provider.
-// The client is created with an empty API key; callers must provide the
-// per-user API key via webSearchAdapter at call time.
 func InitWebSearchRawClient(provider string, logger zylog.Logger) searcher.WebSearcher {
 	switch provider {
 	case ProviderZhipu:
@@ -112,7 +103,18 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	searcherClientByPvd[ProviderZhipu] = InitWebSearchRawClient(ProviderZhipu, logger)
 
 	defaultEmbedder := embedderClients[ProviderAli]
-	dbc.InitDBConfig(cfg.Data.Dir, defaultEmbedder.Dimension(), logger)
+
+	// Create global store instances (single shared connection pool via ThePGDB())
+	globalChatStore = store.NewChatStore()
+	globalBrainStore = store.NewBrainStore(defaultEmbedder.Dimension(), logger)
+
+	// Ensure schemas exist (idempotent)
+	if err := globalChatStore.EnsureSchema(); err != nil {
+		logger.Fatalf("failed to ensure chat schema: %v", err)
+	}
+	if err := globalBrainStore.EnsureSchema(); err != nil {
+		logger.Fatalf("failed to ensure brain schema: %v", err)
+	}
 
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
 

@@ -53,7 +53,7 @@ func main() {
 	// Step 3: Environment variable overrides (highest priority)
 	//
 	// Database DSN — always from env var for security (password in file is discouraged)
-	if envDSN := os.Getenv("MYSQL_DSN_d2brain"); envDSN != "" {
+	if envDSN := os.Getenv("PG_DSN"); envDSN != "" {
 		cfg.Database.DSN = envDSN
 	}
 	// Redis — from env vars if set (empty = no Redis)
@@ -92,34 +92,31 @@ func main() {
 	theLogger.Infof("the logger is created with level. level %s. file %s", cfg.Logger.Level, cfg.Logger.File)
 
 	// ============================================================
-	// Ensure data directory exists for SQLite databases
-	// ============================================================
-	if err := os.MkdirAll(cfg.Data.Dir, 0755); err != nil {
-		theLogger.Fatalf("failed to create data directory %q: %v", cfg.Data.Dir, err)
-	}
-
-	// ============================================================
-	// Initialize global MySQL connection (theMySQLDBC)
+	// Initialize global PostgreSQL connection (thePGDBC)
 	// Must be before InitTheUserStore, which depends on it.
 	// ============================================================
 	if cfg.Database.DSN == "" {
-		theLogger.Fatalf("MYSQL_DSN_d2brain environment variable is required")
+		theLogger.Fatalf("PG_DSN environment variable is required")
 	}
-	if err := store.InitMySQLDB(cfg.Database.DSN); err != nil {
-		theLogger.Fatalf("failed to initialize MySQL: %v", err)
+	if err := store.InitPGDB(cfg.Database.DSN); err != nil {
+		theLogger.Fatalf("failed to initialize PostgreSQL: %v", err)
 	}
-	defer store.CloseMySQLDB()
-	theLogger.Infof("MySQL connection established")
+	defer store.ClosePGDB()
+	theLogger.Infof("PostgreSQL connection established")
 
 	// ============================================================
-	// Initialize global UserStore singleton (based on MySQL)
+	// Initialize global UserStore singleton (based on PostgreSQL)
 	// Opens before HTTP server starts, closes after it stops
 	// ============================================================
 	if err := store.InitTheUserStore(cfg.Data.Dir); err != nil {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
 	}
+	// Ensure users/roles tables exist (idempotent)
+	if err := store.TheUserStore().EnsureSchema(); err != nil {
+		theLogger.Fatalf("failed to ensure user schema: %v", err)
+	}
 	defer store.CloseTheUserStore()
-	theLogger.Infof("user store (MySQL) initialized")
+	theLogger.Infof("user store (PostgreSQL) initialized")
 
 	// ============================================================
 	// Initialize i18n with local language resources

@@ -2,15 +2,20 @@ package store
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 )
 
+// ChatStore provides access to chat-related tables in the global PostgreSQL database.
+// It uses ThePGDB() internally, no per-user file management needed.
 type ChatStore struct {
-	db *sqlx.DB
+	// No per-user db field — uses ThePGDB() global singleton.
+}
+
+// NewChatStore creates a new ChatStore backed by the global PostgreSQL connection.
+func NewChatStore() *ChatStore {
+	return &ChatStore{}
 }
 
 /*
@@ -39,94 +44,126 @@ type Chat struct {
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// dbFileOpener opens a SQLite database with standard WAL-mode settings.
-// If autoCreate is true, creates an empty file when the database doesn't exist.
-// If autoCreate is false, returns an error when the database doesn't exist.
-// Used internally by OpenChatStore (autoCreate=false) and CreateLocalChat (autoCreate=true).
-func dbFileOpener(dbFile string, autoCreate bool) (*sqlx.DB, error) {
-	// Check if the database file exists
-	_, err := os.Stat(dbFile)
-	if os.IsNotExist(err) {
-		if !autoCreate {
-			return nil, fmt.Errorf("chat database file not found: %s", dbFile)
-		}
-		f, err := os.Create(dbFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create chat database file: %w", err)
-		}
-		f.Close()
-	}
-
-	db, err := sqlx.Open("sqlite3", dbFile+"?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1")
-	if err != nil {
-		return nil, fmt.Errorf("failed to open chat database: %w", err)
-	}
-	return db, nil
-}
-
-// OpenChatStore opens an existing chat database WITHOUT running DDL/migrations.
-// Use this for on-demand open/close patterns where the schema is already created.
-// The first actual database connection is established lazily on the first query.
-func OpenChatStore(dbFile string) (*ChatStore, error) {
-	db, err := dbFileOpener(dbFile, false)
-	if err != nil {
-		return nil, err
-	}
-	return &ChatStore{db: db}, nil
-}
-
 // EnsureSchema ensures the chat database schema exists (idempotent).
 // This runs CREATE TABLE IF NOT EXISTS and migration statements.
-// Safe to call on every open; no-op if schema already exists.
 func (s *ChatStore) EnsureSchema() error {
 	return s.initSchema()
 }
 
-// CreateLocalChat opens (or creates) a chat database and initializes its schema.
-func CreateLocalChat(dbFile string) (*ChatStore, error) {
-	db, err := dbFileOpener(dbFile, true)
-	if err != nil {
-		return nil, err
+// initSchema initializes chat-related table schemas.
+func (s *ChatStore) initSchema() error {
+	schema := `
+		CREATE TABLE IF NOT EXISTS chat_sessions (
+			id             BIGSERIAL PRIMARY KEY,
+			sn             VARCHAR(32)  NOT NULL UNIQUE,
+			user_id        BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			role_no        BIGINT       NOT NULL DEFAULT 0,
+			title          TEXT         NOT NULL DEFAULT '',
+			title_state    SMALLINT     NOT NULL DEFAULT 0,
+			extract_mode   SMALLINT     NOT NULL DEFAULT 0,
+			extracted_at   TIMESTAMPTZ,
+			extracted_count INTEGER     NOT NULL DEFAULT 0,
+			deleted        BOOLEAN      NOT NULL DEFAULT FALSE,
+			pinned         BOOLEAN      NOT NULL DEFAULT FALSE,
+			taged          BOOLEAN      NOT NULL DEFAULT FALSE,
+			create_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+			update_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
+		CREATE INDEX IF NOT EXISTS idx_chat_sessions_sn      ON chat_sessions(sn);
+		CREATE INDEX IF NOT EXISTS idx_chat_sessions_pinned  ON chat_sessions(pinned);
+
+		CREATE TABLE IF NOT EXISTS chat_messages (
+			id         BIGSERIAL PRIMARY KEY,
+			chat_id    BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+			group_index INTEGER     NOT NULL,
+			role       SMALLINT     NOT NULL,
+			reasoning  TEXT,
+			content    TEXT         NOT NULL,
+			extracted  BOOLEAN      NOT NULL DEFAULT FALSE,
+			interrupted SMALLINT    NOT NULL DEFAULT 0,
+			create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+			update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id ON chat_messages(chat_id);
+
+		CREATE TABLE IF NOT EXISTS web_sources (
+			id           BIGSERIAL PRIMARY KEY,
+			chat_id      BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+			msg_id       BIGINT       NOT NULL,
+			title        TEXT         NOT NULL DEFAULT '',
+			content      TEXT         NOT NULL DEFAULT '',
+			url          TEXT         NOT NULL DEFAULT '',
+			site_name    TEXT         NOT NULL DEFAULT '',
+			site_icon    TEXT         NOT NULL DEFAULT '',
+			publish_date TEXT         NOT NULL DEFAULT '',
+			score        REAL         NOT NULL DEFAULT 0,
+			create_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_web_sources_chat_msg ON web_sources(chat_id, msg_id);
+
+		CREATE TABLE IF NOT EXISTS chat_tags (
+			id        BIGSERIAL PRIMARY KEY,
+			chat_id   BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+			tag       TEXT         NOT NULL,
+			create_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_id ON chat_tags(chat_id);
+		CREATE INDEX IF NOT EXISTS idx_chat_tags_tag     ON chat_tags(tag);
+
+		CREATE TABLE IF NOT EXISTS chat_favorites (
+			id         BIGSERIAL PRIMARY KEY,
+			chat_id    BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+			custom_tag TEXT         NOT NULL DEFAULT '',
+			create_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+			update_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+		);
+
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_favorites_unique ON chat_favorites(chat_id, custom_tag);
+	`
+
+	if _, err := ThePGDB().Exec(schema); err != nil {
+		return fmt.Errorf("failed to initialize chat tables: %w", err)
 	}
-	store := &ChatStore{db: db}
-	if err := store.initSchema(); err != nil {
-		return nil, err
-	}
-	return store, nil
+
+	return nil
 }
 
-// InsertChat creates a new chat session and returns it.
-func (s *ChatStore) InsertChat(sn string, roleNO int,
-	title string, extractMode int8) (*Chat, error) {
+// db returns the global PostgreSQL connection.
+func (s *ChatStore) db() *sqlx.DB {
+	return ThePGDB()
+}
 
-	result, err := s.db.Exec(
-		`INSERT INTO chat_sessions(sn, role_no, title, extract_mode)
-		 VALUES(?, ?, ?, ?)`,
-		sn, roleNO, title, extractMode,
+// ============================================================
+// Chat CRUD
+// ============================================================
+
+// InsertChat creates a new chat session and returns it.
+// userID is required for data isolation.
+func (s *ChatStore) InsertChat(sn string, userID int64, roleNO int, title string, extractMode int8) (*Chat, error) {
+	var chat Chat
+	err := s.db().Get(&chat,
+		`INSERT INTO chat_sessions(sn, user_id, role_no, title, extract_mode)
+		 VALUES($1, $2, $3, $4, $5)
+		 RETURNING id, sn, role_no, title, title_state, extract_mode,
+		           extracted_at, extracted_count,
+		           deleted, pinned, taged, create_at, update_at`,
+		sn, userID, roleNO, title, extractMode,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert chat: %w", err)
-	}
-
-	id, _ := result.LastInsertId()
-
-	var chat Chat
-	err = s.db.Get(&chat,
-		`SELECT id, sn, role_no, title, title_state, extract_mode,
-		        extracted_at, extracted_count,
-		        deleted, pinned, taged, create_at, update_at
-		 FROM chat_sessions WHERE id = ?`, id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query inserted chat: %w", err)
 	}
 	return &chat, nil
 }
 
 // LogicDelete soft-deletes the session identified by SN by setting deleted to true.
 func (s *ChatStore) LogicDelete(sn string) error {
-	result, err := s.db.Exec(
-		"UPDATE chat_sessions SET deleted = 1 WHERE sn = ?",
+	result, err := s.db().Exec(
+		"UPDATE chat_sessions SET deleted = TRUE WHERE sn = $1",
 		sn,
 	)
 	if err != nil {
@@ -139,41 +176,20 @@ func (s *ChatStore) LogicDelete(sn string) error {
 	return nil
 }
 
-// PhysicalDelete physically deletes the session identified by id + sn.
+// PhysicalDelete physically deletes the session identified by id.
 // Related rows (messages, web sources, tags, favorites) are automatically
-// removed via ON DELETE CASCADE (SQLite FK enforcement).
-func (s *ChatStore) PhysicalDelete(id int, sn string) error {
-	tx, err := s.db.Beginx()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	// First check if the session exists, ensuring id + sn match
-	var exists bool
-	err = tx.Get(&exists,
-		"SELECT COUNT(1) FROM chat_sessions WHERE id = ? AND sn = ?",
-		id, sn,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to check session existence: %w", err)
-	}
-	if !exists {
-		return fmt.Errorf("session not found (id=%d, sn=%s)", id, sn)
-	}
-
-	// Delete the session itself; child rows (chat_messages, web_sources,
-	// chat_tags, chat_favorites) are cascade-deleted by SQLite.
-	_, err = tx.Exec(
-		"DELETE FROM chat_sessions WHERE id = ? AND sn = ?",
-		id, sn,
+// removed via ON DELETE CASCADE (PostgreSQL FK enforcement).
+func (s *ChatStore) PhysicalDelete(id int) error {
+	result, err := s.db().Exec(
+		"DELETE FROM chat_sessions WHERE id = $1",
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("session not found (id=%d)", id)
 	}
 	return nil
 }
@@ -181,11 +197,11 @@ func (s *ChatStore) PhysicalDelete(id int, sn string) error {
 // FindChatBySN finds a chat by its SN (regardless of deleted status).
 func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
 	var chat Chat
-	err := s.db.Get(&chat,
+	err := s.db().Get(&chat,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
 		        deleted, pinned, taged, create_at, update_at
-		 FROM chat_sessions WHERE sn = ?`, sn,
+		 FROM chat_sessions WHERE sn = $1`, sn,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("session not found (sn=%s): %w", sn, err)
@@ -193,18 +209,18 @@ func (s *ChatStore) FindChatBySN(sn string) (*Chat, error) {
 	return &chat, nil
 }
 
-// ListDeletedChats lists the most recent N deleted chat records, ordered by update_at descending.
-func (s *ChatStore) ListDeletedChats(n int) ([]Chat, error) {
+// ListDeletedChats lists the most recent N deleted chat records for a user, ordered by update_at descending.
+func (s *ChatStore) ListDeletedChats(userID int64, n int) ([]Chat, error) {
 	var chats []Chat
-	err := s.db.Select(&chats,
+	err := s.db().Select(&chats,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
 		    extracted_at, extracted_count,
 		    deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions
-		 WHERE deleted = 1
+		 WHERE user_id = $1 AND deleted = TRUE
 		 ORDER BY update_at DESC
-		 LIMIT ?`,
-		n,
+		 LIMIT $2`,
+		userID, n,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list deleted chats: %w", err)
@@ -212,10 +228,10 @@ func (s *ChatStore) ListDeletedChats(n int) ([]Chat, error) {
 	return chats, nil
 }
 
-// RestoreChat restores a soft-deleted chat by setting deleted = 0.
+// RestoreChat restores a soft-deleted chat by setting deleted = false.
 func (s *ChatStore) RestoreChat(sn string) error {
-	result, err := s.db.Exec(
-		"UPDATE chat_sessions SET deleted = 0 WHERE sn = ?",
+	result, err := s.db().Exec(
+		"UPDATE chat_sessions SET deleted = FALSE WHERE sn = $1",
 		sn,
 	)
 	if err != nil {
@@ -228,18 +244,36 @@ func (s *ChatStore) RestoreChat(sn string) error {
 	return nil
 }
 
-// ListChats lists the most recent N non-deleted chat records, ordered by pinned first, then create_at descending.
-func (s *ChatStore) ListChats(n int) ([]Chat, error) {
+// ListChats lists the most recent N non-deleted chat records for a user, ordered by pinned first, then create_at descending.
+func (s *ChatStore) ListChats(userID int64, n int) ([]Chat, error) {
 	var chats []Chat
-	err := s.db.Select(&chats,
+	err := s.db().Select(&chats,
 		`SELECT id, sn, role_no, title, title_state, extract_mode,
 		        extracted_at, extracted_count,
 		        deleted, pinned, taged, create_at, update_at
 		 FROM chat_sessions
-		 WHERE deleted = 0
+		 WHERE user_id = $1 AND deleted = FALSE
 		 ORDER BY pinned DESC, create_at DESC
-		 LIMIT ?`,
-		n,
+		 LIMIT $2`,
+		userID, n,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list chats: %w", err)
+	}
+	return chats, nil
+}
+
+// ListAllChats lists all non-deleted chats for a user (no limit).
+func (s *ChatStore) ListAllChats(userID int64) ([]Chat, error) {
+	var chats []Chat
+	err := s.db().Select(&chats,
+		`SELECT id, sn, role_no, title, title_state, extract_mode,
+		        extracted_at, extracted_count,
+		        deleted, pinned, taged, create_at, update_at
+		 FROM chat_sessions
+		 WHERE user_id = $1 AND deleted = FALSE
+		 ORDER BY pinned DESC, create_at DESC`,
+		userID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list chats: %w", err)
@@ -249,8 +283,8 @@ func (s *ChatStore) ListChats(n int) ([]Chat, error) {
 
 // UpdateChatTitle updates the chat title and title state.
 func (s *ChatStore) UpdateChatTitle(id int64, title string, titleState int8) error {
-	result, err := s.db.Exec(
-		"UPDATE chat_sessions SET title = ?, title_state = ? WHERE id = ?",
+	result, err := s.db().Exec(
+		"UPDATE chat_sessions SET title = $1, title_state = $2 WHERE id = $3",
 		title, titleState, id,
 	)
 	if err != nil {
@@ -265,13 +299,9 @@ func (s *ChatStore) UpdateChatTitle(id int64, title string, titleState int8) err
 
 // UpdateChatPin updates the pinned state of a chat.
 func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
-	pinVal := 0
-	if pinned {
-		pinVal = 1
-	}
-	result, err := s.db.Exec(
-		"UPDATE chat_sessions SET pinned = ? WHERE id = ?",
-		pinVal, id,
+	result, err := s.db().Exec(
+		"UPDATE chat_sessions SET pinned = $1 WHERE id = $2",
+		pinned, id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update chat pin: %w", err)
@@ -285,13 +315,9 @@ func (s *ChatStore) UpdateChatPin(id int64, pinned bool) error {
 
 // UpdateChatTagged updates the tagged state of a chat.
 func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
-	tagVal := 0
-	if taged {
-		tagVal = 1
-	}
-	result, err := s.db.Exec(
-		"UPDATE chat_sessions SET taged = ? WHERE id = ?",
-		tagVal, id,
+	result, err := s.db().Exec(
+		"UPDATE chat_sessions SET taged = $1 WHERE id = $2",
+		taged, id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update chat tag: %w", err)
@@ -303,12 +329,12 @@ func (s *ChatStore) UpdateChatTagged(id int64, taged bool) error {
 	return nil
 }
 
-// EmptyTrash permanently deletes all soft-deleted chats.
-// Child rows (messages, web sources, tags, favorites) are automatically
-// removed via ON DELETE CASCADE (SQLite FK enforcement).
-func (s *ChatStore) EmptyTrash() error {
-	// Just delete the sessions -- ON DELETE CASCADE handles the rest
-	_, err := s.db.Exec("DELETE FROM chat_sessions WHERE deleted = 1")
+// EmptyTrash permanently deletes all soft-deleted chats for a user.
+func (s *ChatStore) EmptyTrash(userID int64) error {
+	_, err := s.db().Exec(
+		"DELETE FROM chat_sessions WHERE user_id = $1 AND deleted = TRUE",
+		userID,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to delete trashed sessions: %w", err)
 	}
@@ -320,14 +346,12 @@ func (s *ChatStore) EmptyTrash() error {
 // ============================================================
 
 // UpdateExtractionCountAndTime updates the trait extraction progress for a chat.
-// Sets extracted_at to now() and adds to the extracted trait count.
-// The increment parameter is the number of newly extracted traits in this round.
 func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) error {
-	result, err := s.db.Exec(
+	result, err := s.db().Exec(
 		`UPDATE chat_sessions
-		 SET extracted_at = CURRENT_TIMESTAMP,
-		     extracted_count = extracted_count + ?
-		 WHERE id = ?`,
+		 SET extracted_at = NOW(),
+		     extracted_count = extracted_count + $1
+		 WHERE id = $2`,
 		increment, chatID,
 	)
 	if err != nil {
@@ -341,20 +365,13 @@ func (s *ChatStore) UpdateExtractionCountAndTime(chatID int64, increment int) er
 }
 
 // UpdateMessagesExtracted marks all messages in a chat up to (and including) the
-// given message id as extracted (extracted = 1). This is called after a
-// successful trait extraction to record which messages have been processed.
-// Using message id (auto-increment PK) as the cutoff ensures that even if
-// group_index is non-contiguous, all messages up to the given point are marked.
+// given message id as extracted (extracted = true).
 func (s *ChatStore) UpdateMessagesExtracted(chatID int64, upToID int64, extracted bool) error {
-	extractedVal := 0
-	if extracted {
-		extractedVal = 1
-	}
-	_, err := s.db.Exec(
+	_, err := s.db().Exec(
 		`UPDATE chat_messages
-		 SET extracted = ?
-		 WHERE chat_id = ? AND id <= ? AND extracted = ?`,
-		extractedVal, chatID, upToID, 1-extractedVal,
+		 SET extracted = $1
+		 WHERE chat_id = $2 AND id <= $3 AND extracted = $4`,
+		extracted, chatID, upToID, !extracted,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to mark messages as extracted: %w", err)
@@ -362,17 +379,15 @@ func (s *ChatStore) UpdateMessagesExtracted(chatID int64, upToID int64, extracte
 	return nil
 }
 
-// Close closes the database connection.
+// Close is a no-op because ChatStore no longer owns a connection.
 func (s *ChatStore) Close() error {
-	return s.db.Close()
+	return nil
 }
 
 // TouchChat updates the update_at timestamp of a chat session to the current time.
-// This is used when a new message is inserted, so the chat moves to the top
-// of the list when ordered by update_at DESC (e.g., in ListChats).
 func (s *ChatStore) TouchChat(id int64) error {
-	result, err := s.db.Exec(
-		"UPDATE chat_sessions SET update_at = CURRENT_TIMESTAMP WHERE id = ?",
+	result, err := s.db().Exec(
+		"UPDATE chat_sessions SET update_at = NOW() WHERE id = $1",
 		id,
 	)
 	if err != nil {
@@ -391,16 +406,16 @@ type ChatTitle struct {
 	CrateAt time.Time `db:"create_at" json:"create_at"`
 }
 
-// ListChatTitles lists the titles of the most recent N non-deleted chat sessions, ordered by create_at descending.
-func (s *ChatStore) ListChatTitles(n int) ([]ChatTitle, error) {
+// ListChatTitles lists the titles of the most recent N non-deleted chat sessions for a user.
+func (s *ChatStore) ListChatTitles(userID int64, n int) ([]ChatTitle, error) {
 	var titles []ChatTitle
-	err := s.db.Select(&titles,
+	err := s.db().Select(&titles,
 		`SELECT id, title, create_at
 		 FROM chat_sessions
-		 WHERE deleted = 0
+		 WHERE user_id = $1 AND deleted = FALSE
 		 ORDER BY create_at DESC
-		 LIMIT ?`,
-		n,
+		 LIMIT $2`,
+		userID, n,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list chat titles: %w", err)
@@ -417,17 +432,16 @@ type ChatTitleTag struct {
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// SelectChatTitlesGroupByTags queries all tagged chats, grouped by tag,
-// ordered by update_at descending, then create_at descending within each group.
-// Returns map[string][]ChatTitleTag, keyed by tag value.
-func (s *ChatStore) SelectChatTitlesGroupByTags() (map[string][]ChatTitleTag, error) {
+// SelectChatTitlesGroupByTags queries all tagged chats for a user, grouped by tag.
+func (s *ChatStore) SelectChatTitlesGroupByTags(userID int64) (map[string][]ChatTitleTag, error) {
 	var rows []ChatTitleTag
-	err := s.db.Select(&rows,
+	err := s.db().Select(&rows,
 		`SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
 		 FROM chat_sessions cs
 		 JOIN chat_tags ct ON cs.id = ct.chat_id
-		 WHERE cs.deleted = 0
+		 WHERE cs.user_id = $1 AND cs.deleted = FALSE
 		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`,
+		userID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select chat title tag groups: %w", err)

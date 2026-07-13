@@ -1,13 +1,10 @@
 #!/bin/bash
 # ============================================
 # BrainForever Build Script (Linux/macOS)
-# Sets CGO, builds brain-forever
+# Builds brain-forever
 # ============================================
 
 set -e
-
-# Enable CGO (required for go-sqlite3)
-export CGO_ENABLED=1
 
 echo "=== d2Brain Builder ==="
 echo ""

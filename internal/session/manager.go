@@ -9,7 +9,6 @@ import (
 	"BrainForever/internal/agent/llmtypes"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
-	"BrainForever/internal/store/dbc"
 )
 
 // ============================================================
@@ -171,13 +170,7 @@ func (m *Manager) DeleteMessage(sessionID string, msgID int64) error {
 		return fmt.Errorf("no DB session")
 	}
 
-	// Open chat store on-demand via dbc, delete, close
-	chatStore, err := dbc.OpenLocalChatDB(s.User.ID, s.User.SN)
-	if err != nil {
-		return fmt.Errorf("failed to open chat store: %w", err)
-	}
-	defer dbc.CloseLocalChatDB(chatStore)
-
-	// Delete messages and their web sources from DB
+	// Use global ChatStore (PostgreSQL connection pool)
+	chatStore := store.NewChatStore()
 	return chatStore.DeleteMessageGroup(chatID, int(msgID))
 }

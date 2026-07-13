@@ -6,12 +6,10 @@ import (
 )
 
 // WebSource represents a web search result source stored in the database.
-// This is the store-layer equivalent of toolimp.WebSource, defined separately
-// to avoid circular dependencies between store and agent packages.
 type WebSource struct {
-	ID          int64     `db:"id"`      // Auto-increment primary key
-	ChatID      int64     `db:"chat_id"` // References chat_sessions.id
-	MsgID       int64     `db:"msg_id"`  // Message group index (= agent.Message.ID)
+	ID          int64     `db:"id" json:"id"`
+	ChatID      int64     `db:"chat_id" json:"chat_id"`
+	MsgID       int64     `db:"msg_id" json:"msg_id"`
 	Title       string    `db:"title"`
 	Content     string    `db:"content"`
 	URL         string    `db:"url"`
@@ -22,22 +20,17 @@ type WebSource struct {
 	CreateAt    time.Time `db:"create_at"`
 }
 
-// ============================================================
-// WebSources CRUD
-// ============================================================
-
 // InsertWebSources batch-inserts web sources for a given message group.
-// Each source is associated with the chat and message group index.
 func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSource) error {
 	if len(sources) == 0 {
 		return nil
 	}
 
 	for _, src := range sources {
-		_, err := s.db.Exec(
+		_, err := s.db().Exec(
 			`INSERT INTO web_sources(chat_id, msg_id, title, content, url,
 			                         site_name, site_icon, publish_date, score)
-			 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 			chatID, msgID,
 			src.Title, src.Content, src.URL,
 			src.SiteName, src.SiteIcon, src.PublishDate, src.Score,
@@ -49,15 +42,14 @@ func (s *ChatStore) InsertWebSources(chatID int64, msgID int64, sources []WebSou
 	return nil
 }
 
-// ListWebSourcesByChat queries all web sources for a given chat,
-// grouped by msg_id. Returns a map keyed by msg_id (group_index).
+// ListWebSourcesByChat queries all web sources for a given chat, grouped by msg_id.
 func (s *ChatStore) ListWebSourcesByChat(chatID int64) (map[int64][]WebSource, error) {
 	var sources []WebSource
-	err := s.db.Select(&sources,
+	err := s.db().Select(&sources,
 		`SELECT id, chat_id, msg_id, title, content, url,
 		        site_name, site_icon, publish_date, score, create_at
 		 FROM web_sources
-		 WHERE chat_id = ?
+		 WHERE chat_id = $1
 		 ORDER BY msg_id ASC, id ASC`,
 		chatID,
 	)
