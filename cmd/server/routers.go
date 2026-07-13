@@ -126,6 +126,9 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// /api/session -- GET
 	srv.GET("/api/session", chatHandler.OnSession)
 
+	// /api/info/sessions -- GET (session GC stats from Redis)
+	srv.GET("/api/info/sessions", chatHandler.OnSessionsInfo)
+
 	// Health check endpoint
 	srv.GET("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

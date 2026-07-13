@@ -181,3 +181,31 @@ func (rs *RedisSessionStore) SetGCStats(ctx context.Context, stats *GCStats) err
 		"updated_at", time.Now().UTC().Format(time.RFC3339),
 	).Err()
 }
+
+// GetGCStats reads the latest GC sweep statistics from Redis.
+// Returns nil if no stats have been recorded yet.
+func (rs *RedisSessionStore) GetGCStats(ctx context.Context) (*GCStats, error) {
+	data, err := rs.client.HGetAll(ctx, gcStatsKey).Result()
+	if err != nil {
+		return nil, fmt.Errorf("redis: failed to get GC stats. %w", err)
+	}
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	stats := &GCStats{}
+	if v, err := strconv.Atoi(data["expired_anonymous"]); err == nil {
+		stats.ExpiredAnonymous = v
+	}
+	if v, err := strconv.Atoi(data["expired_logged_in"]); err == nil {
+		stats.ExpiredLoggedIn = v
+	}
+	if v, err := strconv.Atoi(data["online_users"]); err == nil {
+		stats.OnlineUsers = v
+	}
+	if v, err := strconv.Atoi(data["anonymous_users"]); err == nil {
+		stats.AnonymousUsers = v
+	}
+
+	return stats, nil
+}
