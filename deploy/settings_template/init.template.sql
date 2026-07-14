@@ -61,9 +61,10 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
 	update_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_chat_sessions_sn      ON chat_sessions(sn);
-CREATE INDEX IF NOT EXISTS idx_chat_sessions_pinned  ON chat_sessions(pinned);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id       ON chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_sn            ON chat_sessions(sn);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_create_at     ON chat_sessions(deleted, create_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_update_at     ON chat_sessions(deleted, update_at DESC);
 
 -- ============================================================
 -- chat_messages table: stores messages within chat sessions
