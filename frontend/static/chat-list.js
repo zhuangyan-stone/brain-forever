@@ -489,11 +489,6 @@ function showContextMenu(e, chat) {
     });
     menu.appendChild(favItem);
 
-    // 收藏与后续操作之间的分隔线
-    const sepAfterFav = document.createElement('div');
-    sepAfterFav.className = 'chat-context-menu-separator';
-    menu.appendChild(sepAfterFav);
-
     // 重命名
     const renameItem = document.createElement('div');
     renameItem.className = 'chat-context-menu-item';
@@ -503,6 +498,11 @@ function showContextMenu(e, chat) {
         handleRename(chat);
     });
     menu.appendChild(renameItem);
+
+    // 分隔线
+    const sepAfterFav = document.createElement('div');
+    sepAfterFav.className = 'chat-context-menu-separator';
+    menu.appendChild(sepAfterFav);
 
     // 提取个人特征 — 已完全交由自动触发，不再允许手工点击
     // 从未提取（extracted_at == null）时不显示此菜单项
@@ -514,8 +514,8 @@ function showContextMenu(e, chat) {
 
     	const hasCount = chat.extracted_count > 0;
     	let traitLabel = hasCount
-    		? '个人特征已提取 (' + chat.extracted_count + '条)'
-    		: '暂无发现个人特征';
+    		? '已提取个人特征 ' + chat.extracted_count + ' 条'
+    		: '暂未发现个人特征';
 
     	traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
     	traitItem.classList.add(hasCount
