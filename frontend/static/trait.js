@@ -45,7 +45,47 @@ export function accumulateCompletion(sn) {
     // 累积 10 轮后触发特征提取
     if (c.count >= 10 && !c._extracting) {
         c._extracting = true;
-        extractTraits(sn).then(function() {
+        extractTraits(sn).then(function(data) {
+            // 提取成功后更新侧边栏 chat 数据，使菜单项显示最新特征数量
+            if (data) {
+                try {
+                    var chats = window.Alpine.store('chats');
+                    if (chats) {
+                        // 更新 items[] 中的 chat 对象（侧边栏列表）
+                        var items = chats.items;
+                        if (items) {
+                            for (var i = 0; i < items.length; i++) {
+                                if (items[i].sn === sn) {
+                                    if (data.extracted_at) {
+                                        items[i].extracted_at = data.extracted_at;
+                                    }
+                                    if (typeof data.extracted_count === 'number') {
+                                        items[i].extracted_count = data.extracted_count;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        // 也更新 chats[]（部分场景使用）
+                        var chatList = chats.chats;
+                        if (chatList) {
+                            for (var j = 0; j < chatList.length; j++) {
+                                if (chatList[j].sn === sn) {
+                                    if (data.extracted_at) {
+                                        chatList[j].extracted_at = data.extracted_at;
+                                    }
+                                    if (typeof data.extracted_count === 'number') {
+                                        chatList[j].extracted_count = data.extracted_count;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } catch(e) {
+                    // Alpine store 未就绪时静默跳过
+                }
+            }
             resetCounter(sn);
         });
     }
