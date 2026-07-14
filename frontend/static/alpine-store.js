@@ -141,7 +141,6 @@ document.addEventListener('alpine:init', function() {
                 document.dispatchEvent(new CustomEvent('theme-toggled', {
                     detail: { mode: newStr }
                 }));
-                console.log('[theme] toggle in follow-system mode, display:', newStr);
             } else {
                 // 手动模式（theme=0/1）：翻转 bit 0
                 this.theme = this.theme ^ 1;
@@ -149,7 +148,6 @@ document.addEventListener('alpine:init', function() {
                 document.dispatchEvent(new CustomEvent('theme-changed', {
                     detail: { theme: this.theme }
                 }));
-                console.log('[theme] theme:', this.theme);
                 if (this.themeSync) {
                     if (typeof window.fetchSyncThemeModeToServer === 'function') {
                         window.fetchSyncThemeModeToServer(this.theme & 1);

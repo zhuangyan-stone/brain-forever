@@ -61,7 +61,6 @@ function applyTheme(themeVal) {
     const themeStr = resolveTheme(themeVal);
     document.documentElement.setAttribute('data-theme', themeStr);
     switchHighlightTheme(themeStr);
-    console.log('[theme] theme:', themeVal);
     // 外源主题联动：切换明暗时自动加载对应的外源主题 CSS
     if (window.ThemeLoader) {
         window.ThemeLoader.apply();
@@ -85,7 +84,6 @@ function applyTheme(themeVal) {
         settings.theme = effectiveTheme;
         settings._save();
         localStorage.removeItem('brainforever_forceThemeMode');
-        console.log('[theme] forceThemeMode applied, effective theme:', effectiveTheme);
     } else {
         applyTheme(Alpine.store('settings').theme);
     }
@@ -119,7 +117,6 @@ document.addEventListener('theme-toggled', (e) => {
         } else {
             applyTheme(settings.theme);
         }
-        console.log('[theme] system change — theme:', settings.theme);
     });
 })();
 
