@@ -20,6 +20,7 @@ import { escapeHtml } from './toolsets.js';
 import { showSources, showTokenUsage, autoScrollToBottom, showError, restoreInputArea, showToast, showToastHTML, updateSourcesPagerInDOM } from './chat-ui.js';
 import { addDirtyChat } from './chat-list.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
+import { accumulateCompletion } from './trait.js';
 
 'use strict';
 
@@ -450,6 +451,8 @@ export class SSEResponser {
                 }
             } catch(e) {}
         }
+        // 6. 自动触发特征提取（静默）
+        accumulateCompletion(this.stream.sn);
     }
 
     /**

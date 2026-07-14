@@ -6,7 +6,8 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, extractTraits, fetchChatTags, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
+import { extractTraits } from './trait-api.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
