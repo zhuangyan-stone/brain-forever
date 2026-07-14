@@ -45,7 +45,7 @@ type traitsKeyword struct {
 }
 
 type traitsResponse struct {
-	Features []traitsFeature `json:"features,omitempty"`
+	Features []traitsFeature `json:"-"`
 	Usage    any             `json:"usage,omitempty"`
 	Error    string          `json:"error,omitempty"`
 
