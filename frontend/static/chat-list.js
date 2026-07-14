@@ -504,67 +504,26 @@ function showContextMenu(e, chat) {
     });
     menu.appendChild(renameItem);
 
-    // 提取个人特征 — 根据提取状态决定是否可用
-    const traitItem = document.createElement('div');
-    traitItem.className = 'chat-context-menu-item';
-   
-    // 判断是否为活跃对话
-    const chatsStore = window.Alpine.store('chats');
-    const isActive = chatsStore && chat.sn === chatsStore.activeChatSN;
+    // 提取个人特征 — 已完全交由自动触发，不再允许手工点击
+    // 从未提取（extracted_at == null）时不显示此菜单项
+    // 已提取时仅显示状态信息（禁用态，不可点击）
     const hasExtracted = !!chat.extracted_at;
-    const hasCount = chat.extracted_count > 0;
-    
-    let traitDisabled = false;
-    let traitLabel = '提取个人特征';
-    
     if (hasExtracted) {
-    	if (isActive) {
-    		// 活跃对话：比较 extracted_at 与最后一条消息的 create_at
-    		// 如果最后一条消息比 extracted_at 新 → 可以继续提取
-    		const groups = chatsStore.active && chatsStore.active.groups;
-    		let lastMsgCreatedAt = null;
-    		if (groups && groups.length > 0) {
-    			const lastGroup = groups[groups.length - 1];
-    			// 取组内最后一条非空消息的时间（user 或 assistant）
-    			if (lastGroup.assistant && lastGroup.assistant.createdAt) {
-    				lastMsgCreatedAt = lastGroup.assistant.createdAt;
-    			} else if (lastGroup.user && lastGroup.user.createdAt) {
-    				lastMsgCreatedAt = lastGroup.user.createdAt;
-    			}
-    		}
-    		if (lastMsgCreatedAt && chat.extracted_at) {
-    			// 解析时间字符串比较（ISO 格式或后端返回的 RFC3339）
-    			const extractedTime = new Date(chat.extracted_at).getTime();
-    			const lastMsgTime = new Date(lastMsgCreatedAt).getTime();
-    			if (!isNaN(extractedTime) && !isNaN(lastMsgTime) && lastMsgTime > extractedTime) {
-    				traitLabel = '继续提取个人特征';
-    			} else {
-    				traitDisabled = true;
-    				traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
-    			}
-    		} else {
-    			// 没有最后消息时间或提取时间异常，允许提取
-    			traitLabel = '继续提取个人特征';
-    		}
-    	} else {
-    		// 非活跃对话：已有提取记录则禁用
-    		traitDisabled = true;
-    		traitLabel = hasCount ? '个人特征已提取 (' + chat.extracted_count + '条)' : '暂无发现个人特征';
-    	}
+    	const traitItem = document.createElement('div');
+    	traitItem.className = 'chat-context-menu-item';
+
+    	const hasCount = chat.extracted_count > 0;
+    	let traitLabel = hasCount
+    		? '个人特征已提取 (' + chat.extracted_count + '条)'
+    		: '暂无发现个人特征';
+
+    	traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
+    	traitItem.classList.add(hasCount
+    		? 'chat-context-menu-item-success'
+    		: 'chat-context-menu-item-disabled');
+
+    	menu.appendChild(traitItem);
     }
-   
-    traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
-   
-    if (traitDisabled) {
-    	// 已提取但条目为 0 → 真正的禁用样式（灰色）；已有条目 → 成功态样式（绿色）
-    	traitItem.classList.add(hasCount ? 'chat-context-menu-item-success' : 'chat-context-menu-item-disabled');
-    } else {
-    	traitItem.addEventListener('click', () => {
-    		closeContextMenu();
-    		handleExtractTraits(chat);
-    	});
-    }
-    menu.appendChild(traitItem);
 
     // 话题分类
     const tagItem = document.createElement('div');
