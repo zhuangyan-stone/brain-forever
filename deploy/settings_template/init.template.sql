@@ -20,9 +20,11 @@ CREATE TABLE IF NOT EXISTS users (
 	update_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_sn  ON users(sn);
-CREATE INDEX IF NOT EXISTS idx_users_no  ON users(no);
-CREATE INDEX IF NOT EXISTS idx_users_tel ON users(tel);
+CREATE INDEX IF NOT EXISTS idx_users_sn        ON users(sn);
+CREATE INDEX IF NOT EXISTS idx_users_no        ON users(no);
+CREATE INDEX IF NOT EXISTS idx_users_tel       ON users(tel);
+CREATE INDEX IF NOT EXISTS idx_users_create_at ON users(create_at);
+CREATE INDEX IF NOT EXISTS idx_users_update_at ON users(update_at);
 
 -- ============================================================
 -- roles table: stores user roles/personalities
