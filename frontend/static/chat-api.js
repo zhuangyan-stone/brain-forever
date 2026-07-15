@@ -215,6 +215,16 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 	}
 
 	try {
+		// ★ 在调用 API 前先读取当前旧标题，用于后续判断标题是否真正变化
+		var chats = window.Alpine.store('chats');
+		var oldTitle = '';
+		if (chats && chats.active && chats.active.sn === sn) {
+			oldTitle = chats.active.title || '';
+		} else if (chats && chats.chats) {
+			var found = chats.chats.find(function(c) { return c.sn === sn; });
+			if (found) oldTitle = found.title || '';
+		}
+
 		const url = '/api/chat/title?title=' + encodeURIComponent(title) +
 			'&state=' + encodeURIComponent(titleState) +
 			'&sn=' + encodeURIComponent(sn);
@@ -227,18 +237,16 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 			return false;
 		}
 		// 如果更新的就是当前活跃 chat，同步更新本地 title 和 titleState
-		var chats = window.Alpine.store('chats');
 		if (chats && chats.active && chats.active.sn === sn) {
 			chats.active.title = title;
 			chats.active.titleState = titleState;
 		}
 
-		// ★ 标题变更后自动触发归类（静默）
-		// 覆盖所有三种场景：
-		//   1. 用户点击 Apply 采纳 AI 推荐标题（titleState=TITLE_STATE.AI）
-		//   2. AI 按钮强制生成标题后采纳
-		//   3. 用户手动重命名（titleState=TITLE_STATE.USER）
-		fetchChatTagsAuto(sn);
+		// ★ 标题真正发生变化时才触发自动归类（静默）
+		// 除第一轮外，确保仅在前、后标题不一致时发起 re-tag
+		if (oldTitle !== title) {
+			fetchChatTagsAuto(sn);
+		}
 
 		return true;
 	} catch (e) {
