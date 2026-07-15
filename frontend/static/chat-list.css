@@ -196,6 +196,8 @@
     transition: background-color 0.15s ease;
     min-height: 34px;
     gap: 4px;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .chat-item:hover {
