@@ -565,7 +565,7 @@ function showContextMenu(e, chat) {
             var label = (oldTags.length === 0 || !isSame)
                 ? '已分类到：'
                 : '保持分类：';
-            var fullContent = '话题' + label + result.tags.join('、');
+            var fullContent = label + result.tags.join('、');
             var truncatedContent = truncateByVisualLength(fullContent, 20);
             var safeContent = escapeHtml(truncatedContent);
 
