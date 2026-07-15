@@ -504,27 +504,6 @@ function showContextMenu(e, chat) {
     sepAfterFav.className = 'chat-context-menu-separator';
     menu.appendChild(sepAfterFav);
 
-    // 提取个人特征 — 已完全交由自动触发，不再允许手工点击
-    // 从未提取（extracted_at == null）时不显示此菜单项
-    // 已提取时仅显示状态信息（禁用态，不可点击）
-    const hasExtracted = !!chat.extracted_at;
-    if (hasExtracted) {
-    	const traitItem = document.createElement('div');
-    	traitItem.className = 'chat-context-menu-item';
-
-    	const hasCount = chat.extracted_count > 0;
-    	let traitLabel = hasCount
-    		? '已提取个人特征 ' + chat.extracted_count + ' 条'
-    		: '暂未发现个人特征';
-
-    	traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
-    	traitItem.classList.add(hasCount
-    		? 'chat-context-menu-item-success'
-    		: 'chat-context-menu-item-disabled');
-
-    	menu.appendChild(traitItem);
-    }
-
     // 话题分类
     // 时间 Tab 下的分类菜单项改造：
     //   - 未分类（taged=false）→ 单级"申请分类"，点击后发起分类调用
@@ -547,7 +526,7 @@ function showContextMenu(e, chat) {
         // 一级菜单项：已分类到
         var tagParentItem = document.createElement('div');
         tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
-        tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已分类到 <span class="submenu-arrow">&#x276F;</span>';
+        tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已加入 ' + chatTagList.length + ' 个分类 <span class="submenu-arrow">&#x276F;</span>';
 
         // 二级子菜单容器
         var tagSubMenu = document.createElement('div');
@@ -675,6 +654,27 @@ function showContextMenu(e, chat) {
             }
         });
         menu.appendChild(tagItem);
+    }
+
+    // 提取个人特征 — 已完全交由自动触发，不再允许手工点击
+    // 从未提取（extracted_at == null）时不显示此菜单项
+    // 已提取时仅显示状态信息（禁用态，不可点击）
+    const hasExtracted = !!chat.extracted_at;
+    if (hasExtracted) {
+    	const traitItem = document.createElement('div');
+    	traitItem.className = 'chat-context-menu-item';
+
+    	const hasCount = chat.extracted_count > 0;
+    	let traitLabel = hasCount
+    		? '已提取个人特征 ' + chat.extracted_count + ' 条'
+    		: '暂未发现个人特征';
+
+    	traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
+    	traitItem.classList.add(hasCount
+    		? 'chat-context-menu-item-success'
+    		: 'chat-context-menu-item-disabled');
+
+    	menu.appendChild(traitItem);
     }
 
     // 分隔线
