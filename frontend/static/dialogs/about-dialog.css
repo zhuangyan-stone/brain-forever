@@ -27,7 +27,7 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
-    width: 420px;
+    width: 500px;
     max-width: 90vw;
     max-height: 80vh;
     box-shadow: 0 8px 32px var(--shadow);
@@ -136,6 +136,39 @@
 
 .about-description p {
     margin: 0;
+}
+
+/* ---- 引用语（左侧竖线引号） ---- */
+.about-quote {
+    display: block;
+    color: var(--text-tertiary, var(--text-muted));
+    padding: 4px 0 4px 1em;
+    border-left: 3px solid var(--accent, var(--primary));
+    margin: 8px 0;
+    line-height: 1.7;
+}
+
+/* ---- 特性列表（🗹 绿色对勾） ---- */
+.about-features {
+    list-style: none;
+    padding: 0 0 0 1em;
+    margin: 0 0 16px 0;
+}
+
+.about-features li {
+    position: relative;
+    padding: 3px 0 3px 1.8em;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.about-features li::before {
+    content: "🗹";
+    position: absolute;
+    left: 0;
+    color: #22c55e;
+    font-weight: bold;
 }
 
 /* ---- 提供商信息区块 ---- */

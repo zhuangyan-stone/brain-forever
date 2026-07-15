@@ -72,7 +72,7 @@
                         '<link rel="stylesheet" href="/themes/' + encodeURIComponent(externalId) + '/theme.css">'
                     );
                 }
-            } catch(e) {}
+            } catch (e) { }
         })();
     </script>
     <link rel="stylesheet" href="/static/layout.css">
@@ -213,36 +213,35 @@
                         <!-- 普通分组（置顶、今天、昨天、7天内、30天内） -->
                         <template x-if="group.type === 'normal'">
                             <div>
-                                <div class="chat-group-header"
-                                    @click="$store.chats.toggleCollapse(group.label)"
+                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
-                                    <span class="group-count" x-show="group.items.length > 0" x-text="'(' + group.items.length + ')'"></span>
+                                    <span class="group-count" x-show="group.items.length > 0"
+                                        x-text="'(' + group.items.length + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
                                     <template x-for="chat in group.items" :key="chat.sn">
-                                    <div class="chat-item"
-                                        :class="{ active: $store.chats.getActiveStyle(chat.sn, 'timeline') === 'active' }"
-                                        :data-sn="chat.sn"
-                                        @click="$store.chats.selectChat(chat.sn, 'timeline')"
-                                        @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
-                                        <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
-                                            viewBox="0 0 24 24" width="14" height="14" fill="none"
-                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                            x-html="ICON_LOADING">
-                                        </svg>
-                                        <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
-                                        <button class="chat-item-more-btn"
-                                            @mouseenter="$store.chats.showContextMenu($event, chat)"
-                                            @click.stop="$store.chats.showContextMenu($event, chat)">
-                                            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
-                                                x-html="ICON_DOTS"></svg>
-                                        </button>
-                                    </div>
-                                </template>
+                                        <div class="chat-item"
+                                            :class="{ active: $store.chats.getActiveStyle(chat.sn, 'timeline') === 'active' }"
+                                            :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn, 'timeline')"
+                                            @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
+                                            <svg class="chat-item-loading"
+                                                x-show="$store.chats.isStreamingBySN(chat.sn)" viewBox="0 0 24 24"
+                                                width="14" height="14" fill="none" stroke="currentColor"
+                                                stroke-width="2.5" stroke-linecap="round" x-html="ICON_LOADING">
+                                            </svg>
+                                            <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
+                                            <button class="chat-item-more-btn"
+                                                @mouseenter="$store.chats.showContextMenu($event, chat)"
+                                                @click.stop="$store.chats.showContextMenu($event, chat)">
+                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                                    x-html="ICON_DOTS"></svg>
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </template>
@@ -250,13 +249,13 @@
                         <!-- 更早分组（含日期子分组） -->
                         <template x-if="group.type === 'earlier'">
                             <div>
-                                <div class="chat-group-header"
-                                    @click="$store.chats.toggleCollapse(group.label)"
+                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
                                     <span x-text="group.label"></span>
-                                    <span class="group-count" x-show="group.count > 0" x-text="'(' + group.count + ')'"></span>
+                                    <span class="group-count" x-show="group.count > 0"
+                                        x-text="'(' + group.count + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
@@ -268,7 +267,8 @@
                                                 <span class="collapse-arrow date-arrow"
                                                     x-text="$store.chats.isCollapsed(group.label + '|' + sub.dateLabel) ? '+' : '−'"></span>
                                                 <span x-text="sub.dateLabel"></span>
-                                                <span class="group-count" x-show="sub.items.length > 0" x-text="'(' + sub.items.length + ')'"></span>
+                                                <span class="group-count" x-show="sub.items.length > 0"
+                                                    x-text="'(' + sub.items.length + ')'"></span>
                                             </div>
                                             <div class="chat-date-body"
                                                 :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
@@ -278,10 +278,11 @@
                                                         :data-sn="chat.sn"
                                                         @click="$store.chats.selectChat(chat.sn, 'timeline')"
                                                         @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
-                                                        <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
+                                                        <svg class="chat-item-loading"
+                                                            x-show="$store.chats.isStreamingBySN(chat.sn)"
                                                             viewBox="0 0 24 24" width="14" height="14" fill="none"
-                                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                                            x-html="ICON_LOADING">
+                                                            stroke="currentColor" stroke-width="2.5"
+                                                            stroke-linecap="round" x-html="ICON_LOADING">
                                                         </svg>
                                                         <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                                         <button class="chat-item-more-btn"
@@ -302,8 +303,7 @@
                         <!-- 回收站分组 — 始终在时间线最底部 -->
                         <template x-if="group.type === 'trash'">
                             <div class="chat-group chat-group-trash">
-                                <div class="chat-group-header"
-                                    @click="$store.chats.toggleTrash()"
+                                <div class="chat-group-header" @click="$store.chats.toggleTrash()"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: !$store.chats.trashExpanded }">&#x276F;</span>
@@ -311,30 +311,26 @@
                                     <span class="group-count" x-show="group.count > 0"
                                         x-text="'(' + group.count + ')'"></span>
                                     <button class="trash-clear-btn" x-show="group.count > 0"
-                                        @click.stop="$store.chats.emptyTrash()"
-                                        data-tooltip="清空回收站"
-                                        title="清空回收站">
+                                        @click.stop="$store.chats.emptyTrash()" data-tooltip="清空回收站" title="清空回收站">
                                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none"
                                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
                                             stroke-linejoin="round" x-html="ICON_TRASH"></svg>
                                     </button>
                                 </div>
-                                <div class="chat-group-body"
-                                    :class="{ collapsed: !$store.chats.trashExpanded }">
+                                <div class="chat-group-body" :class="{ collapsed: !$store.chats.trashExpanded }">
                                     <template x-if="group.items.length === 0">
                                         <div class="chat-list-empty trash-empty">回收站为空</div>
                                     </template>
                                     <template x-for="chat in group.items" :key="chat.sn">
-                                        <div class="chat-item chat-item-trash"
-                                            :data-sn="chat.sn"
+                                        <div class="chat-item chat-item-trash" :data-sn="chat.sn"
                                             @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
-                                            <div class="chat-item-title trash-item-title"
-                                                x-text="chat.title || '新对话'"></div>
+                                            <div class="chat-item-title trash-item-title" x-text="chat.title || '新对话'">
+                                            </div>
                                             <button class="chat-item-more-btn"
                                                 @mouseenter="$store.chats.showTrashContextMenu($event, chat)"
                                                 @click.stop="$store.chats.showTrashContextMenu($event, chat)">
-                                                <svg viewBox="0 0 16 16" width="14" height="14"
-                                                    fill="currentColor" x-html="ICON_DOTS"></svg>
+                                                <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                                    x-html="ICON_DOTS"></svg>
                                             </button>
                                         </div>
                                     </template>
@@ -355,30 +351,24 @@
                 <!-- 分类分组列表：按 tag 遍历 -->
                 <template x-for="(items, tag) in ($store.chats.chatGroups || {})" :key="tag">
                     <div class="chat-group">
-                        <div class="chat-group-header"
-                            @click="$store.chats.toggleCollapse('cat_' + tag)"
+                        <div class="chat-group-header" @click="$store.chats.toggleCollapse('cat_' + tag)"
                             @mouseenter="$store.chats.closeContextMenu()">
                             <span class="collapse-arrow"
                                 :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">&#x276F;</span>
                             <span x-text="tag === '' ? '不知所云' : tag"></span>
-                            <span class="group-count" x-show="items.length > 0" x-text="'(' + items.length + ')'"></span>
+                            <span class="group-count" x-show="items.length > 0"
+                                x-text="'(' + items.length + ')'"></span>
                         </div>
-                        <div class="chat-group-body"
-                            :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
+                        <div class="chat-group-body" :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
                             <template x-for="chat in items" :key="chat.sn">
-                                <div class="chat-item"
-                                    x-show="!chat.deleted"
-                                    :class="{
+                                <div class="chat-item" x-show="!chat.deleted" :class="{
                                         active: $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active',
                                         'active-sub': $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active-sub'
-                                    }"
-                                    :data-sn="chat.sn"
-                                    @click="$store.chats.selectChat(chat.sn, 'category', tag)"
+                                    }" :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn, 'category', tag)"
                                     @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                     <svg class="chat-item-loading" x-show="$store.chats.isStreamingBySN(chat.sn)"
-                                        viewBox="0 0 24 24" width="14" height="14" fill="none"
-                                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                        x-html="ICON_LOADING">
+                                        viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" x-html="ICON_LOADING">
                                     </svg>
                                     <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                     <button class="chat-item-more-btn"
@@ -408,23 +398,21 @@
                     <div>
                         <template x-for="(items, customTag) in $store.chats.favoritesGroups" :key="'fav_' + customTag">
                             <div class="chat-group chat-group-fav-sub">
-                                <div class="chat-group-header"
-                                    @click="$store.chats.toggleCollapse('fav_' + customTag)"
+                                <div class="chat-group-header" @click="$store.chats.toggleCollapse('fav_' + customTag)"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">&#x276F;</span>
                                     <span x-text="customTag === '' ? '默认' : customTag"></span>
-                                    <span class="group-count" x-show="items.length > 0" x-text="'(' + items.length + ')'"></span>
+                                    <span class="group-count" x-show="items.length > 0"
+                                        x-text="'(' + items.length + ')'"></span>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">
                                     <template x-for="chat in items" :key="chat.sn">
-                                        <div class="chat-item"
-                                            :class="{
+                                        <div class="chat-item" :class="{
                                                 active: $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active',
                                                 'active-sub': $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active-sub'
-                                            }"
-                                            :data-sn="chat.sn"
+                                            }" :data-sn="chat.sn"
                                             @click="$store.chats.selectChat(chat.sn, 'favorites', customTag)"
                                             @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
@@ -482,59 +470,56 @@
                          避免 Alpine 在同一元素上同时处理 x-show 和 x-data 时，
                          因 x-show 从 false→true 的转换导致 x-data 被意外重新求值，
                          使 open 错误地变为 true 而自动显示下拉菜单。 -->
-                    <div x-data="{ open: false }"
-                        @click.outside="open = false">
+                    <div x-data="{ open: false }" @click.outside="open = false">
                         <div class="user-avatar-dropdown">
                             <button class="user-avatar-btn" @click="open = !open"
                                 :data-tooltip="$store.chats.currentUserNickname || '匿名用户'">
                                 <img class="user-avatar-img"
-                                    :src="$store.chats.currentUserAvatar || '/static/img/avatar/anonymous.png'"
-                                    alt="头像" width="32" height="32">
+                                    :src="$store.chats.currentUserAvatar || '/static/img/avatar/anonymous.png'" alt="头像"
+                                    width="32" height="32">
                             </button>
                             <!-- x-if：open=false 时 DOM 完全不存在，彻底杜绝显示问题 -->
                             <template x-if="open">
-                                <div class="user-dropdown-menu"
-                                    @click="open = false">
+                                <div class="user-dropdown-menu" @click="open = false">
                                     <!-- 用户名（不可点击） -->
                                     <div class="dropdown-item dropdown-item--disabled dropdown-item--username"
                                         x-text="$store.chats.currentUserNickname || '匿名用户'"></div>
                                     <!-- 选择颜色主题 -->
-                                    <button class="dropdown-item" id="themeSelectBtn"
-                                        @click="onOpenThemeDialog">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                            x-html="ICON_PALETTE"></svg>
+                                    <button class="dropdown-item" id="themeSelectBtn" @click="onOpenThemeDialog">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" x-html="ICON_PALETTE"></svg>
                                         选择颜色主题
                                     </button>
                                     <!-- API-Key 设置 -->
-                                    <button class="dropdown-item" id="apikeySettingBtn"
-                                        @click="onOpenApiKeyDialog">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                                    <button class="dropdown-item" id="apikeySettingBtn" @click="onOpenApiKeyDialog">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path
+                                                d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
                                         </svg>
                                         设置 API-Keys
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
                                     <!-- 个人画像 -->
-                                    <button class="dropdown-item" id="traitBtn"
-                                        @click="onOpenUserTraits">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                            x-html="ICON_USER"></svg>
+                                    <button class="dropdown-item" id="traitBtn" @click="onOpenUserTraits">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" x-html="ICON_USER"></svg>
                                         AI 眼中的你
                                     </button>
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
                                     <!-- 关于"第2大脑" -->
-                                    <button class="dropdown-item" id="aboutDialogBtn"
-                                        @click="onOpenAboutDialog">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <line x1="12" y1="16" x2="12" y2="12"/>
-                                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                    <button class="dropdown-item" id="aboutDialogBtn" @click="onOpenAboutDialog">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="16" x2="12" y2="12" />
+                                            <line x1="12" y1="8" x2="12.01" y2="8" />
                                         </svg>
                                         关于……
                                     </button>
@@ -543,9 +528,9 @@
                                     <!-- 退出登录（已登录用户始终可见） -->
                                     <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
                                         @click="onChatLogout">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                            x-html="ICON_LOGOUT"></svg>
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" x-html="ICON_LOGOUT"></svg>
                                         退出登录
                                     </button>
                                 </div>
@@ -617,7 +602,8 @@
                                 <div class="message assistant" :class="{
                                         interrupted: group.assistant.interrupted === 1,
                                         failed: group.assistant.interrupted === 2
-                                    }" x-show="group.assistant" x-data="{ collapsed: group.assistant.createdAt ? true : false }">
+                                    }" x-show="group.assistant"
+                                    x-data="{ collapsed: group.assistant.createdAt ? true : false }">
                                     <div class="message-inner">
                                         <!-- ★ 统一角色标签：始终显示，根据 reasoningState 自适应文本。
                                             有 reasoning 时外层标签直接充当折叠切换手柄，▶ 箭头通过 CSS rotate 统一大小。
@@ -675,7 +661,8 @@
                                             <svg class="sources-icon" viewBox="0 0 24 24" fill="none"
                                                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
                                                 stroke-linejoin="round" x-html="ICON_GLOBE"></svg>
-                                            <span x-text="'参考了 ' + (group.assistant.sources?.length ?? 0) + ' 个联网搜索结果'"></span>
+                                            <span
+                                                x-text="'参考了 ' + (group.assistant.sources?.length ?? 0) + ' 个联网搜索结果'"></span>
                                         </div>
                                         <div class="sources-body" :class="{ 'sources-body--open': !collapsed }">
                                             <div class="sources-items-container swipe-container"></div>
@@ -802,20 +789,19 @@
     -->
     <div class="toast-container" id="toastContainer" x-data="{}">
         <template x-for="toast in $store.ui.toasts" :key="toast.id">
-            <div class="toast" :class="'toast-' + toast.type"
-                x-show="toast.visible"
-                :style="toast.onClick ? 'cursor:pointer' : ''"
-                @click="toast.onClick ? toast.onClick($event) : null"
-                x-html="toast.message"
-                x-transition:enter="toast-enter-active" x-transition:enter-start="toast-enter-from"
-                x-transition:enter-end="" x-transition:leave="toast-leave-active" x-transition:leave-start=""
+            <div class="toast" :class="'toast-' + toast.type" x-show="toast.visible"
+                :style="toast.onClick ? 'cursor:pointer' : ''" @click="toast.onClick ? toast.onClick($event) : null"
+                x-html="toast.message" x-transition:enter="toast-enter-active"
+                x-transition:enter-start="toast-enter-from" x-transition:enter-end=""
+                x-transition:leave="toast-leave-active" x-transition:leave-start=""
                 x-transition:leave-end="toast-leave-to">
             </div>
         </template>
     </div>
 
     <!-- 删除确认对话框 -->
-    <div class="dialog-overlay" id="msgDeleteModal" x-data="msgDeleteDialog()" :class="{ show: show }" @click.self="close">
+    <div class="dialog-overlay" id="msgDeleteModal" x-data="msgDeleteDialog()" :class="{ show: show }"
+        @click.self="close">
         <div class="dialog-box">
             <div class="dialog-header">
                 <h3 id="modalTitle">删除对话消息组</h3>
@@ -841,9 +827,10 @@
                 <button class="dialog-close-btn" @click="cancel" aria-label="关闭">&times;</button>
             </div>
             <div class="dialog-body">
-                <div class="title-edit-original" x-text="displayTitle"></div><label
-                    class="title-edit-label" for="titleEditInput">新标题</label><input type="text" class="title-edit-input" id="titleEditInput"
-                    name="title" x-model="editingTitle" maxlength="50" @keydown.enter="confirm" @keydown.escape="cancel">
+                <div class="title-edit-original" x-text="displayTitle"></div><label class="title-edit-label"
+                    for="titleEditInput">新标题</label><input type="text" class="title-edit-input" id="titleEditInput"
+                    name="title" x-model="editingTitle" maxlength="50" @keydown.enter="confirm"
+                    @keydown.escape="cancel">
             </div>
             <div class="dialog-footer">
                 <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>
@@ -857,9 +844,7 @@
          用户"个人画像"对话框（v2 精华区布局）
          依赖 portrait-dialog.css + portrait-dialog.js (Alpine data)
          ============================================================ -->
-    <div class="portrait-overlay" id="portraitDialog"
-        x-data="userPortraitDialog()"
-        :class="{ show: show }">
+    <div class="portrait-overlay" id="portraitDialog" x-data="userPortraitDialog()" :class="{ show: show }">
         <div class="portrait-box">
             <!-- 头部：纯文本标题（无头像）+ 右上按钮组 -->
             <div class="portrait-header">
@@ -894,8 +879,7 @@
             <!-- 主体：左右两栏（宽屏）/ 上下两栏（中小屏） -->
             <div class="portrait-body">
                 <!-- 错误 -->
-                <div class="portrait-error" x-show="hasError" x-text="errorMessage"
-                    style="flex:1"></div>
+                <div class="portrait-error" x-show="hasError" x-text="errorMessage" style="flex:1"></div>
 
                 <!-- ================================================
                      精华区（左栏/上栏）
@@ -903,32 +887,36 @@
                 <div class="portrait-essence" x-show="!hasError">
                     <!-- 头像 + 昵称 -->
                     <div class="portrait-essence-avatar-wrap">
-                        <img class="portrait-essence-avatar"
-                            :src="userAvatar"
-                            alt="用户头像" width="48" height="48">
+                        <img class="portrait-essence-avatar" :src="userAvatar" alt="用户头像" width="48" height="48">
                         <div class="portrait-essence-nickname" x-text="userName || '匿名用户'"></div>
                     </div>
 
                     <!-- 信息区 — 固定三行 -->
                     <div class="portrait-essence-info" x-show="portraitInfo">
-                        <div class="portrait-info-line">基于 <strong x-text="(portraitInfo || {}).chat_count"></strong> 个对话
-                            <strong x-text="(portraitInfo || {}).trait_count"></strong> 条个人特征生成，润色度：<strong x-text="(portraitInfo || {}).retouch"></strong></div>
+                        <div class="portrait-info-line">基于 <strong x-text="(portraitInfo || {}).chat_count"></strong>
+                            个对话
+                            <strong x-text="(portraitInfo || {}).trait_count"></strong> 条个人特征生成，润色度：<strong
+                                x-text="(portraitInfo || {}).retouch"></strong>
+                        </div>
                         <div class="portrait-info-line">跨度 <strong x-text="(portraitInfo || {}).span_days"></strong> 天
-                            （<span x-text="(portraitInfo || {}).earliest_date ? (portraitInfo || {}).earliest_date.replace(/-/g,'/') : ''"></span>
-                            - <span x-text="(portraitInfo || {}).latest_date ? (portraitInfo || {}).latest_date.replace(/-/g,'/') : ''"></span>）</div>
-                        <div class="portrait-info-line">生成于：<span x-text="(portraitInfo || {}).generated_at"></span></div>
+                            （<span
+                                x-text="(portraitInfo || {}).earliest_date ? (portraitInfo || {}).earliest_date.replace(/-/g,'/') : ''"></span>
+                            - <span
+                                x-text="(portraitInfo || {}).latest_date ? (portraitInfo || {}).latest_date.replace(/-/g,'/') : ''"></span>）
+                        </div>
+                        <div class="portrait-info-line">生成于：<span x-text="(portraitInfo || {}).generated_at"></span>
+                        </div>
                     </div>
 
                     <!-- 话题热区 — 词云（JS 螺旋排列） -->
-                    <div class="portrait-essence-section" x-show="portraitInfo && portraitInfo.hot_tags && portraitInfo.hot_tags.length">
+                    <div class="portrait-essence-section"
+                        x-show="portraitInfo && portraitInfo.hot_tags && portraitInfo.hot_tags.length">
                         <div class="portrait-essence-section-label">🔥 话题热区</div>
                         <div class="portrait-wordcloud">
                             <template x-for="(item, idx) in wordCloudItems" :key="idx">
-                                <span class="portrait-wordcloud-item"
-                                    :class="item.colorClass"
+                                <span class="portrait-wordcloud-item" :class="item.colorClass"
                                     :style="'left: ' + item.left + 'px; top: ' + item.top + 'px; font-size: ' + item.fontSize"
-                                    :title="item.tag + '（' + item.count + ' 个对话）'"
-                                    x-text="item.tag"></span>
+                                    :title="item.tag + '（' + item.count + ' 个对话）'" x-text="item.tag"></span>
                             </template>
                         </div>
                     </div>
@@ -940,26 +928,27 @@
                     </div>
 
                     <!-- 核心特质 — 书签图 -->
-                    <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.core_traits && portraitMeta.core_traits.length">
+                    <div class="portrait-essence-section"
+                        x-show="portraitMeta && portraitMeta.core_traits && portraitMeta.core_traits.length">
                         <div class="portrait-essence-section-label">🏷️ 人格标签</div>
                         <div class="portrait-bookmark-container">
                             <template x-for="(trait, idx) in ((portraitMeta || {}).core_traits || [])" :key="idx">
                                 <span class="portrait-bookmark"
                                     :class="bookmarkSizeClass(trait) + ' ' + ('portrait-bookmark-c' + ((idx % 10) + 1))"
-                                    :style="'--idx: ' + idx"
-                                    x-text="trait"
-                                    :title="trait">
+                                    :style="'--idx: ' + idx" x-text="trait" :title="trait">
                                 </span>
                             </template>
                         </div>
                     </div>
 
                     <!-- 印象速写 — 引文风格 -->
-                    <div class="portrait-essence-section" x-show="portraitMeta && portraitMeta.key_highlights && portraitMeta.key_highlights.length">
+                    <div class="portrait-essence-section"
+                        x-show="portraitMeta && portraitMeta.key_highlights && portraitMeta.key_highlights.length">
                         <div class="portrait-essence-section-label">✏️ 印象速写</div>
                         <div class="portrait-essence-highlights">
                             <template x-for="(item, idx) in ((portraitMeta || {}).key_highlights || [])" :key="idx">
-                                <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 10)" :style="'--idx: ' + idx" x-html="renderHighlightMD(item)"></div>
+                                <div class="portrait-highlight-block" :class="'portrait-highlight-c' + (idx % 10)"
+                                    :style="'--idx: ' + idx" x-html="renderHighlightMD(item)"></div>
                             </template>
                         </div>
                     </div>
@@ -981,15 +970,11 @@
             <!-- 底部按钮 -->
             <div class="portrait-footer">
                 <!-- 流式中：红色"取消"按钮 -->
-                <button class="portrait-footer-btn portrait-footer-btn-cancel"
-                    x-show="showCancel"
-                    @click="cancel">
+                <button class="portrait-footer-btn portrait-footer-btn-cancel" x-show="showCancel" @click="cancel">
                     取消
                 </button>
                 <!-- 完成后："关闭"按钮 -->
-                <button class="portrait-footer-btn portrait-footer-btn-close"
-                    x-show="showClose"
-                    @click="close">
+                <button class="portrait-footer-btn portrait-footer-btn-close" x-show="showClose" @click="close">
                     关闭
                 </button>
             </div>
@@ -999,9 +984,7 @@
     <!-- ============================================================
          收藏夹编辑对话框（Alpine 组件：favoriteEditDialog）
          ============================================================ -->
-    <div class="dialog-overlay" id="favoriteEditDialog"
-        x-data="favoriteEditDialog()"
-        :class="{ show: show }"
+    <div class="dialog-overlay" id="favoriteEditDialog" x-data="favoriteEditDialog()" :class="{ show: show }"
         @click.self="cancel">
         <div class="dialog-box">
             <div class="dialog-header">
@@ -1010,20 +993,17 @@
             </div>
             <div class="dialog-body">
                 <label class="fav-edit-label" for="fav-tag-input">收藏到：</label>
-                <div class="fav-edit-combo-wrap"
-                    @click.outside="closeDropdown">
+                <div class="fav-edit-combo-wrap" @click.outside="closeDropdown">
                     <input class="fav-edit-combo" type="text" id="fav-tag-input" name="fav-tag-input"
-                        x-model="customTag" placeholder="根目录"
-                        maxlength="50" @keydown.enter="confirm"
+                        x-model="customTag" placeholder="根目录" maxlength="50" @keydown.enter="confirm"
                         @keydown.escape="dropdownOpen ? closeDropdown() : cancel()"
-                        @keydown.down.prevent="dropdownOpen = true"
-                        x-ref="comboInput">
+                        @keydown.down.prevent="dropdownOpen = true" x-ref="comboInput">
                     <svg class="fav-edit-combo-arrow" viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
                         @click="toggleDropdown">
-                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"
+                            stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
-                    <ul class="fav-edit-dropdown" x-show="dropdownOpen"
-                        @click.outside="closeDropdown">
+                    <ul class="fav-edit-dropdown" x-show="dropdownOpen" @click.outside="closeDropdown">
                         <li @click="selectTag('')">根目录</li>
                         <template x-for="tag in existingTags" :key="tag">
                             <li @click="selectTag(tag)" x-text="tag"></li>
@@ -1033,8 +1013,7 @@
             </div>
             <div class="dialog-footer">
                 <button class="dialog-btn dialog-btn-cancel" @click="cancel">取消</button>
-                <button class="dialog-btn dialog-btn-confirm" @click="confirm"
-                    :disabled="submitting"
+                <button class="dialog-btn dialog-btn-confirm" @click="confirm" :disabled="submitting"
                     x-text="submitting ? '提交中…' : '确认'">确认</button>
             </div>
         </div>
@@ -1043,10 +1022,7 @@
     <!-- ============================================================
          主题选择对话框（Alpine 组件：themeDialog）
          ============================================================ -->
-    <div class="dialog-overlay" id="themeDialog"
-        x-data="themeDialog()"
-        :class="{ show: show }"
-        @click.self="close">
+    <div class="dialog-overlay" id="themeDialog" x-data="themeDialog()" :class="{ show: show }" @click.self="close">
         <div class="dialog-box">
             <div class="dialog-header">
                 <h3>选择颜色主题</h3>
@@ -1057,7 +1033,8 @@
                     <label for="themeSelectLight">亮色主题</label>
                     <select id="themeSelectLight" x-model="selectedLight" @change="selectedMode='light'">
                         <template x-for="t in availableLight" :key="t.id">
-                            <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')"></option>
+                            <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')">
+                            </option>
                         </template>
                     </select>
                     <div class="theme-desc" x-show="selectedLight" x-text="selectedLightDesc"></div>
@@ -1066,7 +1043,8 @@
                     <label for="themeSelectDark">暗色主题</label>
                     <select id="themeSelectDark" x-model="selectedDark" @change="selectedMode='dark'">
                         <template x-for="t in availableDark" :key="t.id">
-                            <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')"></option>
+                            <option :value="t.id" x-text="(t.name_zh || t.name) + (t.highContrast ? '（高对比）' : '')">
+                            </option>
                         </template>
                     </select>
                     <div class="theme-desc" x-show="selectedDark" x-text="selectedDarkDesc"></div>
@@ -1085,7 +1063,8 @@
                     </div>
                 </div>
                 <div class="theme-select-group theme-follow-system-group">
-                    <span class="theme-follow-system-toggle" :class="{ active: followSystem }" @click="followSystem = !followSystem">
+                    <span class="theme-follow-system-toggle" :class="{ active: followSystem }"
+                        @click="followSystem = !followSystem">
                         <input type="checkbox" x-model="followSystem" />
                         <span class="theme-follow-system-checkbox"></span>
                         <span class="theme-follow-system-text">跟随系统变化亮/暗</span>
@@ -1108,10 +1087,7 @@
     <!-- ============================================================
          API-Key 设置对话框（Alpine 组件：apikeyDialog）
          ============================================================ -->
-    <div class="dialog-overlay" id="apikeyDialog"
-        x-data="apikeyDialog()"
-        :class="{ show: show }"
-        @click.self="close">
+    <div class="dialog-overlay" id="apikeyDialog" x-data="apikeyDialog()" :class="{ show: show }" @click.self="close">
         <div class="dialog-box" style="position:relative">
             <div class="dialog-header">
                 <h3>设置 API-Keys</h3>
@@ -1141,7 +1117,9 @@
                         </ol>
                         <div class="apikey-help-note">
                             <p>使用第三方 key，你向他们充值 ，使用第2大脑公共 key，您向需向本站充值</p>
-                            <p style="font-size: small">第三方服务商网址：<a href="https://www.deepseek.com/">DeepSeek</a>&nbsp;<a href="https://open.bigmodel.cn//">智谱</a></p>
+                            <p style="font-size: small">第三方服务商网址：<a
+                                    href="https://www.deepseek.com/">DeepSeek</a>&nbsp;<a
+                                    href="https://open.bigmodel.cn//">智谱</a></p>
                         </div>
                     </div>
                 </div>
@@ -1150,7 +1128,7 @@
             <div class="dialog-body">
                 <!-- 说明文本 -->
                 <div class="apikey-desc-row">
-                    <span class="apikey-desc-text">请设置第三方服务商的 api-key  ：</span>
+                    <span class="apikey-desc-text">请设置第三方服务商的 api-key ：</span>
                     <button class="apikey-help-btn" @click="showHelp = true" type="button">作用&费用</button>
                 </div>
 
@@ -1161,19 +1139,15 @@
 
                     <div class="apikey-check-group">
                         <label class="apikey-check-item">
-                            <input type="checkbox" class="apikey-cb"
-                                :checked="!settings.llm.private"
+                            <input type="checkbox" class="apikey-cb" :checked="!settings.llm.private"
                                 @click="llmPrivate = !llmPrivate">
                             <span class="check-label">使用第2大脑的key</span>
                         </label>
                     </div>
 
                     <div class="apikey-input-wrap" x-show="settings.llm.private" x-cloak>
-                        <input class="apikey-input" type="text"
-                            x-model="settings.llm.api_key"
-                            id="llm-api-key" name="llm_api_key"
-                            placeholder="请粘贴 DeepSeek 的 api-key"
-                            maxlength="200" autocomplete="off">
+                        <input class="apikey-input" type="text" x-model="settings.llm.api_key" id="llm-api-key"
+                            name="llm_api_key" placeholder="请粘贴 DeepSeek 的 api-key" maxlength="200" autocomplete="off">
                     </div>
                 </div>
 
@@ -1184,19 +1158,15 @@
 
                     <div class="apikey-check-group">
                         <label class="apikey-check-item">
-                            <input type="checkbox" class="apikey-cb"
-                                :checked="!settings.search.private"
+                            <input type="checkbox" class="apikey-cb" :checked="!settings.search.private"
                                 @click="searchPrivate = !searchPrivate">
                             <span class="check-label">使用第2大脑的key</span>
                         </label>
                     </div>
 
                     <div class="apikey-input-wrap" x-show="settings.search.private" x-cloak>
-                        <input class="apikey-input" type="text"
-                            x-model="settings.search.api_key"
-                            id="search-api-key" name="search_api_key"
-                            placeholder="请粘贴智谱科技 api-key"
-                            maxlength="200" autocomplete="off">
+                        <input class="apikey-input" type="text" x-model="settings.search.api_key" id="search-api-key"
+                            name="search_api_key" placeholder="请粘贴智谱科技 api-key" maxlength="200" autocomplete="off">
                     </div>
                 </div>
 
@@ -1207,8 +1177,7 @@
 
                     <div class="apikey-check-group">
                         <label class="apikey-check-item">
-                            <input type="checkbox" class="apikey-cb"
-                                :checked="!settings.embedder.private"
+                            <input type="checkbox" class="apikey-cb" :checked="!settings.embedder.private"
                                 @click="embedderPrivate = !embedderPrivate">
                             <span class="check-label">使用第2大脑的key</span>
                         </label>
@@ -1217,11 +1186,9 @@
                     <div class="apikey-subnote">可以和联网搜索使用同一api-key</div>
 
                     <div class="apikey-input-wrap" x-show="settings.embedder.private" x-cloak>
-                        <input class="apikey-input" type="text"
-                            x-model="settings.embedder.api_key"
-                            id="embedder-api-key" name="embedder_api_key"
-                            placeholder="请粘贴智谱科技 api-key"
-                            maxlength="200" autocomplete="off">
+                        <input class="apikey-input" type="text" x-model="settings.embedder.api_key"
+                            id="embedder-api-key" name="embedder_api_key" placeholder="请粘贴智谱科技 api-key" maxlength="200"
+                            autocomplete="off">
                     </div>
                 </div>
             </div>
@@ -1241,74 +1208,80 @@
             </div>
         </div>
     </div>
-<!-- AI 生成免责声明 — 页面加载后由 JS 动态插入模型名称及 [更多] 链接 -->
-<div class="ai-disclaimer" id="aiDisclaimer">内容由 AI 生成，请仔细甄别</div>
+    <!-- AI 生成免责声明 — 页面加载后由 JS 动态插入模型名称及 [更多] 链接 -->
+    <div class="ai-disclaimer" id="aiDisclaimer">内容由 AI 生成，请仔细甄别</div>
 
-<!-- ============================================================
+    <!-- ============================================================
      关于"第2大脑"对话框（Alpine 组件：aboutDialog）
      ============================================================ -->
-<div class="about-overlay" id="aboutDialog"
-    x-data="aboutDialog()"
-    :class="{ show: show }"
-    @click.self="close">
-    <div class="about-box">
-        <div class="about-header">
-            <div class="about-header-title">
-                <img class="about-header-logo" src="/static/brain-forever.svg" alt="第2大脑" width="32" height="32">
-                <span>关于……</span>
-            </div>
-            <button class="about-close-btn" @click="close" aria-label="关闭">&times;</button>
-        </div>
-
-        <div class="about-body">
-            <div class="about-description">
-                <p>通过记忆个人特征，成为你的另一个大脑，一个不老的在线大脑。
-相比 “这次说完下次还忘” 的智能体，第2大脑可以更高效地提供紧密贴合您的回复。</p>
+    <div class="about-overlay" id="aboutDialog" x-data="aboutDialog()" :class="{ show: show }" @click.self="close">
+        <div class="about-box">
+            <div class="about-header">
+                <div class="about-header-title">
+                    <img class="about-header-logo" src="/static/brain-forever.svg" alt="第2大脑" width="32" height="32">
+                    <span>关于……</span>
+                </div>
+                <button class="about-close-btn" @click="close" aria-label="关闭">&times;</button>
             </div>
 
-            <div class="about-author">
-                <span class="about-author-link"><a href="https://www.d2school.com" target="_blank" rel="noopener"><img src="https://www.d2school.com/favicon.ico" class="about-author-icon" />第2学堂(d2school)</a> 作品</span>
+
+            <div class="about-body">
+                <div class="about-description">
+                    <span class="about-quote">厌烦 “听完就忘” 的智能体？固定事情不想次次交待？希望 AI 更贴合你的品味、个性与习惯？你需要养成属于自己的 “第2大脑”</span>
+                </div>
+
+                <ul class="about-features">
+                    <li>基于个人特征养成，而不是满世界的公共知识灌输</li>
+                    <li>不会衰老、永生的第2大脑，哪怕……</li>
+                    <li>高效、贴心、直面每个人的每一段人生，不打哈哈</li>
+                    <li>严肃、赤诚、私密的伴侣，没有是人生遗憾，多了是当下负担</li>
+                </ul>
+
+                <div class="about-author">
+                    <span class="about-author-link"><a href="https://www.d2school.com" target="_blank"
+                            rel="noopener"><img src="https://www.d2school.com/favicon.ico"
+                                class="about-author-icon" />第2学堂(d2school)</a> 作品</span>
+                </div>
+
+                <!-- 第三方服务提供商信息 -->
+                <div class="about-providers" x-show="providers">
+                    <div class="about-providers-title">第三方服务</div>
+
+                    <!-- LLM -->
+                    <template x-if="providers && providers.llm">
+                        <div class="about-provider-item">
+                            <span class="about-provider-label">语言模型</span>
+                            <span class="about-provider-value" x-html="getProviderName(providers.llm)"></span>
+                            <span class="about-provider-tip" x-show="getProviderModel(providers.llm)"
+                                x-text="getProviderModel(providers.llm)"></span>
+                        </div>
+                    </template>
+
+                    <!-- Embedder -->
+                    <template x-if="providers && providers.embedder">
+                        <div class="about-provider-item">
+                            <span class="about-provider-label">矢量模型</span>
+                            <span class="about-provider-value" x-html="getProviderName(providers.embedder)"></span>
+                            <span class="about-provider-tip" x-show="getEmbedderDimension(providers.embedder)"
+                                x-text="getEmbedderDimension(providers.embedder)"></span>
+                        </div>
+                    </template>
+
+                    <!-- Web Search -->
+                    <template x-if="providers && providers.web_search">
+                        <div class="about-provider-item">
+                            <span class="about-provider-label">联网搜索</span>
+                            <span class="about-provider-value" x-html="getProviderName(providers.web_search)"></span>
+                        </div>
+                    </template>
+                </div>
             </div>
 
-            <!-- 第三方服务提供商信息 -->
-            <div class="about-providers" x-show="providers">
-                <div class="about-providers-title">第三方服务</div>
-
-                <!-- LLM -->
-                <template x-if="providers && providers.llm">
-                    <div class="about-provider-item">
-                        <span class="about-provider-label">语言模型</span>
-                        <span class="about-provider-value" x-html="getProviderName(providers.llm)"></span>
-                        <span class="about-provider-tip" x-show="getProviderModel(providers.llm)"
-                            x-text="getProviderModel(providers.llm)"></span>
-                    </div>
-                </template>
-
-                <!-- Embedder -->
-                <template x-if="providers && providers.embedder">
-                    <div class="about-provider-item">
-                        <span class="about-provider-label">矢量模型</span>
-                        <span class="about-provider-value" x-html="getProviderName(providers.embedder)"></span>
-                        <span class="about-provider-tip" x-show="getEmbedderDimension(providers.embedder)"
-                            x-text="getEmbedderDimension(providers.embedder)"></span>
-                    </div>
-                </template>
-
-                <!-- Web Search -->
-                <template x-if="providers && providers.web_search">
-                    <div class="about-provider-item">
-                        <span class="about-provider-label">联网搜索</span>
-                        <span class="about-provider-value" x-html="getProviderName(providers.web_search)"></span>
-                    </div>
-                </template>
+            <div class="about-footer">
+                <button class="about-btn-close" @click="close">关闭</button>
             </div>
-        </div>
-
-        <div class="about-footer">
-            <button class="about-btn-close" @click="close">关闭</button>
         </div>
     </div>
-</div>
 
 
     <!-- 外源主题加载器（必须在 Alpine store 之前加载） -->
