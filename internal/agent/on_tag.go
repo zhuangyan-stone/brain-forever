@@ -36,16 +36,20 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// Chat Tags handler -GET /api/chat/tags?sn=XXX
+// Chat Tags handler - POST /api/chat/tags?sn=XXX
 // ============================================================
 
-// OnGenerateChatTags handles GET /api/chat/tags
+// OnGenerateChatTags handles POST /api/chat/tags?sn=XXX&force=true
+// force=true bypasses the taged guard, allowing re-tagging even if already classified.
+// Used by auto-tag when chat title changes.
 func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 	chatSN := r.URL.Query().Get("sn")
 	if chatSN == "" {
 		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_sn_required"), http.StatusBadRequest)
 		return
 	}
+
+	force := r.URL.Query().Get("force") == "true"
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 	if lang == "" {
@@ -62,7 +66,7 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if taged {
+	if taged && !force {
 		h.respondTaggedChat(w, chatID, chatSN, chatTitle)
 		return
 	}

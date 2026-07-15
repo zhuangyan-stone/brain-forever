@@ -148,6 +148,13 @@ export async function fetchChatTitle(originalTitle, force = false, sn) {
                 return;
             }
 
+            // ★ AI 建议新标题时，同步触发自动归类（静默）
+            //   仅自动触发时（force=false，场景1：第一轮 AI 建议）提前归类
+            //   用户手动点击 AI 标题按钮（force=true，场景2）则等 putChatTitle 确认后才归类
+            if (!force && targetSN) {
+                fetchChatTagsAuto(targetSN);
+            }
+
             // ---- 显示便利贴让用户选择 ----
             const stickyOptions = {
                 sn: targetSN,  // 携带 SN 供便利贴组件在删除时清理自身
@@ -225,6 +232,14 @@ export async function putChatTitle(title, titleState = TITLE_STATE.USER, sn) {
 			chats.active.title = title;
 			chats.active.titleState = titleState;
 		}
+
+		// ★ 标题变更后自动触发归类（静默）
+		// 覆盖所有三种场景：
+		//   1. 用户点击 Apply 采纳 AI 推荐标题（titleState=TITLE_STATE.AI）
+		//   2. AI 按钮强制生成标题后采纳
+		//   3. 用户手动重命名（titleState=TITLE_STATE.USER）
+		fetchChatTagsAuto(sn);
+
 		return true;
 	} catch (e) {
 		console.warn('更新标题出错:', e);
@@ -493,6 +508,12 @@ export async function fetchProviderInfo() {
 }
 
 /**
+ * _autoTaggingInFlight — 防止同 SN 同时发起多个自动归类请求
+ * @type {Set<string>}
+ */
+const _autoTaggingInFlight = new Set();
+
+/**
  * fetchChatTags 获取指定对话的话题分类标签。
  * @param {string} sn - 目标会话的 SN
  * @returns {Promise<{sn: string, title: string, tags: Array<string>, totalMessages: number, viewedMessages: number, allMessagesViewed: boolean}|null>}
@@ -512,6 +533,43 @@ export async function fetchChatTags(sn) {
     } catch (e) {
         console.warn('获取话题标签出错:', e);
         return null;
+    }
+}
+
+/**
+ * fetchChatTagsAuto — 自动归类（静默，标题变更时由前端自动触发）。
+ * 调用 POST /api/chat/tags?sn=XXX&force=true，跳过 taged 守卫。
+ * 成功后将标签同步到客户端 chatGroups，不显示 Toast。
+ * @param {string} sn - 目标会话的 SN
+ */
+async function fetchChatTagsAuto(sn) {
+    if (!sn) return;
+    // 防止同 SN 并发请求
+    if (_autoTaggingInFlight.has(sn)) return;
+    _autoTaggingInFlight.add(sn);
+
+    try {
+        const response = await fetch('/api/chat/tags?sn=' + encodeURIComponent(sn) + '&force=true', {
+            method: 'POST',
+        });
+        if (!response.ok) {
+            // 静默失败，仅 console 日志
+            console.warn('自动归类失败:', response.status, await response.text());
+            return;
+        }
+        const data = await response.json();
+        if (data && data.tags) {
+            // 将归类结果同步到客户端 chatGroups
+            var chatsStore = window.Alpine.store('chats');
+            if (chatsStore && chatsStore.moveChatBetweenTags) {
+                chatsStore.moveChatBetweenTags(sn, data.tags);
+            }
+            console.log('📑 [自动归类] 对话', sn, '已归类到:', data.tags);
+        }
+    } catch (e) {
+        console.warn('自动归类出错:', e);
+    } finally {
+        _autoTaggingInFlight.delete(sn);
     }
 }
 
