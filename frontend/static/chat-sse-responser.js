@@ -242,13 +242,14 @@ export class SSEResponser {
                     console.log('[chat_created] Step1完成: streams Map key已从 ' + frontSN + ' 迁移到 ' + event.sn);
                 }
 
-                // 2. 再更新 Alpine store items[].sn（原地更新，active.sn 自动反映新值）
+                // 2. 再更新 Alpine store items[].sn 和 id（原地更新，active.sn 自动反映新值）
                 var idx = chats.items.findIndex(function(c) { return c.sn === frontSN; });
                 console.log('[chat_created] Step2 items[]: 查找 frontSN=' + frontSN + ', items.length=' + chats.items.length + ', findIndex=' + idx);
                 if (idx >= 0) {
                     var oldSn = chats.items[idx].sn;
                     chats.items[idx].sn = event.sn;
-                    console.log('[chat_created] Step2完成: items[' + idx + '].sn 已从 ' + oldSn + ' 更新为 ' + event.sn);
+                    if (event.id) chats.items[idx].id = event.id;
+                    console.log('[chat_created] Step2完成: items[' + idx + '].sn 已从 ' + oldSn + ' 更新为 ' + event.sn + ', id=' + event.id);
                 } else {
                     console.log('[chat_created] Step2跳过: items[] 中未找到 frontSN=' + frontSN + ' (items=' + JSON.stringify(chats.items.map(function(c){return c.sn;})) + ')');
                 }
@@ -264,7 +265,8 @@ export class SSEResponser {
                         if (chatIdx >= 0) {
                             var oldChatSn = chatList[chatIdx].sn;
                             chatList[chatIdx].sn = event.sn;
-                            console.log('[chat_created] Step3完成: chats[' + chatIdx + '].sn 已从 ' + oldChatSn + ' 更新为 ' + event.sn);
+                            if (event.id) chatList[chatIdx].id = event.id;
+                            console.log('[chat_created] Step3完成: chats[' + chatIdx + '].sn 已从 ' + oldChatSn + ' 更新为 ' + event.sn + ', id=' + event.id);
                             // ★ 同步更新 activeChatSN：如果之前指向临时 SN，更新为真实 SN
                             //   否则侧边栏 chat-item 的 SN 已变为真实 SN，但 activeChatSN 仍为临时 SN，
                             //   导致 :class="{ active: chat.sn === $store.chats.activeChatSN }" 匹配失败。

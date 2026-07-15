@@ -180,6 +180,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 			Type:    "chat_created",
 			SN:      chatCreatedSN,
 			FrontSN: chatCreatedFrontSN,
+			ID:      msgChatID,
 		})
 	}
 

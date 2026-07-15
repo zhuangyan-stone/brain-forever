@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, addFavoriteChat, removeFavoriteChat, deleteChatTag } from './chat-api.js';
 import { extractTraits } from './trait-api.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
@@ -928,7 +928,7 @@ function showCategoryContextMenu(e, chat, tag) {
 
     const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 36 * 4 + 4 + 10; // 4 items + padding + separator
+    const menuHeight = 36 * 7 + 4 + 14; // up to 7 items + padding + separators
 
     const isSmallScreen = document.body.classList.contains('small-screen-mode');
     let left, top;
@@ -985,8 +985,106 @@ function showCategoryContextMenu(e, chat, tag) {
     sepAfterFav.className = 'chat-context-menu-separator';
     menu.appendChild(sepAfterFav);
 
+    // 从当前分类中移除
+    var removeItem = document.createElement('div');
+    removeItem.className = 'chat-context-menu-item';
+    removeItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 从当前分类中移除';
+    removeItem.addEventListener('click', async function() {
+        closeContextMenu();
+        // 检查 chat.id，如果为 0 则短路
+        var chatId = chat.id;
+        if (!chatId || chatId === 0) {
+            showToast('错误的操作', 'error');
+            return;
+        }
+        var ok = await deleteChatTag(chatId, tag);
+        if (!ok) {
+            return;
+        }
+        // 成功：从 chatGroups 中移除该 chat
+        var chatsStore = window.Alpine.store('chats');
+        if (chatsStore && chatsStore.chatGroups) {
+            var group = chatsStore.chatGroups[tag];
+            if (group) {
+                var filtered = group.filter(function(c) { return c.sn !== chat.sn; });
+                if (filtered.length > 0) {
+                    chatsStore.chatGroups[tag] = filtered;
+                } else {
+                    delete chatsStore.chatGroups[tag];
+                }
+                // 触发 Alpine 响应式
+                chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
+            }
+        }
+        showToast('已从当前分类中移除', 'success');
+    });
+    menu.appendChild(removeItem);
+
+    // 检查该 chat 是否属于其他分类，若是则显示"其他分类"子菜单
+    var chatsStoreForOther = window.Alpine.store('chats');
+    var otherTags = [];
+    if (chatsStoreForOther && chatsStoreForOther.chatGroups) {
+        for (var tg in chatsStoreForOther.chatGroups) {
+            if (chatsStoreForOther.chatGroups.hasOwnProperty(tg) && tg !== tag) {
+                var hasChat = chatsStoreForOther.chatGroups[tg].some(function(c) { return c.sn === chat.sn; });
+                if (hasChat) otherTags.push(tg);
+            }
+        }
+    }
+
+    if (otherTags.length > 0) {
+        // "其他分类" 一级菜单项
+        var otherCatItem = document.createElement('div');
+        otherCatItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
+        otherCatItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 其他分类 <span class="submenu-arrow">&#x276F;</span>';
+
+        // 二级子菜单
+        var otherSubMenu = document.createElement('div');
+        otherSubMenu.className = 'chat-context-submenu';
+
+        otherTags.forEach(function(ot) {
+            var subItem = document.createElement('div');
+            subItem.className = 'chat-context-menu-item';
+            subItem.textContent = ot || '不知所云';
+            subItem.addEventListener('click', function() {
+                closeContextMenu();
+                var store = window.Alpine.store('chats');
+                if (store) {
+                    store.sidebarTab = 'category';
+                    store.selectChat(chat.sn, 'category', ot);
+                }
+            });
+            otherSubMenu.appendChild(subItem);
+        });
+
+        otherCatItem.appendChild(otherSubMenu);
+        menu.appendChild(otherCatItem);
+
+        // hover 显示/隐藏子菜单
+        var otherTimer = null;
+        otherCatItem.addEventListener('mouseenter', function() {
+            if (otherTimer) { clearTimeout(otherTimer); otherTimer = null; }
+            otherSubMenu.style.display = 'block';
+        });
+        otherCatItem.addEventListener('mouseleave', function() {
+            otherTimer = setTimeout(function() { otherSubMenu.style.display = 'none'; }, 120);
+        });
+        otherSubMenu.addEventListener('mouseenter', function() {
+            if (otherTimer) { clearTimeout(otherTimer); otherTimer = null; }
+            otherSubMenu.style.display = 'block';
+        });
+        otherSubMenu.addEventListener('mouseleave', function() {
+            otherSubMenu.style.display = 'none';
+        });
+    }
+
+    // 分隔线
+    var sepBeforeRename = document.createElement('div');
+    sepBeforeRename.className = 'chat-context-menu-separator';
+    menu.appendChild(sepBeforeRename);
+
     // 重命名
-    const renameItem = document.createElement('div');
+    var renameItem = document.createElement('div');
     renameItem.className = 'chat-context-menu-item';
     renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名';
     renameItem.addEventListener('click', function() {
@@ -996,12 +1094,12 @@ function showCategoryContextMenu(e, chat, tag) {
     menu.appendChild(renameItem);
 
     // 分隔线
-    const separator = document.createElement('div');
+    var separator = document.createElement('div');
     separator.className = 'chat-context-menu-separator';
     menu.appendChild(separator);
 
     // 删除（警告色）
-    const deleteItem = document.createElement('div');
+    var deleteItem = document.createElement('div');
     deleteItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
     deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除';
     deleteItem.addEventListener('click', function() {

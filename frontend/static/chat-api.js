@@ -599,7 +599,31 @@ export async function fetchChatGroups() {
         return null;
         }
     }
-    
+
+/**
+ * deleteChatTag 从数据库中删除某个对话的指定标签。
+ * @param {number} chatID - 对话 ID（不是 SN）
+ * @param {string} tag - 要删除的标签
+ * @returns {Promise<boolean>} 是否成功
+ */
+export async function deleteChatTag(chatID, tag) {
+    if (!chatID || chatID === 0 || !tag) return false;
+    try {
+        const url = '/api/chat/tags?chat=' + encodeURIComponent(chatID) +
+            '&tag=' + encodeURIComponent(tag);
+        const response = await fetch(url, { method: 'DELETE' });
+        if (!response.ok) {
+            const t = await response.text();
+            showToast('删除标签失败：' + t, 'error');
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.warn('删除标签失败:', e);
+        return false;
+    }
+}
+
     /**
      * addFavoriteChat 添加指定对话到收藏夹。
      * @param {string} sn - 对话 SN

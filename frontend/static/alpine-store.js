@@ -358,6 +358,7 @@ document.addEventListener('alpine:init', function() {
             this.items = [];
             this.activeIndex = -1;
             this.blankItem = {
+                id: 0,
                 sn: '',
                 title: '',
                 titleState: 0,
@@ -912,6 +913,7 @@ document.addEventListener('alpine:init', function() {
             var item = this.items.find(function(c) { return c.sn === sn; });
             if (!item) {
                 item = {
+                    id: 0,
                     sn: sn,
                     title: '',
                     titleState: 0,

@@ -150,6 +150,7 @@ type ChatCreatedEvent struct {
 	Type    string `json:"type"` // "chat_created"
 	SN      string `json:"sn,omitempty"`
 	FrontSN string `json:"front_sn,omitempty"`
+	ID      int64  `json:"id"` // New chat's DB primary key
 }
 
 // Usage represents token usage
