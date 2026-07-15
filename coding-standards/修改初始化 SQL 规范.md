@@ -1,0 +1,1 @@
+当需要修改当前项目的初始建表语句，即 deploy/settings_template/init.template.sql 时，应将本次修改内容，同步到 bin/settings/init.sql 。
