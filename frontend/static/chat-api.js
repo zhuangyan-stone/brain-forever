@@ -7,8 +7,72 @@ import { resetTickState } from './tick-state.js';
 import { showAiTitleSuggestion } from './components/sticky-ai-title.js';
 import { visualLength, truncateByVisualLength } from './toolsets.js';
 
+// ============================================================
+// 会话过期处理 — 全局拦截 401 响应，自动跳转登录页
+// ============================================================
+// 原理：monkey-patch 全局 fetch()，在收到 401 且用户之前已登录时，
+//       自动清除登录状态并跳转到 /signin/。
+// 优点：一次性覆盖所有 API 调用，无需逐个修改。
+// 安全：仅在 localStorage 存在 brainforever_user_no 时触发，
+//       避免干扰登录页/signin页的正常 401 响应（如验证码错误）。
+// ============================================================
+
 /**
- * 标题修改状态常量
+ * redirectIfSessionExpired — 检查 401 响应，会话过期时跳转登录页。
+ * 会清除 localStorage 和 Alpine store 中的登录状态。
+ * 同时注册到 window.__redirectIfSessionExpired，供非 ES Module 脚本显式调用。
+ *
+ * @param {Response} response - fetch 返回的 Response 对象
+ * @returns {boolean} 是否已过期（已跳转）
+ */
+export function redirectIfSessionExpired(response) {
+    if (response.status !== 401) return false;
+
+    // ★ 安全守卫：仅当用户之前已登录时才跳转。
+    //   避免干扰登录/验证码等公开接口的正常 401 响应。
+    if (!localStorage.getItem('brainforever_user_no')) return false;
+
+    // 清除持久化的登录状态
+    localStorage.removeItem('brainforever_user_no');
+    localStorage.removeItem('brainforever_user_avatar');
+
+    // 重置 Alpine store 中的用户状态
+    try {
+        var chats = window.Alpine.store('chats');
+        if (chats) {
+            chats.currentUserNo = '';
+            chats.currentUserNickname = '';
+            chats.currentUserAvatar = '';
+            chats.resetToBlank();
+        }
+    } catch(e) {}
+
+    // 跳转到登录页，带 expired 参数通知登录页显示 Toast
+    // replace 替换首页历史，不让后退回到已过期的首页
+    window.location.replace('/signin/?expired=1');
+    return true;
+}
+
+// 注册到 window，供普通 <script>（alpine-api.js, alpine-store.js 等）调用
+try {
+    window.__redirectIfSessionExpired = redirectIfSessionExpired;
+} catch(e) {}
+
+// ---- 全局 fetch monkey-patch ----
+// 在模块加载时执行一次，之后所有 fetch 调用都自动经过 401 检查。
+(function() {
+    const originalFetch = window.fetch;
+    if (typeof originalFetch !== 'function') return;
+    window.fetch = async function(url, options) {
+        const response = await originalFetch.call(window, url, options);
+        // 静态检查 401，不阻塞正常响应
+        redirectIfSessionExpired(response);
+        return response;
+    };
+})();
+
+/**
+ * TITLE_STATE 标题修改状态常量
  */
 export const TITLE_STATE = {
     ORIGINAL: 0,  // 原始标题
@@ -695,6 +759,7 @@ export async function deleteChatTag(chatID, tag) {
     
     /**
      * fetchSession 获取/创建 HTTP session，返回 session 数据（user_no, welcome 等）。
+     * 此接口是公开的（无需登录），因此不检查会话过期。
      * @returns {Promise<{user_no?: string, welcome?: string}|null>}
      */
 export async function fetchSession() {

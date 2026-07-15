@@ -101,6 +101,22 @@
 
     <script>
         // ============================================================
+        // 会话过期提示 — 检测 URL 参数 ?expired=1
+        // ============================================================
+        (function() {
+            try {
+                var p = new URLSearchParams(window.location.search);
+                if (p.get('expired') === '1') {
+                    setTimeout(function() { showToast('请先登录', 'info', 4000); }, 100);
+                }
+                if (p.has('expired')) {
+                    var clean = window.location.pathname + window.location.hash;
+                    window.history.replaceState(null, '', clean);
+                }
+            } catch(e) {}
+        })();
+
+        // ============================================================
         // 主题切换（与 index.html 共用 localStorage key）
         // ============================================================
         // SVG path 常量：月亮（暗色主题）
