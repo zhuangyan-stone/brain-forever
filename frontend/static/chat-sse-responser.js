@@ -16,7 +16,7 @@
 // ============================================================
 
 import { renderMarkdown, enableCopyButtons } from './chat-markdown.js';
-import { escapeHtml } from './toolsets.js';
+import { escapeHtml, truncateByVisualLength } from './toolsets.js';
 import { showSources, showTokenUsage, autoScrollToBottom, showError, restoreInputArea, showToast, showToastHTML, updateSourcesPagerInDOM } from './chat-ui.js';
 import { addDirtyChat } from './chat-list.js';
 import { chatStreamMgr } from './chat-stream-mgr.js';
@@ -436,10 +436,10 @@ export class SSEResponser {
                 if (chats) {
                     var chatData = chats.getOrCreate(this.stream.sn);
                     var title = chatData && chatData.title ? chatData.title : '';
-                    var displayTitle = title.length > 15 ? title.substring(0, 15) + '…' : (title || '对话');
+                    var displayTitle = truncateByVisualLength(title, 18) || '对话';
                     var sn = this.stream.sn;
                     // 构建 HTML 消息：标题部分使用 .toast-link 样式，点击切换到目标对话
-                    var htmlMessage = 'AI 回复完毕 ——<br>「<span class="toast-link">' + escapeHtml(displayTitle) + '</span>」';
+                    var htmlMessage = 'AI 回复完毕<hr style="margin:10px 0 4px;border:none;border-top:1px solid rgba(255,255,255,0.3)"><span class="toast-link">' + escapeHtml(displayTitle) + '</span>';
                     showToastHTML(htmlMessage, 'info', 5000, function() {
                         try {
                             var c = window.Alpine.store('chats');

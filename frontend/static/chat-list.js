@@ -555,27 +555,27 @@ function showContextMenu(e, chat) {
                 : false;
 
             // 构造 Toast 消息
-            var tagStr = result.tags.join('、');
+            // 格式：
+            //   话题已分类到：AA、BB                  ← 第一行标签信息（整段视觉长度 ≤20）
+            //   --------                              ← 8个"-"分隔线
+            //   标题                                  ← 第三行标题（视觉长度 ≤18）
             var displayTitle = title || '';
-            var msg;
-            if (oldTags.length === 0 || !isSame) {
-                msg = displayTitle + ' 已归类到：\n' + tagStr;
-            } else {
-                msg = displayTitle + ' 保持现有分类：\n' + tagStr;
-            }
 
-            // 显示 LLM 查看了多少条消息的统计信息
-            if (typeof result.viewedMessages !== 'undefined') {
-                var viewedInfo = '🔍 查看了 ' + result.viewedMessages + ' 条消息';
-                if (result.totalMessages && result.totalMessages > 0) {
-                    viewedInfo += '（共 ' + result.totalMessages + ' 条）';
-                }
-                if (result.allMessagesViewed) {
-                    viewedInfo += ' ✅ 已看完全部';
-                }
-                msg += '\n' + viewedInfo;
-            }
-            showToast(msg, 'success', 6000);
+            // 合并完整内容后统一按视觉长度截断，取代原来的标签个数限制
+            var label = (oldTags.length === 0 || !isSame)
+                ? '已分类到：'
+                : '保持分类：';
+            var fullContent = '话题' + label + result.tags.join('、');
+            var truncatedContent = truncateByVisualLength(fullContent, 20);
+            var safeContent = escapeHtml(truncatedContent);
+
+            // 标题最长 18 个视觉长度
+            var shortTitle = truncateByVisualLength(displayTitle, 18);
+            var safeTitle = escapeHtml(shortTitle);
+
+            // HTML 转义后拼装，用 <hr> 做分隔线
+            var htmlMsg = safeContent + '<hr style="margin:10px 0 4px;border:none;border-top:1px solid rgba(255,255,255,0.3)">' + safeTitle;
+            showToastHTML(htmlMsg, 'success', 6000);
 
             // ★ 归类成功后客户端自我更新 chatGroups，无需重新请求后端
             if (chatsStore && chatsStore.moveChatBetweenTags) {
