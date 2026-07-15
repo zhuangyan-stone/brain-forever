@@ -324,6 +324,7 @@ func (s *ChatStore) ListChatTitles(userID int64, n int) ([]ChatTitle, error) {
 }
 
 type ChatTitleTag struct {
+	ID    int64  `db:"id" json:"id"`
 	SN    string `db:"sn" json:"sn"`
 	Title string `db:"title" json:"title"`
 	Tag   string `db:"tag" json:"tag"`
@@ -334,7 +335,7 @@ type ChatTitleTag struct {
 
 // SelectChatTitlesGroupByTags queries all tagged chats for a user, grouped by tag.
 func (s *ChatStore) SelectChatTitlesGroupByTags(userID int64) (map[string][]ChatTitleTag, error) {
-	sqlStr := `SELECT cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
+	sqlStr := `SELECT cs.id, cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
 		 FROM chat_sessions cs
 		 JOIN chat_tags ct ON cs.id = ct.chat_id
 		 WHERE cs.user_id = $1 AND cs.deleted = FALSE

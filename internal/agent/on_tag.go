@@ -39,6 +39,32 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 // Chat Tags handler - POST /api/chat/tags?sn=XXX
 // ============================================================
 
+// OnDeleteChatTag handles DELETE /api/chat/tags?chat=ID&tag=XXX
+// Removes a specific tag from a chat session.
+func (h *ChatAgent) OnDeleteChatTag(w http.ResponseWriter, r *http.Request) {
+	chatIDStr := r.URL.Query().Get("chat")
+	tag := r.URL.Query().Get("tag")
+	if chatIDStr == "" || tag == "" {
+		toolset.WriteError(w, "missing chat or tag parameter", http.StatusBadRequest)
+		return
+	}
+
+	var chatID int64
+	if _, err := fmt.Sscan(chatIDStr, &chatID); err != nil {
+		toolset.WriteError(w, "invalid chat id", http.StatusBadRequest)
+		return
+	}
+
+	if err := theChatStore.DeleteChatTagByChatIDAndTag(chatID, tag); err != nil {
+		h.logger.Errorf("failed to delete chat tag. %v", err)
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
 // OnGenerateChatTags handles POST /api/chat/tags?sn=XXX&force=true
 // force=true bypasses the taged guard, allowing re-tagging even if already classified.
 // Used by auto-tag when chat title changes.

@@ -112,11 +112,13 @@ CREATE TABLE IF NOT EXISTS chat_tags (
 	id        BIGSERIAL PRIMARY KEY,
 	chat_id   BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 	tag       TEXT         NOT NULL,
-	create_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+	create_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+	UNIQUE(chat_id, tag)
 );
 
-CREATE INDEX IF NOT EXISTS idx_chat_tags_chat_id ON chat_tags(chat_id);
-CREATE INDEX IF NOT EXISTS idx_chat_tags_tag     ON chat_tags(tag);
+-- (chat_id, tag) uniqueness is enforced by the UNIQUE constraint above,
+-- which also serves as a composite index for chat_id-based lookups.
+CREATE INDEX IF NOT EXISTS idx_chat_tags_tag ON chat_tags(tag);
 
 -- ============================================================
 -- chat_favorites table: stores favorited chat sessions

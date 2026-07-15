@@ -56,8 +56,9 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// /api/chat/switch -- GET
 	srv.GET("/api/chat/switch", chatHandler.RequireAuth(chatHandler.OnSwitchChat))
 
-	// /api/chat/tags -- POST (classify a chat)
+	// /api/chat/tags -- POST (classify a chat) + DELETE (remove a tag)
 	srv.POST("/api/chat/tags", chatHandler.RequireAuth(chatHandler.OnGenerateChatTags))
+	srv.DELETE("/api/chat/tags", chatHandler.RequireAuth(chatHandler.OnDeleteChatTag))
 
 	// /api/chat/title -- GET (propose title) + PUT (save title)
 	srv.GET("/api/chat/title", chatHandler.RequireAuth(chatHandler.OnGetSuggestedChatTitle))

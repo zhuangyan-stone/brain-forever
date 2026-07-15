@@ -108,6 +108,18 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 	return nil
 }
 
+// DeleteChatTagByChatIDAndTag deletes a chat tag by chat_id and tag.
+// Succeeds silently even if no matching row is found.
+func (s *ChatStore) DeleteChatTagByChatIDAndTag(chatID int64, tag string) error {
+	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1 AND tag = $2"
+	_, err := s.db().Exec(sqlStr, chatID, tag)
+	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d, tag=%s]:\n%v", sqlStr, chatID, tag, err)
+		return fmt.Errorf("failed to delete chat tag by chat_id and tag. %w", err)
+	}
+	return nil
+}
+
 // DeleteChatTagsByChatID deletes all tags for a given chat session.
 func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
 	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1"
