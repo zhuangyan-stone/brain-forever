@@ -327,17 +327,23 @@ type ChatTitleTag struct {
 	ID    int64  `db:"id" json:"id"`
 	SN    string `db:"sn" json:"sn"`
 	Title string `db:"title" json:"title"`
-	Tag   string `db:"tag" json:"tag"`
+	Tag   string `db:"tag" json:"tag"`     // Actual tag value; COALESCE'd to '' for chats without tag records
+	Taged bool   `db:"taged" json:"taged"` // Whether this chat has been classified by LLM
 
 	CreateAt time.Time `db:"create_at" json:"create_at"`
 	UpdateAt time.Time `db:"update_at" json:"update_at"`
 }
 
-// SelectChatTitlesGroupByTags queries all tagged chats for a user, grouped by tag.
+// SelectChatTitlesGroupByTags queries all non-deleted chats for a user, grouped by tag.
+// Uses LEFT JOIN so chats with taged=true but no tag records (LLM-processed but no match)
+// still appear with tag=” and taged=true, distinguished from never-classified chats (taged=false).
 func (s *ChatStore) SelectChatTitlesGroupByTags(userID int64) (map[string][]ChatTitleTag, error) {
-	sqlStr := `SELECT cs.id, cs.sn, cs.title, ct.tag, cs.create_at, cs.update_at
+	sqlStr := `SELECT cs.id, cs.sn, cs.title,
+		       COALESCE(ct.tag, '') AS tag,
+		       cs.taged,
+		       cs.create_at, cs.update_at
 		 FROM chat_sessions cs
-		 JOIN chat_tags ct ON cs.id = ct.chat_id
+		 LEFT JOIN chat_tags ct ON cs.id = ct.chat_id
 		 WHERE cs.user_id = $1 AND cs.deleted = FALSE
 		 ORDER BY ct.tag, cs.update_at DESC, cs.create_at DESC`
 	var rows []ChatTitleTag

@@ -602,12 +602,13 @@ export async function fetchChatGroups() {
 
 /**
  * deleteChatTag 从数据库中删除某个对话的指定标签。
+ * 后端在事务中完成：删除标签 → 统计剩余个数 → 若为0则设 taged=false
  * @param {number} chatID - 对话 ID（不是 SN）
  * @param {string} tag - 要删除的标签
- * @returns {Promise<boolean>} 是否成功
+ * @returns {Promise<object|null>} { status, tagCount } 或 null（失败时）
  */
 export async function deleteChatTag(chatID, tag) {
-    if (!chatID || chatID === 0 || !tag) return false;
+    if (!chatID || chatID === 0 || !tag) return null;
     try {
         const url = '/api/chat/tags?chat=' + encodeURIComponent(chatID) +
             '&tag=' + encodeURIComponent(tag);
@@ -615,12 +616,13 @@ export async function deleteChatTag(chatID, tag) {
         if (!response.ok) {
             const t = await response.text();
             showToast('删除标签失败：' + t, 'error');
-            return false;
+            return null;
         }
-        return true;
+        const data = await response.json();
+        return data; // { status: 'ok', tagCount: N }
     } catch (e) {
         console.warn('删除标签失败:', e);
-        return false;
+        return null;
     }
 }
 

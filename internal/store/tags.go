@@ -108,8 +108,103 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 	return nil
 }
 
+// ============================================================
+// Transactional tag operations
+// ============================================================
+
+// DeleteChatTagAndUpdateTaged atomically deletes a tag and, if no non-empty
+// tags remain, sets chat_sessions.taged = false within a single transaction.
+//
+// Semantic notes:
+//   - When the last non-empty tag is removed, taged=false means "was classified
+//     but all tags deleted", different from taged=true (LLM processed but found
+//     no suitable categories, i.e. no tag records in chat_tags).
+//   - Returns remaining non-empty tag count for frontend UI state sync.
+func (s *ChatStore) DeleteChatTagAndUpdateTaged(chatID int64, tag string) (int, error) {
+	tx, err := s.db().Beginx()
+	if err != nil {
+		return 0, fmt.Errorf("failed to begin transaction. %w", err)
+	}
+	defer tx.Rollback()
+
+	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1 AND tag = $2"
+	if _, err := tx.Exec(sqlStr, chatID, tag); err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d tag=%s]:\n%v", sqlStr, chatID, tag, err)
+		return 0, fmt.Errorf("failed to delete chat tag. %w", err)
+	}
+
+	sqlStr = "SELECT COUNT(1) FROM chat_tags WHERE chat_id = $1 AND tag != ''"
+	var count int
+	if err := tx.Get(&count, sqlStr, chatID); err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		return 0, fmt.Errorf("failed to count chat tags. %w", err)
+	}
+
+	// Only update taged=false when the last non-empty tag was removed.
+	// If tags remain, taged is already true, no DB write needed.
+	if count == 0 {
+		sqlStr = "UPDATE chat_sessions SET taged = FALSE WHERE id = $1"
+		if _, err := tx.Exec(sqlStr, chatID); err != nil {
+			s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+			return 0, fmt.Errorf("failed to update chat taged flag. %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		s.logger.Errorf("failed to commit transaction. %v", err)
+		return 0, fmt.Errorf("failed to commit transaction. %w", err)
+	}
+
+	return count, nil
+}
+
+// ReplaceChatTags atomically replaces all tags for a chat and marks it as
+// classified (taged=true), regardless of whether any tags were generated.
+//
+// Semantic notes:
+//   - taged=true means "LLM has attempted classification", independent of
+//     whether any rows exist in chat_tags.
+//   - Non-empty tags: written to chat_tags as-is (never insert ” placeholder).
+//   - Empty tags: old tags are deleted, only taged=true is set, meaning
+//     "processed but no match". The distinction between "classified with tags"
+//     and "classified without tags" is naturally expressed by the existence
+//     of rows in chat_tags.
+func (s *ChatStore) ReplaceChatTags(chatID int64, tags []string) error {
+	tx, err := s.db().Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction. %w", err)
+	}
+	defer tx.Rollback()
+
+	// Step 1: Delete all existing tags
+	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1"
+	if _, err := tx.Exec(sqlStr, chatID); err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		return fmt.Errorf("failed to delete chat tags. %w", err)
+	}
+
+	// Step 2: Insert new tags (only if non-empty; never insert '' placeholder)
+	for _, tag := range tags {
+		sqlStr = "INSERT INTO chat_tags(chat_id, tag) VALUES($1, $2)"
+		if _, err := tx.Exec(sqlStr, chatID, tag); err != nil {
+			s.logger.Errorf("SQL [%s] args=[chatID=%d tag=%s]:\n%v", sqlStr, chatID, tag, err)
+			return fmt.Errorf("failed to insert chat tag %q. %w", tag, err)
+		}
+	}
+
+	// Step 3: Mark as classified — taged=true means LLM has processed this chat
+	sqlStr = "UPDATE chat_sessions SET taged = TRUE WHERE id = $1"
+	if _, err := tx.Exec(sqlStr, chatID); err != nil {
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		return fmt.Errorf("failed to update chat taged flag. %w", err)
+	}
+
+	return tx.Commit()
+}
+
 // DeleteChatTagByChatIDAndTag deletes a chat tag by chat_id and tag.
 // Succeeds silently even if no matching row is found.
+// Deprecated: Use DeleteChatTagAndUpdateTaged for atomic delete+taged update.
 func (s *ChatStore) DeleteChatTagByChatIDAndTag(chatID int64, tag string) error {
 	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1 AND tag = $2"
 	_, err := s.db().Exec(sqlStr, chatID, tag)

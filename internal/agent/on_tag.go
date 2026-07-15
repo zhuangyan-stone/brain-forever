@@ -40,7 +40,9 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 // ============================================================
 
 // OnDeleteChatTag handles DELETE /api/chat/tags?chat=ID&tag=XXX
-// Removes a specific tag from a chat session.
+// Removes a specific tag from a chat session within a transaction.
+// If the deleted tag was the last non-empty tag, sets taged=false.
+// Returns the remaining non-empty tag count for frontend state sync.
 func (h *ChatAgent) OnDeleteChatTag(w http.ResponseWriter, r *http.Request) {
 	chatIDStr := r.URL.Query().Get("chat")
 	tag := r.URL.Query().Get("tag")
@@ -55,14 +57,18 @@ func (h *ChatAgent) OnDeleteChatTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := theChatStore.DeleteChatTagByChatIDAndTag(chatID, tag); err != nil {
+	tagCount, err := theChatStore.DeleteChatTagAndUpdateTaged(chatID, tag)
+	if err != nil {
 		h.logger.Errorf("failed to delete chat tag. %v", err)
 		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":   "ok",
+		"tagCount": tagCount,
+	})
 }
 
 // OnGenerateChatTags handles POST /api/chat/tags?sn=XXX&force=true
@@ -123,29 +129,18 @@ func (h *ChatAgent) OnGenerateChatTags(w http.ResponseWriter, r *http.Request) {
 }
 
 // persistChatTags persists tags to DB and updates the in-memory session cache.
+// Uses ReplaceChatTags for atomic replace + taged update.
+//
+// taged is always set to true regardless of whether tags are empty:
+//   - Non-empty tags: normal classification, tags are written to chat_tags.
+//   - Empty tags: taged=true with no chat_tags records, meaning
+//     "processed but no match", distinguished from "never classified" (taged=false).
 func (h *ChatAgent) persistChatTags(chatID int64, chatSN string, tags []string, sess *session.Session) {
-	if delErr := theChatStore.DeleteChatTagsByChatID(chatID); delErr != nil {
-		h.logger.Errorf("failed to delete old chat tags for chat %d. %v", chatID, delErr)
+	if err := theChatStore.ReplaceChatTags(chatID, tags); err != nil {
+		h.logger.Errorf("failed to replace chat tags for chat %d. %v", chatID, err)
 	}
 
-	if len(tags) == 0 {
-		if _, insErr := theChatStore.InsertChatTag(chatID, ""); insErr != nil {
-			h.logger.Errorf("failed to insert empty chat tag for chat %d. %v", chatID, insErr)
-		}
-	} else {
-		for _, tag := range tags {
-			if _, insErr := theChatStore.InsertChatTag(chatID, tag); insErr != nil {
-				h.logger.Errorf("failed to insert chat tag %q for chat %d. %v", tag, chatID, insErr)
-			}
-		}
-	}
-
-	if chatID > 0 {
-		if tagErr := theChatStore.UpdateChatTagged(chatID, true); tagErr != nil {
-			h.logger.Errorf("failed to update chat taged flag for chat %s. %v", chatSN, tagErr)
-		}
-	}
-
+	// Update in-memory taged state
 	sess.User.ChatsMu.Lock()
 	for i := range sess.User.Chats {
 		if sess.User.Chats[i].SN == chatSN {

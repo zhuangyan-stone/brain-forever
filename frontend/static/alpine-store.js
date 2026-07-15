@@ -423,27 +423,34 @@ document.addEventListener('alpine:init', function() {
 
         /**
          * loadChatGroups — 从后端加载按标签分组的对话列表，存入 chatGroups。
-         * 空串 tag 分组排在最后，显示为"不知所云"。
+         * LEFT JOIN 后，tag=='' 的条目来自两种场景：
+         * - taged=true → "已处理但无匹配"，归入 __uncategorizable__ 组
+         * - taged=false → "未分类"，不显示在分类 Tab 中
          */
         loadChatGroups: async function() {
             try {
                 const { fetchChatGroups } = await import('/static/chat-api.js');
                 const data = await fetchChatGroups();
                 if (data && Object.keys(data).length > 0) {
-                    // 重新构造对象：非空 tag 按 key 排序，空串 tag 放在最后
                     var ordered = {};
-                    var emptyItems = null;
+                    var uncategorizableItems = null;
                     var keys = Object.keys(data).sort();
                     for (var i = 0; i < keys.length; i++) {
                         if (keys[i] === '') {
-                            emptyItems = data[''];
+                            // LEFT JOIN 产生的空串 tag，按 taged 拆分
+                            var allEmpty = data[''];
+                            var categorizedEmpty = allEmpty.filter(function(c) { return c.taged; });
+                            if (categorizedEmpty.length > 0) {
+                                uncategorizableItems = categorizedEmpty;
+                            }
+                            // taged=false 的条目不加入 chatGroups（不显示在分类 Tab）
                         } else {
                             ordered[keys[i]] = data[keys[i]];
                         }
                     }
-                    // 空串 tag 分组追加到最后
-                    if (emptyItems) {
-                        ordered[''] = emptyItems;
+                    // 已处理但无匹配的分类排在最后
+                    if (uncategorizableItems) {
+                        ordered['__uncategorizable__'] = uncategorizableItems;
                     }
                     this.chatGroups = ordered;
                     // 类别树首次加载时默认全部折叠
@@ -465,6 +472,7 @@ document.addEventListener('alpine:init', function() {
 
         /**
          * collectOldTags — 从 chatGroups 收集指定 chat 的旧标签集合。
+         * 跳过 __uncategorizable__ 特殊分组（不参与常规标签移动逻辑）。
          * @param {string} sn - 对话 SN
          * @returns {string[]} 旧标签数组
          */
@@ -472,9 +480,9 @@ document.addEventListener('alpine:init', function() {
             var tags = [];
             if (!this.chatGroups) return tags;
             for (var tag in this.chatGroups) {
-                if (this.chatGroups.hasOwnProperty(tag)) {
+                if (this.chatGroups.hasOwnProperty(tag) && tag !== '__uncategorizable__') {
                     var hasChat = this.chatGroups[tag].some(function(c) { return c.sn === sn; });
-                    if (hasChat) tags.push(tag === '' ? '' : tag);
+                    if (hasChat) tags.push(tag);
                 }
             }
             return tags;
@@ -510,11 +518,8 @@ document.addEventListener('alpine:init', function() {
         moveChatBetweenTags: function(sn, newTags) {
             if (!this.chatGroups) return;
 
-            // 1. 收集旧标签集合
+            // 1. 收集旧标签集合（跳过 __uncategorizable__ 特殊分组）
             var oldTags = this.collectOldTags(sn);
-
-            // 处理空串标签：chatGroups 中 key 是 ''，但 tag 字段存储的是原始值
-            // 后端用空串表示"不知所云"，与前端一致
 
             // 2. 归一化新标签数组（去重）
             var newTagsSet = [];

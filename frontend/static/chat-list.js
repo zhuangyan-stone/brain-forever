@@ -997,10 +997,12 @@ function showCategoryContextMenu(e, chat, tag) {
             showToast('错误的操作', 'error');
             return;
         }
-        var ok = await deleteChatTag(chatId, tag);
-        if (!ok) {
+        var result = await deleteChatTag(chatId, tag);
+        if (!result) {
             return;
         }
+        var tagCount = result.tagCount;
+
         // 成功：从 chatGroups 中移除该 chat
         var chatsStore = window.Alpine.store('chats');
         if (chatsStore && chatsStore.chatGroups) {
@@ -1016,6 +1018,16 @@ function showCategoryContextMenu(e, chat, tag) {
                 chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
             }
         }
+
+        // 若为最后一个标签被删除（tagCount=0），同步前端 taged=false
+        // 该 chat 将从"已分类"区转移到"未分类"区
+        if (tagCount === 0 && chatsStore && chatsStore.chats) {
+            var chatInStore = chatsStore.chats.find(function(c) { return c.id === chatId; });
+            if (chatInStore) {
+                chatInStore.taged = false;
+            }
+        }
+
         showToast('已从当前分类中移除', 'success');
     });
     menu.appendChild(removeItem);
