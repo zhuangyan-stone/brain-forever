@@ -360,6 +360,34 @@
     background: var(--border);
 }
 
+/* ---------- 两级子菜单（分类） ---------- */
+.chat-context-menu-item-hassub {
+    position: relative;
+}
+
+.submenu-arrow {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0.45;
+    padding-left: 12px;
+}
+
+.chat-context-submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 120px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 16px var(--shadow);
+    z-index: 1061;
+    animation: contextMenuFadeIn 0.1s ease;
+}
+
 /* ---------- 回收站分组 ---------- */
 .chat-group-trash {
     border-top: 1px solid var(--border);

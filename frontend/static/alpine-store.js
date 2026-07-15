@@ -495,7 +495,7 @@ document.addEventListener('alpine:init', function() {
 
         /**
          * moveChatBetweenTags — 在客户端 chatGroups 中将 chat 从旧分组移动到新分组。
-         * 归类成功后调用，无需重新请求后端。
+         * 分类成功后调用，无需重新请求后端。
          *
          * 优化：仅对真正变化的标签做操作
          *   - 计算旧标签集合与新标签集合的差集

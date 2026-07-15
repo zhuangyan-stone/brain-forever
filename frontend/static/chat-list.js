@@ -526,74 +526,156 @@ function showContextMenu(e, chat) {
     }
 
     // 话题分类
-    const tagItem = document.createElement('div');
-    tagItem.className = 'chat-context-menu-item';
-    tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 归类';
-    tagItem.addEventListener('click', async () => {
-        closeContextMenu();
-        // 开始申请归类，显示提示（5 秒后自动消失，结果返回后会再显示结果 Toast）
-        showToast('📑 正在申请归类', 'info', 5000);
-        // 🔍 调试：观察 chat.sn 是否为空
-        console.log('📑 [归类调试] chat:', JSON.stringify(chat, ['id','sn','title','taged','pinned']));
-        console.log('📑 [归类调试] chat.sn:', JSON.stringify(chat.sn), 'typeof:', typeof chat.sn, 'length:', chat.sn ? chat.sn.length : 'N/A');
-        const result = await fetchChatTags(chat.sn);
-        console.log('📑 [归类调试] fetchChatTags result:', JSON.stringify(result));
-        const title = (result && result.title) || chat.title || '';
-        if (result && result.tags && result.tags.length > 0) {
-            console.log('📑 [' + title + ']归类：', JSON.stringify(result.tags, null, 2));
-
-            var chatsStore = window.Alpine.store('chats');
-
-            // 从 chatGroups 收集旧标签
-            var oldTags = (chatsStore && chatsStore.collectOldTags)
-                ? chatsStore.collectOldTags(chat.sn)
-                : [];
-
-            // 判断新旧标签集合是否相同（忽略顺序）
-            var isSame = chatsStore && chatsStore.isTagsSetsEqual
-                ? chatsStore.isTagsSetsEqual(oldTags, result.tags)
-                : false;
-
-            // 构造 Toast 消息
-            // 格式：
-            //   话题已分类到：AA、BB                  ← 第一行标签信息（整段视觉长度 ≤20）
-            //   --------                              ← 8个"-"分隔线
-            //   标题                                  ← 第三行标题（视觉长度 ≤18）
-            var displayTitle = title || '';
-
-            // 合并完整内容后统一按视觉长度截断，取代原来的标签个数限制
-            var label = (oldTags.length === 0 || !isSame)
-                ? '已分类到：'
-                : '保持分类：';
-            var fullContent = label + result.tags.join('、');
-            var truncatedContent = truncateByVisualLength(fullContent, 20);
-            var safeContent = escapeHtml(truncatedContent);
-
-            // 标题最长 18 个视觉长度
-            var shortTitle = truncateByVisualLength(displayTitle, 18);
-            var safeTitle = escapeHtml(shortTitle);
-
-            // HTML 转义后拼装，用 <hr> 做分隔线
-            var htmlMsg = safeContent + '<hr style="margin:10px 0 4px;border:none;border-top:1px solid rgba(255,255,255,0.3)">' + safeTitle;
-            showToastHTML(htmlMsg, 'success', 6000);
-
-            // ★ 归类成功后客户端自我更新 chatGroups，无需重新请求后端
-            if (chatsStore && chatsStore.moveChatBetweenTags) {
-                chatsStore.moveChatBetweenTags(chat.sn, result.tags);
+    // 时间 Tab 下的分类菜单项改造：
+    //   - 未分类（taged=false）→ 单级"申请分类"，点击后发起分类调用
+    //   - 已分类（taged=true） → 两级菜单："已分类到" > 各标签子菜单项
+    //     子菜单项点击后切换到分类 Tab 并选中目标 chat
+    if (chat.taged) {
+        // ---- 已分类：两级菜单 ----
+        // 从 chatGroups 收集该 chat 所属的标签
+        var chatsStoreForTag = window.Alpine.store('chats');
+        var chatTagList = [];
+        if (chatsStoreForTag && chatsStoreForTag.chatGroups) {
+            for (var tg in chatsStoreForTag.chatGroups) {
+                if (chatsStoreForTag.chatGroups.hasOwnProperty(tg)) {
+                    var hasChat = chatsStoreForTag.chatGroups[tg].some(function(c) { return c.sn === chat.sn; });
+                    if (hasChat) chatTagList.push(tg);
+                }
             }
-        } else {
-            // 🔍 调试：区分"未匹配到分类"的具体原因
-            if (!result) {
-                console.log('📑 [归类调试] 未匹配到分类 — result 为 null (chat.sn=' + JSON.stringify(chat.sn) + ')');
-            } else if (!result.tags) {
-                console.log('📑 [归类调试] 未匹配到分类 — result.tags 不存在', JSON.stringify(result));
-            } else {
-                console.log('📑 [归类调试] 未匹配到分类 — result.tags 为空数组', JSON.stringify(result));
-            }
-            showToast('📑 未匹配到分类', 'info', 4000);
         }
-    });
-    menu.appendChild(tagItem);
+
+        // 一级菜单项：已分类到
+        var tagParentItem = document.createElement('div');
+        tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
+        tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已分类到 <span class="submenu-arrow">&#x276F;</span>';
+
+        // 二级子菜单容器
+        var tagSubMenu = document.createElement('div');
+        tagSubMenu.className = 'chat-context-submenu';
+
+        chatTagList.forEach(function(tg) {
+            var subItem = document.createElement('div');
+            subItem.className = 'chat-context-menu-item';
+            subItem.textContent = tg || '不知所云';
+            subItem.addEventListener('click', function() {
+                closeContextMenu();
+                // 切换到分类 Tab 并选中目标 chat
+                var store = window.Alpine.store('chats');
+                if (store) {
+                    // 收起所有分类分组，仅展开目标分组
+                    var expanded = Object.assign({}, store.collapsedGroups);
+                    for (var key in expanded) {
+                        if (expanded.hasOwnProperty(key) && key.startsWith('cat_')) {
+                            expanded[key] = true;
+                        }
+                    }
+                    expanded['cat_' + tg] = false;
+                    store.collapsedGroups = expanded;
+                    store.sidebarTab = 'category';
+                    store.selectChat(chat.sn, 'category', tg);
+                }
+            });
+            tagSubMenu.appendChild(subItem);
+        });
+
+        tagParentItem.appendChild(tagSubMenu);
+        menu.appendChild(tagParentItem);
+
+        // hover 显示/隐藏子菜单（带延迟，防止移动到子菜单时闪烁）
+        var subMenuTimer = null;
+        tagParentItem.addEventListener('mouseenter', function() {
+            if (subMenuTimer) {
+                clearTimeout(subMenuTimer);
+                subMenuTimer = null;
+            }
+            tagSubMenu.style.display = 'block';
+        });
+        tagParentItem.addEventListener('mouseleave', function() {
+            subMenuTimer = setTimeout(function() {
+                tagSubMenu.style.display = 'none';
+            }, 120);
+        });
+        tagSubMenu.addEventListener('mouseenter', function() {
+            if (subMenuTimer) {
+                clearTimeout(subMenuTimer);
+                subMenuTimer = null;
+            }
+            tagSubMenu.style.display = 'block';
+        });
+        tagSubMenu.addEventListener('mouseleave', function() {
+            tagSubMenu.style.display = 'none';
+        });
+    } else {
+        // ---- 未分类：单级"申请分类" ----
+        var tagItem = document.createElement('div');
+        tagItem.className = 'chat-context-menu-item';
+        tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 申请分类';
+        tagItem.addEventListener('click', async () => {
+            closeContextMenu();
+            // 开始申请分类，显示提示（5 秒后自动消失，结果返回后会再显示结果 Toast）
+            showToast('📑 正在申请分类', 'info', 5000);
+            // 🔍 调试：观察 chat.sn 是否为空
+            console.log('📑 [分类调试] chat:', JSON.stringify(chat, ['id','sn','title','taged','pinned']));
+            console.log('📑 [分类调试] chat.sn:', JSON.stringify(chat.sn), 'typeof:', typeof chat.sn, 'length:', chat.sn ? chat.sn.length : 'N/A');
+            const result = await fetchChatTags(chat.sn);
+            console.log('📑 [分类调试] fetchChatTags result:', JSON.stringify(result));
+            const title = (result && result.title) || chat.title || '';
+            if (result && result.tags && result.tags.length > 0) {
+                console.log('📑 [' + title + ']分类：', JSON.stringify(result.tags, null, 2));
+
+                var chatsStore = window.Alpine.store('chats');
+
+                // 从 chatGroups 收集旧标签
+                var oldTags = (chatsStore && chatsStore.collectOldTags)
+                    ? chatsStore.collectOldTags(chat.sn)
+                    : [];
+
+                // 判断新旧标签集合是否相同（忽略顺序）
+                var isSame = chatsStore && chatsStore.isTagsSetsEqual
+                    ? chatsStore.isTagsSetsEqual(oldTags, result.tags)
+                    : false;
+
+                // 构造 Toast 消息
+                // 格式：
+                //   话题已分类到：AA、BB                  ← 第一行标签信息（整段视觉长度 ≤20）
+                //   --------                              ← 8个"-"分隔线
+                //   标题                                  ← 第三行标题（视觉长度 ≤18）
+                var displayTitle = title || '';
+
+                // 合并完整内容后统一按视觉长度截断，取代原来的标签个数限制
+                var label = (oldTags.length === 0 || !isSame)
+                    ? '已分类到：'
+                    : '保持分类：';
+                var fullContent = label + result.tags.join('、');
+                var truncatedContent = truncateByVisualLength(fullContent, 20);
+                var safeContent = escapeHtml(truncatedContent);
+
+                // 标题最长 18 个视觉长度
+                var shortTitle = truncateByVisualLength(displayTitle, 18);
+                var safeTitle = escapeHtml(shortTitle);
+
+                // HTML 转义后拼装，用 <hr> 做分隔线
+                var htmlMsg = safeContent + '<hr style="margin:10px 0 4px;border:none;border-top:1px solid rgba(255,255,255,0.3)">' + safeTitle;
+                showToastHTML(htmlMsg, 'success', 6000);
+
+                // ★ 分类成功后客户端自我更新 chatGroups，无需重新请求后端
+                if (chatsStore && chatsStore.moveChatBetweenTags) {
+                    chatsStore.moveChatBetweenTags(chat.sn, result.tags);
+                }
+            } else {
+                // 🔍 调试：区分"未匹配到分类"的具体原因
+                if (!result) {
+                    console.log('📑 [分类调试] 未匹配到分类 — result 为 null (chat.sn=' + JSON.stringify(chat.sn) + ')');
+                } else if (!result.tags) {
+                    console.log('📑 [分类调试] 未匹配到分类 — result.tags 不存在', JSON.stringify(result));
+                } else {
+                    console.log('📑 [分类调试] 未匹配到分类 — result.tags 为空数组', JSON.stringify(result));
+                }
+                showToast('📑 未匹配到分类', 'info', 4000);
+            }
+        });
+        menu.appendChild(tagItem);
+    }
 
     // 分隔线
     const separator = document.createElement('div');
