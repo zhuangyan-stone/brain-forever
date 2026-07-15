@@ -509,81 +509,90 @@ function showContextMenu(e, chat) {
     //   - 未分类（taged=false）→ 单级"申请分类"，点击后发起分类调用
     //   - 已分类（taged=true） → 两级菜单："已分类到" > 各标签子菜单项
     //     子菜单项点击后切换到分类 Tab 并选中目标 chat
+    //   - 已分类但无有效标签（仅空串 tag）→ 单级"暂无合适分类"
     if (chat.taged) {
-        // ---- 已分类：两级菜单 ----
-        // 从 chatGroups 收集该 chat 所属的标签
+        // 从 chatGroups 收集该 chat 所属的标签（排除空串 '' 特殊分组）
         var chatsStoreForTag = window.Alpine.store('chats');
         var chatTagList = [];
         if (chatsStoreForTag && chatsStoreForTag.chatGroups) {
             for (var tg in chatsStoreForTag.chatGroups) {
-                if (chatsStoreForTag.chatGroups.hasOwnProperty(tg)) {
+                if (chatsStoreForTag.chatGroups.hasOwnProperty(tg) && tg !== '') {
                     var hasChat = chatsStoreForTag.chatGroups[tg].some(function(c) { return c.sn === chat.sn; });
                     if (hasChat) chatTagList.push(tg);
                 }
             }
         }
 
-        // 一级菜单项：已分类到
-        var tagParentItem = document.createElement('div');
-        tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
-        tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已加入 ' + chatTagList.length + ' 个分类 <span class="submenu-arrow">&#x276F;</span>';
+        if (chatTagList.length === 0) {
+            // ---- 已分类但无有效标签：显示单级"暂无合适分类" ----
+            var noTagItem = document.createElement('div');
+            noTagItem.className = 'chat-context-menu-item chat-context-menu-item-disabled';
+            noTagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 暂无合适分类';
+            menu.appendChild(noTagItem);
+        } else {
+            // ---- 有有效标签：两级菜单 ----
+            // 一级菜单项：已分类到
+            var tagParentItem = document.createElement('div');
+            tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
+            tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已加入 ' + chatTagList.length + ' 个分类 <span class="submenu-arrow">&#x276F;</span>';
 
-        // 二级子菜单容器
-        var tagSubMenu = document.createElement('div');
-        tagSubMenu.className = 'chat-context-submenu';
+            // 二级子菜单容器
+            var tagSubMenu = document.createElement('div');
+            tagSubMenu.className = 'chat-context-submenu';
 
-        chatTagList.forEach(function(tg) {
-            var subItem = document.createElement('div');
-            subItem.className = 'chat-context-menu-item';
-            subItem.textContent = tg || '不知所云';
-            subItem.addEventListener('click', function() {
-                closeContextMenu();
-                // 切换到分类 Tab 并选中目标 chat
-                var store = window.Alpine.store('chats');
-                if (store) {
-                    // 收起所有分类分组，仅展开目标分组
-                    var expanded = Object.assign({}, store.collapsedGroups);
-                    for (var key in expanded) {
-                        if (expanded.hasOwnProperty(key) && key.startsWith('cat_')) {
-                            expanded[key] = true;
+            chatTagList.forEach(function(tg) {
+                var subItem = document.createElement('div');
+                subItem.className = 'chat-context-menu-item';
+                subItem.textContent = tg;
+                subItem.addEventListener('click', function() {
+                    closeContextMenu();
+                    // 切换到分类 Tab 并选中目标 chat
+                    var store = window.Alpine.store('chats');
+                    if (store) {
+                        // 收起所有分类分组，仅展开目标分组
+                        var expanded = Object.assign({}, store.collapsedGroups);
+                        for (var key in expanded) {
+                            if (expanded.hasOwnProperty(key) && key.startsWith('cat_')) {
+                                expanded[key] = true;
+                            }
                         }
+                        expanded['cat_' + tg] = false;
+                        store.collapsedGroups = expanded;
+                        store.sidebarTab = 'category';
+                        store.selectChat(chat.sn, 'category', tg);
                     }
-                    expanded['cat_' + tg] = false;
-                    store.collapsedGroups = expanded;
-                    store.sidebarTab = 'category';
-                    store.selectChat(chat.sn, 'category', tg);
-                }
+                });
+                tagSubMenu.appendChild(subItem);
             });
-            tagSubMenu.appendChild(subItem);
-        });
 
-        tagParentItem.appendChild(tagSubMenu);
-        menu.appendChild(tagParentItem);
+            tagParentItem.appendChild(tagSubMenu);
+            menu.appendChild(tagParentItem);
 
-        // hover 显示/隐藏子菜单（带延迟，防止移动到子菜单时闪烁）
-        var subMenuTimer = null;
-        tagParentItem.addEventListener('mouseenter', function() {
-            if (subMenuTimer) {
-                clearTimeout(subMenuTimer);
-                subMenuTimer = null;
-            }
-            tagSubMenu.style.display = 'block';
-        });
-        tagParentItem.addEventListener('mouseleave', function() {
-            subMenuTimer = setTimeout(function() {
+            // hover 显示/隐藏子菜单（带延迟，防止移动到子菜单时闪烁）
+            var subMenuTimer = null;
+            tagParentItem.addEventListener('mouseenter', function() {
+                if (subMenuTimer) {
+                    clearTimeout(subMenuTimer);
+                    subMenuTimer = null;
+                }
+                tagSubMenu.style.display = 'block';
+            });
+            tagParentItem.addEventListener('mouseleave', function() {
+                subMenuTimer = setTimeout(function() {
+                    tagSubMenu.style.display = 'none';
+                }, 120);
+            });
+            tagSubMenu.addEventListener('mouseenter', function() {
+                if (subMenuTimer) {
+                    clearTimeout(subMenuTimer);
+                    subMenuTimer = null;
+                }
+                tagSubMenu.style.display = 'block';
+            });
+            tagSubMenu.addEventListener('mouseleave', function() {
                 tagSubMenu.style.display = 'none';
-            }, 120);
-        });
-        tagSubMenu.addEventListener('mouseenter', function() {
-            if (subMenuTimer) {
-                clearTimeout(subMenuTimer);
-                subMenuTimer = null;
-            }
-            tagSubMenu.style.display = 'block';
-        });
-        tagSubMenu.addEventListener('mouseleave', function() {
-            tagSubMenu.style.display = 'none';
-        });
+            });
+        }
     } else {
         // ---- 未分类：单级"申请分类" ----
         var tagItem = document.createElement('div');
@@ -985,52 +994,54 @@ function showCategoryContextMenu(e, chat, tag) {
     sepAfterFav.className = 'chat-context-menu-separator';
     menu.appendChild(sepAfterFav);
 
-    // 从当前分类中移除
-    var removeItem = document.createElement('div');
-    removeItem.className = 'chat-context-menu-item';
-    removeItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 从当前分类中移除';
-    removeItem.addEventListener('click', async function() {
-        closeContextMenu();
-        // 检查 chat.id，如果为 0 则短路
-        var chatId = chat.id;
-        if (!chatId || chatId === 0) {
-            showToast('错误的操作', 'error');
-            return;
-        }
-        var result = await deleteChatTag(chatId, tag);
-        if (!result) {
-            return;
-        }
-        var tagCount = result.tagCount;
+    // 从当前分类删除（空串 '' 表示"不知所云"伪分类，不存在物理分类，不显示此菜单项）
+    if (tag !== '') {
+        var removeItem = document.createElement('div');
+        removeItem.className = 'chat-context-menu-item';
+        removeItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 从当前分类删除';
+        removeItem.addEventListener('click', async function() {
+            closeContextMenu();
+            // 检查 chat.id，如果为 0 则短路
+            var chatId = chat.id;
+            if (!chatId || chatId === 0) {
+                showToast('错误的操作', 'error');
+                return;
+            }
+            var result = await deleteChatTag(chatId, tag);
+            if (!result) {
+                return;
+            }
+            var tagCount = result.tagCount;
 
-        // 成功：从 chatGroups 中移除该 chat
-        var chatsStore = window.Alpine.store('chats');
-        if (chatsStore && chatsStore.chatGroups) {
-            var group = chatsStore.chatGroups[tag];
-            if (group) {
-                var filtered = group.filter(function(c) { return c.sn !== chat.sn; });
-                if (filtered.length > 0) {
-                    chatsStore.chatGroups[tag] = filtered;
-                } else {
-                    delete chatsStore.chatGroups[tag];
+            // 成功：从 chatGroups 中移除该 chat
+            var chatsStore = window.Alpine.store('chats');
+            if (chatsStore && chatsStore.chatGroups) {
+                var group = chatsStore.chatGroups[tag];
+                if (group) {
+                    var filtered = group.filter(function(c) { return c.sn !== chat.sn; });
+                    if (filtered.length > 0) {
+                        chatsStore.chatGroups[tag] = filtered;
+                    } else {
+                        delete chatsStore.chatGroups[tag];
+                    }
+                    // 触发 Alpine 响应式
+                    chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
                 }
-                // 触发 Alpine 响应式
-                chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
             }
-        }
 
-        // 若为最后一个标签被删除（tagCount=0），同步前端 taged=false
-        // 该 chat 将从"已分类"区转移到"未分类"区
-        if (tagCount === 0 && chatsStore && chatsStore.chats) {
-            var chatInStore = chatsStore.chats.find(function(c) { return c.id === chatId; });
-            if (chatInStore) {
-                chatInStore.taged = false;
+            // 若为最后一个标签被删除（tagCount=0），同步前端 taged=false
+            // 该 chat 将从"已分类"区转移到"未分类"区
+            if (tagCount === 0 && chatsStore && chatsStore.chats) {
+                var chatInStore = chatsStore.chats.find(function(c) { return c.id === chatId; });
+                if (chatInStore) {
+                    chatInStore.taged = false;
+                }
             }
-        }
 
-        showToast('已从当前分类中移除', 'success');
-    });
-    menu.appendChild(removeItem);
+            showToast('已从当前分类删除', 'success');
+        });
+        menu.appendChild(removeItem);
+    }
 
     // 检查该 chat 是否属于其他分类，若是则显示"其他分类"子菜单
     var chatsStoreForOther = window.Alpine.store('chats');
@@ -1057,7 +1068,7 @@ function showCategoryContextMenu(e, chat, tag) {
         otherTags.forEach(function(ot) {
             var subItem = document.createElement('div');
             subItem.className = 'chat-context-menu-item';
-            subItem.textContent = ot || '不知所云';
+            subItem.textContent = ot;
             subItem.addEventListener('click', function() {
                 closeContextMenu();
                 var store = window.Alpine.store('chats');

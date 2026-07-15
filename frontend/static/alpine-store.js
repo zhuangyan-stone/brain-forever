@@ -424,7 +424,7 @@ document.addEventListener('alpine:init', function() {
         /**
          * loadChatGroups — 从后端加载按标签分组的对话列表，存入 chatGroups。
          * LEFT JOIN 后，tag=='' 的条目来自两种场景：
-         * - taged=true → "已处理但无匹配"，归入 __uncategorizable__ 组
+         * - taged=true → "已处理但无匹配"，以空串 '' 为 key 存入（排在最后）
          * - taged=false → "未分类"，不显示在分类 Tab 中
          */
         loadChatGroups: async function() {
@@ -448,9 +448,9 @@ document.addEventListener('alpine:init', function() {
                             ordered[keys[i]] = data[keys[i]];
                         }
                     }
-                    // 已处理但无匹配的分类排在最后
+                    // 已处理但无匹配的分类排在最后，以空串 '' 为 key
                     if (uncategorizableItems) {
-                        ordered['__uncategorizable__'] = uncategorizableItems;
+                        ordered[''] = uncategorizableItems;
                     }
                     this.chatGroups = ordered;
                     // 类别树首次加载时默认全部折叠
@@ -472,7 +472,7 @@ document.addEventListener('alpine:init', function() {
 
         /**
          * collectOldTags — 从 chatGroups 收集指定 chat 的旧标签集合。
-         * 跳过 __uncategorizable__ 特殊分组（不参与常规标签移动逻辑）。
+         * 跳过空串 '' 特殊分组（不参与常规标签移动逻辑）。
          * @param {string} sn - 对话 SN
          * @returns {string[]} 旧标签数组
          */
@@ -480,7 +480,7 @@ document.addEventListener('alpine:init', function() {
             var tags = [];
             if (!this.chatGroups) return tags;
             for (var tag in this.chatGroups) {
-                if (this.chatGroups.hasOwnProperty(tag) && tag !== '__uncategorizable__') {
+                if (this.chatGroups.hasOwnProperty(tag) && tag !== '') {
                     var hasChat = this.chatGroups[tag].some(function(c) { return c.sn === sn; });
                     if (hasChat) tags.push(tag);
                 }
@@ -518,7 +518,7 @@ document.addEventListener('alpine:init', function() {
         moveChatBetweenTags: function(sn, newTags) {
             if (!this.chatGroups) return;
 
-            // 1. 收集旧标签集合（跳过 __uncategorizable__ 特殊分组）
+            // 1. 收集旧标签集合（跳过空串 '' 特殊分组）
             var oldTags = this.collectOldTags(sn);
 
             // 2. 归一化新标签数组（去重）
