@@ -541,14 +541,29 @@ function showContextMenu(e, chat) {
         const title = (result && result.title) || chat.title || '';
         if (result && result.tags && result.tags.length > 0) {
             console.log('📑 [' + title + ']归类：', JSON.stringify(result.tags, null, 2));
-            // Toast 展示分类结果（第一行标签，第二行标题，第三行消息查看统计）
-            // white-space: pre-wrap 让 \n 自动换行，无需 HTML
+
+            var chatsStore = window.Alpine.store('chats');
+
+            // 从 chatGroups 收集旧标签
+            var oldTags = (chatsStore && chatsStore.collectOldTags)
+                ? chatsStore.collectOldTags(chat.sn)
+                : [];
+
+            // 判断新旧标签集合是否相同（忽略顺序）
+            var isSame = chatsStore && chatsStore.isTagsSetsEqual
+                ? chatsStore.isTagsSetsEqual(oldTags, result.tags)
+                : false;
+
+            // 构造 Toast 消息
             var tagStr = result.tags.join('、');
             var displayTitle = title || '';
-            var msg = '📑 归类：' + tagStr;
-            if (displayTitle) {
-                msg += '\n《' + displayTitle + '》';
+            var msg;
+            if (oldTags.length === 0 || !isSame) {
+                msg = displayTitle + ' 已归类到：\n' + tagStr;
+            } else {
+                msg = displayTitle + ' 保持现有分类：\n' + tagStr;
             }
+
             // 显示 LLM 查看了多少条消息的统计信息
             if (typeof result.viewedMessages !== 'undefined') {
                 var viewedInfo = '🔍 查看了 ' + result.viewedMessages + ' 条消息';
@@ -562,10 +577,9 @@ function showContextMenu(e, chat) {
             }
             showToast(msg, 'success', 6000);
 
-            // ★ 归类成功后刷新分类 Tab 的缓存数据，确保切换到分类 Tab 时能看到新结果
-            var chatsStore = window.Alpine.store('chats');
-            if (chatsStore && chatsStore.loadChatGroups) {
-                chatsStore.loadChatGroups();
+            // ★ 归类成功后客户端自我更新 chatGroups，无需重新请求后端
+            if (chatsStore && chatsStore.moveChatBetweenTags) {
+                chatsStore.moveChatBetweenTags(chat.sn, result.tags);
             }
         } else {
             // 🔍 调试：区分"未匹配到分类"的具体原因
@@ -1120,19 +1134,16 @@ async function handleDelete(chat) {
     // 从 items[] 中同步移除 ChatData
     chatsStore.removeChat(chat.sn);
 
-    // ★ 从智能分类树（chatGroups）中同步移除该 chat
+    // ★ 从智能分类树（chatGroups）中标记 deleted=true（保留在树中，方便恢复时找回）
     if (chatsStore.chatGroups) {
         var catChanged = false;
         for (var tag in chatsStore.chatGroups) {
             if (chatsStore.chatGroups.hasOwnProperty(tag)) {
                 var catItems = chatsStore.chatGroups[tag];
-                var catFiltered = catItems.filter(function(c) { return c.sn !== chat.sn; });
-                if (catFiltered.length !== catItems.length) {
-                    catChanged = true;
-                    if (catFiltered.length > 0) {
-                        chatsStore.chatGroups[tag] = catFiltered;
-                    } else {
-                        delete chatsStore.chatGroups[tag];
+                for (var ci = 0; ci < catItems.length; ci++) {
+                    if (catItems[ci].sn === chat.sn && !catItems[ci].deleted) {
+                        catItems[ci].deleted = true;
+                        catChanged = true;
                     }
                 }
             }
@@ -1255,6 +1266,25 @@ async function handleRestore(chat) {
             }
         }
 
+        // ★ 从智能分类树（chatGroups）中恢复该 chat（deleted=false）
+        if (chatsStore.chatGroups) {
+            var catChanged = false;
+            for (var tag in chatsStore.chatGroups) {
+                if (chatsStore.chatGroups.hasOwnProperty(tag)) {
+                    var catItems = chatsStore.chatGroups[tag];
+                    for (var ci = 0; ci < catItems.length; ci++) {
+                        if (catItems[ci].sn === chat.sn && catItems[ci].deleted) {
+                            catItems[ci].deleted = false;
+                            catChanged = true;
+                        }
+                    }
+                }
+            }
+            if (catChanged) {
+                chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
+            }
+        }
+
         // 重新渲染
         renderChatList(chatsStore.chats, chatsStore.activeChatSN);
     }
@@ -1356,6 +1386,29 @@ async function handleEmptyTrash() {
     if (chatsStore) {
         // 清空本地回收站列表
         chatsStore.deletedChats = [];
+
+        // ★ 从智能分类树（chatGroups）中移除所有 deleted=true 的 chat
+        if (chatsStore.chatGroups) {
+            var catChanged = false;
+            for (var tag in chatsStore.chatGroups) {
+                if (chatsStore.chatGroups.hasOwnProperty(tag)) {
+                    var catItems = chatsStore.chatGroups[tag];
+                    var catFiltered = catItems.filter(function(c) { return !c.deleted; });
+                    if (catFiltered.length !== catItems.length) {
+                        catChanged = true;
+                        if (catFiltered.length > 0) {
+                            chatsStore.chatGroups[tag] = catFiltered;
+                        } else {
+                            delete chatsStore.chatGroups[tag];
+                        }
+                    }
+                }
+            }
+            if (catChanged) {
+                chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
+            }
+        }
+
         // 重新渲染列表
         renderChatList(chatsStore.chats, chatsStore.activeChatSN);
     }

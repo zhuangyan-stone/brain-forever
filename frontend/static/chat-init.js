@@ -60,6 +60,13 @@ export async function initPage() {
         renderChatList(chatListData.chats);
     }
 
+    // Step 3.5: 加载分类数据（页面初始化时加载一次，后续客户端自我维护）
+    // chatGroups 用于分类 Tab 展示，也用于 chat 菜单中展示标签（后续功能）
+    // 永不在切 Tab 时重复请求后端
+    if (chatsStore && chatsStore.loadChatGroups) {
+        chatsStore.loadChatGroups();
+    }
+
     // 恢复登录用户信息（Alpine 响应式渲染）
     // 空串表示匿名用户，不显示
     // 注意：必须无条件赋值，因为值可能从有变为空

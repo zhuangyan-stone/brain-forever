@@ -409,9 +409,10 @@ document.addEventListener('alpine:init', function() {
                 }
             }
 
-            // 各 Tab 切换到时总是重新加载，确保在时间线下执行的分类/收藏操作
-            // 能立即在对应的 Tab 中反映出来。
-            if (tab === 'category') {
+            // 各 Tab 切换时仅首次或数据为空才加载。
+            // chatGroups 通过页面初始化加载 + 客户端自我维护（删除/恢复/重新分类）
+            // 不再每次切 Tab 都请求后端。
+            if (tab === 'category' && Object.keys(this.chatGroups).length === 0) {
                 this.loadChatGroups();
             }
             if (tab === 'favorites') {
@@ -458,6 +459,140 @@ document.addEventListener('alpine:init', function() {
             } catch (e) {
                 console.warn('加载聊天分组失败:', e);
                 this.chatGroups = {};
+            }
+        },
+
+        /**
+         * collectOldTags — 从 chatGroups 收集指定 chat 的旧标签集合。
+         * @param {string} sn - 对话 SN
+         * @returns {string[]} 旧标签数组
+         */
+        collectOldTags: function(sn) {
+            var tags = [];
+            if (!this.chatGroups) return tags;
+            for (var tag in this.chatGroups) {
+                if (this.chatGroups.hasOwnProperty(tag)) {
+                    var hasChat = this.chatGroups[tag].some(function(c) { return c.sn === sn; });
+                    if (hasChat) tags.push(tag === '' ? '' : tag);
+                }
+            }
+            return tags;
+        },
+
+        /**
+         * isTagsSetsEqual — 判断两组标签集合是否相同（忽略顺序）。
+         * @param {string[]} tagsA
+         * @param {string[]} tagsB
+         * @returns {boolean}
+         */
+        isTagsSetsEqual: function(tagsA, tagsB) {
+            if (tagsA.length !== tagsB.length) return false;
+            for (var i = 0; i < tagsA.length; i++) {
+                if (tagsB.indexOf(tagsA[i]) === -1) return false;
+            }
+            return true;
+        },
+
+        /**
+         * moveChatBetweenTags — 在客户端 chatGroups 中将 chat 从旧分组移动到新分组。
+         * 归类成功后调用，无需重新请求后端。
+         *
+         * 优化：仅对真正变化的标签做操作
+         *   - 计算旧标签集合与新标签集合的差集
+         *   - 只移除不再存在于新标签中的旧标签
+         *   - 只添加不存在于旧标签中的新标签
+         *   - 新旧标签完全一致（顺序可不同）→ 零操作
+         *
+         * @param {string} sn - 对话 SN
+         * @param {string[]} newTags - 新标签数组
+         */
+        moveChatBetweenTags: function(sn, newTags) {
+            if (!this.chatGroups) return;
+
+            // 1. 收集旧标签集合
+            var oldTags = this.collectOldTags(sn);
+
+            // 处理空串标签：chatGroups 中 key 是 ''，但 tag 字段存储的是原始值
+            // 后端用空串表示"不知所云"，与前端一致
+
+            // 2. 归一化新标签数组（去重）
+            var newTagsSet = [];
+            if (newTags && newTags.length > 0) {
+                for (var i = 0; i < newTags.length; i++) {
+                    if (newTagsSet.indexOf(newTags[i]) === -1) {
+                        newTagsSet.push(newTags[i]);
+                    }
+                }
+            }
+
+            // 3. 计算差集
+            var tagsToRemove = [];
+            var tagsToAdd = [];
+
+            for (var i = 0; i < oldTags.length; i++) {
+                if (newTagsSet.indexOf(oldTags[i]) === -1) {
+                    tagsToRemove.push(oldTags[i]);
+                }
+            }
+            for (var i = 0; i < newTagsSet.length; i++) {
+                if (oldTags.indexOf(newTagsSet[i]) === -1) {
+                    tagsToAdd.push(newTagsSet[i]);
+                }
+            }
+
+            // 4. 新旧标签完全一致（顺序可不同）→ 零操作
+            if (tagsToRemove.length === 0 && tagsToAdd.length === 0) {
+                return;
+            }
+
+            var hasChanged = false;
+
+            // 5. 从不再属于的旧分组中移除
+            for (var i = 0; i < tagsToRemove.length; i++) {
+                var tag = tagsToRemove[i];
+                var displayTag = tag || '';
+                if (this.chatGroups[displayTag]) {
+                    var filtered = this.chatGroups[displayTag].filter(function(c) { return c.sn !== sn; });
+                    if (filtered.length > 0) {
+                        this.chatGroups[displayTag] = filtered;
+                    } else {
+                        delete this.chatGroups[displayTag];
+                    }
+                    hasChanged = true;
+                }
+            }
+
+            // 6. 加入新的分组（或更新已存在分组的 deleted 状态）
+            for (var i = 0; i < tagsToAdd.length; i++) {
+                var tag = tagsToAdd[i];
+                var displayTag = tag || '';
+                if (!this.chatGroups[displayTag]) {
+                    this.chatGroups[displayTag] = [];
+                }
+                // 检查是否已存在（防重复，理论上不会出现但安全起见）
+                var exists = this.chatGroups[displayTag].some(function(c) { return c.sn === sn; });
+                if (!exists) {
+                    // 尝试从 chats 列表获取标题
+                    var chatTitle = '';
+                    if (this.chats) {
+                        var found = this.chats.find(function(c) { return c.sn === sn; });
+                        if (found) chatTitle = found.title || '';
+                    }
+                    this.chatGroups[displayTag].push({
+                        sn: sn,
+                        title: chatTitle,
+                        tag: tag,
+                        deleted: false,
+                        create_at: new Date().toISOString(),
+                        update_at: new Date().toISOString(),
+                    });
+                    hasChanged = true;
+                }
+            }
+
+            // 7. 触发 Alpine 响应式更新
+            if (hasChanged) {
+                this.chatGroups = Object.assign({}, this.chatGroups);
             }
         },
 

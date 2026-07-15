@@ -367,6 +367,7 @@
                             :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
                             <template x-for="chat in items" :key="chat.sn">
                                 <div class="chat-item"
+                                    x-show="!chat.deleted"
                                     :class="{
                                         active: $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active',
                                         'active-sub': $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active-sub'
