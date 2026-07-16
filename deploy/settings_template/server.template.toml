@@ -43,7 +43,7 @@ level = "TRACE"
 #   dsn = "postgres://user:password@127.0.0.1:5432/d2brain?sslmode=disable"
 #
 # 键值对格式（pgx 原生）：
-#   dsn = "host=127.0.0.1 port=5432 user=dev-d2brain password=dev123456 dbname=d2brain sslmode=disable"
+#   dsn = "host=127.0.0.1 port=5432 user=devxxx password=xxx dbname=d2brain sslmode=disable"
 #
 dsn = ""
 
