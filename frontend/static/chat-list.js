@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, addFavoriteChat, removeFavoriteChat, deleteChatTag } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
 import { extractTraits } from './trait-api.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
@@ -993,55 +993,6 @@ function showCategoryContextMenu(e, chat, tag) {
     const sepAfterFav = document.createElement('div');
     sepAfterFav.className = 'chat-context-menu-separator';
     menu.appendChild(sepAfterFav);
-
-    // 从当前分类删除（空串 '' 表示"不知所云"伪分类，不存在物理分类，不显示此菜单项）
-    if (tag !== '') {
-        var removeItem = document.createElement('div');
-        removeItem.className = 'chat-context-menu-item';
-        removeItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 从当前分类删除';
-        removeItem.addEventListener('click', async function() {
-            closeContextMenu();
-            // 检查 chat.id，如果为 0 则短路
-            var chatId = chat.id;
-            if (!chatId || chatId === 0) {
-                showToast('错误的操作', 'error');
-                return;
-            }
-            var result = await deleteChatTag(chatId, tag);
-            if (!result) {
-                return;
-            }
-            var tagCount = result.tagCount;
-
-            // 成功：从 chatGroups 中移除该 chat
-            var chatsStore = window.Alpine.store('chats');
-            if (chatsStore && chatsStore.chatGroups) {
-                var group = chatsStore.chatGroups[tag];
-                if (group) {
-                    var filtered = group.filter(function(c) { return c.sn !== chat.sn; });
-                    if (filtered.length > 0) {
-                        chatsStore.chatGroups[tag] = filtered;
-                    } else {
-                        delete chatsStore.chatGroups[tag];
-                    }
-                    // 触发 Alpine 响应式
-                    chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
-                }
-            }
-
-            // 若为最后一个标签被删除（tagCount=0），同步前端 taged=false
-            // 该 chat 将从"已分类"区转移到"未分类"区
-            if (tagCount === 0 && chatsStore && chatsStore.chats) {
-                var chatInStore = chatsStore.chats.find(function(c) { return c.id === chatId; });
-                if (chatInStore) {
-                    chatInStore.taged = false;
-                }
-            }
-
-            showToast('已从当前分类删除', 'success');
-        });
-        menu.appendChild(removeItem);
-    }
 
     // 检查该 chat 是否属于其他分类，若是则显示"其他分类"子菜单
     var chatsStoreForOther = window.Alpine.store('chats');
