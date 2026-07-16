@@ -350,7 +350,7 @@
 
                 <!-- 分类分组列表：按 tag 遍历 -->
                 <template x-for="(items, tag) in ($store.chats.chatGroups || {})" :key="tag">
-                    <div class="chat-group">
+                    <div class="chat-group" x-show="items.length > 0">
                         <div class="chat-group-header" @click="$store.chats.toggleCollapse('cat_' + tag)"
                             @mouseenter="$store.chats.closeContextMenu()">
                             <span class="collapse-arrow"
@@ -361,7 +361,7 @@
                         </div>
                         <div class="chat-group-body" :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
                             <template x-for="chat in items" :key="chat.sn">
-                                <div class="chat-item" x-show="!chat.deleted" :class="{
+                                <div class="chat-item" :class="{
                                         active: $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active',
                                         'active-sub': $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active-sub'
                                     }" :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn, 'category', tag)"

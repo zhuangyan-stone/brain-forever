@@ -36,6 +36,52 @@ func (h *ChatAgent) OnChatGroups(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
+// Chat Tags handlers
+// ============================================================
+
+// OnGetChatTags handles GET /api/chat/tags?sn=XXX
+// Reads existing tags for a chat session (pure read, no LLM call).
+func (h *ChatAgent) OnGetChatTags(w http.ResponseWriter, r *http.Request) {
+	chatSN := r.URL.Query().Get("sn")
+	if chatSN == "" {
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_sn_required"), http.StatusBadRequest)
+		return
+	}
+
+	sessionID := h.resolveSessionID(w, r)
+	sess := h.sessionManager.GetOrCreate(sessionID)
+
+	_, _, chatID := searchChatBySN(sess, chatSN)
+	if chatID == 0 {
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_chat_not_found"), http.StatusNotFound)
+		return
+	}
+
+	tags, err := theChatStore.ListChatTagsByChatID(chatID)
+	if err != nil {
+		h.logger.Errorf("failed to list chat tags. %v", err)
+		toolset.WriteError(w, i18n.TL(h.defaultLang, "api_error_internal"), http.StatusInternalServerError)
+		return
+	}
+
+	var tagList []string
+	for _, ct := range tags {
+		if ct.Tag != "" {
+			tagList = append(tagList, ct.Tag)
+		}
+	}
+	if tagList == nil {
+		tagList = []string{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"sn":   chatSN,
+		"tags": tagList,
+	})
+}
+
+// ============================================================
 // Chat Tags handler - POST /api/chat/tags?sn=XXX
 // ============================================================
 

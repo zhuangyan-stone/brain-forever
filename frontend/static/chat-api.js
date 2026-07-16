@@ -609,6 +609,28 @@ export async function fetchChatTags(sn) {
 }
 
 /**
+ * fetchChatTagsBySN — 读取指定 chat 的已有标签（纯读 GET，无 LLM 调用）。
+ * 用于从回收站恢复对话时，将 chat 重新加入分类树。
+ * @param {string} sn - 目标会话的 SN
+ * @returns {Promise<{sn: string, tags: Array<string>}|null>}
+ */
+export async function fetchChatTagsBySN(sn) {
+    if (!sn) return null;
+    try {
+        const response = await fetch('/api/chat/tags?sn=' + encodeURIComponent(sn));
+        if (!response.ok) {
+            const t = await response.text();
+            console.warn('获取话题标签失败:', response.status, t);
+            return null;
+        }
+        return await response.json();
+    } catch (e) {
+        console.warn('获取话题标签出错:', e);
+        return null;
+    }
+}
+
+/**
  * fetchChatTagsAuto — 自动归类（静默，标题变更时由前端自动触发）。
  * 调用 POST /api/chat/tags?sn=XXX&force=true，跳过 taged 守卫。
  * 成功后将标签同步到客户端 chatGroups，不显示 Toast。

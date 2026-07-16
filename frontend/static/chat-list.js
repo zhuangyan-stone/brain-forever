@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, fetchChatTagsBySN, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
 import { extractTraits } from './trait-api.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
@@ -694,7 +694,7 @@ function showContextMenu(e, chat) {
     // 删除（警告色）
     const deleteItem = document.createElement('div');
     deleteItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
-    deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除';
+    deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除对话';
     deleteItem.addEventListener('click', () => {
         closeContextMenu();
         handleDelete(chat);
@@ -989,11 +989,25 @@ function showCategoryContextMenu(e, chat, tag) {
     }
     menu.appendChild(favItem);
 
-    // 收藏与后续操作之间的分隔线
+    // ---- 第一组：收藏 + 重命名（无分隔线） ----
+    // 重命名紧跟收藏之后，二者视为一组
+
+    // 重命名
+    var renameItem = document.createElement('div');
+    renameItem.className = 'chat-context-menu-item';
+    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名';
+    renameItem.addEventListener('click', function() {
+        closeContextMenu();
+        handleRename(chat);
+    });
+    menu.appendChild(renameItem);
+
+    // 第一组与后续操作之间的分隔线
     const sepAfterFav = document.createElement('div');
     sepAfterFav.className = 'chat-context-menu-separator';
     menu.appendChild(sepAfterFav);
 
+    // ---- 第二组：其他分类（可选） ----
     // 检查该 chat 是否属于其他分类，若是则显示"其他分类"子菜单
     var chatsStoreForOther = window.Alpine.store('chats');
     var otherTags = [];
@@ -1024,6 +1038,10 @@ function showCategoryContextMenu(e, chat, tag) {
                 closeContextMenu();
                 var store = window.Alpine.store('chats');
                 if (store) {
+                    // 展开目标分类分组
+                    var expanded = Object.assign({}, store.collapsedGroups);
+                    expanded['cat_' + ot] = false;
+                    store.collapsedGroups = expanded;
                     store.sidebarTab = 'category';
                     store.selectChat(chat.sn, 'category', ot);
                 }
@@ -1050,32 +1068,17 @@ function showCategoryContextMenu(e, chat, tag) {
         otherSubMenu.addEventListener('mouseleave', function() {
             otherSubMenu.style.display = 'none';
         });
+
+        // ---- 第三组前的分隔线（仅在"其他分类"存在时） ----
+        var sepBeforeDelete = document.createElement('div');
+        sepBeforeDelete.className = 'chat-context-menu-separator';
+        menu.appendChild(sepBeforeDelete);
     }
 
-    // 分隔线
-    var sepBeforeRename = document.createElement('div');
-    sepBeforeRename.className = 'chat-context-menu-separator';
-    menu.appendChild(sepBeforeRename);
-
-    // 重命名
-    var renameItem = document.createElement('div');
-    renameItem.className = 'chat-context-menu-item';
-    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名';
-    renameItem.addEventListener('click', function() {
-        closeContextMenu();
-        handleRename(chat);
-    });
-    menu.appendChild(renameItem);
-
-    // 分隔线
-    var separator = document.createElement('div');
-    separator.className = 'chat-context-menu-separator';
-    menu.appendChild(separator);
-
-    // 删除（警告色）
+    // ---- 第三组：删除对话 ----
     var deleteItem = document.createElement('div');
     deleteItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
-    deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除';
+    deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除对话';
     deleteItem.addEventListener('click', function() {
         closeContextMenu();
         handleDelete(chat);
@@ -1288,16 +1291,19 @@ async function handleDelete(chat) {
     // 从 items[] 中同步移除 ChatData
     chatsStore.removeChat(chat.sn);
 
-    // ★ 从智能分类树（chatGroups）中标记 deleted=true（保留在树中，方便恢复时找回）
+    // ★ 从智能分类树（chatGroups）中移除该 chat（删除时直接移出，恢复时通过 API 重新加入）
     if (chatsStore.chatGroups) {
         var catChanged = false;
         for (var tag in chatsStore.chatGroups) {
             if (chatsStore.chatGroups.hasOwnProperty(tag)) {
                 var catItems = chatsStore.chatGroups[tag];
-                for (var ci = 0; ci < catItems.length; ci++) {
-                    if (catItems[ci].sn === chat.sn && !catItems[ci].deleted) {
-                        catItems[ci].deleted = true;
-                        catChanged = true;
+                var catFiltered = catItems.filter(function(c) { return c.sn !== chat.sn; });
+                if (catFiltered.length !== catItems.length) {
+                    catChanged = true;
+                    if (catFiltered.length > 0) {
+                        chatsStore.chatGroups[tag] = catFiltered;
+                    } else {
+                        delete chatsStore.chatGroups[tag];
                     }
                 }
             }
@@ -1406,9 +1412,6 @@ async function handleRestore(chat) {
             var restoredChat = chatsStore.deletedChats[trashIdx];
             chatsStore.deletedChats.splice(trashIdx, 1);
 
-            // 确保 restoredChat 未被标记为 deleted
-            restoredChat.deleted = false;
-
             // 加回主列表
             if (!chatsStore.chats) {
                 chatsStore.chats = [];
@@ -1420,20 +1423,28 @@ async function handleRestore(chat) {
             }
         }
 
-        // ★ 从智能分类树（chatGroups）中恢复该 chat（deleted=false）
-        if (chatsStore.chatGroups) {
+        // ★ 从智能分类树（chatGroups）中恢复该 chat
+        // 通过 API 读取 chat 的标签，就地（删除时已被 handleDelete 移除）重新加入
+        var tagData = await fetchChatTagsBySN(chat.sn);
+        if (tagData && tagData.tags && tagData.tags.length > 0 && chatsStore.chatGroups) {
             var catChanged = false;
-            for (var tag in chatsStore.chatGroups) {
-                if (chatsStore.chatGroups.hasOwnProperty(tag)) {
-                    var catItems = chatsStore.chatGroups[tag];
-                    for (var ci = 0; ci < catItems.length; ci++) {
-                        if (catItems[ci].sn === chat.sn && catItems[ci].deleted) {
-                            catItems[ci].deleted = false;
-                            catChanged = true;
-                        }
-                    }
+            tagData.tags.forEach(function(tag) {
+                if (!chatsStore.chatGroups[tag]) {
+                    chatsStore.chatGroups[tag] = [];
                 }
-            }
+                // 检查是否已存在（安全兜底，理论上不存在）
+                var exists = chatsStore.chatGroups[tag].some(function(c) { return c.sn === chat.sn; });
+                if (!exists) {
+                    chatsStore.chatGroups[tag].push({
+                        sn: chat.sn,
+                        title: chat.title || '',
+                        tag: tag,
+                        create_at: chat.create_at || new Date().toISOString(),
+                        update_at: chat.update_at || new Date().toISOString(),
+                    });
+                    catChanged = true;
+                }
+            });
             if (catChanged) {
                 chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
             }
@@ -1541,27 +1552,7 @@ async function handleEmptyTrash() {
         // 清空本地回收站列表
         chatsStore.deletedChats = [];
 
-        // ★ 从智能分类树（chatGroups）中移除所有 deleted=true 的 chat
-        if (chatsStore.chatGroups) {
-            var catChanged = false;
-            for (var tag in chatsStore.chatGroups) {
-                if (chatsStore.chatGroups.hasOwnProperty(tag)) {
-                    var catItems = chatsStore.chatGroups[tag];
-                    var catFiltered = catItems.filter(function(c) { return !c.deleted; });
-                    if (catFiltered.length !== catItems.length) {
-                        catChanged = true;
-                        if (catFiltered.length > 0) {
-                            chatsStore.chatGroups[tag] = catFiltered;
-                        } else {
-                            delete chatsStore.chatGroups[tag];
-                        }
-                    }
-                }
-            }
-            if (catChanged) {
-                chatsStore.chatGroups = Object.assign({}, chatsStore.chatGroups);
-            }
-        }
+        // chatGroups 无需额外清理——handleDelete 已在删除时从 chatGroups 中移除条目
 
         // 重新渲染列表
         renderChatList(chatsStore.chats, chatsStore.activeChatSN);
