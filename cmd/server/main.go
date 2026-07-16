@@ -117,7 +117,7 @@ func main() {
 	// Initialize global UserStore singleton (based on PostgreSQL)
 	// Opens before HTTP server starts, closes after it stops
 	// ============================================================
-	if err := store.InitTheUserStore(cfg.Data.Dir, theLogger); err != nil {
+	if err := store.InitTheUserStore(theLogger); err != nil {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
 	}
 	defer store.CloseTheUserStore()

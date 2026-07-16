@@ -65,7 +65,6 @@ type Config struct {
 	Frontend  FrontendConfig
 	Database  DatabaseConfig
 	Redis     RedisConfig
-	Data      DataConfig
 	Captcha   CaptchaConfig
 	SessionGC SessionGCConfig `toml:"session-gc"`
 	ApiKeys   ApiKeysConfig   `toml:"api-keys"`
@@ -102,9 +101,6 @@ func DefaultConfig() Config {
 			Password: os.Getenv("REDIS_PASSWORD"),
 			DB:       0,
 			PoolSize: 10,
-		},
-		Data: DataConfig{
-			Dir: "./localdb",
 		},
 		Captcha: CaptchaConfig{
 			URLBase: "/static/img/captchas/",
@@ -249,17 +245,6 @@ func (a ApiKeysConfig) ValidateDefaultProviders() error {
 		return fmt.Errorf("default API provider(s) have no keys configured. %v", missing)
 	}
 	return nil
-}
-
-// ============================================================
-// DataConfig configures the local SQLite data storage directory.
-// ============================================================
-
-// DataConfig configures the per-user SQLite database storage directory.
-type DataConfig struct {
-	// Dir is the directory where per-user SQLite databases (chats, brain) are stored.
-	// Default: "./localdb".
-	Dir string
 }
 
 // ServerConfig configures the HTTP server.

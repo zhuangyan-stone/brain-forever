@@ -63,10 +63,7 @@ func NewUserStore(logger zylog.Logger) (*UserStore, error) {
 // Global singleton
 // ============================================================
 
-var (
-	theUserStore *UserStore
-	theDBDir     string // database directory, kept for backward compatibility
-)
+var theUserStore *UserStore
 
 // TheUserStore returns the global UserStore singleton.
 func TheUserStore() *UserStore {
@@ -77,12 +74,11 @@ func TheUserStore() *UserStore {
 }
 
 // InitTheUserStore creates the global UserStore singleton.
-func InitTheUserStore(dbDir string, logger zylog.Logger) error {
+func InitTheUserStore(logger zylog.Logger) error {
 	s, err := OpenUserStore(logger)
 	if err != nil {
 		return err
 	}
-	theDBDir = dbDir
 	theUserStore = s
 	return nil
 }

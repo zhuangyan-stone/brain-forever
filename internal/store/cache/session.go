@@ -20,7 +20,7 @@ import (
 //   - Multiple server instances can share the same Redis (horizontal scaling)
 //
 // Only login identity is stored in Redis; business data (chats, currentChat)
-// remains in the in-memory session struct and per-user SQLite files.
+// remains in the in-memory session struct (backed by PostgreSQL).
 // ============================================================
 
 const (
