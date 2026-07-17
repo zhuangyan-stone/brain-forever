@@ -863,8 +863,21 @@ async function handleUnfavorite(chat, customTag) {
         return;
     }
     var chatsStore = window.Alpine.store('chats');
-    if (chatsStore && chatsStore.loadFavorites) {
-        await chatsStore.loadFavorites();
+    if (chatsStore && chatsStore.favoritesGroups) {
+        var tag = customTag || '';
+        var items = chatsStore.favoritesGroups[tag];
+        if (items) {
+            var filtered = items.filter(function(c) { return c.sn !== chat.sn; });
+            if (filtered.length !== items.length) {
+                if (filtered.length > 0) {
+                    chatsStore.favoritesGroups[tag] = filtered;
+                } else {
+                    delete chatsStore.favoritesGroups[tag];
+                }
+                // 触发 Alpine 响应式更新
+                chatsStore.favoritesGroups = Object.assign({}, chatsStore.favoritesGroups);
+            }
+        }
     }
     showToast('已取消收藏', 'success');
 }

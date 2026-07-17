@@ -82,6 +82,34 @@ func (h *ChatAgent) AddFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
+// RenameFavoriteChatRequest is the JSON body for renaming a favorite item.
+type RenameFavoriteChatRequest struct {
+	ID           int64  `json:"id"`
+	NewCustomTag string `json:"new_custom_tag"`
+}
+
+// RenameFavoriteChat handles POST /api/chat/favorites/rename
+func (h *ChatAgent) RenameFavoriteChat(w http.ResponseWriter, r *http.Request) {
+	var req RenameFavoriteChatRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	if req.ID == 0 {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "id"}), http.StatusBadRequest)
+		return
+	}
+
+	if err := theChatStore.RenameFavoriteItem(req.ID, req.NewCustomTag); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
 // RemoveFavoriteChat handles DELETE /api/chat/favorites?sn=xxx&custom_tag=yyy
 func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	sn := r.URL.Query().Get("sn")
