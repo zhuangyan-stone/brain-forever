@@ -150,10 +150,10 @@ CREATE TABLE IF NOT EXISTS traits (
 );
 
 -- trait_vectors table: stores vector embeddings for each trait
--- {dimension} is replaced at runtime with the actual vector dimension
+-- 1024 is replaced at runtime with the actual vector dimension
 CREATE TABLE IF NOT EXISTS trait_vectors (
 	trait_id  BIGINT PRIMARY KEY REFERENCES traits(id) ON DELETE CASCADE,
-	embedding VECTOR({dimension})
+	embedding VECTOR(1024)
 );
 
 -- keywords table: stores keywords associated with each trait
