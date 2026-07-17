@@ -19,6 +19,7 @@ export const ICON_TOGGLE_CLOSE = window.ICON_TOGGLE_CLOSE;
 export const ICON_AI_TITLE  = window.ICON_AI_TITLE;
 export const ICON_EDIT      = window.ICON_EDIT;
 export const ICON_DOTS      = window.ICON_DOTS;
+export const ICON_DOTS_H    = window.ICON_DOTS_H;
 export const ICON_CLOSE     = window.ICON_CLOSE;
 export const ICON_PIN       = window.ICON_PIN;
 export const ICON_STOP      = window.ICON_STOP;
