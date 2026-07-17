@@ -850,8 +850,8 @@ async function handleRename(chat) {
             // 重新渲染列表 — 从 store 读取
             var chatsStore = window.Alpine.store('chats');
             renderChatList(chatsStore ? chatsStore.chats : [], chatsStore ? chatsStore.activeChatSN : null);
-            showToast('已重命名', 'success');
-            return true;
+                showToast('对话标题已修改', 'success');
+                return true;
         },
     });
 }
@@ -1712,7 +1712,7 @@ async function handleRenameFavoriteCategory(customTag) {
                     chatsStore.favoritesGroups = Object.assign({}, chatsStore.favoritesGroups);
                 }
             }
-            showToast('已重命名', 'success');
+            showToast('收藏名称已修改', 'success');
             return true;
         },
     });

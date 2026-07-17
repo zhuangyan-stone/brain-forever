@@ -139,17 +139,19 @@
     color: var(--text-muted);
     border-radius: 4px;
     cursor: pointer;
-    display: none;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     margin-left: auto;
-    opacity: 0.6;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, background-color 0.15s ease, visibility 0.15s ease;
 }
 
 .chat-group-header:hover .fav-group-more-btn {
-    display: inline-flex;
+    opacity: 0.6;
+    visibility: visible;
 }
 
 .fav-group-more-btn:hover {
