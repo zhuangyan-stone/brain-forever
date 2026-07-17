@@ -778,7 +778,56 @@ export async function deleteChatTag(chatID, tag) {
             return null;
         }
     }
-    
+
+    /**
+     * renameFavoriteCategory 重命名收藏夹分类。
+     * @param {string} oldCustomTag - 原分类名
+     * @param {string} newCustomTag - 新分类名
+     * @returns {Promise<boolean>} 是否成功
+     */
+    export async function renameFavoriteCategory(oldCustomTag, newCustomTag) {
+        try {
+            const response = await fetch('/api/chat/favorites/category/rename', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ old_custom_tag: oldCustomTag, new_custom_tag: newCustomTag }),
+            });
+            if (!response.ok) {
+                const t = await response.text();
+                showToast('重命名收藏分类失败。' + t, 'error');
+                return false;
+            }
+            return true;
+        } catch (e) {
+            console.warn('重命名收藏分类出错:', e);
+            return false;
+        }
+    }
+
+    /**
+     * clearFavoriteCategory 清空收藏夹分类（删除该分类下所有收藏项）。
+     * @param {string} customTag - 分类名
+     * @returns {Promise<boolean>} 是否成功
+     */
+    export async function clearFavoriteCategory(customTag) {
+        try {
+            const response = await fetch('/api/chat/favorites/category/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ custom_tag: customTag }),
+            });
+            if (!response.ok) {
+                const t = await response.text();
+                showToast('清空收藏分类失败。' + t, 'error');
+                return false;
+            }
+            return true;
+        } catch (e) {
+            console.warn('清空收藏分类出错:', e);
+            return false;
+        }
+    }
+
     /**
      * fetchSession 获取/创建 HTTP session，返回 session 数据（user_no, welcome 等）。
      * 此接口是公开的（无需登录），因此不检查会话过期。

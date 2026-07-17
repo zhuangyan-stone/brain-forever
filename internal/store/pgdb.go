@@ -69,7 +69,8 @@ func InitSchema(dimension int) error {
 	schemaBytes, err := os.ReadFile(initSQLPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("init.sql not found at %s", initSQLPath)
+			// init.sql 不存在时跳过 schema 初始化（例如重命名为 -init.sql）
+			return nil
 		}
 		return fmt.Errorf("failed to read %s. %w", initSQLPath, err)
 	}

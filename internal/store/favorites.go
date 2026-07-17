@@ -63,6 +63,24 @@ func (s *ChatStore) UpdateFavoriteItemChatCustomTag(id int64, oldCustomTag, newC
 	return nil
 }
 
+// RenameFavoriteItem renames the custom_tag of a single favorite record by its ID.
+// The update_at column is auto-maintained by a database trigger.
+func (s *ChatStore) RenameFavoriteItem(id int64, newCustomTag string) error {
+	sqlStr := `UPDATE chat_favorites
+		 SET custom_tag = $1
+		 WHERE id = $2`
+	result, err := s.db().Exec(sqlStr, newCustomTag, id)
+	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		return fmt.Errorf("failed to rename favorite item. %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("favorite not found (id=%d)", id)
+	}
+	return nil
+}
+
 // IsExistsFavoriteItem checks whether a favorite record exists.
 func (s *ChatStore) IsExistsFavoriteItem(chatID int64, customTag string) (bool, error) {
 	sqlStr := "SELECT COUNT(1) FROM chat_favorites WHERE chat_id = $1 AND custom_tag = $2"
@@ -89,6 +107,18 @@ func (s *ChatStore) DeleteFavoriteItem(chatID int64, customTag string) error {
 		return fmt.Errorf("favorite not found (chat_id=%d, custom_tag=%s)", chatID, customTag)
 	}
 	return nil
+}
+
+// DeleteFavoriteItemsByCustomTag deletes all favorite records for the given custom_tag.
+func (s *ChatStore) DeleteFavoriteItemsByCustomTag(customTag string) (int64, error) {
+	sqlStr := "DELETE FROM chat_favorites WHERE custom_tag = $1"
+	result, err := s.db().Exec(sqlStr, customTag)
+	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[customTag=%s]:\n%v", sqlStr, customTag, err)
+		return 0, fmt.Errorf("failed to delete favorites by custom tag. %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	return rows, nil
 }
 
 // DeleteFavoriteItemsByChatID deletes all favorite records for the given chat ID.

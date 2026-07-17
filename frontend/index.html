@@ -405,6 +405,12 @@
                                     <span x-text="customTag === '' ? '默认' : customTag"></span>
                                     <span class="group-count" x-show="items.length > 0"
                                         x-text="'(' + items.length + ')'"></span>
+                                    <button class="fav-group-more-btn"
+                                        @click.stop="$store.chats.showFavoriteCategoryMenu($event, customTag)"
+                                        @mouseenter.stop="$store.chats.showFavoriteCategoryMenu($event, customTag)">
+                                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
+                                            x-html="ICON_DOTS"></svg>
+                                    </button>
                                 </div>
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">

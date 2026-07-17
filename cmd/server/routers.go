@@ -27,10 +27,15 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// Recycle bin (trash) endpoints
 	srv.GET("/api/chat/deleted", chatHandler.RequireAuth(chatHandler.OnListDeletedChats))
 
-	// /api/chat/favorites -- GET + PUT + DELETE
+	// /api/chat/favorites -- GET + PUT + POST (rename) + DELETE
 	srv.GET("/api/chat/favorites", chatHandler.RequireAuth(chatHandler.ListFavoriteChats))
 	srv.PUT("/api/chat/favorites", chatHandler.RequireAuth(chatHandler.AddFavoriteChat))
+	srv.POST("/api/chat/favorites/rename", chatHandler.RequireAuth(chatHandler.RenameFavoriteChat))
 	srv.DELETE("/api/chat/favorites", chatHandler.RequireAuth(chatHandler.RemoveFavoriteChat))
+
+	// Favorite category operations -- rename & clear
+	srv.POST("/api/chat/favorites/category/rename", chatHandler.RequireAuth(chatHandler.RenameFavoriteCategory))
+	srv.POST("/api/chat/favorites/category/clear", chatHandler.RequireAuth(chatHandler.ClearFavoriteCategory))
 
 	// /api/chat/groups -- GET (tag-grouped chat list)
 	srv.GET("/api/chat/groups", chatHandler.RequireAuth(chatHandler.OnChatGroups))

@@ -6,7 +6,7 @@
 import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
-import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, fetchChatTagsBySN, addFavoriteChat, removeFavoriteChat } from './chat-api.js';
+import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, fetchChatTagsBySN, addFavoriteChat, removeFavoriteChat, renameFavoriteCategory, clearFavoriteCategory } from './chat-api.js';
 import { extractTraits } from './trait-api.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
@@ -51,6 +51,7 @@ function truncateTitle(title, maxLen = 25) {
 
 let contextMenuEl = null;       // 当前打开的右键菜单
 let contextTargetSN = null;     // 右键菜单目标对话 SN
+let contextTargetTag = null;    // 收藏分类菜单目标 customTag
 let hoverMenuTimer = null;     // hover 弹出菜单的关闭定时器
 
 /**
@@ -743,6 +744,7 @@ function closeContextMenu() {
         contextMenuEl = null;
     }
     contextTargetSN = null;
+    contextTargetTag = null;
 }
 
 // ============================================================
@@ -1574,6 +1576,179 @@ async function handleEmptyTrash() {
 }
 
 // ============================================================
+// 收藏分类弹出菜单（"..." → 改名 / 清空）
+// ============================================================
+
+/**
+ * 显示收藏分类的操作菜单（"..." 按钮触发）
+ * @param {MouseEvent} e - 鼠标事件
+ * @param {string} customTag - 收藏分类名
+ */
+function showFavoriteCategoryMenu(e, customTag) {
+    // 阻止事件冒泡，避免触发 chat-group-header 的 @click（toggleCollapse）
+    e.stopPropagation();
+
+    // 如果当前已经打开同一个分类的菜单，则关闭并返回
+    if (contextMenuEl && contextTargetTag === customTag) {
+        closeContextMenu();
+        return;
+    }
+    closeContextMenu();
+
+    contextTargetTag = customTag;
+
+    const menu = document.createElement('div');
+    menu.className = 'chat-context-menu';
+    menu.style.position = 'fixed';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuWidth = 120;
+    const menuHeight = 36 * 2 + 4 + 9; // 2 items + padding + separator
+
+    const isSmallScreen = document.body.classList.contains('small-screen-mode');
+    let left, top;
+
+    if (isSmallScreen) {
+        left = rect.left;
+        top = rect.bottom + 4;
+        if (left + menuWidth > window.innerWidth) {
+            left = window.innerWidth - menuWidth - 8;
+        }
+        if (top + menuHeight > window.innerHeight) {
+            top = rect.top - menuHeight - 4;
+        }
+    } else {
+        left = rect.right + 4;
+        top = rect.top;
+        if (left + menuWidth > window.innerWidth) {
+            left = rect.left - menuWidth - 4;
+        }
+        if (top + menuHeight > window.innerHeight) {
+            top = window.innerHeight - menuHeight - 8;
+        }
+    }
+
+    menu.style.left = Math.max(4, left) + 'px';
+    menu.style.top = Math.max(4, top) + 'px';
+
+    // ---- 改名 ----
+    const renameItem = document.createElement('div');
+    renameItem.className = 'chat-context-menu-item';
+    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 改名';
+    renameItem.addEventListener('click', function() {
+        closeContextMenu();
+        handleRenameFavoriteCategory(customTag);
+    });
+    menu.appendChild(renameItem);
+
+    // ---- 分隔线 ----
+    const separator = document.createElement('div');
+    separator.className = 'chat-context-menu-separator';
+    menu.appendChild(separator);
+
+    // ---- 清空 ----
+    const clearItem = document.createElement('div');
+    clearItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
+    clearItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 清空';
+    clearItem.addEventListener('click', function() {
+        closeContextMenu();
+        handleClearFavoriteCategory(customTag);
+    });
+    menu.appendChild(clearItem);
+
+    document.body.appendChild(menu);
+    contextMenuEl = menu;
+
+    // 大屏 hover 模式
+    if (!isSmallScreen) {
+        menu.addEventListener('mouseenter', function onMenuEnter() {
+            if (hoverMenuTimer) {
+                clearTimeout(hoverMenuTimer);
+                hoverMenuTimer = null;
+            }
+        });
+        menu.addEventListener('mouseleave', function onMenuLeave() {
+            if (hoverMenuTimer) {
+                clearTimeout(hoverMenuTimer);
+            }
+            hoverMenuTimer = setTimeout(function() {
+                closeContextMenu();
+            }, 200);
+        });
+    }
+
+    setTimeout(function() {
+        document.addEventListener('click', closeContextMenu, { once: true });
+    }, 0);
+}
+
+/**
+ * handleRenameFavoriteCategory — 重命名收藏分类
+ * @param {string} customTag - 当前分类名
+ */
+async function handleRenameFavoriteCategory(customTag) {
+    window.showTitleEditDialog({
+        currentTitle: customTag === '' ? '默认' : customTag,
+        onConfirm: async (newTag) => {
+            if (newTag === customTag) {
+                return true;
+            }
+            const ok = await renameFavoriteCategory(customTag, newTag);
+            if (!ok) {
+                return false;
+            }
+            // 更新本地数据：将 favoritesGroups 中该分类的所有条目迁移到新标签
+            var chatsStore = window.Alpine.store('chats');
+            if (chatsStore && chatsStore.favoritesGroups) {
+                var items = chatsStore.favoritesGroups[customTag];
+                if (items) {
+                    delete chatsStore.favoritesGroups[customTag];
+                    // 更新每个条目的 custom_tag
+                    items.forEach(function(chat) { chat.custom_tag = newTag; });
+                    // 合并到新分类（如果新分类已存在则追加）
+                    var existing = chatsStore.favoritesGroups[newTag] || [];
+                    chatsStore.favoritesGroups[newTag] = existing.concat(items);
+                    // 触发 Alpine 响应式更新
+                    chatsStore.favoritesGroups = Object.assign({}, chatsStore.favoritesGroups);
+                }
+            }
+            showToast('已重命名', 'success');
+            return true;
+        },
+    });
+}
+
+/**
+ * handleClearFavoriteCategory — 清空收藏分类
+ * @param {string} customTag - 分类名
+ */
+async function handleClearFavoriteCategory(customTag) {
+    var displayName = customTag === '' ? '默认' : customTag;
+    var chatsStore = window.Alpine.store('chats');
+    var count = (chatsStore && chatsStore.favoritesGroups && chatsStore.favoritesGroups[customTag])
+        ? chatsStore.favoritesGroups[customTag].length
+        : 0;
+    if (count === 0) return;
+
+    const result = await msgbox.warning('确认清空收藏分类「' + displayName + '」（含 ' + count + ' 个对话）吗？\n此操作不可恢复');
+    if (result !== 1) {
+        return;
+    }
+
+    const ok = await clearFavoriteCategory(customTag);
+    if (!ok) {
+        return;
+    }
+
+    // 更新本地数据
+    if (chatsStore && chatsStore.favoritesGroups) {
+        delete chatsStore.favoritesGroups[customTag];
+        chatsStore.favoritesGroups = Object.assign({}, chatsStore.favoritesGroups);
+    }
+    showToast('已清空', 'success');
+}
+
+// ============================================================
 // 注册方法到 Alpine store
 // ============================================================
 // 侧边栏聊天列表由 Alpine x-for 模板渲染（index.html），
@@ -1598,6 +1773,11 @@ try {
          * closeContextMenu — 关闭当前打开的右键菜单（由分组头部 @mouseenter 调用）
          */
         chats.closeContextMenu = closeContextMenu;
+
+        /**
+         * showFavoriteCategoryMenu — 显示收藏分类的操作菜单（"..." 按钮触发）
+         */
+        chats.showFavoriteCategoryMenu = showFavoriteCategoryMenu;
 
         /**
          * 回收站右键菜单 — 显示恢复/永久删除选项

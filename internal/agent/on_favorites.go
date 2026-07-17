@@ -145,3 +145,66 @@ func (h *ChatAgent) RemoveFavoriteChat(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
+
+// RenameFavoriteCategoryRequest is the JSON body for renaming a favorite category.
+type RenameFavoriteCategoryRequest struct {
+	OldCustomTag string `json:"old_custom_tag"`
+	NewCustomTag string `json:"new_custom_tag"`
+}
+
+// RenameFavoriteCategory handles POST /api/chat/favorites/category/rename
+// Renames all items in a favorite category from old_custom_tag to new_custom_tag.
+func (h *ChatAgent) RenameFavoriteCategory(w http.ResponseWriter, r *http.Request) {
+	var req RenameFavoriteCategoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	if req.OldCustomTag == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "old_custom_tag"}), http.StatusBadRequest)
+		return
+	}
+	if req.NewCustomTag == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "new_custom_tag"}), http.StatusBadRequest)
+		return
+	}
+
+	rows, err := theChatStore.UpdateFavoriteItemsCustomTag(req.OldCustomTag, req.NewCustomTag)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "ok", "rows_affected": rows})
+}
+
+// ClearFavoriteCategoryRequest is the JSON body for clearing a favorite category.
+type ClearFavoriteCategoryRequest struct {
+	CustomTag string `json:"custom_tag"`
+}
+
+// ClearFavoriteCategory handles DELETE /api/chat/favorites/category
+// Deletes all favorite items in the specified category.
+func (h *ChatAgent) ClearFavoriteCategory(w http.ResponseWriter, r *http.Request) {
+	var req ClearFavoriteCategoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, i18n.T("api_error_failed_to_parse_request", map[string]any{"Error": err.Error()}), http.StatusBadRequest)
+		return
+	}
+
+	if req.CustomTag == "" {
+		http.Error(w, i18n.T("api_error_parameter_required", map[string]any{"Param": "custom_tag"}), http.StatusBadRequest)
+		return
+	}
+
+	rows, err := theChatStore.DeleteFavoriteItemsByCustomTag(req.CustomTag)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "ok", "rows_affected": rows})
+}
