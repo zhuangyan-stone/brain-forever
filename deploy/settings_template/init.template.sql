@@ -179,7 +179,23 @@ CREATE INDEX IF NOT EXISTS idx_keywords_kind          ON keywords(kind);
 CREATE INDEX IF NOT EXISTS idx_keywords_trait_kind    ON keywords(trait_id, kind);
 
 -- HNSW index for vector similarity search (requires pgvector >= 0.5.0)
--- 1024-dim vectors: HNSW dimension limit is 2000 in pgvector ≤ 0.7.x, ok here.
+-- 1024-dim vectors: HNSW dimension limit is 2000 in pgvector <= 0.7.x, ok here.
 CREATE INDEX IF NOT EXISTS idx_trait_vectors_hnsw
 	ON trait_vectors USING hnsw (embedding vector_cosine_ops)
 	WITH (m = 16, ef_construction = 64);
+
+-- ============================================================
+-- Trigger: auto-update update_at for tables that have the column
+-- ============================================================
+CREATE OR REPLACE FUNCTION update_update_at_column()
+RETURNS TRIGGER AS $body$
+BEGIN
+	NEW.update_at = NOW();
+	RETURN NEW;
+END;
+$body$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_chat_favorites_update_at
+	BEFORE UPDATE ON chat_favorites
+	FOR EACH ROW
+	EXECUTE FUNCTION update_update_at_column();
