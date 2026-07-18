@@ -354,12 +354,12 @@ export function showTokenUsage(assistantBubble, usage) {
     const info = document.createElement('div');
     info.className = 'token-info';
 
-    // 构建提示词部分的显示：如果有缓存命中，附加显示
-    let promptDisplay = `提示 ${usage.prompt_tokens}`;
+    // 构建显示：输入（含缓存信息）| 输出，不展示无意义的 total_tokens 和
+    let promptDisplay = `输入 ${usage.prompt_tokens}`;
     if (usage.cached_tokens && usage.cached_tokens > 0) {
-        promptDisplay += `（缓存命中 ${usage.cached_tokens}）`;
+        promptDisplay += `（缓存 ${usage.cached_tokens}）`;
     }
-    const text = `${promptDisplay} + 生成 ${usage.completion_tokens} = ${usage.total_tokens}`;
+    const text = `${promptDisplay} | 输出 ${usage.completion_tokens}`;
 
     if (usage.is_estimated) {
         info.dataset.tooltip = '当前大模型未返回 token 消耗数据，此处为估算值，供参考';
