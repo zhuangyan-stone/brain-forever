@@ -344,7 +344,7 @@ export function showError(assistantBubble, message) {
  * showTokenUsage 在 assistant 消息气泡下方显示 token 用量信息。
  * 如果 is_estimated 为 true，则附加提示说明为估算值。
  * @param {HTMLElement} assistantBubble - assistant 消息的 .message 元素
- * @param {object} usage - { prompt_tokens, completion_tokens, total_tokens, is_estimated }
+ * @param {object} usage - { prompt_tokens, completion_tokens, total_tokens, cached_tokens, is_estimated }
  */
 export function showTokenUsage(assistantBubble, usage) {
     // 移除已有的 token-info（防止重复添加）
@@ -354,7 +354,12 @@ export function showTokenUsage(assistantBubble, usage) {
     const info = document.createElement('div');
     info.className = 'token-info';
 
-    const text = `提示 ${usage.prompt_tokens} + 生成 ${usage.completion_tokens} = ${usage.total_tokens}`;
+    // 构建提示词部分的显示：如果有缓存命中，附加显示
+    let promptDisplay = `提示 ${usage.prompt_tokens}`;
+    if (usage.cached_tokens && usage.cached_tokens > 0) {
+        promptDisplay += `（缓存命中 ${usage.cached_tokens}）`;
+    }
+    const text = `${promptDisplay} + 生成 ${usage.completion_tokens} = ${usage.total_tokens}`;
 
     if (usage.is_estimated) {
         info.dataset.tooltip = '当前大模型未返回 token 消耗数据，此处为估算值，供参考';

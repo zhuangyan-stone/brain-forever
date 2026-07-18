@@ -236,6 +236,11 @@ func (h *ChatAgent) callLLMWithPipeline(
 			IsEstimated:      isEstimated,
 		}
 
+		// Pass through cached_tokens from the LLM client if available
+		if llmUsage := client.GetUsageInfo(); llmUsage != nil && llmUsage.CachedTokens > 0 {
+			usage.CachedTokens = llmUsage.CachedTokens
+		}
+
 		if len(reply) > 0 || isInterrupted {
 			assistantMsg = &Message{
 				ID:        userMsgID,

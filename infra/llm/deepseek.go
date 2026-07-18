@@ -493,10 +493,12 @@ func (c *DeepSeekClient) ChatWithPipeline(
 		// Read all chunks from the stream -collect reply, reasoning, and tool calls.
 		// Accumulate usage across all iterations so total_tokens reflects the entire
 		// pipeline (including all tool call rounds), not just the last iteration.
+		// CachedTokens is also accumulated so multi-iteration totals are preserved.
 		streamResult, err := streamChatCompletion(ctx, stream, pipeline, func(u Usage) {
 			accumulatedUsage.PromptTokens += u.PromptTokens
 			accumulatedUsage.CompletionTokens += u.CompletionTokens
 			accumulatedUsage.TotalTokens += u.TotalTokens
+			accumulatedUsage.CachedTokens += u.CachedTokens
 			c.SetUsageInfo(accumulatedUsage)
 		})
 		if err != nil {

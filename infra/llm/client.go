@@ -319,6 +319,7 @@ type Usage struct {
 	PromptTokens     int `json:"prompt_tokens"`
 	CompletionTokens int `json:"completion_tokens"`
 	TotalTokens      int `json:"total_tokens"`
+	CachedTokens     int `json:"cached_tokens,omitempty"` // prompt tokens that hit the cache (DeepSeek); 0 if provider doesn't support
 }
 
 // ============================================================

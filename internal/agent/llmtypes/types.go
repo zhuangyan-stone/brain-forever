@@ -158,7 +158,8 @@ type Usage struct {
 	PromptTokens     int  `json:"prompt_tokens"`
 	CompletionTokens int  `json:"completion_tokens"`
 	TotalTokens      int  `json:"total_tokens"`
-	IsEstimated      bool `json:"is_estimated"` // true if any of the token counts was estimated client-side (not from the LLM API)
+	CachedTokens     int  `json:"cached_tokens,omitempty"` // prompt tokens that hit the cache (DeepSeek); 0 if provider doesn't support
+	IsEstimated      bool `json:"is_estimated"`            // true if any of the token counts was estimated client-side (not from the LLM API)
 }
 
 // ============================================================
