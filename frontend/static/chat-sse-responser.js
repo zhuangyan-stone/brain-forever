@@ -453,7 +453,7 @@ export class SSEResponser {
                 }
             } catch(e) {}
         }
-        // 6. 自动触发特征提取（静默）
+        // 6. 自动触发特征提取（trait.js 内部会显示 Toast）
         accumulateCompletion(this.stream.sn);
     }
 

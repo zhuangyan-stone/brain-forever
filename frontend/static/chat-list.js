@@ -7,7 +7,6 @@ import { chatStreamMgr } from './chat-stream-mgr.js';
 import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOffset, resetTickState } from './tick-state.js';
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, fetchChatTagsBySN, addFavoriteChat, removeFavoriteChat, renameFavoriteCategory, clearFavoriteCategory } from './chat-api.js';
-import { extractTraits } from './trait-api.js';
 import { updateTickNav } from './chat-ticknav.js';
 import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
@@ -666,27 +665,6 @@ function showContextMenu(e, chat) {
         menu.appendChild(tagItem);
     }
 
-    // 提取个人特征 — 已完全交由自动触发，不再允许手工点击
-    // 从未提取（extracted_at == null）时不显示此菜单项
-    // 已提取时仅显示状态信息（禁用态，不可点击）
-    const hasExtracted = !!chat.extracted_at;
-    if (hasExtracted) {
-    	const traitItem = document.createElement('div');
-    	traitItem.className = 'chat-context-menu-item';
-
-    	const hasCount = chat.extracted_count > 0;
-    	let traitLabel = hasCount
-    		? '已提取个人特征 ' + chat.extracted_count + ' 条'
-    		: '暂未发现个人特征';
-
-    	traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + window.ICON_USER + '</svg> ' + traitLabel;
-    	traitItem.classList.add(hasCount
-    		? 'chat-context-menu-item-success'
-    		: 'chat-context-menu-item-disabled');
-
-    	menu.appendChild(traitItem);
-    }
-
     // 分隔线
     const separator = document.createElement('div');
     separator.className = 'chat-context-menu-separator';
@@ -750,61 +728,6 @@ function closeContextMenu() {
 // ============================================================
 // 操作处理
 // ============================================================
-
-/**
- * 提取个人特征 — 调用后端 API 提取指定对话的个人特征。
- * 结果先打印到浏览器控制台。
- */
-async function handleExtractTraits(chat) {
-    var sn = chat.sn;
-    if (!sn) {
-        showToast('无法提取特征：对话 SN 为空', 'error');
-        return;
-    }
-
-    showToast('正在提取个人特征……', 'info', 5000);
-
-    try {
-        const result = await extractTraits(sn);
-        if (!result) {
-            return;
-        }
-
-        if (result.error) {
-            showToast('提取个人特征出错: ' + result.error, 'error');
-            return;
-        }
-
-        // 打印结果到浏览器控制台
-        console.log('===== 个人特征提取结果 =====');
-        console.log('对话 SN:', sn);
-        console.log('新增特征数量:', (result.features || []).length);
-        console.log('新增特征:', JSON.stringify(result.features, null, 2));
-        if (result.usage) {
-            console.log('Token 用量:', result.usage);
-        }
-        console.log('=============================');
-
-        // 从后端响应中读取最新的提取状态，更新 chat 对象
-        // 使右键菜单立即反映最新状态，无需猜测或本地计算
-        if (result.extracted_at) {
-            chat.extracted_at = result.extracted_at;
-        }
-        if (typeof result.extracted_count === 'number') {
-            chat.extracted_count = result.extracted_count;
-        }
-
-        var featureCount = (result.features || []).length;
-        if (featureCount > 0) {
-            showToast('提取完成，新增 ' + featureCount + ' 条特征', 'success');
-        } else {
-            showToast('未提取到新的个人特征', 'success');
-        }
-    } catch (e) {
-        console.error('提取个人特征异常:', e);
-        showToast('提取个人特征异常', 'error');
-    }
-}
 
 /**
  * 重命名对话
@@ -932,7 +855,7 @@ async function handleToggleFavorite(chat, defaultTag) {
 }
 
 // ============================================================
-// 类别页面的上下文菜单（收藏、重命名、提取个人特征、删除）
+// 类别页面的上下文菜单（收藏、重命名、删除）
 // ============================================================
 
 /**
