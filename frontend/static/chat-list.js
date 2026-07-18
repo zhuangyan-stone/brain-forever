@@ -602,19 +602,15 @@ function buildClassificationMenuItems(menu, chat) {
     }
 
     if (chatTagList.length > 0) {
-        // ---- 有有效标签：两级菜单 ----
-        var tagParentItem = document.createElement('div');
-        tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
-        tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已加入 ' + chatTagList.length + ' 个分类 <span class="submenu-arrow">&#x276F;</span>';
+        // ---- 有有效标签：单个分类用一级菜单，多个分类用两级菜单 ----
+        var firstTag = chatTagList[0];
 
-        var tagSubMenu = document.createElement('div');
-        tagSubMenu.className = 'chat-context-submenu';
-
-        chatTagList.forEach(function(tg) {
-            var subItem = document.createElement('div');
-            subItem.className = 'chat-context-menu-item';
-            subItem.textContent = tg;
-            subItem.addEventListener('click', function() {
+        if (chatTagList.length === 1) {
+            // ---- 仅一个分类：一级菜单，格式 "分类：XXX" ----
+            var singleItem = document.createElement('div');
+            singleItem.className = 'chat-context-menu-item';
+            singleItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 分类：' + escapeHtml(firstTag);
+            singleItem.addEventListener('click', function() {
                 closeContextMenu();
                 var store = window.Alpine.store('chats');
                 if (store) {
@@ -624,33 +620,64 @@ function buildClassificationMenuItems(menu, chat) {
                             expanded[key] = true;
                         }
                     }
-                    expanded['cat_' + tg] = false;
+                    expanded['cat_' + firstTag] = false;
                     store.collapsedGroups = expanded;
                     store.sidebarTab = 'category';
-                    store.selectChat(chat.sn, 'category', tg);
+                    store.selectChat(chat.sn, 'category', firstTag);
                 }
             });
-            tagSubMenu.appendChild(subItem);
-        });
+            menu.appendChild(singleItem);
+        } else {
+            // ---- 多个分类：两级菜单 "隶属 N 个分类 >" ----
+            var tagParentItem = document.createElement('div');
+            tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
+            tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 隶属 ' + chatTagList.length + ' 个分类 <span class="submenu-arrow">&#x276F;</span>';
 
-        tagParentItem.appendChild(tagSubMenu);
-        menu.appendChild(tagParentItem);
+            var tagSubMenu = document.createElement('div');
+            tagSubMenu.className = 'chat-context-submenu';
 
-        var subMenuTimer = null;
-        tagParentItem.addEventListener('mouseenter', function() {
-            if (subMenuTimer) { clearTimeout(subMenuTimer); subMenuTimer = null; }
-            tagSubMenu.style.display = 'block';
-        });
-        tagParentItem.addEventListener('mouseleave', function() {
-            subMenuTimer = setTimeout(function() { tagSubMenu.style.display = 'none'; }, 120);
-        });
-        tagSubMenu.addEventListener('mouseenter', function() {
-            if (subMenuTimer) { clearTimeout(subMenuTimer); subMenuTimer = null; }
-            tagSubMenu.style.display = 'block';
-        });
-        tagSubMenu.addEventListener('mouseleave', function() {
-            tagSubMenu.style.display = 'none';
-        });
+            chatTagList.forEach(function(tg) {
+                var subItem = document.createElement('div');
+                subItem.className = 'chat-context-menu-item';
+                subItem.textContent = tg;
+                subItem.addEventListener('click', function() {
+                    closeContextMenu();
+                    var store = window.Alpine.store('chats');
+                    if (store) {
+                        var expanded = Object.assign({}, store.collapsedGroups);
+                        for (var key in expanded) {
+                            if (expanded.hasOwnProperty(key) && key.startsWith('cat_')) {
+                                expanded[key] = true;
+                            }
+                        }
+                        expanded['cat_' + tg] = false;
+                        store.collapsedGroups = expanded;
+                        store.sidebarTab = 'category';
+                        store.selectChat(chat.sn, 'category', tg);
+                    }
+                });
+                tagSubMenu.appendChild(subItem);
+            });
+
+            tagParentItem.appendChild(tagSubMenu);
+            menu.appendChild(tagParentItem);
+
+            var subMenuTimer = null;
+            tagParentItem.addEventListener('mouseenter', function() {
+                if (subMenuTimer) { clearTimeout(subMenuTimer); subMenuTimer = null; }
+                tagSubMenu.style.display = 'block';
+            });
+            tagParentItem.addEventListener('mouseleave', function() {
+                subMenuTimer = setTimeout(function() { tagSubMenu.style.display = 'none'; }, 120);
+            });
+            tagSubMenu.addEventListener('mouseenter', function() {
+                if (subMenuTimer) { clearTimeout(subMenuTimer); subMenuTimer = null; }
+                tagSubMenu.style.display = 'block';
+            });
+            tagSubMenu.addEventListener('mouseleave', function() {
+                tagSubMenu.style.display = 'none';
+            });
+        }
     } else if (chat.taged) {
         // ---- 已分类但无有效标签：显示单级"暂无合适分类" ----
         var noTagItem = document.createElement('div');
@@ -807,7 +834,7 @@ async function handleToggleFavorite(chat, defaultTag) {
                 }
             }
             if (isDuplicate) {
-                showToast('该收藏已经存在，请勿重复操作', 'error');
+                showToast('该收藏已经存在', 'error');
                 return false;
             }
             var ok = await addFavoriteChat(chat.sn, tag);
