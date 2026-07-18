@@ -303,12 +303,13 @@ export function applyStreamingState(isStreaming) {
  * @param {string} message
  * @param {'error'|'success'|'info'} [type='error']
  * @param {number} [duration=4000] - 显示时长（毫秒）
+ * @param {boolean} [replaceOnNew=false] - 为 true 时，新 toast 到来立即关闭此 toast
  */
-export function showToast(message, type, duration) {
+export function showToast(message, type, duration, replaceOnNew) {
     type = type || 'error';
     duration = duration || 4000;
 
-    Alpine.store('ui').showToast(message, type, duration);
+    Alpine.store('ui').showToast(message, type, duration, replaceOnNew);
 }
 // 注册到 window，供普通 <script>（如 alpine-api.js）在运行时调用
 window.showToast = showToast;
@@ -320,12 +321,13 @@ window.showToast = showToast;
  * @param {'error'|'success'|'info'} [type='error']
  * @param {number} [duration=4000]
  * @param {function} [onClick] - 点击 toast 时的回调函数
+ * @param {boolean} [replaceOnNew=false] - 为 true 时，新 toast 到来立即关闭此 toast
  */
-export function showToastHTML(html, type, duration, onClick) {
+export function showToastHTML(html, type, duration, onClick, replaceOnNew) {
     type = type || 'error';
     duration = duration || 4000;
 
-    Alpine.store('ui').showToastHTML(html, type, duration, onClick);
+    Alpine.store('ui').showToastHTML(html, type, duration, onClick, replaceOnNew);
 }
 
 /**

@@ -215,16 +215,29 @@ document.addEventListener('alpine:init', function() {
          * @param {'error'|'success'|'info'} type
          * @param {number} duration
          * @param {function|null} onClick - 点击回调
+         * @param {boolean} [replaceOnNew=false] - 为 true 时，新 toast 到来立即关闭此 toast
          * @returns {number} toast id
          */
-        _addToast: function(message, type, duration, onClick) {
+        _addToast: function(message, type, duration, onClick, replaceOnNew) {
             var id = ++this._nextToastId;
             var self = this;
+
+            // 关闭所有标记了 replaceOnNew 的旧 toast（无论新 toast 是否带标记）
+            this.toasts.forEach(function(t) {
+                if (t.replaceOnNew) {
+                    t.visible = false;
+                    setTimeout(function() {
+                        self.toasts = self.toasts.filter(function(x) { return x.id !== t.id; });
+                    }, 300);
+                }
+            });
+
             var toast = {
                 id: id,
                 message: message,
                 type: type,
                 visible: false,
+                replaceOnNew: !!replaceOnNew,
                 onClick: (typeof onClick === 'function') ? onClick : null,
             };
             this.toasts.push(toast);
@@ -253,13 +266,14 @@ document.addEventListener('alpine:init', function() {
          * @param {string} message
          * @param {'error'|'success'|'info'} [type='error']
          * @param {number} [duration=4000]
+         * @param {boolean} [replaceOnNew=false] - 为 true 时，新 toast 到来立即关闭此 toast
          */
-        showToast: function(message, type, duration) {
+        showToast: function(message, type, duration, replaceOnNew) {
             if (!type) type = 'error';
             if (!duration) duration = 4000;
             // HTML 转义：& < > 三个危险字符
             var safe = String(message).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
-            this._addToast(safe, type, duration, null);
+            this._addToast(safe, type, duration, null, replaceOnNew);
         },
 
         /**
@@ -269,11 +283,12 @@ document.addEventListener('alpine:init', function() {
          * @param {'error'|'success'|'info'} [type='error']
          * @param {number} [duration=4000]
          * @param {function} [onClick] - 点击 toast 时的回调函数
+         * @param {boolean} [replaceOnNew=false] - 为 true 时，新 toast 到来立即关闭此 toast
          */
-        showToastHTML: function(html, type, duration, onClick) {
+        showToastHTML: function(html, type, duration, onClick, replaceOnNew) {
             if (!type) type = 'error';
             if (!duration) duration = 4000;
-            this._addToast(html, type, duration, onClick || null);
+            this._addToast(html, type, duration, onClick || null, replaceOnNew);
         },
     });
 
