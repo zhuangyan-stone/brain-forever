@@ -2,7 +2,7 @@
 // chat-markdown.js — Markdown 渲染 + 代码高亮
 // ============================================================
 
-import { escapeHtml } from './toolsets.js';
+import { escapeHtml, isCJKChar } from './toolsets.js';
 import { ICON_COPY } from './svg_icons_re.js';
 
 'use strict';
@@ -52,6 +52,13 @@ function remarkableKatex(md) {
   });
 
   // --- 行内公式 $...$ ---
+
+  // 判断内容是否包含 LaTeX 命令（如 \text、\frac 等），
+  // 有则说明是合法数学公式，不应被拦截。
+  function hasLatexCommand(text) {
+    return /\\[a-zA-Z]+/.test(text);
+  }
+
   md.inline.ruler.after('katex_block', 'katex_inline', function katexInline(state, silent) {
     var start = state.pos;
     var max = state.posMax;
@@ -62,6 +69,16 @@ function remarkableKatex(md) {
 
     // 前一个字符是 \ 说明是转义
     if (start > 0 && state.src.charCodeAt(start - 1) === 0x5C /* \ */) return false;
+
+    // ---- 上下文启发式：$ 前面的字符如果是 CJK 或数字，大概率不是数学定界符 ----
+    if (start > 0) {
+      var prevChar = state.src.charAt(start - 1);
+      if (isCJKChar(prevChar) || /[\d]/.test(prevChar)) {
+        // 前面是中文或数字（如 "成本$5" 或 "5$"），跳过
+        state.pos = start + 1;
+        return false;
+      }
+    }
 
     // 查找结束 $
     var end = start + 1;
@@ -79,8 +96,22 @@ function remarkableKatex(md) {
 
     if (end >= max) return false; // 没有闭合 $
 
+    // ---- 内容校验：如果包含 CJK 字符但没有任何 LaTeX 命令，拒绝 ----
+    var content = state.src.slice(start + 1, end);
+    var hasCJK = false;
+    for (var i = 0; i < content.length; i++) {
+      if (isCJKChar(content.charAt(i))) {
+        hasCJK = true;
+        break;
+      }
+    }
+    if (hasCJK && !hasLatexCommand(content)) {
+      // 含中文但无 LaTeX 命令（如 "$5/月"），不是数学公式
+      state.pos = start + 1;
+      return false;
+    }
+
     if (!silent) {
-      var content = state.src.slice(start + 1, end);
       state.push({
         type: 'katex_inline',
         content: content,

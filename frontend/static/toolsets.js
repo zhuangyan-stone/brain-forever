@@ -19,7 +19,7 @@ export function escapeHtml(str) {
  * @param {string} ch - 单个字符
  * @returns {boolean}
  */
-function isCJKChar(ch) {
+export function isCJKChar(ch) {
     const code = ch.charCodeAt(0);
     return (
         (code >= 0x4E00 && code <= 0x9FFF)   || // CJK Unified Ideographs
