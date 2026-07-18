@@ -220,9 +220,12 @@ export class InlineHint {
 
     /**
      * 启动自动移除定时器。
+     * 当 keepSeconds === -1 时，不启动定时器，提示永不自动消除，
+     * 需由外部手动调用 remove() 关闭。
      * @private
      */
     _scheduleRemove() {
+        if (this.options.keepSeconds === -1) return;
         const ms = (this.options.keepSeconds || 10) * 1000;
         this._removeTimer = setTimeout(this.remove, ms);
     }

@@ -85,12 +85,6 @@ var TRAIT_HINT_TEXTS = [
 ];
 
 /**
- * 自动清除延时（秒）。done/fail 后等待此时间，然后清除 inlineHint。
- * 由业务方控制，可传不同值实现不同时长。
- */
-var KEEP_SECONDS = 10;
-
-/**
  * 累加一次流完成计数。每次 SSE 流完成（onDone）时调用。
  * 达到阈值后自动触发特征提取。
  * @param {string} sn - 对话 SN
@@ -123,15 +117,11 @@ export function accumulateCompletion(sn) {
         extractTraits(sn).then(function(data) {
             if (!data) {
                 // 失败：更新 inlineHint 为 fail 状态
+                // 不再设置自动消除定时器，由用户发新消息时通过 closeInlineHint() 关闭
                 try {
                     var chatsStore = window.Alpine.store('chats');
                     var chat = chatsStore.getOrCreate(sn);
                     chat.inlineHint = { text: '提取个人特征失败', state: 'fail' };
-                    setTimeout(function() {
-                        if (chat.inlineHint && chat.inlineHint.state === 'fail') {
-                            chat.inlineHint = null;
-                        }
-                    }, KEEP_SECONDS * 1000);
                 } catch(e) {}
                 clearExtractingLock(sn);
                 return;
@@ -176,18 +166,15 @@ export function accumulateCompletion(sn) {
                 // Alpine store 未就绪时静默跳过
             }
 
-            var featureCount = data.extracted_count || 0;
             // 成功：更新 inlineHint 为 done 状态
+            // new_count 是本次新增的特征数（区别于 extracted_count 累积总数）
+            // 不再设置自动消除定时器，由用户发新消息时通过 closeInlineHint() 关闭
+            var newCount = typeof data.new_count === 'number' ? data.new_count : data.extracted_count || 0;
             try {
                 var chatsStore = window.Alpine.store('chats');
                 var chat = chatsStore.getOrCreate(sn);
-                var successText = '已生成' + featureCount + '条特征';
+                var successText = '生成 ' + newCount + ' 条新特征';
                 chat.inlineHint = { text: successText, state: 'done' };
-                setTimeout(function() {
-                    if (chat.inlineHint && chat.inlineHint.state === 'done') {
-                        chat.inlineHint = null;
-                    }
-                }, KEEP_SECONDS * 1000);
             } catch(e) {}
 
             clearExtractingLock(sn);

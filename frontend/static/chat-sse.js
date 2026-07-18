@@ -102,6 +102,11 @@ function prepareChat() {
     var activeChat = chats ? chats.active : null;
     if (activeChat && activeChat.isStreaming) return null;
 
+    // 关闭可能存在的行内提示（如个人特征提取提示）
+    if (chats && chats.closeInlineHint) {
+        chats.closeInlineHint();
+    }
+
     // 清空输入框
     messageInput.value = '';
     messageInput.style.height = 'auto';

@@ -1062,6 +1062,17 @@ document.addEventListener('alpine:init', function() {
             chat.streamingMsg = null;
         },
 
+        /**
+         * closeInlineHint — 关闭当前活跃对话的行内提示。
+         * 将 active.inlineHint 设为 null，触发 Alpine 响应式隐藏 UI。
+         * 供外部在用户发送新消息等场景调用。
+         */
+        closeInlineHint: function() {
+            if (this.active && this.active.inlineHint) {
+                this.active.inlineHint = null;
+            }
+        },
+
         // ============================================================
         // groups 操作方法 — 用于 Alpine x-for 数据驱动渲染
         // ============================================================

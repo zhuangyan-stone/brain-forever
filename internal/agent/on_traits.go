@@ -51,6 +51,7 @@ type traitsResponse struct {
 
 	ExtractedAt    *string `json:"extracted_at,omitempty"`
 	ExtractedCount int     `json:"extracted_count,omitempty"`
+	NewCount       int     `json:"new_count,omitempty"`
 }
 
 func halfLifeToInt(s string) int {
@@ -151,6 +152,7 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	lastMsgID := dbMessages[len(dbMessages)-1].ID
 
+	var newCount int
 	if len(remoteResp.Features) > 0 {
 		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.ID)
 		if err != nil {
@@ -158,11 +160,14 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 			toolset.WriteError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 			return
 		}
+		newCount = storedCount
 		theChatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
 		updateExtractionProgress(foundChat, theChatStore, storedCount)
 	} else {
 		updateExtractionProgress(foundChat, theChatStore, 0)
 	}
+
+	remoteResp.NewCount = newCount
 
 	if foundChat.ExtractedAt != nil {
 		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
@@ -364,6 +369,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {
 	resp := traitsResponse{
 		Features: []traitsFeature{},
+		NewCount: 0,
 	}
 	if foundChat.ExtractedAt != nil {
 		extractedAtStr := foundChat.ExtractedAt.Format(time.RFC3339)
