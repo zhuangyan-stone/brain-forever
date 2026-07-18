@@ -6,6 +6,7 @@
 //   1. 维护每个对话的流完成计数器（永不归零，持续递增）
 //   2. 达到阈值后调用 trait-api.js 的 fetchExtractTraits
 //   3. 管理请求锁，防止重复触发
+//   4. 使用 InlineHint 组件显示请求进度
 //
 // 使用方式：
 //   import { accumulateCompletion } from './trait.js';
@@ -23,7 +24,7 @@
 'use strict';
 
 import { extractTraits } from './trait-api.js';
-import { showToast } from './chat-ui.js';
+import { InlineHint } from './components/inline-hint.js';
 
 /**
  * 四阶阶段定义表。
@@ -72,6 +73,27 @@ function isTriggerPoint(count) {
 var _counters = {};
 
 /**
+ * 个人特征提取时的候选提示文字（随机取一条）。
+ */
+var TRAIT_HINT_TEXTS = [
+    '📜 AI 意味深长地看你一眼，准备生成你的特征……',
+    '📜 起居郎刷完短剧，百无聊赖，来为主人写点小报告吧……',
+    '📜 皇上今日所云，颇有深度，不妨深挖一下……',
+    '📜 特征提取器嗡嗡作响，正在分析你的对话……',
+    '📜 AI饶有兴致地读完上述对话，嗯，来记点什么吧……',
+    '📜 呀，皇上又说一大堆，起居郎要做起居注了……',
+    '📜 深谙春秋笔法的起居郎正在磨墨……'
+];
+
+/**
+ * 获取对话容器的引用。
+ * @returns {HTMLElement|null}
+ */
+function getChatContainer() {
+    return document.getElementById('chatContainer');
+}
+
+/**
  * 累加一次流完成计数。每次 SSE 流完成（onDone）时调用。
  * 达到阈值后自动触发特征提取。
  * @param {string} sn - 对话 SN
@@ -90,11 +112,23 @@ export function accumulateCompletion(sn) {
     if (isTriggerPoint(c.count) && !c._extracting) {
         c._extracting = true;
 
-        showToast('正在提取个人特征……', 'info', 5000);
+        // 创建 InlineHint 显示进度
+        var container = getChatContainer();
+        var hint = null;
+        if (container) {
+            hint = new InlineHint(container, {
+                texts: TRAIT_HINT_TEXTS,
+                keepSeconds: 10,
+                successFormat: '已生成{n}条特征',
+            });
+            hint.show();
+        }
 
         extractTraits(sn).then(function(data) {
             if (!data) {
-                showToast('提取个人特征失败', 'error');
+                if (hint) {
+                    hint.fail('提取个人特征失败');
+                }
                 clearExtractingLock(sn);
                 return;
             }
@@ -138,11 +172,9 @@ export function accumulateCompletion(sn) {
                 // Alpine store 未就绪时静默跳过
             }
 
-            var featureCount = (data.features || []).length;
-            if (featureCount > 0) {
-                showToast('提取完成，新增 ' + featureCount + ' 条特征', 'success');
-            } else {
-                showToast('未提取到新的个人特征', 'success');
+            var featureCount = data.extracted_count || 0;
+            if (hint) {
+                hint.done(featureCount);
             }
 
             clearExtractingLock(sn);
@@ -161,3 +193,4 @@ function clearExtractingLock(sn) {
         c._extracting = false;
     }
 }
+

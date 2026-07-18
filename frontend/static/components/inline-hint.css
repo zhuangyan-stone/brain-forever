@@ -1,0 +1,97 @@
+/* ============================================================
+    components/inline-hint.css — 行内提示组件样式
+    ============================================================
+    使用场景：在最后一条消息下方插入临时的进度/状态提示，
+             含旋转进度圈和文字，成功后可自动消失。
+    ============================================================ */
+
+.inline-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    animation: inline-hint-fade-in 0.25s ease;
+}
+
+/* 淡入动画 */
+@keyframes inline-hint-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 淡出动画（由 JS 添加 class 触发）
+   使用 transition 而非 animation，配合 JS 锁定当前高度实现收缩效果 */
+.inline-hint--fade-out {
+    opacity: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, height 0.25s ease 0.05s,
+                padding-top 0.25s ease 0.05s, padding-bottom 0.25s ease 0.05s,
+                margin-top 0.25s ease 0.05s, margin-bottom 0.25s ease 0.05s;
+    animation: none;
+}
+
+/* === 旋转进度圈 === */
+
+.inline-hint__spinner {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--text-muted);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: inline-hint-spin 0.7s linear infinite;
+}
+
+@keyframes inline-hint-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* === 成功/失败图标 === */
+
+.inline-hint__icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.inline-hint__icon--success {
+    color: var(--success-text, #43a047);
+}
+
+.inline-hint__icon--error {
+    color: var(--error-text, #e53935);
+}
+
+/* === 文字 === */
+
+.inline-hint__text {
+    flex: 1;
+    min-width: 0;
+}
