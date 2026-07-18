@@ -269,6 +269,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, title string, dbMessages 
 		result.Error = "LLM returned text instead of tool call"
 	}
 
+	h.logger.Debugf("callTraitsLLM returning features=%d error=%q", len(result.Features), result.Error)
 	return result, nil
 }
 
