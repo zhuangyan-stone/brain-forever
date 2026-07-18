@@ -139,12 +139,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_favorites_unique ON chat_favorites(ch
 CREATE TABLE IF NOT EXISTS traits (
 	id             BIGSERIAL PRIMARY KEY,
 	user_id        BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	chat_id        BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 	trait          TEXT         NOT NULL,
 	category       INTEGER      NOT NULL,
 	confidence     INTEGER      NOT NULL,
 	half_life      INTEGER      NOT NULL,
 	privacy_level  INTEGER      NOT NULL DEFAULT 0,
-	chat_sn        TEXT         NOT NULL DEFAULT '',
 	create_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 	update_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -170,7 +170,7 @@ CREATE INDEX IF NOT EXISTS idx_traits_user_id    ON traits(user_id);
 CREATE INDEX IF NOT EXISTS idx_traits_category   ON traits(category);
 CREATE INDEX IF NOT EXISTS idx_traits_half_life  ON traits(half_life);
 CREATE INDEX IF NOT EXISTS idx_traits_create_at  ON traits(create_at);
-CREATE INDEX IF NOT EXISTS idx_traits_chat_sn    ON traits(chat_sn);
+CREATE INDEX IF NOT EXISTS idx_traits_chat_id    ON traits(chat_id);
 
 -- indexes for keywords table
 CREATE INDEX IF NOT EXISTS idx_keywords_trait_id      ON keywords(trait_id);
