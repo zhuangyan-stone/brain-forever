@@ -136,6 +136,7 @@
         必须作为普通 <script> 在 Alpine.js 之前加载，
         若用 ES Module 则执行时机晚于 Alpine 的 DOM 扫描。 -->
     <script src="/static/components/buttons.js"></script>
+    <script src="/static/components/sidebar-keynav.js"></script>
     <script src="/static/components/chat-container.js"></script>
     <script src="/static/dialogs/msg-delete-dialog.js"></script>
     <script src="/static/dialogs/title-edit-dialog.js"></script>
@@ -177,32 +178,57 @@
             </div>
 
             <!-- 侧边栏 Tab 切换：仅活动 Tab 显示图标+文本，其他 Tab 只显示图标 -->
-            <div class="sidebar-tabs" x-data>
-                <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'timeline' }"
+            <div class="sidebar-tabs" x-data="sidebarTabs()" role="tablist"
+                @keydown.left.prevent="prevTab"
+                @keydown.right.prevent="nextTab">
+                <button class="sidebar-tab" role="tab"
+                    data-tab="timeline"
+                    :class="{ active: $store.chats.sidebarTab === 'timeline' }"
                     :style="{ flex: $store.chats.sidebarTab === 'timeline' ? '1.8' : '1' }"
+                    :tabindex="$store.chats.sidebarTab === 'timeline' ? 0 : -1"
+                    :aria-selected="$store.chats.sidebarTab === 'timeline'"
                     :data-tooltip="$store.chats.sidebarTab === 'timeline' ? undefined : '时间'"
-                    @click="$store.chats.switchSidebarTab('timeline')">
+                    @click="$store.chats.switchSidebarTab('timeline')"
+                    @keydown.enter.prevent="$store.chats.switchSidebarTab('timeline')"
+                    @keydown.space.prevent="$store.chats.switchSidebarTab('timeline')">
                     <span class="sidebar-tab-icon">&#x1F4C5;</span>
                     <span x-show="$store.chats.sidebarTab === 'timeline'">时间</span>
                 </button>
-                <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'category' }"
+                <button class="sidebar-tab" role="tab"
+                    data-tab="category"
+                    :class="{ active: $store.chats.sidebarTab === 'category' }"
                     :style="{ flex: $store.chats.sidebarTab === 'category' ? '1.8' : '1' }"
+                    :tabindex="$store.chats.sidebarTab === 'category' ? 0 : -1"
+                    :aria-selected="$store.chats.sidebarTab === 'category'"
                     :data-tooltip="$store.chats.sidebarTab === 'category' ? undefined : '分类'"
-                    @click="$store.chats.switchSidebarTab('category')">
+                    @click="$store.chats.switchSidebarTab('category')"
+                    @keydown.enter.prevent="$store.chats.switchSidebarTab('category')"
+                    @keydown.space.prevent="$store.chats.switchSidebarTab('category')">
                     <span class="sidebar-tab-icon">&#x1F916;</span>
                     <span x-show="$store.chats.sidebarTab === 'category'">分类</span>
                 </button>
-                <button class="sidebar-tab" :class="{ active: $store.chats.sidebarTab === 'favorites' }"
+                <button class="sidebar-tab" role="tab"
+                    data-tab="favorites"
+                    :class="{ active: $store.chats.sidebarTab === 'favorites' }"
                     :style="{ flex: $store.chats.sidebarTab === 'favorites' ? '1.8' : '1' }"
+                    :tabindex="$store.chats.sidebarTab === 'favorites' ? 0 : -1"
+                    :aria-selected="$store.chats.sidebarTab === 'favorites'"
                     :data-tooltip="$store.chats.sidebarTab === 'favorites' ? undefined : '收藏'"
-                    @click="$store.chats.switchSidebarTab('favorites')">
+                    @click="$store.chats.switchSidebarTab('favorites')"
+                    @keydown.enter.prevent="$store.chats.switchSidebarTab('favorites')"
+                    @keydown.space.prevent="$store.chats.switchSidebarTab('favorites')">
                     <span class="sidebar-tab-icon">&#x2B50;</span>
                     <span x-show="$store.chats.sidebarTab === 'favorites'">收藏</span>
                 </button>
             </div>
 
             <!-- 时间线 Tab 内容 -->
-            <div class="sidebar-content" id="sidebarContent" x-data x-show="$store.chats.sidebarTab === 'timeline'">
+            <div class="sidebar-content" id="sidebarContent"
+                x-data="sidebarTreeNav('timeline')"
+                x-show="$store.chats.sidebarTab === 'timeline'"
+                role="tree"
+                @keydown.enter.prevent="activateItem"
+                @keydown.space.prevent="activateItem">
                 <!-- 空状态 -->
                 <template x-if="$store.chats.chatsTimeline && $store.chats.chatsTimeline.length === 0">
                     <div class="chat-list-empty">暂无对话记录</div>
@@ -214,7 +240,9 @@
                         <!-- 普通分组（置顶、今天、昨天、7天内、30天内） -->
                         <template x-if="group.type === 'normal'">
                             <div>
-                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)"
+                                <div class="chat-group-header" role="treeitem" tabindex="0"
+                                    :aria-expanded="!$store.chats.isCollapsed(group.label)"
+                                    @click="$store.chats.toggleCollapse(group.label)"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
@@ -225,7 +253,8 @@
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
                                     <template x-for="chat in group.items" :key="chat.sn">
-                                        <div class="chat-item"
+                                        <div class="chat-item" role="treeitem" tabindex="0"
+                                            data-role="chat-item"
                                             :class="{ active: $store.chats.getActiveStyle(chat.sn, 'timeline') === 'active' }"
                                             :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn, 'timeline')"
                                             @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
@@ -237,7 +266,8 @@
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                             <button class="chat-item-more-btn"
                                                 @mouseenter="$store.chats.showContextMenu($event, chat)"
-                                                @click.stop="$store.chats.showContextMenu($event, chat)">
+                                                @click.stop="$store.chats.showContextMenu($event, chat)"
+                                                @keydown.enter.prevent="$store.chats.showContextMenu($event, chat)">
                                                 <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
                                                     x-html="ICON_DOTS"></svg>
                                             </button>
@@ -250,7 +280,9 @@
                         <!-- 更早分组（含日期子分组） -->
                         <template x-if="group.type === 'earlier'">
                             <div>
-                                <div class="chat-group-header" @click="$store.chats.toggleCollapse(group.label)"
+                                <div class="chat-group-header" role="treeitem" tabindex="0"
+                                    :aria-expanded="!$store.chats.isCollapsed(group.label)"
+                                    @click="$store.chats.toggleCollapse(group.label)"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed(group.label) }">&#x276F;</span>
@@ -262,7 +294,9 @@
                                     :class="{ collapsed: $store.chats.isCollapsed(group.label) }">
                                     <template x-for="sub in group.subGroups" :key="sub.dateLabel">
                                         <div class="chat-date-group">
-                                            <div class="chat-date-header"
+                                            <div class="chat-date-header" role="treeitem" tabindex="0"
+                                                data-role="subgroup-header"
+                                                :aria-expanded="!$store.chats.isCollapsed(group.label + '|' + sub.dateLabel)"
                                                 @click="$store.chats.toggleCollapse(group.label + '|' + sub.dateLabel)"
                                                 @mouseenter="$store.chats.closeContextMenu()">
                                                 <span class="collapse-arrow date-arrow"
@@ -274,7 +308,8 @@
                                             <div class="chat-date-body"
                                                 :class="{ collapsed: $store.chats.isCollapsed(group.label + '|' + sub.dateLabel) }">
                                                 <template x-for="chat in sub.items" :key="chat.sn">
-                                                    <div class="chat-item"
+                                                    <div class="chat-item" role="treeitem" tabindex="0"
+                                                        data-role="chat-item"
                                                         :class="{ active: $store.chats.getActiveStyle(chat.sn, 'timeline') === 'active' }"
                                                         :data-sn="chat.sn"
                                                         @click="$store.chats.selectChat(chat.sn, 'timeline')"
@@ -304,7 +339,9 @@
                         <!-- 回收站分组 — 始终在时间线最底部 -->
                         <template x-if="group.type === 'trash'">
                             <div class="chat-group chat-group-trash">
-                                <div class="chat-group-header" @click="$store.chats.toggleTrash()"
+                                <div class="chat-group-header" role="treeitem" tabindex="0"
+                                    :aria-expanded="$store.chats.trashExpanded"
+                                    @click="$store.chats.toggleTrash()"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: !$store.chats.trashExpanded }">&#x276F;</span>
@@ -323,7 +360,8 @@
                                         <div class="chat-list-empty trash-empty">回收站为空</div>
                                     </template>
                                     <template x-for="chat in group.items" :key="chat.sn">
-                                        <div class="chat-item chat-item-trash" :data-sn="chat.sn"
+                                        <div class="chat-item chat-item-trash" role="treeitem" tabindex="0"
+                                            data-role="chat-item" :data-sn="chat.sn"
                                             @mouseenter="$store.chats.maybeCloseContextMenu(chat)">
                                             <div class="chat-item-title trash-item-title" x-text="chat.title || '新对话'">
                                             </div>
@@ -343,7 +381,12 @@
             </div>
 
             <!-- 类别 Tab 内容 — AI 分类 -->
-            <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'category'">
+            <div class="sidebar-content"
+                x-data="sidebarTreeNav('category')"
+                x-show="$store.chats.sidebarTab === 'category'"
+                role="tree"
+                @keydown.enter.prevent="activateItem"
+                @keydown.space.prevent="activateItem">
                 <!-- 空状态 -->
                 <template x-if="!$store.chats.chatGroups || Object.keys($store.chats.chatGroups).length === 0">
                     <div class="chat-list-empty">暂无分类</div>
@@ -352,7 +395,9 @@
                 <!-- 分类分组列表：按 tag 遍历 -->
                 <template x-for="(items, tag) in ($store.chats.chatGroups || {})" :key="tag">
                     <div class="chat-group" x-show="items.length > 0">
-                        <div class="chat-group-header" @click="$store.chats.toggleCollapse('cat_' + tag)"
+                        <div class="chat-group-header" role="treeitem" tabindex="0"
+                            :aria-expanded="!$store.chats.isCollapsed('cat_' + tag)"
+                            @click="$store.chats.toggleCollapse('cat_' + tag)"
                             @mouseenter="$store.chats.closeContextMenu()">
                             <span class="collapse-arrow"
                                 :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">&#x276F;</span>
@@ -362,7 +407,9 @@
                         </div>
                         <div class="chat-group-body" :class="{ collapsed: $store.chats.isCollapsed('cat_' + tag) }">
                             <template x-for="chat in items" :key="chat.sn">
-                                <div class="chat-item" :class="{
+                                <div class="chat-item" role="treeitem" tabindex="0"
+                                    data-role="chat-item"
+                                    :class="{
                                         active: $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active',
                                         'active-sub': $store.chats.getActiveStyle(chat.sn, 'category', tag) === 'active-sub'
                                     }" :data-sn="chat.sn" @click="$store.chats.selectChat(chat.sn, 'category', tag)"
@@ -374,7 +421,8 @@
                                     <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                     <button class="chat-item-more-btn"
                                         @mouseenter="$store.chats.showCategoryContextMenu($event, chat, tag)"
-                                        @click.stop="$store.chats.showCategoryContextMenu($event, chat, tag)">
+                                        @click.stop="$store.chats.showCategoryContextMenu($event, chat, tag)"
+                                        @keydown.enter.prevent="$store.chats.showCategoryContextMenu($event, chat, tag)">
                                         <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
                                             x-html="ICON_DOTS"></svg>
                                     </button>
@@ -386,7 +434,12 @@
             </div>
 
             <!-- 收藏 Tab 内容 — 按自定义目录分组（无顶层根节点，Tab 本身充当根） -->
-            <div class="sidebar-content" x-data x-show="$store.chats.sidebarTab === 'favorites'">
+            <div class="sidebar-content"
+                x-data="sidebarTreeNav('favorites')"
+                x-show="$store.chats.sidebarTab === 'favorites'"
+                role="tree"
+                @keydown.enter.prevent="activateItem"
+                @keydown.space.prevent="activateItem">
                 <!-- 空状态 -->
                 <template x-if="!$store.chats.favoritesGroups
                     || Object.keys($store.chats.favoritesGroups).length === 0">
@@ -399,7 +452,9 @@
                     <div>
                         <template x-for="(items, customTag) in $store.chats.favoritesGroups" :key="'fav_' + customTag">
                             <div class="chat-group chat-group-fav-sub">
-                                <div class="chat-group-header" @click="$store.chats.toggleCollapse('fav_' + customTag)"
+                                <div class="chat-group-header" role="treeitem" tabindex="0"
+                                    :aria-expanded="!$store.chats.isCollapsed('fav_' + customTag)"
+                                    @click="$store.chats.toggleCollapse('fav_' + customTag)"
                                     @mouseenter="$store.chats.closeContextMenu()">
                                     <span class="collapse-arrow"
                                         :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">&#x276F;</span>
@@ -408,7 +463,8 @@
                                         x-text="'(' + items.length + ')'"></span>
                                     <button class="fav-group-more-btn"
                                         @click.stop="$store.chats.showFavoriteCategoryMenu($event, customTag)"
-                                        @mouseenter.stop="$store.chats.showFavoriteCategoryMenu($event, customTag)">
+                                        @mouseenter.stop="$store.chats.showFavoriteCategoryMenu($event, customTag)"
+                                        @keydown.enter.prevent="$store.chats.showFavoriteCategoryMenu($event, customTag)">
                                         <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
                                             x-html="ICON_DOTS_H"></svg>
                                     </button>
@@ -416,7 +472,9 @@
                                 <div class="chat-group-body"
                                     :class="{ collapsed: $store.chats.isCollapsed('fav_' + customTag) }">
                                     <template x-for="chat in items" :key="chat.sn">
-                                        <div class="chat-item" :class="{
+                                        <div class="chat-item" role="treeitem" tabindex="0"
+                                            data-role="chat-item"
+                                            :class="{
                                                 active: $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active',
                                                 'active-sub': $store.chats.getActiveStyle(chat.sn, 'favorites', customTag) === 'active-sub'
                                             }" :data-sn="chat.sn"
@@ -425,7 +483,8 @@
                                             <div class="chat-item-title" x-text="chat.title || '新对话'"></div>
                                             <button class="chat-item-more-btn"
                                                 @mouseenter="$store.chats.showCategoryContextMenu($event, chat, customTag)"
-                                                @click.stop="$store.chats.showCategoryContextMenu($event, chat, customTag)">
+                                                @click.stop="$store.chats.showCategoryContextMenu($event, chat, customTag)"
+                                                @keydown.enter.prevent="$store.chats.showCategoryContextMenu($event, chat, customTag)">
                                                 <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"
                                                     x-html="ICON_DOTS"></svg>
                                             </button>
@@ -449,7 +508,7 @@
                         stroke-linecap="round" stroke-linejoin="round" x-html="ICON_NEW_CHAT"></svg>
                     <span class="text-btn-label">新对话</span>
                 </button>
-                <span class="main-title" id="headerTitle"></span>
+                <span class="main-title" id="headerTitle" tabindex="0" role="button"></span>
                 <button id="aiTitleBtn" class="icon-btn icon-btn--small ai-title-btn"
                     x-data="iconBtn({ size: 'small', disabled: () => $store.chats.active?.isStreaming })"
                     :disabled="disabled" x-show="$store.chats.active?.sn" data-tooltip="让 AI 重新生成标题">
@@ -477,29 +536,34 @@
                          避免 Alpine 在同一元素上同时处理 x-show 和 x-data 时，
                          因 x-show 从 false→true 的转换导致 x-data 被意外重新求值，
                          使 open 错误地变为 true 而自动显示下拉菜单。 -->
-                    <div x-data="{ open: false }" @click.outside="open = false">
+                    <div x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
                         <div class="user-avatar-dropdown">
                             <button class="user-avatar-btn" @click="open = !open"
-                                :data-tooltip="$store.chats.currentUserNickname || '匿名用户'">
+                                @keydown.enter.prevent="open = !open"
+                                @keydown.space.prevent="open = !open"
+                                :data-tooltip="$store.chats.currentUserNickname || '匿名用户'"
+                                aria-haspopup="true" :aria-expanded="open">
                                 <img class="user-avatar-img"
                                     :src="$store.chats.currentUserAvatar || '/static/img/avatar/anonymous.png'" alt="头像"
                                     width="32" height="32">
                             </button>
                             <!-- x-if：open=false 时 DOM 完全不存在，彻底杜绝显示问题 -->
                             <template x-if="open">
-                                <div class="user-dropdown-menu" @click="open = false">
+                                <div class="user-dropdown-menu" @click="open = false" role="menu">
                                     <!-- 用户名（不可点击） -->
                                     <div class="dropdown-item dropdown-item--disabled dropdown-item--username"
-                                        x-text="$store.chats.currentUserNickname || '匿名用户'"></div>
+                                        x-text="$store.chats.currentUserNickname || '匿名用户'" role="menuitem"></div>
                                     <!-- 选择颜色主题 -->
-                                    <button class="dropdown-item" id="themeSelectBtn" @click="onOpenThemeDialog">
+                                    <button class="dropdown-item" id="themeSelectBtn" @click="onOpenThemeDialog"
+                                        role="menuitem">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                             stroke-linejoin="round" x-html="ICON_PALETTE"></svg>
                                         选择颜色主题
                                     </button>
                                     <!-- API-Key 设置 -->
-                                    <button class="dropdown-item" id="apikeySettingBtn" @click="onOpenApiKeyDialog">
+                                    <button class="dropdown-item" id="apikeySettingBtn" @click="onOpenApiKeyDialog"
+                                        role="menuitem">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                             stroke-linejoin="round">
@@ -511,7 +575,8 @@
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
                                     <!-- 个人画像 -->
-                                    <button class="dropdown-item" id="traitBtn" @click="onOpenUserTraits">
+                                    <button class="dropdown-item" id="traitBtn" @click="onOpenUserTraits"
+                                        role="menuitem">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                             stroke-linejoin="round" x-html="ICON_USER"></svg>
@@ -520,7 +585,8 @@
                                     <!-- 分隔线 -->
                                     <div class="dropdown-divider"></div>
                                     <!-- 关于"第2大脑" -->
-                                    <button class="dropdown-item" id="aboutDialogBtn" @click="onOpenAboutDialog">
+                                    <button class="dropdown-item" id="aboutDialogBtn" @click="onOpenAboutDialog"
+                                        role="menuitem">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                             stroke-linejoin="round">
@@ -534,7 +600,7 @@
                                     <div class="dropdown-divider"></div>
                                     <!-- 退出登录（已登录用户始终可见） -->
                                     <button class="dropdown-item dropdown-item--danger" id="logoutBtn"
-                                        @click="onChatLogout">
+                                        @click="onChatLogout" role="menuitem">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                             stroke-linejoin="round" x-html="ICON_LOGOUT"></svg>

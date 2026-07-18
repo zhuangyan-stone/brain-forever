@@ -52,6 +52,7 @@ let contextMenuEl = null;       // 当前打开的右键菜单
 let contextTargetSN = null;     // 右键菜单目标对话 SN
 let contextTargetTag = null;    // 收藏分类菜单目标 customTag
 let hoverMenuTimer = null;     // hover 弹出菜单的关闭定时器
+let contextPrevFocus = null;   // 菜单打开前聚焦的元素（关闭后恢复焦点）
 
 /**
  * 清除当前激活的选中状态（新对话等场景使用）
@@ -414,6 +415,8 @@ function showContextMenu(e, chat) {
     if (contextMenuEl && contextTargetSN === chat.sn) {
         return;
     }
+    // 记住当前焦点元素，关闭菜单后恢复
+    contextPrevFocus = document.activeElement;
     closeContextMenu();
 
     contextTargetSN = chat.sn;
@@ -533,6 +536,50 @@ function showContextMenu(e, chat) {
     document.body.appendChild(menu);
     contextMenuEl = menu;
 
+    // ---- 键盘导航支持 ----
+    // 自动聚焦第一个菜单项
+    var firstItem = menu.querySelector('.chat-context-menu-item');
+    if (firstItem && !firstItem.classList.contains('chat-context-menu-item-disabled')) {
+        firstItem.setAttribute('tabindex', '0');
+        firstItem.focus();
+    }
+
+    // 菜单内键盘导航
+    menu.addEventListener('keydown', function menuKeydown(e) {
+        var menuItems = Array.from(menu.querySelectorAll('.chat-context-menu-item:not(.chat-context-menu-item-disabled)'));
+        if (menuItems.length === 0) return;
+
+        var currentIdx = menuItems.indexOf(document.activeElement);
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                if (currentIdx < menuItems.length - 1) {
+                    menuItems[currentIdx + 1].setAttribute('tabindex', '0');
+                    menuItems[currentIdx + 1].focus();
+                }
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                if (currentIdx > 0) {
+                    menuItems[currentIdx - 1].setAttribute('tabindex', '0');
+                    menuItems[currentIdx - 1].focus();
+                }
+                break;
+            case 'Escape':
+                e.preventDefault();
+                closeContextMenu();
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                if (currentIdx >= 0) {
+                    menuItems[currentIdx].click();
+                }
+                break;
+        }
+    });
+
     // 大屏 hover 模式：菜单在鼠标离开时自动关闭（带延迟，防止移动到菜单时闪烁）
     if (!isSmallScreen) {
         // 鼠标进入菜单 → 取消关闭定时器
@@ -570,6 +617,11 @@ function closeContextMenu() {
     if (contextMenuEl) {
         contextMenuEl.remove();
         contextMenuEl = null;
+    }
+    // 恢复菜单打开前的键盘焦点（chat-item 或 "..." 按钮）
+    if (contextPrevFocus) {
+        try { contextPrevFocus.focus(); } catch(e) {}
+        contextPrevFocus = null;
     }
     contextTargetSN = null;
     contextTargetTag = null;
@@ -1583,6 +1635,23 @@ function showFavoriteCategoryMenu(e, customTag) {
 
     document.body.appendChild(menu);
     contextMenuEl = menu;
+
+    // ---- 键盘导航支持 ----
+    var firstFavItem = menu.querySelector('.chat-context-menu-item');
+    if (firstFavItem) {
+        firstFavItem.setAttribute('tabindex', '0');
+        firstFavItem.focus();
+    }
+    menu.addEventListener('keydown', function favMenuKeydown(e) {
+        var items = Array.from(menu.querySelectorAll('.chat-context-menu-item'));
+        var idx = items.indexOf(document.activeElement);
+        switch (e.key) {
+            case 'ArrowDown': e.preventDefault(); if (idx < items.length - 1) { items[idx + 1].setAttribute('tabindex', '0'); items[idx + 1].focus(); } break;
+            case 'ArrowUp': e.preventDefault(); if (idx > 0) { items[idx - 1].setAttribute('tabindex', '0'); items[idx - 1].focus(); } break;
+            case 'Escape': e.preventDefault(); closeContextMenu(); break;
+            case 'Enter': case ' ': e.preventDefault(); if (idx >= 0) items[idx].click(); break;
+        }
+    });
 
     // 大屏 hover 模式
     if (!isSmallScreen) {

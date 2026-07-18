@@ -351,6 +351,41 @@ function toggleSidebarMaster() {
         if (isLeftVisible) hideByUser();
         else attemptShow(true);
     }
+    // 侧边栏打开后聚焦到 lastFocusedTab
+    _focusSidebarTab();
+}
+
+/**
+ * 侧边栏打开后聚焦到 lastFocusedTab 对应的 Tab 按钮
+ * 在侧边栏可见的情况下尝试聚焦
+ */
+function _focusSidebarTab() {
+    // 检查侧边栏是否可见
+    var sidebar = document.getElementById('leftSidebar');
+    if (!sidebar) return;
+    var isVisible = false;
+    if (isSmallMode) {
+        isVisible = sidebar.classList.contains('drawer-open');
+    } else {
+        isVisible = !sidebar.classList.contains('hidden');
+    }
+    if (!isVisible) return;
+
+    var chatsStore = window.Alpine.store('chats');
+    if (!chatsStore) return;
+    var tabName = chatsStore.lastFocusedTab || 'timeline';
+
+    // 等待 Alpine DOM 更新后聚焦
+    window.Alpine.nextTick(function() {
+        var tabBtn = document.querySelector('.sidebar-tab[data-tab="' + tabName + '"]');
+        if (tabBtn) {
+            tabBtn.focus();
+            // 确保切换到该 Tab 的内容
+            if (chatsStore.sidebarTab !== tabName) {
+                chatsStore.switchSidebarTab(tabName);
+            }
+        }
+    });
 }
 
 // 小屏打开抽屉
@@ -364,6 +399,7 @@ function openDrawer() {
 
 function closeDrawer() {
     if (!isSmallMode) return;
+    _recordCurrentTab();
     leftSidebar.classList.remove('drawer-open');
     isDrawerOpen = false;
     updateUI();
@@ -386,11 +422,24 @@ try {
 function hideByUser() {
     if (isSmallMode) return;
     if (isLeftVisible) {
+        _recordCurrentTab();
         isLeftVisible = false;
         autoHidden = false;
         syncDual();
         updateBrandLayout();
     }
+}
+
+/**
+ * 记录当前侧边栏 Tab 到 store.lastFocusedTab
+ */
+function _recordCurrentTab() {
+    try {
+        var chatsStore = window.Alpine.store('chats');
+        if (chatsStore && chatsStore.sidebarTab) {
+            chatsStore.lastFocusedTab = chatsStore.sidebarTab;
+        }
+    } catch(e) {}
 }
 
 function attemptShow(user = true) {

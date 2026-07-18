@@ -334,6 +334,7 @@ document.addEventListener('alpine:init', function() {
         activeChatSource: null,  // 点击来源区间: 'timeline' | 'favorites' | 'category' | null
         activeSubSource: null,   // 区间内具体分组标识: 'fav_customTag' | 'cat_tag' | null
         sidebarTab: 'timeline',  // 侧边栏当前 tab: 'timeline' | 'category' | 'favorites'
+        lastFocusedTab: 'timeline', // 上次聚焦的 Tab，打开侧边栏时恢复到此 Tab
         collapsedGroups: {},     // 折叠状态: { 'groupLabel': true/false }
         chatCategories: [],      // 分类 tab 的分组数据
         currentUserNo: '',       // 当前登录用户号，由 initPage / onChatLogin 设置
@@ -417,6 +418,7 @@ document.addEventListener('alpine:init', function() {
          */
         switchSidebarTab: function(tab) {
             this.sidebarTab = tab;
+            this.lastFocusedTab = tab;
 
             // 从时间线切到其他 tab：清除来源信息，使所有 chat-item 降级为 active-sub
             if (tab !== 'timeline') {
