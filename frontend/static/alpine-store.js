@@ -1069,7 +1069,15 @@ document.addEventListener('alpine:init', function() {
          */
         closeInlineHint: function() {
             if (this.active && this.active.inlineHint) {
-                this.active.inlineHint = null;
+                // 推迟到下一个周期清除 inlineHint，避免在发送新消息过程中
+                // 因立即清除导致 UI 闪烁或渲染抖动。让 inlineHint 在本次渲染
+                // 周期结束后自然消失，提升视觉连贯性。
+                var store = this;
+                setTimeout(function() {
+                    if (store.active && store.active.inlineHint) {
+                        store.active.inlineHint = null;
+                    }
+                }, 0);
             }
         },
 

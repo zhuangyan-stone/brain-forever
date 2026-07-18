@@ -173,8 +173,17 @@ export function accumulateCompletion(sn) {
             try {
                 var chatsStore = window.Alpine.store('chats');
                 var chat = chatsStore.getOrCreate(sn);
-                var successText = '生成 ' + newCount + ' 条新特征';
-                chat.inlineHint = { text: successText, state: 'done' };
+                
+                var successText = '';
+                var state = 'done';
+                if (newCount > 0) {
+                    successText = '生成 ' + newCount + ' 条新特征';
+                } else {
+                    successText = '暂未发现新特征';
+                    state = 'none';
+                }
+
+                chat.inlineHint = { text: successText, state: state };
             } catch(e) {}
 
             clearExtractingLock(sn);
