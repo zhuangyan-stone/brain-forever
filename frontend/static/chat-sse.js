@@ -438,7 +438,7 @@ function handleNetworkError(stream) {
             retryStream(stream);
             // 弹出"正在重连"提示，利用 replaceOnNew 机制关闭旧的错误提示
             showToastHTML(
-                '⏳ 正在尝试重连服务器…',
+                '⏳ 正在尝试重连服务器……',
                 'info',
                 3000
             );
