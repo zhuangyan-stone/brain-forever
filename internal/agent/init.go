@@ -86,7 +86,7 @@ func InitRedisStore(cfg config.RedisConfig) *cache.RedisSessionStore {
 	if cfg.Addr == "" {
 		return nil
 	}
-	return cache.NewRedisSessionStore(cfg.Addr, cfg.Password, cfg.DB)
+	return cache.NewRedisSessionStore(&cfg)
 }
 
 // InitAgent creates a fully initialized ChatHandler from a Config.

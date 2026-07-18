@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"BrainForever/internal/config"
 )
 
 // ============================================================
@@ -48,12 +50,13 @@ type RedisSessionStore struct {
 	client *redis.Client
 }
 
-// NewRedisSessionStore creates a new RedisSessionStore.
-func NewRedisSessionStore(addr, password string, db int) *RedisSessionStore {
+// NewRedisSessionStore creates a new RedisSessionStore from config.
+func NewRedisSessionStore(cfg *config.RedisConfig) *RedisSessionStore {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       db,
+		Addr:     cfg.Addr,
+		Password: cfg.Password,
+		DB:       cfg.DB,
+		PoolSize: cfg.PoolSize,
 	})
 	return &RedisSessionStore{client: rdb}
 }

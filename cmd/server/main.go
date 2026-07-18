@@ -98,7 +98,7 @@ func main() {
 	if cfg.Database.DSN == "" {
 		theLogger.Fatalf("PG_DSN environment variable is required")
 	}
-	if err := store.InitPGDB(cfg.Database.DSN); err != nil {
+	if err := store.InitPGDB(&cfg.Database); err != nil {
 		theLogger.Fatalf("failed to initialize PostgreSQL: %v", err)
 	}
 	defer store.ClosePGDB()

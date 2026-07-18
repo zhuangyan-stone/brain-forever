@@ -286,13 +286,13 @@ type LoggerConfig struct {
 }
 
 // ============================================================
-// DatabaseConfig — MySQL
+// DatabaseConfig — PostgreSQL
 // ============================================================
 
-// DatabaseConfig configures the MySQL database connection.
+// DatabaseConfig configures the PostgreSQL database connection.
 type DatabaseConfig struct {
-	// DSN is the MySQL data source name.
-	// e.g. "user:password@tcp(127.0.0.1:3306)/brain_forever?charset=utf8mb4&parseTime=true"
+	// DSN is the PostgreSQL data source name.
+	// e.g. "postgres://user:password@127.0.0.1:5432/d2brain?sslmode=disable"
 	DSN string
 
 	// MaxOpenConns is the maximum number of open connections to the database.

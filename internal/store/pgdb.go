@@ -7,6 +7,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib" // Register pgx driver for sqlx
 	"github.com/jmoiron/sqlx"
+
+	"BrainForever/internal/config"
 )
 
 // ============================================================
@@ -18,13 +20,10 @@ import (
 var thePGDBC *sqlx.DB
 
 // InitPGDB initializes the global PostgreSQL database connection.
-// dsn is the PostgreSQL connection URI, e.g.
-//
-//	"postgres://user:password@127.0.0.1:5432/d2brain?sslmode=disable"
-//
+// cfg provides the DSN and connection pool settings.
 // Must be called once at startup, before any store that uses PostgreSQL.
-func InitPGDB(dsn string) error {
-	db, err := sqlx.Open("pgx", dsn)
+func InitPGDB(cfg *config.DatabaseConfig) error {
+	db, err := sqlx.Open("pgx", cfg.DSN)
 	if err != nil {
 		return fmt.Errorf("failed to open PostgreSQL connection. %w", err)
 	}
@@ -41,9 +40,9 @@ func InitPGDB(dsn string) error {
 		return fmt.Errorf("failed to set timezone to UTC. %w", err)
 	}
 
-	// Configure connection pool
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
+	// Configure connection pool from config
+	db.SetMaxOpenConns(cfg.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.MaxIdleConns)
 
 	thePGDBC = db
 	return nil
