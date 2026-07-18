@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // Register pgx driver for sqlx
@@ -57,21 +58,57 @@ func ThePGDB() *sqlx.DB {
 	return thePGDBC
 }
 
-// InitSchema initializes all database schemas by reading bin/settings/init.sql.
-// This is the single entry point for schema initialization — replaces all
-// per-store EnsureSchema() calls.
+// InitSchema initializes all database schemas by reading a SQL file from
+// bin/settings/init_sql/. This directory must contain exactly zero or one .sql
+// file — if multiple are found, the function returns an error to prevent
+// accidental double-execution.
+//
+// After successful execution, the SQL file is automatically renamed with a "-"
+// prefix so that it is skipped on subsequent restarts.
 //
 // Must be called after InitPGDB. The dimension parameter is used to replace
 // the {dimension} placeholder in VECTOR({dimension}) column definitions.
-func InitSchema(dimension int) error {
-	const initSQLPath = "bin/settings/init.sql"
-	schemaBytes, err := os.ReadFile(initSQLPath)
+//
+// The returned string is the name of the executed SQL file, or empty if none.
+func InitSchema(dimension int) (string, error) {
+	const sqlDir = "bin/settings/init_sql"
+
+	entries, err := os.ReadDir(sqlDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// init.sql 不存在时跳过 schema 初始化（例如重命名为 -init.sql）
-			return nil
+			return "", nil
 		}
-		return fmt.Errorf("failed to read %s. %w", initSQLPath, err)
+		return "", fmt.Errorf("failed to read directory %s. %w", sqlDir, err)
+	}
+
+	// Collect .sql files from the directory, skipping files prefixed with "-"
+	// (those are considered disabled/skipped).
+	var sqlFiles []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if strings.HasPrefix(name, "-") {
+			continue
+		}
+		if strings.HasSuffix(name, ".sql") {
+			sqlFiles = append(sqlFiles, name)
+		}
+	}
+
+	// Must have exactly zero or one SQL file
+	if len(sqlFiles) == 0 {
+		return "", nil
+	}
+	if len(sqlFiles) > 1 {
+		return "", fmt.Errorf("found %d SQL files in %s, expected at most one", len(sqlFiles), sqlDir)
+	}
+
+	sqlPath := filepath.Join(sqlDir, sqlFiles[0])
+	schemaBytes, err := os.ReadFile(sqlPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %s. %w", sqlPath, err)
 	}
 
 	// Replace {dimension} placeholder with the actual vector dimension
@@ -80,15 +117,21 @@ func InitSchema(dimension int) error {
 	// Verify pgvector extension is already installed (must be created by DBA beforehand)
 	var extExists int
 	if err := ThePGDB().Get(&extExists, "SELECT 1 FROM pg_extension WHERE extname = 'vector'"); err != nil {
-		return fmt.Errorf("pgvector extension is not installed. run 'CREATE EXTENSION vector' as a superuser first. %w", err)
+		return "", fmt.Errorf("pgvector extension is not installed. run 'CREATE EXTENSION vector' as a superuser first. %w", err)
 	}
 
 	// Execute the full schema
 	if _, err := ThePGDB().Exec(schema); err != nil {
-		return fmt.Errorf("failed to execute init.sql. %w", err)
+		return "", fmt.Errorf("failed to execute %s. %w", sqlFiles[0], err)
 	}
 
-	return nil
+	// Rename the executed SQL file with a "-" prefix so it is skipped on restart
+	newPath := filepath.Join(sqlDir, "-"+sqlFiles[0])
+	if err := os.Rename(sqlPath, newPath); err != nil {
+		return "", fmt.Errorf("failed to rename executed SQL file %s. %w", sqlPath, err)
+	}
+
+	return sqlFiles[0], nil
 }
 
 // ClosePGDB closes the global PostgreSQL database connection.
