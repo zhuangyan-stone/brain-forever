@@ -3,6 +3,7 @@
     ============================================================
     使用场景：在最后一条消息下方插入临时的进度/状态提示，
              含旋转进度圈和文字，成功后可自动消失。
+             由 Alpine x-transition 控制淡入淡出动画。
     ============================================================ */
 
 .inline-hint {
@@ -13,37 +14,28 @@
     font-size: 0.82rem;
     line-height: 1.4;
     color: var(--text-secondary);
-    animation: inline-hint-fade-in 0.25s ease;
 }
 
-/* 淡入动画 */
-@keyframes inline-hint-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(-4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Alpine x-transition 类名 */
+.inline-hint-enter {
+    transition: opacity 0.25s ease, transform 0.25s ease;
 }
-
-/* 淡出动画（由 JS 添加 class 触发）
-   使用 transition 而非 animation，配合 JS 锁定当前高度实现收缩效果 */
-.inline-hint--fade-out {
-    opacity: 0 !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    overflow: hidden;
-    pointer-events: none;
-    transition: opacity 0.3s ease, height 0.25s ease 0.05s,
-                padding-top 0.25s ease 0.05s, padding-bottom 0.25s ease 0.05s,
-                margin-top 0.25s ease 0.05s, margin-bottom 0.25s ease 0.05s;
-    animation: none;
+.inline-hint-enter-start {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+.inline-hint-enter-end {
+    opacity: 1;
+    transform: translateY(0);
+}
+.inline-hint-leave {
+    transition: opacity 0.3s ease;
+}
+.inline-hint-leave-start {
+    opacity: 1;
+}
+.inline-hint-leave-end {
+    opacity: 0;
 }
 
 /* === 旋转进度圈 === */

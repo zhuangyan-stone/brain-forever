@@ -380,6 +380,7 @@ document.addEventListener('alpine:init', function() {
                 isStreaming: false,
                 userScrolledUp: false,
                 streamingMsg: null,
+                inlineHint: null,
                 groups: [],
                 _groupSeq: 0,
             };
@@ -940,6 +941,7 @@ document.addEventListener('alpine:init', function() {
                     isStreaming: false,
                     userScrolledUp: false,
                     streamingMsg: null,
+                    inlineHint: null,
                     groups: [],
                     _groupSeq: 0,
                 };

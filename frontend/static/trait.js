@@ -6,7 +6,7 @@
 //   1. 维护每个对话的流完成计数器（永不归零，持续递增）
 //   2. 达到阈值后调用 trait-api.js 的 fetchExtractTraits
 //   3. 管理请求锁，防止重复触发
-//   4. 使用 InlineHint 组件显示请求进度
+//   4. 通过 Alpine store 的 chat.inlineHint 字段显示提取进度
 //
 // 使用方式：
 //   import { accumulateCompletion } from './trait.js';
@@ -24,7 +24,6 @@
 'use strict';
 
 import { extractTraits } from './trait-api.js';
-import { InlineHint } from './components/inline-hint.js';
 
 /**
  * 四阶阶段定义表。
@@ -86,12 +85,10 @@ var TRAIT_HINT_TEXTS = [
 ];
 
 /**
- * 获取对话容器的引用。
- * @returns {HTMLElement|null}
+ * 自动清除延时（秒）。done/fail 后等待此时间，然后清除 inlineHint。
+ * 由业务方控制，可传不同值实现不同时长。
  */
-function getChatContainer() {
-    return document.getElementById('chatContainer');
-}
+var KEEP_SECONDS = 10;
 
 /**
  * 累加一次流完成计数。每次 SSE 流完成（onDone）时调用。
@@ -112,23 +109,30 @@ export function accumulateCompletion(sn) {
     if (isTriggerPoint(c.count) && !c._extracting) {
         c._extracting = true;
 
-        // 创建 InlineHint 显示进度
-        var container = getChatContainer();
-        var hint = null;
-        if (container) {
-            hint = new InlineHint(container, {
-                texts: TRAIT_HINT_TEXTS,
-                keepSeconds: 10,
-                successFormat: '已生成{n}条特征',
-            });
-            hint.show();
+        // 通过 Alpine store 设置 inlineHint，触发响应式渲染
+        try {
+            var chatsStore = window.Alpine.store('chats');
+            var chat = chatsStore.getOrCreate(sn);
+            var texts = TRAIT_HINT_TEXTS;
+            var idx = Math.floor(Math.random() * texts.length);
+            chat.inlineHint = { text: texts[idx], state: 'pending' };
+        } catch(e) {
+            // Alpine store 未就绪时静默跳过
         }
 
         extractTraits(sn).then(function(data) {
             if (!data) {
-                if (hint) {
-                    hint.fail('提取个人特征失败');
-                }
+                // 失败：更新 inlineHint 为 fail 状态
+                try {
+                    var chatsStore = window.Alpine.store('chats');
+                    var chat = chatsStore.getOrCreate(sn);
+                    chat.inlineHint = { text: '提取个人特征失败', state: 'fail' };
+                    setTimeout(function() {
+                        if (chat.inlineHint && chat.inlineHint.state === 'fail') {
+                            chat.inlineHint = null;
+                        }
+                    }, KEEP_SECONDS * 1000);
+                } catch(e) {}
                 clearExtractingLock(sn);
                 return;
             }
@@ -173,9 +177,18 @@ export function accumulateCompletion(sn) {
             }
 
             var featureCount = data.extracted_count || 0;
-            if (hint) {
-                hint.done(featureCount);
-            }
+            // 成功：更新 inlineHint 为 done 状态
+            try {
+                var chatsStore = window.Alpine.store('chats');
+                var chat = chatsStore.getOrCreate(sn);
+                var successText = '已生成' + featureCount + '条特征';
+                chat.inlineHint = { text: successText, state: 'done' };
+                setTimeout(function() {
+                    if (chat.inlineHint && chat.inlineHint.state === 'done') {
+                        chat.inlineHint = null;
+                    }
+                }, KEEP_SECONDS * 1000);
+            } catch(e) {}
 
             clearExtractingLock(sn);
         });

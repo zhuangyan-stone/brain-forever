@@ -191,6 +191,7 @@ async function startNewChat() {
         isStreaming: false,
         userScrolledUp: false,
         streamingMsg: null,
+        inlineHint: null,
         groups: [],
         _groupSeq: 0,
     };
