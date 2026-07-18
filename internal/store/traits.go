@@ -24,7 +24,7 @@ type PersonalTrait struct {
 	Confidence   int       `db:"confidence"`
 	HalfLife     int       `db:"half_life"`
 	PrivacyLevel int       `db:"privacy_level"`
-	ChatSN       string    `db:"chat_sn"`
+	ChatID       int64     `db:"chat_id"`
 	Score        float64   `db:"-"` // similarity score (search only)
 	CreateAt     time.Time `db:"create_at"`
 	UpdateAt     time.Time `db:"update_at"`
@@ -73,12 +73,12 @@ func (s *BrainStore) AddTrait(ctx context.Context, userID int64, trait *Personal
 	}
 	defer tx.Rollback()
 
-	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_sn)
+	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_id)
 		 VALUES($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id`
 	var traitID int64
 	err = tx.QueryRow(sqlInsertTrait,
-		userID, trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.PrivacyLevel, trait.ChatSN,
+		userID, trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.PrivacyLevel, trait.ChatID,
 	).Scan(&traitID)
 	if err != nil {
 		s.logger.Errorf("SQL [%s]:\n%v", sqlInsertTrait, err)
@@ -113,7 +113,7 @@ func (s *BrainStore) AddTraits(ctx context.Context, insertions []TraitInsertion)
 	}
 	defer tx.Rollback()
 
-	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_sn)
+	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_id)
 			 VALUES($1, $2, $3, $4, $5, $6, $7)
 			 RETURNING id`
 	sqlInsertVec := "INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)"
@@ -123,7 +123,7 @@ func (s *BrainStore) AddTraits(ctx context.Context, insertions []TraitInsertion)
 		var traitID int64
 		err = tx.QueryRow(sqlInsertTrait,
 			ins.UserID, ins.Trait.Trait, ins.Trait.Category, ins.Trait.Confidence,
-			ins.Trait.HalfLife, ins.Trait.PrivacyLevel, ins.Trait.ChatSN,
+			ins.Trait.HalfLife, ins.Trait.PrivacyLevel, ins.Trait.ChatID,
 		).Scan(&traitID)
 		if err != nil {
 			s.logger.Errorf("SQL [%s]:\n%v", sqlInsertTrait, err)
@@ -172,7 +172,7 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 
 	sqlQuery := `SELECT v.trait_id, v.embedding <=> $1 AS distance,
 		t.id, t.trait, t.category, t.confidence, t.half_life,
-		t.privacy_level, t.chat_sn, t.create_at, t.update_at
+		t.privacy_level, t.chat_id, t.create_at, t.update_at
 		FROM trait_vectors v
 		JOIN traits t ON t.id = v.trait_id
 		WHERE t.user_id = $2`
@@ -201,11 +201,12 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 			distance                       float64
 			traitCat, confidence, halfLife int64
 			privacyLevel                   int
-			traitText, chatSN              string
+			chatID                         int64
+			traitText                      string
 			createAt, updateAt             time.Time
 		)
 		if err := rows.Scan(&traitID, &distance, &traitID, &traitText, &traitCat,
-			&confidence, &halfLife, &privacyLevel, &chatSN, &createAt, &updateAt); err != nil {
+			&confidence, &halfLife, &privacyLevel, &chatID, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 
@@ -217,7 +218,7 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 			Category:     int(traitCat),
 			Confidence:   int(confidence),
 			HalfLife:     int(halfLife),
-			ChatSN:       chatSN,
+			ChatID:       chatID,
 			Score:        score,
 			PrivacyLevel: privacyLevel,
 			CreateAt:     createAt,
@@ -243,7 +244,7 @@ func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit 
 	var args []interface{}
 	if kind > 0 {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_id, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE t.user_id = $1 AND k.word = $2 AND k.kind = $3
@@ -252,7 +253,7 @@ func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit 
 		args = []interface{}{userID, word, kind, limit}
 	} else {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_id, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE t.user_id = $1 AND k.word = $2
@@ -273,7 +274,7 @@ func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit 
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
 		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife,
-			&pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
+			&pt.PrivacyLevel, &pt.ChatID, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt
@@ -298,7 +299,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 	var args []interface{}
 	if kind > 0 {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_id, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE t.user_id = $1 AND k.word LIKE $2 AND k.kind = $3
@@ -307,7 +308,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 		args = []interface{}{userID, "%" + word + "%", kind, limit}
 	} else {
 		query = `SELECT DISTINCT t.id, t.trait, t.category, t.confidence, t.half_life,
-		                t.privacy_level, t.chat_sn, t.create_at, t.update_at
+		                t.privacy_level, t.chat_id, t.create_at, t.update_at
 		 FROM traits t
 		 INNER JOIN keywords k ON k.trait_id = t.id
 		 WHERE t.user_id = $1 AND k.word LIKE $2
@@ -328,7 +329,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
 		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife,
-			&pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
+			&pt.PrivacyLevel, &pt.ChatID, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt
@@ -359,44 +360,44 @@ func (s *BrainStore) Delete(id int64) error {
 	return nil
 }
 
-// DeleteByChatSN deletes all traits for a chat SN.
-func (s *BrainStore) DeleteByChatSN(chatSN string) (int, error) {
-	if chatSN == "" {
-		return 0, fmt.Errorf("empty chat SN")
+// DeleteByChatID deletes all traits for a chat ID.
+func (s *BrainStore) DeleteByChatID(chatID int64) (int, error) {
+	if chatID == 0 {
+		return 0, fmt.Errorf("empty chat ID")
 	}
 
-	sqlStr := "DELETE FROM traits WHERE chat_sn = $1"
-	result, err := s.db().Exec(sqlStr, chatSN)
+	sqlStr := "DELETE FROM traits WHERE chat_id = $1"
+	result, err := s.db().Exec(sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatSN=%s]:\n%v", sqlStr, chatSN, err)
-		return 0, fmt.Errorf("failed to delete traits by chat SN. %w", err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		return 0, fmt.Errorf("failed to delete traits by chat ID. %w", err)
 	}
 	n, _ := result.RowsAffected()
 	return int(n), nil
 }
 
-// DeleteTraitsByChatSNs deletes all traits for multiple chat SNs in batch.
-func (s *BrainStore) DeleteTraitsByChatSNs(chatSNs []string) (int, error) {
+// DeleteTraitsByChatIDs deletes all traits for multiple chat IDs in batch.
+func (s *BrainStore) DeleteTraitsByChatIDs(chatIDs []int64) (int, error) {
 	total := 0
-	for _, sn := range chatSNs {
-		n, err := s.DeleteByChatSN(sn)
+	for _, id := range chatIDs {
+		n, err := s.DeleteByChatID(id)
 		if err != nil {
-			return total, fmt.Errorf("failed to delete traits for chat_sn=%s. %w", sn, err)
+			return total, fmt.Errorf("failed to delete traits for chat_id=%d. %w", id, err)
 		}
 		total += n
 	}
 	return total, nil
 }
 
-// ListTraitsByChat returns all traits for a given chat SN.
-func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
-	sqlStr := `SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
+// ListTraitsByChat returns all traits for a given chat ID.
+func (s *BrainStore) ListTraitsByChat(chatID int64) ([]PersonalTrait, error) {
+	sqlStr := `SELECT id, trait, category, confidence, half_life, privacy_level, chat_id, create_at, update_at
 		 FROM traits
-		 WHERE chat_sn = $1
+		 WHERE chat_id = $1
 		 ORDER BY create_at DESC`
-	rows, err := s.db().Query(sqlStr, chatSN)
+	rows, err := s.db().Query(sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatSN=%s]:\n%v", sqlStr, chatSN, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list traits by chat. %w", err)
 	}
 	defer rows.Close()
@@ -406,7 +407,7 @@ func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
 		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife,
-			&pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
+			&pt.PrivacyLevel, &pt.ChatID, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt
@@ -423,7 +424,7 @@ func (s *BrainStore) ListTraitsByChat(chatSN string) ([]PersonalTrait, error) {
 
 // ListAllTraitsByCreateTime returns all personal traits for a user ordered by create_at desc.
 func (s *BrainStore) ListAllTraitsByCreateTime(userID int64) ([]PersonalTrait, error) {
-	sqlStr := `SELECT id, trait, category, confidence, half_life, privacy_level, chat_sn, create_at, update_at
+	sqlStr := `SELECT id, trait, category, confidence, half_life, privacy_level, chat_id, create_at, update_at
 		 FROM traits
 		 WHERE user_id = $1
 		 ORDER BY create_at DESC`
@@ -439,7 +440,7 @@ func (s *BrainStore) ListAllTraitsByCreateTime(userID int64) ([]PersonalTrait, e
 		var pt PersonalTrait
 		var createAt, updateAt time.Time
 		if err := rows.Scan(&pt.ID, &pt.Trait, &pt.Category, &pt.Confidence, &pt.HalfLife,
-			&pt.PrivacyLevel, &pt.ChatSN, &createAt, &updateAt); err != nil {
+			&pt.PrivacyLevel, &pt.ChatID, &createAt, &updateAt); err != nil {
 			return nil, err
 		}
 		pt.CreateAt = createAt

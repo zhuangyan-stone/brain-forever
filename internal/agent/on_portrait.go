@@ -441,13 +441,13 @@ type portraitInfoData struct {
 }
 
 func computePortraitInfo(allTraits []store.PersonalTrait, retouch int, hotTags []hotTagItem) portraitInfo {
-	chatSNSet := make(map[string]struct{})
+	chatIDSet := make(map[int64]struct{})
 	for _, t := range allTraits {
-		if t.ChatSN != "" {
-			chatSNSet[t.ChatSN] = struct{}{}
+		if t.ChatID != 0 {
+			chatIDSet[t.ChatID] = struct{}{}
 		}
 	}
-	chatCount := len(chatSNSet)
+	chatCount := len(chatIDSet)
 
 	earliestStr := ""
 	latestStr := ""

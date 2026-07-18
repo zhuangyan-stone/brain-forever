@@ -152,9 +152,9 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 	lastMsgID := dbMessages[len(dbMessages)-1].ID
 
 	if len(remoteResp.Features) > 0 {
-		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.SN)
+		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.ID)
 		if err != nil {
-			h.logger.Errorf("store traits to brain.db failed (chatSN=%s). %v", foundChat.SN, err)
+			h.logger.Errorf("store traits to brain.db failed (chatID=%d). %v", foundChat.ID, err)
 			toolset.WriteError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 			return
 		}
@@ -309,7 +309,7 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 	return
 }
 
-func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Session, features []traitsFeature, chatSN string) (int, error) {
+func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Session, features []traitsFeature, chatID int64) (int, error) {
 	emb := sessionEmbedder(sess)
 	apiSetting := sessionEmbedderApiSetting(sess)
 
@@ -331,7 +331,7 @@ func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Sess
 			Confidence:   f.Confidence,
 			HalfLife:     halfLifeToInt(f.HalfLife),
 			PrivacyLevel: privacyLevelToInt(f.PrivacyLevel),
-			ChatSN:       chatSN,
+			ChatID:       chatID,
 		}
 
 		keywords := make([]store.TraitKeyword, 0, len(f.Keywords))
