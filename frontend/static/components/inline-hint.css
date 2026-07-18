@@ -11,9 +11,12 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
+    margin: 12px 16px 0;
     font-size: 0.82rem;
     line-height: 1.4;
     color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
 }
 
 /* Alpine x-transition 类名 */
