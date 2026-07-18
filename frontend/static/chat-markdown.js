@@ -270,6 +270,12 @@ function highlightCodeBlocks(html) {
 
 /**
  * addCopyButton 为 <pre> 代码块添加复制按钮（仅创建 DOM，事件由委托处理）
+ *
+ * ★ disabled 处理说明：
+ *   流式输出期间，CSS 已通过 .bubble.streaming .copy-btn.code-copy-btn 隐藏按钮，
+ *   因此无需根据 isStreaming 动态设置 disabled 属性。
+ *   去掉 disabled 逻辑可避免流式结束后按钮因时序竞态永久卡在 disabled 状态。
+ *
  * @param {HTMLElement} pre
  */
 function addCopyButton(pre) {
@@ -279,11 +285,6 @@ function addCopyButton(pre) {
     const btn = document.createElement('button');
     btn.className = 'copy-btn code-copy-btn';
     btn.dataset.tooltip = '复制代码块';
-    try {
-        btn.disabled = !!(window.Alpine && Alpine.store('chats') && Alpine.store('chats').active && Alpine.store('chats').active.isStreaming);
-    } catch(e) {
-        btn.disabled = false;
-    }
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_COPY + '</svg><span class="copy-btn-label">复制为 Markdown</span>';
 
     pre.appendChild(btn);

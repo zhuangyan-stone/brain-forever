@@ -559,6 +559,7 @@ export class SSEResponser {
 
         var assistant = _getAssistant(this.stream.sn);
         if (!assistant) return;
+        var bubble = this.stream.assistantBubble;
 
         // 确保 contentHTML 已渲染（后台流可能 throttle 未触发）
         // ★ 条件从 !assistant.contentHTML 改为始终重新渲染：
@@ -573,16 +574,20 @@ export class SSEResponser {
 
         // 如果已完成但 assistantBubble 存在，显示 sources/usage
         // ★ Alpine 响应式：同步全量 sources 到 group.assistant，不再调用 showSources()
-        if (this.stream.assistantBubble) {
+        if (bubble) {
         	if (sm.sources && sm.sources.length > 0) {
         		_syncWebSourcesToGroup(this.stream.sn);
         	}
         	if (sm.isDone && sm.usage) {
-        		showTokenUsage(this.stream.assistantBubble, sm.usage);
+        		showTokenUsage(bubble, sm.usage);
         	}
         }
 
         window.Alpine.nextTick(function() {
+            // 启用复制按钮（contentHTML 重新渲染后按钮可能带有 disabled 属性）
+            if (bubble) {
+                enableCopyButtons(bubble);
+            }
             autoScrollToBottom();
         });
     }
