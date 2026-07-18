@@ -653,11 +653,26 @@ async function fetchChatTagsAuto(sn) {
         }
         const data = await response.json();
         if (data && data.tags) {
-            // 将归类结果同步到客户端 chatGroups
             var chatsStore = window.Alpine.store('chats');
+
+            // 将归类结果同步到客户端 chatGroups
             if (chatsStore && chatsStore.moveChatBetweenTags) {
                 chatsStore.moveChatBetweenTags(sn, data.tags);
             }
+
+            // ★ 更新 chats[] 中该 chat 的 taged 标记，使时间 Tab 弹出菜单正确显示"已分类"
+            if (chatsStore && chatsStore.chats) {
+                var chatList = chatsStore.chats;
+                for (var i = 0; i < chatList.length; i++) {
+                    if (chatList[i].sn === sn) {
+                        chatList[i].taged = true;
+                        break;
+                    }
+                }
+                // 重新加工列表数据，使 chatCategories 和 chatsTimeline 同步更新
+                chatsStore.restructChatLists(chatList, chatsStore.activeChatSN);
+            }
+
             console.log('📑 [自动归类] 对话', sn, '已归类到:', data.tags);
         }
     } catch (e) {

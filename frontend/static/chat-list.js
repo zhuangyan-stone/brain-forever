@@ -504,166 +504,8 @@ function showContextMenu(e, chat) {
     sepAfterFav.className = 'chat-context-menu-separator';
     menu.appendChild(sepAfterFav);
 
-    // 话题分类
-    // 时间 Tab 下的分类菜单项改造：
-    //   - 未分类（taged=false）→ 单级"申请分类"，点击后发起分类调用
-    //   - 已分类（taged=true） → 两级菜单："已分类到" > 各标签子菜单项
-    //     子菜单项点击后切换到分类 Tab 并选中目标 chat
-    //   - 已分类但无有效标签（仅空串 tag）→ 单级"暂无合适分类"
-    if (chat.taged) {
-        // 从 chatGroups 收集该 chat 所属的标签（排除空串 '' 特殊分组）
-        var chatsStoreForTag = window.Alpine.store('chats');
-        var chatTagList = [];
-        if (chatsStoreForTag && chatsStoreForTag.chatGroups) {
-            for (var tg in chatsStoreForTag.chatGroups) {
-                if (chatsStoreForTag.chatGroups.hasOwnProperty(tg) && tg !== '') {
-                    var hasChat = chatsStoreForTag.chatGroups[tg].some(function(c) { return c.sn === chat.sn; });
-                    if (hasChat) chatTagList.push(tg);
-                }
-            }
-        }
-
-        if (chatTagList.length === 0) {
-            // ---- 已分类但无有效标签：显示单级"暂无合适分类" ----
-            var noTagItem = document.createElement('div');
-            noTagItem.className = 'chat-context-menu-item chat-context-menu-item-disabled';
-            noTagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 暂无合适分类';
-            menu.appendChild(noTagItem);
-        } else {
-            // ---- 有有效标签：两级菜单 ----
-            // 一级菜单项：已分类到
-            var tagParentItem = document.createElement('div');
-            tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
-            tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已加入 ' + chatTagList.length + ' 个分类 <span class="submenu-arrow">&#x276F;</span>';
-
-            // 二级子菜单容器
-            var tagSubMenu = document.createElement('div');
-            tagSubMenu.className = 'chat-context-submenu';
-
-            chatTagList.forEach(function(tg) {
-                var subItem = document.createElement('div');
-                subItem.className = 'chat-context-menu-item';
-                subItem.textContent = tg;
-                subItem.addEventListener('click', function() {
-                    closeContextMenu();
-                    // 切换到分类 Tab 并选中目标 chat
-                    var store = window.Alpine.store('chats');
-                    if (store) {
-                        // 收起所有分类分组，仅展开目标分组
-                        var expanded = Object.assign({}, store.collapsedGroups);
-                        for (var key in expanded) {
-                            if (expanded.hasOwnProperty(key) && key.startsWith('cat_')) {
-                                expanded[key] = true;
-                            }
-                        }
-                        expanded['cat_' + tg] = false;
-                        store.collapsedGroups = expanded;
-                        store.sidebarTab = 'category';
-                        store.selectChat(chat.sn, 'category', tg);
-                    }
-                });
-                tagSubMenu.appendChild(subItem);
-            });
-
-            tagParentItem.appendChild(tagSubMenu);
-            menu.appendChild(tagParentItem);
-
-            // hover 显示/隐藏子菜单（带延迟，防止移动到子菜单时闪烁）
-            var subMenuTimer = null;
-            tagParentItem.addEventListener('mouseenter', function() {
-                if (subMenuTimer) {
-                    clearTimeout(subMenuTimer);
-                    subMenuTimer = null;
-                }
-                tagSubMenu.style.display = 'block';
-            });
-            tagParentItem.addEventListener('mouseleave', function() {
-                subMenuTimer = setTimeout(function() {
-                    tagSubMenu.style.display = 'none';
-                }, 120);
-            });
-            tagSubMenu.addEventListener('mouseenter', function() {
-                if (subMenuTimer) {
-                    clearTimeout(subMenuTimer);
-                    subMenuTimer = null;
-                }
-                tagSubMenu.style.display = 'block';
-            });
-            tagSubMenu.addEventListener('mouseleave', function() {
-                tagSubMenu.style.display = 'none';
-            });
-        }
-    } else {
-        // ---- 未分类：单级"申请分类" ----
-        var tagItem = document.createElement('div');
-        tagItem.className = 'chat-context-menu-item';
-        tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 申请分类';
-        tagItem.addEventListener('click', async () => {
-            closeContextMenu();
-            // 开始申请分类，显示提示（5 秒后自动消失，结果返回后会再显示结果 Toast）
-            showToast('📑 正在申请分类', 'info', 5000);
-            // 🔍 调试：观察 chat.sn 是否为空
-            console.log('📑 [分类调试] chat:', JSON.stringify(chat, ['id','sn','title','taged','pinned']));
-            console.log('📑 [分类调试] chat.sn:', JSON.stringify(chat.sn), 'typeof:', typeof chat.sn, 'length:', chat.sn ? chat.sn.length : 'N/A');
-            const result = await fetchChatTags(chat.sn);
-            console.log('📑 [分类调试] fetchChatTags result:', JSON.stringify(result));
-            const title = (result && result.title) || chat.title || '';
-            if (result && result.tags && result.tags.length > 0) {
-                console.log('📑 [' + title + ']分类：', JSON.stringify(result.tags, null, 2));
-
-                var chatsStore = window.Alpine.store('chats');
-
-                // 从 chatGroups 收集旧标签
-                var oldTags = (chatsStore && chatsStore.collectOldTags)
-                    ? chatsStore.collectOldTags(chat.sn)
-                    : [];
-
-                // 判断新旧标签集合是否相同（忽略顺序）
-                var isSame = chatsStore && chatsStore.isTagsSetsEqual
-                    ? chatsStore.isTagsSetsEqual(oldTags, result.tags)
-                    : false;
-
-                // 构造 Toast 消息
-                // 格式：
-                //   话题已分类到：AA、BB                  ← 第一行标签信息（整段视觉长度 ≤20）
-                //   --------                              ← 8个"-"分隔线
-                //   标题                                  ← 第三行标题（视觉长度 ≤18）
-                var displayTitle = title || '';
-
-                // 合并完整内容后统一按视觉长度截断，取代原来的标签个数限制
-                var label = (oldTags.length === 0 || !isSame)
-                    ? '已分类到：'
-                    : '保持分类：';
-                var fullContent = label + result.tags.join('、');
-                var truncatedContent = truncateByVisualLength(fullContent, 20);
-                var safeContent = escapeHtml(truncatedContent);
-
-                // 标题最长 18 个视觉长度
-                var shortTitle = truncateByVisualLength(displayTitle, 18);
-                var safeTitle = escapeHtml(shortTitle);
-
-                // HTML 转义后拼装，用 <hr> 做分隔线
-                var htmlMsg = safeContent + '<hr style="margin:10px 0 4px;border:none;border-top:1px solid rgba(255,255,255,0.3)">' + safeTitle;
-                showToastHTML(htmlMsg, 'success', 6000);
-
-                // ★ 分类成功后客户端自我更新 chatGroups，无需重新请求后端
-                if (chatsStore && chatsStore.moveChatBetweenTags) {
-                    chatsStore.moveChatBetweenTags(chat.sn, result.tags);
-                }
-            } else {
-                // 🔍 调试：区分"未匹配到分类"的具体原因
-                if (!result) {
-                    console.log('📑 [分类调试] 未匹配到分类 — result 为 null (chat.sn=' + JSON.stringify(chat.sn) + ')');
-                } else if (!result.tags) {
-                    console.log('📑 [分类调试] 未匹配到分类 — result.tags 不存在', JSON.stringify(result));
-                } else {
-                    console.log('📑 [分类调试] 未匹配到分类 — result.tags 为空数组', JSON.stringify(result));
-                }
-                showToast('📑 未匹配到分类', 'info', 4000);
-            }
-        });
-        menu.appendChild(tagItem);
-    }
+    // 话题分类（与收藏/分类 Tab 共享实现）
+    buildClassificationMenuItems(menu, chat);
 
     // 已生成个人特征计数（仅展示，不可点击）
     if (chat.extracted_count && chat.extracted_count > 0) {
@@ -731,6 +573,125 @@ function closeContextMenu() {
     }
     contextTargetSN = null;
     contextTargetTag = null;
+}
+
+// ============================================================
+// 共享的分类菜单项构建函数（时间 Tab / 收藏 Tab / 分类 Tab 复用）
+// ============================================================
+/**
+ * buildClassificationMenuItems — 在指定 menu 中添加分类菜单项。
+ * 与 showContextMenu 中的分类区段逻辑完全一致：
+ *   - 未分类（taged=false）→ 单级"申请分类"，点击后发起分类调用
+ *   - 已分类（taged=true） → 两级菜单："已加入 N 个分类" > 各标签子菜单项
+ *     子菜单项点击后切换到分类 Tab 并选中目标 chat
+ *   - 已分类但无有效标签（仅空串 tag）→ 单级"暂无合适分类"
+ * @param {HTMLElement} menu - 要追加菜单项的父容器
+ * @param {object} chat - 当前对话对象
+ */
+function buildClassificationMenuItems(menu, chat) {
+    // 直接从 chatGroups 收集该 chat 所属的标签（不依赖 chat.taged，兼容 favorites 数据可能缺少该字段）
+    var chatsStore = window.Alpine.store('chats');
+    var chatTagList = [];
+    if (chatsStore && chatsStore.chatGroups) {
+        for (var tg in chatsStore.chatGroups) {
+            if (chatsStore.chatGroups.hasOwnProperty(tg) && tg !== '') {
+                var hasChat = chatsStore.chatGroups[tg].some(function(c) { return c.sn === chat.sn; });
+                if (hasChat) chatTagList.push(tg);
+            }
+        }
+    }
+
+    if (chatTagList.length > 0) {
+        // ---- 有有效标签：两级菜单 ----
+        var tagParentItem = document.createElement('div');
+        tagParentItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
+        tagParentItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 已加入 ' + chatTagList.length + ' 个分类 <span class="submenu-arrow">&#x276F;</span>';
+
+        var tagSubMenu = document.createElement('div');
+        tagSubMenu.className = 'chat-context-submenu';
+
+        chatTagList.forEach(function(tg) {
+            var subItem = document.createElement('div');
+            subItem.className = 'chat-context-menu-item';
+            subItem.textContent = tg;
+            subItem.addEventListener('click', function() {
+                closeContextMenu();
+                var store = window.Alpine.store('chats');
+                if (store) {
+                    var expanded = Object.assign({}, store.collapsedGroups);
+                    for (var key in expanded) {
+                        if (expanded.hasOwnProperty(key) && key.startsWith('cat_')) {
+                            expanded[key] = true;
+                        }
+                    }
+                    expanded['cat_' + tg] = false;
+                    store.collapsedGroups = expanded;
+                    store.sidebarTab = 'category';
+                    store.selectChat(chat.sn, 'category', tg);
+                }
+            });
+            tagSubMenu.appendChild(subItem);
+        });
+
+        tagParentItem.appendChild(tagSubMenu);
+        menu.appendChild(tagParentItem);
+
+        var subMenuTimer = null;
+        tagParentItem.addEventListener('mouseenter', function() {
+            if (subMenuTimer) { clearTimeout(subMenuTimer); subMenuTimer = null; }
+            tagSubMenu.style.display = 'block';
+        });
+        tagParentItem.addEventListener('mouseleave', function() {
+            subMenuTimer = setTimeout(function() { tagSubMenu.style.display = 'none'; }, 120);
+        });
+        tagSubMenu.addEventListener('mouseenter', function() {
+            if (subMenuTimer) { clearTimeout(subMenuTimer); subMenuTimer = null; }
+            tagSubMenu.style.display = 'block';
+        });
+        tagSubMenu.addEventListener('mouseleave', function() {
+            tagSubMenu.style.display = 'none';
+        });
+    } else if (chat.taged) {
+        // ---- 已分类但无有效标签：显示单级"暂无合适分类" ----
+        var noTagItem = document.createElement('div');
+        noTagItem.className = 'chat-context-menu-item chat-context-menu-item-disabled';
+        noTagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 暂无合适分类';
+        menu.appendChild(noTagItem);
+    } else {
+        // ---- 未分类：单级"申请分类" ----
+        var tagItem = document.createElement('div');
+        tagItem.className = 'chat-context-menu-item';
+        tagItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 申请分类';
+        tagItem.addEventListener('click', async () => {
+            closeContextMenu();
+            showToast('📑 正在申请分类', 'info', 5000);
+            const result = await fetchChatTags(chat.sn);
+            const title = (result && result.title) || chat.title || '';
+            if (result && result.tags && result.tags.length > 0) {
+                var chatsStore = window.Alpine.store('chats');
+                var oldTags = (chatsStore && chatsStore.collectOldTags)
+                    ? chatsStore.collectOldTags(chat.sn) : [];
+                var isSame = chatsStore && chatsStore.isTagsSetsEqual
+                    ? chatsStore.isTagsSetsEqual(oldTags, result.tags) : false;
+                var displayTitle = title || '';
+                var label = (oldTags.length === 0 || !isSame) ? '已分类到：' : '保持分类：';
+                var fullContent = label + result.tags.join('、');
+                var truncatedContent = truncateByVisualLength(fullContent, 20);
+                var safeContent = escapeHtml(truncatedContent);
+                var shortTitle = truncateByVisualLength(displayTitle, 18);
+                var safeTitle = escapeHtml(shortTitle);
+                var htmlMsg = safeContent + '<hr style="margin:10px 0 4px;border:none;border-top:1px solid rgba(255,255,255,0.3)">' + safeTitle;
+                showToastHTML(htmlMsg, 'success', 6000);
+                if (chatsStore && chatsStore.moveChatBetweenTags) {
+                    chatsStore.moveChatBetweenTags(chat.sn, result.tags);
+                }
+                chat.taged = true;
+            } else {
+                showToast('📑 未匹配到分类', 'info', 4000);
+            }
+        });
+        menu.appendChild(tagItem);
+    }
 }
 
 // ============================================================
@@ -948,80 +909,86 @@ function showCategoryContextMenu(e, chat, tag) {
     });
     menu.appendChild(renameItem);
 
-    // 第一组与后续操作之间的分隔线
-    const sepAfterFav = document.createElement('div');
-    sepAfterFav.className = 'chat-context-menu-separator';
-    menu.appendChild(sepAfterFav);
+    // ---- 分隔线 ----
+    const sepA = document.createElement('div');
+    sepA.className = 'chat-context-menu-separator';
+    menu.appendChild(sepA);
 
-    // ---- 第二组：其他分类（可选） ----
-    // 检查该 chat 是否属于其他分类，若是则显示"其他分类"子菜单
-    var chatsStoreForOther = window.Alpine.store('chats');
-    var otherTags = [];
-    if (chatsStoreForOther && chatsStoreForOther.chatGroups) {
-        for (var tg in chatsStoreForOther.chatGroups) {
-            if (chatsStoreForOther.chatGroups.hasOwnProperty(tg) && tg !== tag) {
-                var hasChat = chatsStoreForOther.chatGroups[tg].some(function(c) { return c.sn === chat.sn; });
-                if (hasChat) otherTags.push(tg);
+    // ---- 分类（收藏 Tab：与时间 Tab 一致；分类 Tab：仅"其他分类"） ----
+    if (isInFavorites) {
+        // 收藏 Tab：显示"已加入 N 个分类"/"申请分类"/"暂无合适分类"
+        buildClassificationMenuItems(menu, chat);
+
+        // 分隔线
+        const sepB = document.createElement('div');
+        sepB.className = 'chat-context-menu-separator';
+        menu.appendChild(sepB);
+    } else {
+        // 分类 Tab：仅"其他分类"（排除当前 tag，仅当 chat 还有别的分类时显示）
+        var chatsStoreForOther = window.Alpine.store('chats');
+        var otherTags = [];
+        if (chatsStoreForOther && chatsStoreForOther.chatGroups) {
+            for (var tg in chatsStoreForOther.chatGroups) {
+                if (chatsStoreForOther.chatGroups.hasOwnProperty(tg) && tg !== tag) {
+                    var hasChat = chatsStoreForOther.chatGroups[tg].some(function(c) { return c.sn === chat.sn; });
+                    if (hasChat) otherTags.push(tg);
+                }
             }
+        }
+
+        if (otherTags.length > 0) {
+            var otherCatItem = document.createElement('div');
+            otherCatItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
+            otherCatItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 其他分类 <span class="submenu-arrow">&#x276F;</span>';
+
+            var otherSubMenu = document.createElement('div');
+            otherSubMenu.className = 'chat-context-submenu';
+
+            otherTags.forEach(function(ot) {
+                var subItem = document.createElement('div');
+                subItem.className = 'chat-context-menu-item';
+                subItem.textContent = ot;
+                subItem.addEventListener('click', function() {
+                    closeContextMenu();
+                    var store = window.Alpine.store('chats');
+                    if (store) {
+                        var expanded = Object.assign({}, store.collapsedGroups);
+                        expanded['cat_' + ot] = false;
+                        store.collapsedGroups = expanded;
+                        store.sidebarTab = 'category';
+                        store.selectChat(chat.sn, 'category', ot);
+                    }
+                });
+                otherSubMenu.appendChild(subItem);
+            });
+
+            otherCatItem.appendChild(otherSubMenu);
+            menu.appendChild(otherCatItem);
+
+            var otherTimer = null;
+            otherCatItem.addEventListener('mouseenter', function() {
+                if (otherTimer) { clearTimeout(otherTimer); otherTimer = null; }
+                otherSubMenu.style.display = 'block';
+            });
+            otherCatItem.addEventListener('mouseleave', function() {
+                otherTimer = setTimeout(function() { otherSubMenu.style.display = 'none'; }, 120);
+            });
+            otherSubMenu.addEventListener('mouseenter', function() {
+                if (otherTimer) { clearTimeout(otherTimer); otherTimer = null; }
+                otherSubMenu.style.display = 'block';
+            });
+            otherSubMenu.addEventListener('mouseleave', function() {
+                otherSubMenu.style.display = 'none';
+            });
+
+            // ---- 删除前的分隔线 ----
+            var sepBeforeDelete = document.createElement('div');
+            sepBeforeDelete.className = 'chat-context-menu-separator';
+            menu.appendChild(sepBeforeDelete);
         }
     }
 
-    if (otherTags.length > 0) {
-        // "其他分类" 一级菜单项
-        var otherCatItem = document.createElement('div');
-        otherCatItem.className = 'chat-context-menu-item chat-context-menu-item-hassub';
-        otherCatItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> 其他分类 <span class="submenu-arrow">&#x276F;</span>';
-
-        // 二级子菜单
-        var otherSubMenu = document.createElement('div');
-        otherSubMenu.className = 'chat-context-submenu';
-
-        otherTags.forEach(function(ot) {
-            var subItem = document.createElement('div');
-            subItem.className = 'chat-context-menu-item';
-            subItem.textContent = ot;
-            subItem.addEventListener('click', function() {
-                closeContextMenu();
-                var store = window.Alpine.store('chats');
-                if (store) {
-                    // 展开目标分类分组
-                    var expanded = Object.assign({}, store.collapsedGroups);
-                    expanded['cat_' + ot] = false;
-                    store.collapsedGroups = expanded;
-                    store.sidebarTab = 'category';
-                    store.selectChat(chat.sn, 'category', ot);
-                }
-            });
-            otherSubMenu.appendChild(subItem);
-        });
-
-        otherCatItem.appendChild(otherSubMenu);
-        menu.appendChild(otherCatItem);
-
-        // hover 显示/隐藏子菜单
-        var otherTimer = null;
-        otherCatItem.addEventListener('mouseenter', function() {
-            if (otherTimer) { clearTimeout(otherTimer); otherTimer = null; }
-            otherSubMenu.style.display = 'block';
-        });
-        otherCatItem.addEventListener('mouseleave', function() {
-            otherTimer = setTimeout(function() { otherSubMenu.style.display = 'none'; }, 120);
-        });
-        otherSubMenu.addEventListener('mouseenter', function() {
-            if (otherTimer) { clearTimeout(otherTimer); otherTimer = null; }
-            otherSubMenu.style.display = 'block';
-        });
-        otherSubMenu.addEventListener('mouseleave', function() {
-            otherSubMenu.style.display = 'none';
-        });
-
-        // ---- 第三组前的分隔线（仅在"其他分类"存在时） ----
-        var sepBeforeDelete = document.createElement('div');
-        sepBeforeDelete.className = 'chat-context-menu-separator';
-        menu.appendChild(sepBeforeDelete);
-    }
-
-    // ---- 第三组：删除对话 ----
+    // ---- 删除对话 ----
     var deleteItem = document.createElement('div');
     deleteItem.className = 'chat-context-menu-item chat-context-menu-item-danger';
     deleteItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_DELETE + '</svg> 删除对话';
@@ -1565,7 +1532,7 @@ function showFavoriteCategoryMenu(e, customTag) {
     // ---- 改名 ----
     const renameItem = document.createElement('div');
     renameItem.className = 'chat-context-menu-item';
-    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 改名';
+    renameItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_EDIT + '</svg> 重命名收藏夹';
     renameItem.addEventListener('click', function() {
         closeContextMenu();
         handleRenameFavoriteCategory(customTag);
