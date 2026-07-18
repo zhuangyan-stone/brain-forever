@@ -18,7 +18,7 @@
 
 /* Alpine x-transition 类名 */
 .inline-hint-enter {
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
 .inline-hint-enter-start {
     opacity: 0;
@@ -29,7 +29,7 @@
     transform: translateY(0);
 }
 .inline-hint-leave {
-    transition: opacity 0.3s ease;
+    transition: opacity 0.5s ease;
 }
 .inline-hint-leave-start {
     opacity: 1;
