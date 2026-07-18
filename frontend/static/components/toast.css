@@ -77,3 +77,26 @@
 .toast-link:hover {
     text-decoration-color: #fff;
 }
+
+/* Toast 中的重试按钮——用于"连接已断开"的重新发送操作 */
+.toast-retry-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+    padding: 1px 10px 2px;
+    cursor: pointer;
+    font-size: inherit;
+    font-weight: 700;
+    line-height: 1.5;
+    transition: background 0.2s, border-color 0.2s;
+    vertical-align: baseline;
+}
+.toast-retry-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: #fff;
+}
+.toast-retry-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}

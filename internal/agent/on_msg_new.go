@@ -24,7 +24,10 @@ import (
 // Must be called with Mu held.
 // Returns true if a new DB chat session was created as a result of this call.
 // Returns an error if the DB session could not be created.
-func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *store.ChatStore) (bool, error) {
+//
+// frontSN is the frontend's chat SN. Used to restore an existing chat from DB
+// when the session has lost state (e.g. after backend restart).
+func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *store.ChatStore, frontSN string) (bool, error) {
 	if reqMsg.ID != 0 {
 		panic(fmt.Sprintf("new request message's ID is not 0, but %d", reqMsg.ID))
 	}
@@ -38,7 +41,7 @@ func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *
 
 	reqMsg.ID = lastID + 1
 
-	isNewChat, err := ensureSessionDBForChat(sess, chatStore)
+	isNewChat, err := ensureSessionDBForChat(sess, chatStore, frontSN)
 	if err != nil {
 		return false, err
 	}
@@ -87,7 +90,7 @@ func prepareMessageForLLM(sess *session.Session, reqMsg *Message, frontSN string
 	sess.Mu.Lock()
 	defer sess.Mu.Unlock()
 
-	isNewChat, err := appendNewRequestMessage(sess, reqMsg, chatStore)
+	isNewChat, err := appendNewRequestMessage(sess, reqMsg, chatStore, frontSN)
 	if err != nil {
 		sseWriter.WriteEvent(ErrorEvent{
 			Type:    "error",

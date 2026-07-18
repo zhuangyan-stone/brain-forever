@@ -429,13 +429,21 @@ function handleNetworkError(stream) {
 
     // 显示可点击的 Toast，点击后调用 retryStream 重试
     // 使用长时间（30s）确保用户有时间操作
+    // replaceOnNew=true 使得后续新 toast 可自动关闭此旧 toast
     showToastHTML(
-        '⚠ 连接已断开，<span class="toast-link">点击重新发送</span>',
+        '⚠ 连接已断开，<button class="toast-retry-btn" type="button">点击重新发送</button>',
         'error',
         30000,
         function() {
             retryStream(stream);
-        }
+            // 弹出"正在重连"提示，利用 replaceOnNew 机制关闭旧的错误提示
+            showToastHTML(
+                '⏳ 正在尝试重连服务器…',
+                'info',
+                3000
+            );
+        },
+        true   // replaceOnNew: 新 toast 出现时自动关闭此 toast
     );
 }
 

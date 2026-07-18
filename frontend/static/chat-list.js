@@ -8,7 +8,7 @@ import { activeTickIndex, setActiveTickIndex, tickScrollOffset, setTickScrollOff
 import { showToast, showToastHTML, addMessage, updateHeaderTitle, showWelcomeMessage, showTokenUsage, applyStreamingState, autoScrollToBottom } from './chat-ui.js';
 import { putChatTitle, TITLE_STATE, switchChat, togglePinChat, deleteChat, restoreChat, permanentDeleteChat, listDeletedChats, emptyTrash, createBlankChat, fetchChatTags, fetchChatTagsBySN, addFavoriteChat, removeFavoriteChat, renameFavoriteCategory, clearFavoriteCategory } from './chat-api.js';
 import { updateTickNav } from './chat-ticknav.js';
-import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR } from './svg_icons_re.js';
+import { ICON_EDIT, ICON_DELETE, ICON_PIN, ICON_TRASH, ICON_TRASH_RESTORE, ICON_STAR, ICON_USER } from './svg_icons_re.js';
 import msgbox from './components/msgbox.js';
 import { renderMarkdown } from './chat-markdown.js';
 import { visualLength, truncateByVisualLength, escapeHtml } from './toolsets.js';
@@ -428,7 +428,7 @@ function showContextMenu(e, chat) {
     // 导致菜单定位异常。e.currentTarget 始终指向事件绑定的按钮元素。
     const rect = e.currentTarget.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 36 * 6 + 4 + 10; // 6 items * 36px + padding + separator
+    const menuHeight = 36 * 7 + 4 + 10; // up to 7 items * 36px + padding + separator
 
     const isSmallScreen = document.body.classList.contains('small-screen-mode');
     let left, top;
@@ -663,6 +663,14 @@ function showContextMenu(e, chat) {
             }
         });
         menu.appendChild(tagItem);
+    }
+
+    // 已生成个人特征计数（仅展示，不可点击）
+    if (chat.extracted_count && chat.extracted_count > 0) {
+        var traitItem = document.createElement('div');
+        traitItem.className = 'chat-context-menu-item chat-context-menu-item-success';
+        traitItem.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICON_USER + '</svg> 已生成 ' + chat.extracted_count + ' 条个人特征';
+        menu.appendChild(traitItem);
     }
 
     // 分隔线

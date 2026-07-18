@@ -6,6 +6,7 @@ import (
 	"BrainForever/internal/store"
 	"BrainForever/toolset"
 	"fmt"
+	"strings"
 )
 
 // ============================================================
@@ -23,9 +24,39 @@ func generateSessionSN() string {
 // Must be called with Mu held.
 // Returns true if a new DB session was created, false if one already existed.
 // Returns an error if the DB insert fails.
-func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore) (bool, error) {
+//
+// frontSN is the SN sent by the frontend. For existing chats (real DB SN),
+// if the session has lost its state (e.g. after backend restart), this function
+// attempts to restore the existing chat from the database instead of creating
+// a new one. Frontend temporary SNs (prefixed with "new_") are treated as new chats.
+func ensureSessionDBForChat(sess *session.Session, chatStore *store.ChatStore, frontSN string) (bool, error) {
 	if sess.User.CurrentChat.DBCHat != nil && sess.User.CurrentChat.DBCHat.ID != 0 {
 		return false, nil // Already has a DB session
+	}
+
+	// ★ If front_sn is a real DB SN (not a frontend temp "new_" SN),
+	//   try to restore the existing chat from the database.
+	//   This handles the case where the backend restarted but the frontend
+	//   still has a valid chat (reconnection scenario).
+	if frontSN != "" && !strings.HasPrefix(frontSN, "new_") {
+		dbChat, err := chatStore.FindChatBySN(frontSN)
+		if err == nil && dbChat != nil {
+			sess.User.CurrentChat.DBCHat = dbChat
+			sess.User.CurrentChat.Title = dbChat.Title
+			sess.User.CurrentChat.TitleState = TitleState(dbChat.TitleState)
+
+			// Load messages from DB into the in-memory cache
+			dbMessages, err := chatStore.ListMessages(dbChat.ID)
+			if err == nil {
+				agentMsgs, convErr := convertDBMessagesToAgentMessages(dbMessages, chatStore, dbChat.ID)
+				if convErr == nil {
+					sess.User.CurrentChat.Messages = agentMsgs
+				}
+			}
+			return false, nil // Not a new chat - restored existing one
+		}
+		// If FindChatBySN fails (SN not found or different user), fall through
+		// to create a new chat below.
 	}
 
 	sn := generateSessionSN()
