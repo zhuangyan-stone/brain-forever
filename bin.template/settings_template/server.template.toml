@@ -160,11 +160,8 @@ interval_seconds = 3600
 extract_delay_hours = 20
 # 每轮最多处理多少个 chat，默认 50
 batch_limit = 50
-# 允许执行的时间窗口（HH:MM 格式，半开区间 [start, stop)）。
-# 空数组（默认）= 全天允许。支持跨午夜窗口，如 [22:00, 06:00]。
+# 允许执行的时间窗口（半开区间 [start, stop)）。每个窗口为 ["HH:MM", "HH:MM"] 对。
+# 空数组（默认）= 全天允许。支持跨午夜窗口，如 ["22:00", "06:00"]。
 # 示例：
-#   allowed_windows = [
-#     { start = "02:00", stop = "06:00" },
-#     { start = "22:00", stop = "23:59" },
-#   ]
+#   allowed_windows = [["02:00", "06:00"], ["22:00", "23:59"]]
 allowed_windows = []

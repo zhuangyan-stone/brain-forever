@@ -125,7 +125,7 @@ func DefaultConfig() Config {
 			IntervalSeconds:   3600,
 			ExtractDelayHours: 20,
 			BatchLimit:        50,
-			AllowedWindows:    []TimeRange{},
+			AllowedWindows:    [][]TimeOfDay{},
 		},
 	}
 }
@@ -402,15 +402,28 @@ type BkgndTaskQueueConfig struct {
 	QueueSize int `toml:"queue_size"`
 }
 
-// TimeRange defines a half-open time window [Start, Stop) in 24-hour format.
-// Used by TraitExtractionTaskConfig.AllowedWindows to restrict when the
-// background trait extraction task may actually execute.
-type TimeRange struct {
-	// Start is the window start time in "HH:MM" format (inclusive), e.g. "02:00".
-	Start string `toml:"start"`
-	// Stop is the window end time in "HH:MM" format (exclusive), e.g. "06:00".
-	// If Stop <= Start in minute comparison, the window wraps past midnight.
-	Stop string `toml:"stop"`
+// TimeOfDay represents a time within a day (hour:minute only, no date).
+// Internally stores minutes since midnight (0-1439) for direct comparison.
+// Implements encoding.TextUnmarshaler so BurntSushi/toml decodes "HH:MM"
+// strings directly into this type.
+type TimeOfDay int
+
+// Minutes returns the minutes since midnight.
+func (t TimeOfDay) Minutes() int { return int(t) }
+
+// UnmarshalText implements encoding.TextUnmarshaler for "HH:MM" format.
+func (t *TimeOfDay) UnmarshalText(text []byte) error {
+	s := string(text)
+	if len(s) < 5 || s[2] != ':' {
+		return fmt.Errorf("invalid time format %q, expected HH:MM", s)
+	}
+	hour := int(s[0]-'0')*10 + int(s[1]-'0')
+	minute := int(s[3]-'0')*10 + int(s[4]-'0')
+	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
+		return fmt.Errorf("invalid time %q, out of range", s)
+	}
+	*t = TimeOfDay(hour*60 + minute)
+	return nil
 }
 
 // ============================================================
@@ -439,15 +452,17 @@ type TraitExtractionTaskConfig struct {
 	BatchLimit int `toml:"batch_limit"`
 
 	// AllowedWindows restricts execution to specific time-of-day windows.
-	// Each entry defines a half-open [Start, Stop) range in "HH:MM" format.
+	// Each entry is a [start, stop] pair of TimeOfDay values in "HH:MM" format,
+	// defining a half-open [start, stop) range.
 	// Empty slice (default) means always allowed (00:00-24:00).
-	// If Stop <= Start, the window wraps past midnight (e.g. [22:00, 06:00]).
-	AllowedWindows []TimeRange `toml:"allowed_windows"`
+	// If stop <= start, the window wraps past midnight (e.g. ["22:00", "06:00"]).
+	// TOML example: allowed_windows = [["02:00", "06:00"], ["22:00", "23:59"]]
+	AllowedWindows [][]TimeOfDay `toml:"allowed_windows"`
 }
 
 // IsAllowedTimePoint returns true if the given time falls within at least one
 // allowed window. An empty AllowedWindows slice means all times are allowed.
-// Windows that wrap past midnight (Stop <= Start) are handled correctly.
+// Windows that wrap past midnight (stop <= start) are handled correctly.
 func (c *TraitExtractionTaskConfig) IsAllowedTimePoint(t time.Time) bool {
 	if len(c.AllowedWindows) == 0 {
 		return true
@@ -456,11 +471,11 @@ func (c *TraitExtractionTaskConfig) IsAllowedTimePoint(t time.Time) bool {
 	currentMinutes := t.Hour()*60 + t.Minute()
 
 	for _, w := range c.AllowedWindows {
-		startMinutes := parseHHMM(w.Start)
-		stopMinutes := parseHHMM(w.Stop)
-		if startMinutes < 0 || stopMinutes < 0 {
+		if len(w) != 2 {
 			continue
 		}
+		startMinutes := w[0].Minutes()
+		stopMinutes := w[1].Minutes()
 
 		if startMinutes <= stopMinutes {
 			// Normal window: [start, stop)
@@ -475,18 +490,4 @@ func (c *TraitExtractionTaskConfig) IsAllowedTimePoint(t time.Time) bool {
 		}
 	}
 	return false
-}
-
-// parseHHMM parses a "HH:MM" string into minutes since midnight.
-// Returns -1 on parse failure.
-func parseHHMM(s string) int {
-	if len(s) < 5 || s[2] != ':' {
-		return -1
-	}
-	hour := int(s[0]-'0')*10 + int(s[1]-'0')
-	minute := int(s[3]-'0')*10 + int(s[4]-'0')
-	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
-		return -1
-	}
-	return hour*60 + minute
 }
