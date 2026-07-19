@@ -8,9 +8,18 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"BrainForever/infra/zylog"
 )
+
+// ============================================================
+// Logger interface (minimal, to keep the package decoupled)
+// ============================================================
+
+// Logger is the logging interface required by CaptchaProvider.
+// Any logger with an Infof method (e.g. zylog.Logger, slog.Logger)
+// satisfies it without additional adapter code.
+type Logger interface {
+	Infof(format string, args ...any)
+}
 
 // ============================================================
 // Data models
@@ -40,13 +49,13 @@ type CaptchaProvider struct {
 	activeDir      string        // Current active directory "d1" or "d2"
 	activeCount    int           // Number of loaded images in the active directory
 	store          ICaptchaStore // Storage backend (Redis or memory)
-	logger         zylog.Logger  // Logger for captcha operations
+	logger         Logger        // Logger for captcha operations
 	mu             sync.RWMutex  // Protects activeDir/activeCount, ensures GetOne/Refresh concurrency safety
 }
 
 // NewCaptchaProvider creates and initializes a CaptchaProvider.
 // Loads captcha data from d1 and d2 into the store, detects activeDir.
-func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase string, store ICaptchaStore, logger zylog.Logger) (*CaptchaProvider, error) {
+func NewCaptchaProvider(ctx context.Context, captchaURLBase, captchaDirBase string, store ICaptchaStore, logger Logger) (*CaptchaProvider, error) {
 	p := &CaptchaProvider{
 		captchaURLBase: captchaURLBase,
 		captchaDirBase: captchaDirBase,
