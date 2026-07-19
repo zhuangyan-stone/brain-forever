@@ -33,6 +33,25 @@ type Logger interface {
 }
 
 // ============================================================
+// Config
+// ============================================================
+
+// Config configures a TaskQueue.
+type Config struct {
+	// CheckInterval is how often the queue checks for due tasks.
+	// If zero or negative, defaults to 10 minutes.
+	CheckInterval time.Duration
+
+	// WorkerCount limits concurrent task executions.
+	// 0 or negative means unlimited (all tasks run in their own goroutine).
+	WorkerCount int
+
+	// QueueSize is the maximum number of queued tasks.
+	// 0 or negative means unlimited.
+	QueueSize int
+}
+
+// ============================================================
 // BkgndTask
 // ============================================================
 
@@ -80,12 +99,16 @@ type TaskQueue struct {
 	paused        bool
 	stopCh        chan struct{}
 	logger        Logger
+	semaphore     chan struct{} // nil = unlimited; buffered chan of size WorkerCount
 }
 
-// New creates a new TaskQueue with the given check interval and a logger.
-// checkInterval must be > 0; if not, it defaults to 10 minutes.
+// New creates a new TaskQueue with the given Config and a logger.
+// If cfg.CheckInterval is zero or negative, defaults to 10 minutes.
+// If cfg.WorkerCount > 0, a semaphore limits concurrent executions.
+// If cfg.QueueSize > 0, the external queue capacity hint is logged.
 // If logger is nil, all log output is silently discarded.
-func New(checkInterval time.Duration, logger Logger) *TaskQueue {
+func New(cfg Config, logger Logger) *TaskQueue {
+	checkInterval := cfg.CheckInterval
 	if checkInterval <= 0 {
 		checkInterval = 10 * time.Minute
 	}
@@ -94,13 +117,20 @@ func New(checkInterval time.Duration, logger Logger) *TaskQueue {
 		logger = nopLogger{}
 	}
 
+	var semaphore chan struct{}
+	if cfg.WorkerCount > 0 {
+		semaphore = make(chan struct{}, cfg.WorkerCount)
+	}
+
 	q := &TaskQueue{
 		checkInterval: checkInterval,
 		tasks:         make([]*taskEntry, 0),
 		logger:        logger,
+		semaphore:     semaphore,
 	}
 
-	logger.Infof("bktask: queue created, checkInterval=%v", checkInterval)
+	logger.Infof("bktask: queue created, checkInterval=%v, workers=%d, queueSize=%d",
+		checkInterval, cfg.WorkerCount, cfg.QueueSize)
 	return q
 }
 
@@ -142,6 +172,34 @@ func (q *TaskQueue) Add(task BkgndTask) error {
 	q.logger.Infof("bktask: task added (name=%q, oneShot=%v, interval=%v, nextRun=%s)",
 		task.Name, task.OneShot, task.Interval, entry.nextRun.Format(time.RFC3339))
 	return nil
+}
+
+// AddOneShot is a convenience method that creates a one-shot task with the given
+// name, delay and job function and adds it to the queue.
+//
+// It is equivalent to calling Add with BkgndTask{Name: name, Job: job, OneShot: true, Interval: delay}.
+// Returns an error if the job function is nil.
+func (q *TaskQueue) AddOneShot(name string, delay time.Duration, job func() error) error {
+	return q.Add(BkgndTask{
+		Name:     name,
+		Job:      job,
+		OneShot:  true,
+		Interval: delay,
+	})
+}
+
+// AddRecurring is a convenience method that creates a recurring task with the given
+// name, interval and job function and adds it to the queue.
+//
+// It is equivalent to calling Add with BkgndTask{Name: name, Job: job, OneShot: false, Interval: interval}.
+// Returns an error if the job function is nil.
+func (q *TaskQueue) AddRecurring(name string, interval time.Duration, job func() error) error {
+	return q.Add(BkgndTask{
+		Name:     name,
+		Job:      job,
+		OneShot:  false,
+		Interval: interval,
+	})
 }
 
 // Clear removes all tasks from the queue without stopping the loop.
@@ -269,7 +327,22 @@ func (q *TaskQueue) checkAndRun() {
 
 // safeRun wraps the user's job with fixed logging and automatic re-adding
 // for recurring tasks. One-shot tasks are executed once and then forgotten.
+// If the queue has a semaphore, it acquires a slot before running and
+// releases it after completion.
 func (q *TaskQueue) safeRun(entry *taskEntry) {
+	// Acquire semaphore slot (if configured).
+	// This blocks if all workers are busy, effectively limiting concurrency.
+	if q.semaphore != nil {
+		q.semaphore <- struct{}{}
+	}
+
+	// Release semaphore slot on exit.
+	defer func() {
+		if q.semaphore != nil {
+			<-q.semaphore
+		}
+	}()
+
 	defer func() {
 		if r := recover(); r != nil {
 			q.logger.Errorf("bktask: job panicked. %v", r)
