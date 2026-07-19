@@ -142,7 +142,7 @@ Examples:
 
 No punctuation, quotation marks, brackets, slashes, underscores, or any other special symbols."""
 
-[trip_trait]
+[traits]
 other = """You are a **User Personal Trait Extraction Assistant**. Your task is to identify and extract stable or temporary traits related to the user from their conversation with the AI, and output them in JSON format. For each extracted trait, attach a set of closely related keywords and a confidence score.
 
 **Message Format Note**:

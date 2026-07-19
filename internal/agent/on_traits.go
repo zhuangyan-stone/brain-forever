@@ -225,7 +225,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, title string, dbMessages 
 }
 
 func getTraitSystemPrompt(lang string, chatTitle string) string {
-	return i18n.SystemPrompt.TL(lang, "trip_trait", map[string]any{
+	return i18n.SystemPrompt.TL(lang, "traits", map[string]any{
 		"CurrentLocalTime": time.Now().In(time.Local).Format("2006-01-02 15:04:05 (MST)"),
 		"ChatTitle":        chatTitle,
 	})
