@@ -12,11 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	"BrainForever/infra/bktask"
 	"BrainForever/infra/captcha"
 	"BrainForever/infra/httpx"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent"
+	"BrainForever/internal/agent/bktasks"
 	"BrainForever/internal/config"
 	"BrainForever/internal/logger"
 	"BrainForever/internal/notify"
@@ -182,6 +184,22 @@ func main() {
 		theLogger.Fatalf("failed to initialize captcha provider: %v", err)
 	}
 	theLogger.Infof("captcha provider initialized (activeDir=%s, count=%d)", captchaProvider.ActiveDir(), captchaProvider.ActiveCount())
+
+	// ============================================================
+	// Initialize global background slow-task queue
+	// ============================================================
+	if cfg.BkgndTaskQueue.Enabled {
+		bktasks.InitGlobal(bktask.Config{
+			CheckInterval: time.Duration(cfg.BkgndTaskQueue.CheckIntervalSeconds) * time.Second,
+			WorkerCount:   cfg.BkgndTaskQueue.WorkerCount,
+			QueueSize:     cfg.BkgndTaskQueue.QueueSize,
+		}, theLogger)
+		defer bktasks.StopGlobal()
+		theLogger.Infof("bkgnd task queue initialized (checkInterval=%ds, workers=%d, queueSize=%d)",
+			cfg.BkgndTaskQueue.CheckIntervalSeconds, cfg.BkgndTaskQueue.WorkerCount, cfg.BkgndTaskQueue.QueueSize)
+	} else {
+		theLogger.Infof("bkgnd task queue disabled by config")
+	}
 
 	// ============================================================
 	// Setup routes using httpx.Server
