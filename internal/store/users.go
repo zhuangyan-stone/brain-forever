@@ -364,7 +364,6 @@ func (s *UserStore) loadChats(userID int64) ([]Chat, error) {
 	chatStore := NewChatStore(s.logger)
 	chats, err := chatStore.ListAllChats(userID)
 	if err != nil {
-		s.logger.Errorf("loadChats: ChatStore.ListAllChats(userID=%d) failed. %v", userID, err)
 		return nil, fmt.Errorf("failed to load chats for user %d. %w", userID, err)
 	}
 	return chats, nil
@@ -374,7 +373,6 @@ func (s *UserStore) loadChats(userID int64) ([]Chat, error) {
 func (s *UserStore) LoginByPassword(no, password string) (*User, error) {
 	u, err := s.GetUserByNO(no, false)
 	if err != nil {
-		s.logger.Errorf("LoginByPassword: GetUserByNO(no=%s) failed. %v", no, err)
 		return nil, fmt.Errorf("%s. %w", i18n.T("api_error_login_failed"), err)
 	}
 

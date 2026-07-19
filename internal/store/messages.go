@@ -101,7 +101,6 @@ func (s *ChatStore) CountMessages(chatID int64) (int, error) {
 func (s *ChatStore) DeleteMessageGroup(chatID int64, groupIndex int) error {
 	tx, err := s.db().Beginx()
 	if err != nil {
-		s.logger.Errorf("BEGIN transaction failed. %v", err)
 		return fmt.Errorf("failed to begin transaction. %w", err)
 	}
 	defer tx.Rollback()

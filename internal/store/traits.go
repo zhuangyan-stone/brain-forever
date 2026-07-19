@@ -146,7 +146,6 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
-		s.logger.Errorf("rows iteration error. %v", err)
 		return nil, err
 	}
 
@@ -207,7 +206,6 @@ func (s *BrainStore) SearchByVectorInChat(userID int64, chatID int64, query []fl
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
-		s.logger.Errorf("rows iteration error. %v", err)
 		return nil, err
 	}
 
@@ -262,7 +260,6 @@ func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit 
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
-		s.logger.Errorf("rows iteration error. %v", err)
 		return nil, err
 	}
 
@@ -317,7 +314,6 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
-		s.logger.Errorf("rows iteration error. %v", err)
 		return nil, err
 	}
 
@@ -395,7 +391,6 @@ func (s *BrainStore) ListTraitsByChat(chatID int64) ([]PersonalTrait, error) {
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
-		s.logger.Errorf("rows iteration error. %v", err)
 		return nil, err
 	}
 
@@ -428,7 +423,6 @@ func (s *BrainStore) ListAllTraitsByCreateTime(userID int64) ([]PersonalTrait, e
 		results = append(results, pt)
 	}
 	if err := rows.Err(); err != nil {
-		s.logger.Errorf("rows iteration error. %v", err)
 		return nil, err
 	}
 

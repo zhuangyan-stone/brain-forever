@@ -151,7 +151,6 @@ func (s *ChatStore) DeleteChatTagAndUpdateTaged(chatID int64, tag string) (int, 
 	}
 
 	if err := tx.Commit(); err != nil {
-		s.logger.Errorf("failed to commit transaction. %v", err)
 		return 0, fmt.Errorf("failed to commit transaction. %w", err)
 	}
 
