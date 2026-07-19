@@ -60,14 +60,15 @@ func GetDefaultEmbeddingProvider() string {
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
-	Logger    LoggerConfig
-	Server    ServerConfig
-	Frontend  FrontendConfig
-	Database  DatabaseConfig
-	Redis     RedisConfig
-	Captcha   CaptchaConfig
-	SessionGC SessionGCConfig `toml:"session-gc"`
-	ApiKeys   ApiKeysConfig   `toml:"api-keys"`
+	Logger         LoggerConfig
+	Server         ServerConfig
+	Frontend       FrontendConfig
+	Database       DatabaseConfig
+	Redis          RedisConfig
+	Captcha        CaptchaConfig
+	SessionGC      SessionGCConfig      `toml:"session-gc"`
+	ApiKeys        ApiKeysConfig        `toml:"api-keys"`
+	BkgndTaskQueue BkgndTaskQueueConfig `toml:"bkgnd-task-queue"`
 }
 
 // DefaultConfig returns a Config populated with built-in default values.
@@ -110,6 +111,12 @@ func DefaultConfig() Config {
 			AnonymousTTLMinutes: 60,   // 1 hour
 			LoggedInTTLMinutes:  1440, // 24 hours
 			IntervalMinutes:     10,   // 10 minutes
+		},
+		BkgndTaskQueue: BkgndTaskQueueConfig{
+			Enabled:              true,
+			CheckIntervalSeconds: 30,
+			WorkerCount:          3,
+			QueueSize:            100,
 		},
 	}
 }
@@ -360,4 +367,28 @@ type SessionGCConfig struct {
 	// IntervalMinutes is how often (minutes) the GC sweep runs.
 	// Default: 10.
 	IntervalMinutes int `toml:"interval_minutes"`
+}
+
+// ============================================================
+// BkgndTaskQueueConfig — Global background slow-task queue
+// ============================================================
+
+// BkgndTaskQueueConfig configures the global background slow-task queue.
+// These values are read from the TOML config file under [bkgnd-task-queue].
+// If not configured, DefaultConfig() provides sensible defaults.
+type BkgndTaskQueueConfig struct {
+	// Enabled enables the background task queue. Default: true.
+	Enabled bool `toml:"enabled"`
+
+	// CheckIntervalSeconds is how often (seconds) the queue checks for due tasks.
+	// Default: 30.
+	CheckIntervalSeconds int `toml:"check_interval_seconds"`
+
+	// WorkerCount is the maximum number of concurrent task executions.
+	// Default: 3. 0 or negative = unlimited.
+	WorkerCount int `toml:"worker_count"`
+
+	// QueueSize is the maximum number of queued tasks.
+	// Default: 100.
+	QueueSize int `toml:"queue_size"`
 }
