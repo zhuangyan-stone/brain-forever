@@ -428,7 +428,7 @@ func TestJobReturnsError(t *testing.T) {
 
 // TestNewDefaultInterval verifies that New with zero duration defaults to 10 minutes.
 func TestNewDefaultInterval(t *testing.T) {
-	q := New(0, nil)
+	q := New(Config{}, nil)
 	if q.checkInterval != 10*time.Minute {
 		t.Fatalf("expected default checkInterval=10m, got %v", q.checkInterval)
 	}
