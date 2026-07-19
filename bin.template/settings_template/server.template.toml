@@ -144,3 +144,27 @@ check_interval_seconds = 30
 worker_count = 3
 # 排队任务的最大数量
 queue_size = 100
+
+# ============================================================
+# 周期性个人特征提取任务（可选）
+# 用于定期扫描 chat_sessions 表中未提取或需要重新提取特征的对话，
+# 自动调用 LLM 提取个人特征（作为前端主动提取的辅助手段）。
+# 如果未配置此节，使用 DefaultConfig() 中的内置默认值。
+# ============================================================
+[trait-extraction-task]
+# 是否启用
+enabled = true
+# 检查间隔（秒），默认 3600（1 小时）
+interval_seconds = 3600
+# 重新提取阈值（小时）：extracted_at 早于 update_at 减去此小时数则重新提取，默认 20
+extract_delay_hours = 20
+# 每轮最多处理多少个 chat，默认 50
+batch_limit = 50
+# 允许执行的时间窗口（HH:MM 格式，半开区间 [start, stop)）。
+# 空数组（默认）= 全天允许。支持跨午夜窗口，如 [22:00, 06:00]。
+# 示例：
+#   allowed_windows = [
+#     { start = "02:00", stop = "06:00" },
+#     { start = "22:00", stop = "23:59" },
+#   ]
+allowed_windows = []

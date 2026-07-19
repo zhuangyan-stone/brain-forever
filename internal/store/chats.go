@@ -337,6 +337,42 @@ type ChatTitleTag struct {
 // SelectChatTitlesGroupByTags queries all non-deleted chats for a user, grouped by tag.
 // Uses LEFT JOIN so chats with taged=true but no tag records (LLM-processed but no match)
 // still appear with tag=” and taged=true, distinguished from never-classified chats (taged=false).
+// ============================================================
+// Pending trait extraction queries
+// ============================================================
+
+// ChatPendingExtraction represents a chat session that may need trait extraction.
+// Includes user_id so the caller can look up per-user API settings.
+type ChatPendingExtraction struct {
+	ID             int64      `db:"id"`
+	UserID         int64      `db:"user_id"`
+	SN             string     `db:"sn"`
+	ExtractedAt    *time.Time `db:"extracted_at"`
+	ExtractedCount int        `db:"extracted_count"`
+	UpdateAt       time.Time  `db:"update_at"`
+}
+
+// ListChatsPendingExtraction queries chat sessions eligible for trait extraction.
+//
+// Criteria: deleted=false AND (extracted_at IS NULL OR extracted_at < update_at - delayHours).
+// Results are ordered by update_at ascending so older/changed chats are processed first.
+// batchLimit caps the number of results to prevent overloading the LLM API.
+func (s *ChatStore) ListChatsPendingExtraction(delayHours int, batchLimit int) ([]ChatPendingExtraction, error) {
+	sqlStr := `SELECT id, user_id, sn, extracted_at, extracted_count, update_at
+		 FROM chat_sessions
+		 WHERE deleted = FALSE
+		   AND (extracted_at IS NULL OR extracted_at < update_at - ($1::text || ' hours')::interval)
+		 ORDER BY update_at ASC
+		 LIMIT $2`
+	var rows []ChatPendingExtraction
+	err := s.db().Select(&rows, sqlStr, fmt.Sprintf("%d", delayHours), batchLimit)
+	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[delayHours=%d batchLimit=%d]:\n%v", sqlStr, delayHours, batchLimit, err)
+		return nil, fmt.Errorf("failed to list chats pending extraction. %w", err)
+	}
+	return rows, nil
+}
+
 func (s *ChatStore) SelectChatTitlesGroupByTags(userID int64) (map[string][]ChatTitleTag, error) {
 	sqlStr := `SELECT cs.id, cs.sn, cs.title,
 		       COALESCE(ct.tag, '') AS tag,

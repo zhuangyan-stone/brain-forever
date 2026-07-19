@@ -1,6 +1,11 @@
 package agent
 
-import "BrainForever/internal/agent/llmtypes"
+import (
+	"BrainForever/infra/embedder"
+	"BrainForever/infra/llm"
+	"BrainForever/internal/agent/llmtypes"
+	"BrainForever/internal/store"
+)
 
 // ============================================================
 // Type aliases re-exported from llmtypes package
@@ -37,3 +42,27 @@ var convertDBMessagesToAgentMessages = llmtypes.ConvertDBMessagesToAgentMessages
 var loadMessagesAsLLMMessages = llmtypes.LoadMessagesAsLLMMessages
 var ensureAssistantForOrphanUser = llmtypes.EnsureAssistantForOrphanUser
 var makeAssistantBrokenMessage = llmtypes.MakeAssistantBrokenMessage
+
+// ============================================================
+// Exported getters for package-level globals (used by tasks package)
+// ============================================================
+
+// GetChatStore returns the global ChatStore instance.
+func GetChatStore() *store.ChatStore {
+	return theChatStore
+}
+
+// GetBrainStore returns the global BrainStore instance.
+func GetBrainStore() *store.BrainStore {
+	return theBrainStore
+}
+
+// GetLLMClients returns the global LLM client map keyed by provider name.
+func GetLLMClients() map[string]llm.Client {
+	return llmClients
+}
+
+// GetEmbedderClients returns the global Embedder client map keyed by provider name.
+func GetEmbedderClients() map[string]embedder.Embedder {
+	return embedderClients
+}

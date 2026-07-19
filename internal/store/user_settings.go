@@ -124,6 +124,7 @@ func (a *UserSettingsAPIKey) IsOK() bool {
 // UserSettings represents user settings in JSON format, stored in the settings field of User.
 type UserSettings struct {
 	V      int                `json:"v"`       // Settings version
+	Lang   string             `json:"lang"`    // Language preference, e.g. "zh-CN", "en"; empty = use server default
 	APIKey UserSettingsAPIKey `json:"api_key"` // API configurations
 	Theme  UserSettingsTheme  `json:"theme"`   // Theme preferences
 }
@@ -131,6 +132,7 @@ type UserSettings struct {
 // Init sets UserSettings to its default values.
 func (s *UserSettings) Init() {
 	s.V = 0
+	s.Lang = ""
 	s.APIKey = UserSettingsAPIKey{}
 	s.Theme = UserSettingsTheme{}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -60,15 +61,16 @@ func GetDefaultEmbeddingProvider() string {
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
-	Logger         LoggerConfig
-	Server         ServerConfig
-	Frontend       FrontendConfig
-	Database       DatabaseConfig
-	Redis          RedisConfig
-	Captcha        CaptchaConfig
-	SessionGC      SessionGCConfig      `toml:"session-gc"`
-	ApiKeys        ApiKeysConfig        `toml:"api-keys"`
-	BkgndTaskQueue BkgndTaskQueueConfig `toml:"bkgnd-task-queue"`
+	Logger              LoggerConfig
+	Server              ServerConfig
+	Frontend            FrontendConfig
+	Database            DatabaseConfig
+	Redis               RedisConfig
+	Captcha             CaptchaConfig
+	SessionGC           SessionGCConfig           `toml:"session-gc"`
+	ApiKeys             ApiKeysConfig             `toml:"api-keys"`
+	BkgndTaskQueue      BkgndTaskQueueConfig      `toml:"bkgnd-task-queue"`
+	TraitExtractionTask TraitExtractionTaskConfig `toml:"trait-extraction-task"`
 }
 
 // DefaultConfig returns a Config populated with built-in default values.
@@ -117,6 +119,13 @@ func DefaultConfig() Config {
 			CheckIntervalSeconds: 30,
 			WorkerCount:          3,
 			QueueSize:            100,
+		},
+		TraitExtractionTask: TraitExtractionTaskConfig{
+			Enabled:           true,
+			IntervalSeconds:   3600,
+			ExtractDelayHours: 20,
+			BatchLimit:        50,
+			AllowedWindows:    []TimeRange{},
 		},
 	}
 }
@@ -391,4 +400,93 @@ type BkgndTaskQueueConfig struct {
 	// QueueSize is the maximum number of queued tasks.
 	// Default: 100.
 	QueueSize int `toml:"queue_size"`
+}
+
+// TimeRange defines a half-open time window [Start, Stop) in 24-hour format.
+// Used by TraitExtractionTaskConfig.AllowedWindows to restrict when the
+// background trait extraction task may actually execute.
+type TimeRange struct {
+	// Start is the window start time in "HH:MM" format (inclusive), e.g. "02:00".
+	Start string `toml:"start"`
+	// Stop is the window end time in "HH:MM" format (exclusive), e.g. "06:00".
+	// If Stop <= Start in minute comparison, the window wraps past midnight.
+	Stop string `toml:"stop"`
+}
+
+// ============================================================
+// TraitExtractionTaskConfig — Periodic personal trait extraction
+// ============================================================
+
+// TraitExtractionTaskConfig configures the periodic background task that scans
+// chat_sessions for chats pending personal trait extraction and processes them.
+// These values are read from the TOML config file under [trait-extraction-task].
+// If not configured, DefaultConfig() provides sensible defaults.
+type TraitExtractionTaskConfig struct {
+	// Enabled enables the periodic trait extraction task. Default: true.
+	Enabled bool `toml:"enabled"`
+
+	// IntervalSeconds is how often (seconds) the task runs its scan-and-extract cycle.
+	// Default: 3600 (1 hour).
+	IntervalSeconds int `toml:"interval_seconds"`
+
+	// ExtractDelayHours is the threshold (hours) for re-extraction:
+	// chats with extracted_at older than update_at minus this many hours are eligible.
+	// Default: 20.
+	ExtractDelayHours int `toml:"extract_delay_hours"`
+
+	// BatchLimit is the maximum number of chat sessions processed per cycle.
+	// Default: 50.
+	BatchLimit int `toml:"batch_limit"`
+
+	// AllowedWindows restricts execution to specific time-of-day windows.
+	// Each entry defines a half-open [Start, Stop) range in "HH:MM" format.
+	// Empty slice (default) means always allowed (00:00-24:00).
+	// If Stop <= Start, the window wraps past midnight (e.g. [22:00, 06:00]).
+	AllowedWindows []TimeRange `toml:"allowed_windows"`
+}
+
+// IsAllowedTimePoint returns true if the given time falls within at least one
+// allowed window. An empty AllowedWindows slice means all times are allowed.
+// Windows that wrap past midnight (Stop <= Start) are handled correctly.
+func (c *TraitExtractionTaskConfig) IsAllowedTimePoint(t time.Time) bool {
+	if len(c.AllowedWindows) == 0 {
+		return true
+	}
+
+	currentMinutes := t.Hour()*60 + t.Minute()
+
+	for _, w := range c.AllowedWindows {
+		startMinutes := parseHHMM(w.Start)
+		stopMinutes := parseHHMM(w.Stop)
+		if startMinutes < 0 || stopMinutes < 0 {
+			continue
+		}
+
+		if startMinutes <= stopMinutes {
+			// Normal window: [start, stop)
+			if currentMinutes >= startMinutes && currentMinutes < stopMinutes {
+				return true
+			}
+		} else {
+			// Wrapping window: [start, 24:00) ∪ [00:00, stop)
+			if currentMinutes >= startMinutes || currentMinutes < stopMinutes {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// parseHHMM parses a "HH:MM" string into minutes since midnight.
+// Returns -1 on parse failure.
+func parseHHMM(s string) int {
+	if len(s) < 5 || s[2] != ':' {
+		return -1
+	}
+	hour := int(s[0]-'0')*10 + int(s[1]-'0')
+	minute := int(s[3]-'0')*10 + int(s[4]-'0')
+	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
+		return -1
+	}
+	return hour*60 + minute
 }

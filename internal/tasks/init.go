@@ -1,8 +1,8 @@
-// Package bktasks provides the global background slow-task queue singleton.
+// Package tasks provides the global background slow-task queue singleton.
 //
 // The underlying queue implementation lives in infra/bktask. This package
 // owns the global instance and exposes Init/Global/Stop for use in main.
-package bktasks
+package tasks
 
 import "BrainForever/infra/bktask"
 

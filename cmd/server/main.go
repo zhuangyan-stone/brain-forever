@@ -18,12 +18,12 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent"
-	"BrainForever/internal/agent/bktasks"
 	"BrainForever/internal/config"
 	"BrainForever/internal/logger"
 	"BrainForever/internal/notify"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
+	"BrainForever/internal/tasks"
 	"BrainForever/internal/theme"
 	"BrainForever/internal/user"
 )
@@ -189,14 +189,25 @@ func main() {
 	// Initialize global background slow-task queue
 	// ============================================================
 	if cfg.BkgndTaskQueue.Enabled {
-		bktasks.InitGlobal(bktask.Config{
+		tasks.InitGlobal(bktask.Config{
 			CheckInterval: time.Duration(cfg.BkgndTaskQueue.CheckIntervalSeconds) * time.Second,
 			WorkerCount:   cfg.BkgndTaskQueue.WorkerCount,
 			QueueSize:     cfg.BkgndTaskQueue.QueueSize,
 		}, theLogger)
-		defer bktasks.StopGlobal()
+		defer tasks.StopGlobal()
 		theLogger.Infof("bkgnd task queue initialized (checkInterval=%ds, workers=%d, queueSize=%d)",
 			cfg.BkgndTaskQueue.CheckIntervalSeconds, cfg.BkgndTaskQueue.WorkerCount, cfg.BkgndTaskQueue.QueueSize)
+
+		// Register periodic trait extraction task.
+		tasks.RegisterPeriodicTraitExtraction(
+			cfg.TraitExtractionTask,
+			agent.GetChatStore(),
+			agent.GetBrainStore(),
+			agent.GetLLMClients(),
+			agent.GetEmbedderClients(),
+			theLogger,
+			defaultLang,
+		)
 	} else {
 		theLogger.Infof("bkgnd task queue disabled by config")
 	}

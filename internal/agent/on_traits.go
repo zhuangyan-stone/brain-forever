@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"BrainForever/infra/embedder"
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/agent/toolimp"
@@ -54,7 +55,24 @@ type traitsResponse struct {
 	NewCount       int     `json:"new_count,omitempty"`
 }
 
-func halfLifeToInt(s string) int {
+// ============================================================
+// Exported types (for use by tasks package)
+// ============================================================
+
+// TraitFeature is an exported alias for traitsFeature used across packages.
+type TraitFeature = traitsFeature
+
+// TraitKeywordItem is an exported alias for traitsKeyword used across packages.
+type TraitKeywordItem = traitsKeyword
+
+// TraitResult is the result of an LLM trait extraction call.
+// It mirrors traitsResponse but omits HTTP-specific fields.
+type TraitResult struct {
+	Features []TraitFeature
+}
+
+// HalfLifeToInt converts a half-life string ("short"/"medium"/"long"/"permanent") to int (1-4).
+func HalfLifeToInt(s string) int {
 	switch s {
 	case "short":
 		return 1
@@ -69,7 +87,8 @@ func halfLifeToInt(s string) int {
 	}
 }
 
-func privacyLevelToInt(s string) int {
+// PrivacyLevelToInt converts a privacy-level string ("private"/"protected"/"public") to int (0-2).
+func PrivacyLevelToInt(s string) int {
 	switch s {
 	case "private":
 		return 0
@@ -82,7 +101,8 @@ func privacyLevelToInt(s string) int {
 	}
 }
 
-func keywordTypeToInt(t string) int {
+// KeywordTypeToInt converts a keyword type letter ("A"-"F") to int (1-6).
+func KeywordTypeToInt(t string) int {
 	switch t {
 	case "A":
 		return 1
@@ -154,17 +174,20 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 
 	var newCount int
 	if len(remoteResp.Features) > 0 {
-		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.ID)
+		storedCount, err := h.storeTraitsInSession(r.Context(), sess, remoteResp.Features, foundChat.ID, lastMsgID)
 		if err != nil {
 			h.logger.Errorf("store traits to brain.db failed (chatID=%d). %v", foundChat.ID, err)
 			toolset.WriteError(w, i18n.TL(lang, "api_error_internal"), http.StatusInternalServerError)
 			return
 		}
 		newCount = storedCount
-		theChatStore.UpdateMessagesExtracted(foundChat.ID, lastMsgID, true)
-		updateExtractionProgress(foundChat, theChatStore, storedCount)
+		// StoreTraitsStandalone already atomically marks messages and updates extracted_at.
+		// No separate UpdateMessagesExtracted / UpdateExtractionCountAndTime needed.
 	} else {
-		updateExtractionProgress(foundChat, theChatStore, 0)
+		// No traits; mark messages as processed atomically.
+		if _, err := theBrainStore.AddTraits(r.Context(), foundChat.ID, lastMsgID, nil); err != nil {
+			h.logger.Errorf("complete extraction for chat %d failed. %v", foundChat.ID, err)
+		}
 	}
 
 	remoteResp.NewCount = newCount
@@ -179,102 +202,24 @@ func (h *ChatAgent) OnExtractTraits(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ChatAgent) callTraitsLLM(ctx context.Context, title string, dbMessages []store.Message, lang string, sess *session.Session) (*traitsResponse, error) {
-	systemContent := getTraitSystemPrompt(lang, title)
-
-	llmMsgs := make([]llm.Message, 0, 1+len(dbMessages))
-	llmMsgs = append(llmMsgs, llm.Message{
-		Role:    llm.RoleSystem,
-		Content: systemContent,
-	})
-
-	for _, m := range dbMessages {
-		role := llm.RoleUser
-		if m.Role == 1 {
-			role = llm.RoleAssistant
-		}
-
-		content := m.Content
-		if role == llm.RoleAssistant {
-			runes := []rune(content)
-			if len(runes) > 1024 {
-				content = string(runes[:500]) + "\n...\n" + string(runes[len(runes)-500:])
-			}
-		}
-
-		createAt := toolset.FormatTimeWithLocation(m.CreateAt)
-		if createAt != "" {
-			content = "[" + createAt + "] " + content
-		}
-
-		llmMsgs = append(llmMsgs, llm.Message{
-			Role:    role,
-			Content: content,
-		})
-	}
-
+	// Build messages with timestamps (HTTP handler adds time context).
+	llmMsgs := buildTraitsLLMMessages(title, dbMessages, lang, true)
 	if len(llmMsgs) <= 1 {
 		return nil, fmt.Errorf("no valid messages after conversion")
 	}
 
-	tripTool := toolimp.NewTripTraitsTool(lang)
-
 	client := sessionLLMClient(sess)
 	apiSetting := sessionLLMApiSetting(sess)
 
-	reqBody := llm.ChatCompletionRequest{
-		Model:    client.Model(),
-		Messages: llmMsgs,
-		Tools:    []llm.ToolDefinition{tripTool.GetDefinition()},
-		Thinking: &llm.ThinkingConfig{Type: "disabled"},
-	}
-	reqBody.ForceToolChoice(toolimp.TripTraitsToolName)
-
-	resp, err := client.ChatWithOptions(ctx, reqBody, apiSetting.ApiKey)
-	if err != nil {
-		return nil, fmt.Errorf("LLM call failed. %w", err)
+	traitResult := callTraitsLLMWithTool(ctx, llmMsgs, lang, client, apiSetting.ApiKey)
+	if traitResult == nil {
+		return nil, fmt.Errorf("LLM call failed")
 	}
 
-	result := &traitsResponse{}
-
-	if resp.Usage != nil && resp.Usage.TotalTokens > 0 {
-		result.Usage = resp.Usage
+	result := &traitsResponse{
+		Features: traitResult.Features,
 	}
-
-	if len(resp.Choices) > 0 && resp.Choices[0].FinishReason == "tool_calls" {
-		msg := resp.Choices[0].Message
-		for _, tc := range msg.ToolCalls {
-			if err := tripTool.SetArgument(tc.Function.Arguments); err != nil {
-				continue
-			}
-			if _, err := tripTool.Execute(); err != nil {
-				continue
-			}
-		}
-
-		traitsResult := tripTool.GetTraitsResult()
-		for _, f := range traitsResult.Features {
-			kws := make([]traitsKeyword, 0, len(f.Keywords))
-			for _, kw := range f.Keywords {
-				kws = append(kws, traitsKeyword{
-					Type: kw.Type,
-					Word: kw.Word,
-				})
-			}
-			result.Features = append(result.Features, traitsFeature{
-				CategoryID:   f.CategoryID,
-				CategoryName: f.CategoryName,
-				FeatureText:  f.FeatureText,
-				Keywords:     kws,
-				Confidence:   f.Confidence,
-				HalfLife:     f.HalfLife,
-				PrivacyLevel: f.PrivacyLevel,
-			})
-		}
-	} else if len(resp.Choices) > 0 && resp.Choices[0].Message.Content != "" {
-		result.Error = "LLM returned text instead of tool call"
-	}
-
-	h.logger.Debugf("callTraitsLLM returning features=%d error=%q", len(result.Features), result.Error)
+	h.logger.Debugf("callTraitsLLM returning features=%d", len(result.Features))
 	return result, nil
 }
 
@@ -314,56 +259,10 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 	return
 }
 
-func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Session, features []traitsFeature, chatID int64) (int, error) {
+func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Session, features []traitsFeature, chatID int64, upToMsgID int64) (int, error) {
 	emb := sessionEmbedder(sess)
 	apiSetting := sessionEmbedderApiSetting(sess)
-
-	// First pass: compute embeddings for all features and build insertion data
-	insertions := make([]store.TraitInsertion, 0, len(features))
-	for _, f := range features {
-		if f.FeatureText == "" {
-			continue
-		}
-
-		vector, err := emb.Embed(ctx, f.FeatureText, apiSetting.ApiKey)
-		if err != nil {
-			return 0, fmt.Errorf("embed trait failed. %w", err)
-		}
-
-		trait := store.PersonalTrait{
-			Trait:        f.FeatureText,
-			Category:     f.CategoryID,
-			Confidence:   f.Confidence,
-			HalfLife:     halfLifeToInt(f.HalfLife),
-			PrivacyLevel: privacyLevelToInt(f.PrivacyLevel),
-			ChatID:       chatID,
-		}
-
-		keywords := make([]store.TraitKeyword, 0, len(f.Keywords))
-		for _, kw := range f.Keywords {
-			if kw.Word == "" {
-				continue
-			}
-			keywords = append(keywords, store.TraitKeyword{
-				Word: kw.Word,
-				Kind: keywordTypeToInt(kw.Type),
-			})
-		}
-
-		insertions = append(insertions, store.TraitInsertion{
-			Trait:    trait,
-			Vector:   vector,
-			Keywords: keywords,
-			UserID:   sess.User.ID,
-		})
-	}
-
-	if len(insertions) == 0 {
-		return 0, nil
-	}
-
-	// Single atomic transaction for all traits
-	return theBrainStore.AddTraits(ctx, insertions)
+	return StoreTraitsStandalone(ctx, features, chatID, sess.User.ID, upToMsgID, emb, apiSetting.ApiKey)
 }
 
 func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {
@@ -388,4 +287,162 @@ func updateExtractionProgress(foundChat *store.Chat, chatsStore *store.ChatStore
 		foundChat.ExtractedAt = &now
 		foundChat.ExtractedCount += newTraitCount
 	}
+}
+
+// ============================================================
+// Shared trait extraction helpers (used by both agent and tasks packages)
+// ============================================================
+
+// buildTraitsLLMMessages builds the LLM message list from DB messages.
+// If withTimestamps is true, prepends [timestamp] to each message.
+func buildTraitsLLMMessages(title string, dbMessages []store.Message, lang string, withTimestamps bool) []llm.Message {
+	systemContent := getTraitSystemPrompt(lang, title)
+
+	llmMsgs := make([]llm.Message, 0, 1+len(dbMessages))
+	llmMsgs = append(llmMsgs, llm.Message{
+		Role:    llm.RoleSystem,
+		Content: systemContent,
+	})
+
+	for _, m := range dbMessages {
+		role := llm.RoleUser
+		if m.Role == 1 {
+			role = llm.RoleAssistant
+		}
+
+		content := m.Content
+		if role == llm.RoleAssistant {
+			runes := []rune(content)
+			if len(runes) > 1024 {
+				content = string(runes[:500]) + "\n...\n" + string(runes[len(runes)-500:])
+			}
+		}
+
+		if withTimestamps {
+			createAt := toolset.FormatTimeWithLocation(m.CreateAt)
+			if createAt != "" {
+				content = "[" + createAt + "] " + content
+			}
+		}
+
+		llmMsgs = append(llmMsgs, llm.Message{
+			Role:    role,
+			Content: content,
+		})
+	}
+
+	return llmMsgs
+}
+
+// callTraitsLLMWithTool sends messages to the LLM with the trip_traits tool and parses the result.
+func callTraitsLLMWithTool(ctx context.Context, llmMsgs []llm.Message, lang string, client llm.Client, apiKey string) *TraitResult {
+	tripTool := toolimp.NewTripTraitsTool(lang)
+
+	reqBody := llm.ChatCompletionRequest{
+		Model:    client.Model(),
+		Messages: llmMsgs,
+		Tools:    []llm.ToolDefinition{tripTool.GetDefinition()},
+		Thinking: &llm.ThinkingConfig{Type: "disabled"},
+	}
+	reqBody.ForceToolChoice(toolimp.TripTraitsToolName)
+
+	resp, err := client.ChatWithOptions(ctx, reqBody, apiKey)
+	if err != nil {
+		return nil
+	}
+
+	result := &TraitResult{}
+
+	if len(resp.Choices) > 0 && resp.Choices[0].FinishReason == "tool_calls" {
+		msg := resp.Choices[0].Message
+		for _, tc := range msg.ToolCalls {
+			if err := tripTool.SetArgument(tc.Function.Arguments); err != nil {
+				continue
+			}
+			if _, err := tripTool.Execute(); err != nil {
+				continue
+			}
+		}
+
+		traitsResult := tripTool.GetTraitsResult()
+		for _, f := range traitsResult.Features {
+			kws := make([]TraitKeywordItem, 0, len(f.Keywords))
+			for _, kw := range f.Keywords {
+				kws = append(kws, TraitKeywordItem{
+					Type: kw.Type,
+					Word: kw.Word,
+				})
+			}
+			result.Features = append(result.Features, TraitFeature{
+				CategoryID:   f.CategoryID,
+				CategoryName: f.CategoryName,
+				FeatureText:  f.FeatureText,
+				Keywords:     kws,
+				Confidence:   f.Confidence,
+				HalfLife:     f.HalfLife,
+				PrivacyLevel: f.PrivacyLevel,
+			})
+		}
+	}
+
+	return result
+}
+
+// CallTraitsLLMStandalone is an exported standalone function that builds LLM messages
+// (without timestamps) and extracts traits. Usable from external packages like tasks.
+func CallTraitsLLMStandalone(ctx context.Context, title string, dbMessages []store.Message, lang string, client llm.Client, apiKey string) *TraitResult {
+	llmMsgs := buildTraitsLLMMessages(title, dbMessages, lang, false)
+	if len(llmMsgs) <= 1 {
+		return nil
+	}
+	return callTraitsLLMWithTool(ctx, llmMsgs, lang, client, apiKey)
+}
+
+// StoreTraitsStandalone is an exported standalone function that computes embeddings
+// and persists traits, then atomically marks messages and session progress.
+// Usable from external packages like tasks.
+func StoreTraitsStandalone(ctx context.Context, features []TraitFeature, chatID int64, userID int64,
+	upToMsgID int64, emb embedder.Embedder, apiKey string) (int, error) {
+
+	insertions := make([]store.TraitInsertion, 0, len(features))
+	for _, f := range features {
+		if f.FeatureText == "" {
+			continue
+		}
+
+		vector, err := emb.Embed(ctx, f.FeatureText, apiKey)
+		if err != nil {
+			return 0, fmt.Errorf("embed trait failed. %w", err)
+		}
+
+		trait := store.PersonalTrait{
+			Trait:        f.FeatureText,
+			Category:     f.CategoryID,
+			Confidence:   f.Confidence,
+			HalfLife:     HalfLifeToInt(f.HalfLife),
+			PrivacyLevel: PrivacyLevelToInt(f.PrivacyLevel),
+			ChatID:       chatID,
+		}
+
+		keywords := make([]store.TraitKeyword, 0, len(f.Keywords))
+		for _, kw := range f.Keywords {
+			if kw.Word == "" {
+				continue
+			}
+			keywords = append(keywords, store.TraitKeyword{
+				Word: kw.Word,
+				Kind: KeywordTypeToInt(kw.Type),
+			})
+		}
+
+		insertions = append(insertions, store.TraitInsertion{
+			Trait:    trait,
+			Vector:   vector,
+			Keywords: keywords,
+			UserID:   userID,
+		})
+	}
+
+	// Single transaction: insert traits + mark messages + update session progress.
+	return theBrainStore.AddTraits(ctx, chatID, upToMsgID, insertions)
 }

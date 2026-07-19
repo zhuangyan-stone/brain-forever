@@ -64,93 +64,12 @@ func (s *BrainStore) db() *sqlx.DB {
 	return ThePGDB()
 }
 
-// AddTrait inserts a personal trait and its vector embedding.
-func (s *BrainStore) AddTrait(ctx context.Context, userID int64, trait *PersonalTrait, embedding []float32) (int64, error) {
-	tx, err := s.db().Begin()
-	if err != nil {
-		s.logger.Errorf("BEGIN transaction failed. %v", err)
-		return 0, err
-	}
-	defer tx.Rollback()
-
-	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_id)
-		 VALUES($1, $2, $3, $4, $5, $6, $7)
-		 RETURNING id`
-	var traitID int64
-	err = tx.QueryRow(sqlInsertTrait,
-		userID, trait.Trait, trait.Category, trait.Confidence, trait.HalfLife, trait.PrivacyLevel, trait.ChatID,
-	).Scan(&traitID)
-	if err != nil {
-		s.logger.Errorf("SQL [%s]:\n%v", sqlInsertTrait, err)
-		return 0, fmt.Errorf("failed to insert trait. %w", err)
-	}
-
-	pgVec := pgvector.NewVector(embedding)
-	sqlInsertVec := "INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)"
-	_, err = tx.Exec(sqlInsertVec, traitID, pgVec)
-	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[traitID=%d]:\n%v", sqlInsertVec, traitID, err)
-		return 0, fmt.Errorf("failed to insert trait vector. %w", err)
-	}
-
-	return traitID, tx.Commit()
-}
-
 // TraitInsertion holds all data needed to insert a single trait.
 type TraitInsertion struct {
 	Trait    PersonalTrait
 	Vector   []float32
 	Keywords []TraitKeyword
 	UserID   int64 // required for data isolation
-}
-
-// AddTraits inserts multiple traits atomically.
-func (s *BrainStore) AddTraits(ctx context.Context, insertions []TraitInsertion) (int, error) {
-	tx, err := s.db().Begin()
-	if err != nil {
-		s.logger.Errorf("BEGIN transaction failed. %v", err)
-		return 0, err
-	}
-	defer tx.Rollback()
-
-	sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_id)
-			 VALUES($1, $2, $3, $4, $5, $6, $7)
-			 RETURNING id`
-	sqlInsertVec := "INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)"
-	sqlInsertKw := "INSERT INTO keywords(word, kind, trait_id) VALUES($1, $2, $3)"
-
-	for _, ins := range insertions {
-		var traitID int64
-		err = tx.QueryRow(sqlInsertTrait,
-			ins.UserID, ins.Trait.Trait, ins.Trait.Category, ins.Trait.Confidence,
-			ins.Trait.HalfLife, ins.Trait.PrivacyLevel, ins.Trait.ChatID,
-		).Scan(&traitID)
-		if err != nil {
-			s.logger.Errorf("SQL [%s]:\n%v", sqlInsertTrait, err)
-			return 0, fmt.Errorf("failed to insert trait. %w", err)
-		}
-
-		pgVec := pgvector.NewVector(ins.Vector)
-		_, err = tx.Exec(sqlInsertVec, traitID, pgVec)
-		if err != nil {
-			s.logger.Errorf("SQL [%s] args=[traitID=%d]:\n%v", sqlInsertVec, traitID, err)
-			return 0, fmt.Errorf("failed to insert trait vector. %w", err)
-		}
-
-		for _, kw := range ins.Keywords {
-			_, err := tx.Exec(sqlInsertKw, kw.Word, kw.Kind, traitID)
-			if err != nil {
-				s.logger.Errorf("SQL [%s] args=[traitID=%d word=%s kind=%d]:\n%v", sqlInsertKw, traitID, kw.Word, kw.Kind, err)
-				return 0, fmt.Errorf("failed to insert keyword. %w", err)
-			}
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		s.logger.Errorf("COMMIT transaction failed. %v", err)
-		return 0, fmt.Errorf("failed to commit traits transaction. %w", err)
-	}
-	return len(insertions), nil
 }
 
 // AddKeyword inserts a keyword associated with a trait.
@@ -458,4 +377,90 @@ func (s *BrainStore) ListAllTraitsByCreateTime(userID int64) ([]PersonalTrait, e
 // Close is a no-op because BrainStore no longer owns a connection.
 func (s *BrainStore) Close() error {
 	return nil
+}
+
+// ============================================================
+// AddTraits — insert traits and mark extraction progress atomically
+// ============================================================
+
+// AddTraits atomically performs the three write operations of a trait
+// extraction cycle in a single database transaction:
+//
+//	A. Insert traits, vectors and keywords into brain tables.
+//	B. Mark chat_messages as extracted (extracted = true).
+//	C. Update chat_sessions.extracted_at and extracted_count.
+//
+// If insertions is empty, only B and C are executed (marks as processed).
+// The LLM API call and embedding computation must happen before this function.
+//
+// Returns the number of traits actually stored.
+func (s *BrainStore) AddTraits(ctx context.Context, chatID int64, upToMsgID int64, insertions []TraitInsertion) (int, error) {
+	tx, err := s.db().Beginx()
+	if err != nil {
+		return 0, fmt.Errorf("BEGIN transaction failed. %w", err)
+	}
+	defer tx.Rollback()
+
+	// ---- A: Insert traits ----
+	storedCount := 0
+	if len(insertions) > 0 {
+		sqlInsertTrait := `INSERT INTO traits(user_id, trait, category, confidence, half_life, privacy_level, chat_id)
+			 VALUES($1, $2, $3, $4, $5, $6, $7)
+			 RETURNING id`
+		sqlInsertVec := "INSERT INTO trait_vectors(trait_id, embedding) VALUES($1, $2)"
+		sqlInsertKw := "INSERT INTO keywords(word, kind, trait_id) VALUES($1, $2, $3)"
+
+		for _, ins := range insertions {
+			var traitID int64
+			err := tx.QueryRow(sqlInsertTrait,
+				ins.UserID, ins.Trait.Trait, ins.Trait.Category, ins.Trait.Confidence,
+				ins.Trait.HalfLife, ins.Trait.PrivacyLevel, ins.Trait.ChatID,
+			).Scan(&traitID)
+			if err != nil {
+				return 0, fmt.Errorf("failed to insert trait. %w", err)
+			}
+
+			pgVec := pgvector.NewVector(ins.Vector)
+			_, err = tx.Exec(sqlInsertVec, traitID, pgVec)
+			if err != nil {
+				return 0, fmt.Errorf("failed to insert trait vector. %w", err)
+			}
+
+			for _, kw := range ins.Keywords {
+				_, err := tx.Exec(sqlInsertKw, kw.Word, kw.Kind, traitID)
+				if err != nil {
+					return 0, fmt.Errorf("failed to insert keyword. %w", err)
+				}
+			}
+		}
+		storedCount = len(insertions)
+	}
+
+	// ---- B: Mark messages as extracted ----
+	sqlMarkMsg := `UPDATE chat_messages
+		 SET extracted = TRUE
+		 WHERE chat_id = $1 AND id <= $2 AND extracted = FALSE`
+	_, err = tx.Exec(sqlMarkMsg, chatID, upToMsgID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to mark messages as extracted. %w", err)
+	}
+
+	// ---- C: Update session extraction progress ----
+	sqlUpdateSession := `UPDATE chat_sessions
+		 SET extracted_at = NOW(),
+		     extracted_count = extracted_count + $1
+		 WHERE id = $2`
+	result, err := tx.Exec(sqlUpdateSession, storedCount, chatID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update extraction progress. %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return 0, fmt.Errorf("session not found (id=%d)", chatID)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("COMMIT transaction failed. %w", err)
+	}
+	return storedCount, nil
 }

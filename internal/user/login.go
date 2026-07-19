@@ -247,7 +247,8 @@ func (h *Handler) OnLoginBySMS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.afterLogin(w, user, isNew, sess)
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+	h.afterLogin(w, user, isNew, sess, lang)
 }
 
 // ============================================================
@@ -281,7 +282,8 @@ func (h *Handler) OnLoginByPwd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.afterLogin(w, user, false, sess)
+	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
+	h.afterLogin(w, user, false, sess, lang)
 }
 
 // ============================================================
@@ -314,9 +316,9 @@ func pickRandomAvatar(avatarDir string) string {
 }
 
 // afterLogin handles common post-login logic: load user chats, parse settings,
-// fill system-shared API keys for non-private services, switch session,
-// persist to Redis, and respond.
-func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool, sess *session.Session) {
+// fill system-shared API keys for non-private services, persist user language,
+// switch session, persist to Redis, and respond.
+func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool, sess *session.Session, lang string) {
 	var chats []store.Chat
 	cs := store.NewChatStore(h.logger)
 	chats, err := cs.ListChats(user.ID, 100)
@@ -329,6 +331,14 @@ func (h *Handler) afterLogin(w http.ResponseWriter, user *store.User, isNew bool
 		h.logger.Errorf("failed to parse user settings for user %s. %v", user.SN, err)
 		http.Error(w, i18n.T("api_error_internal"), http.StatusInternalServerError)
 		return
+	}
+
+	// Persist language preference if provided and different from stored value.
+	if lang != "" && userSettings.Lang != lang {
+		userSettings.Lang = lang
+		if err := store.TheUserStore().SetUserSettings(user.ID, &userSettings); err != nil {
+			h.logger.Errorf("failed to persist lang preference for user %s. %v", user.SN, err)
+		}
 	}
 
 	// ============================================================
