@@ -233,6 +233,9 @@ type ChatAgent struct {
 	smsCodeCache *cache.SMSCodeCache
 
 	logger zylog.Logger
+
+	dedupEnabled   bool
+	dedupThreshold float64
 }
 
 // ============================================================
@@ -439,6 +442,8 @@ func NewChatHandler(
 	avatarDir string,
 	logger zylog.Logger,
 	gcConfig session.GCConfig,
+	dedupEnabled bool,
+	dedupThreshold float64,
 ) *ChatAgent {
 	if defaultLang == "" {
 		defaultLang = "en"
@@ -449,6 +454,8 @@ func NewChatHandler(
 		defaultLang:    defaultLang,
 		avatarDir:      avatarDir,
 		logger:         zylog.WrapWithSubject(logger, "agent"),
+		dedupEnabled:   dedupEnabled,
+		dedupThreshold: dedupThreshold,
 	}
 }
 

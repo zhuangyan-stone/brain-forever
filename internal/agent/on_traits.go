@@ -11,6 +11,7 @@ import (
 	"BrainForever/infra/i18n"
 	"BrainForever/infra/llm"
 	"BrainForever/internal/agent/toolimp"
+	"BrainForever/internal/logger"
 	"BrainForever/internal/session"
 	"BrainForever/internal/store"
 	"BrainForever/toolset"
@@ -262,7 +263,7 @@ func dbMessagesToTraitsMsgs(dbMessages []store.Message) (msgs []traitsMsg, lastM
 func (h *ChatAgent) storeTraitsInSession(ctx context.Context, sess *session.Session, features []traitsFeature, chatID int64, upToMsgID int64) (int, error) {
 	emb := sessionEmbedder(sess)
 	apiSetting := sessionEmbedderApiSetting(sess)
-	return StoreTraitsStandalone(ctx, features, chatID, sess.User.ID, upToMsgID, emb, apiSetting.ApiKey)
+	return StoreTraitsStandalone(ctx, features, chatID, sess.User.ID, upToMsgID, emb, apiSetting.ApiKey, h.dedupEnabled, h.dedupThreshold)
 }
 
 func handleNoNewMessages(w http.ResponseWriter, foundChat *store.Chat, chatsStore *store.ChatStore) {
@@ -402,7 +403,7 @@ func CallTraitsLLMStandalone(ctx context.Context, title string, dbMessages []sto
 // and persists traits, then atomically marks messages and session progress.
 // Usable from external packages like tasks.
 func StoreTraitsStandalone(ctx context.Context, features []TraitFeature, chatID int64, userID int64,
-	upToMsgID int64, emb embedder.Embedder, apiKey string) (int, error) {
+	upToMsgID int64, emb embedder.Embedder, apiKey string, dedupEnabled bool, dedupThreshold float64) (int, error) {
 
 	insertions := make([]store.TraitInsertion, 0, len(features))
 	for _, f := range features {
@@ -413,6 +414,19 @@ func StoreTraitsStandalone(ctx context.Context, features []TraitFeature, chatID 
 		vector, err := emb.Embed(ctx, f.FeatureText, apiKey)
 		if err != nil {
 			return 0, fmt.Errorf("embed trait failed. %w", err)
+		}
+
+		// Deduplication: check if a similar trait already exists in the same chat.
+		if dedupEnabled {
+			existingTraits, err := theBrainStore.SearchByVectorInChat(userID, chatID, vector, 1)
+			if err != nil {
+				// Query failure should not block the insertion flow.
+				logger.TheLogger().Warnf("dedup: SearchByVectorInChat failed for chat %d. %v", chatID, err)
+			} else if len(existingTraits) > 0 && existingTraits[0].Score >= dedupThreshold {
+				logger.TheLogger().Debugf("dedup: skip duplicate trait %q in chat %d (score=%.4f >= threshold=%.4f)",
+					f.FeatureText, chatID, existingTraits[0].Score, dedupThreshold)
+				continue
+			}
 		}
 
 		trait := store.PersonalTrait{

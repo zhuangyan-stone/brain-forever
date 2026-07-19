@@ -153,6 +153,67 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 	return results, nil
 }
 
+// SearchByVectorInChat performs vector similarity search scoped to a specific chat.
+// userID and chatID are required for data isolation.
+func (s *BrainStore) SearchByVectorInChat(userID int64, chatID int64, query []float32, topK int) ([]PersonalTrait, error) {
+	pgVec := pgvector.NewVector(query)
+
+	sqlQuery := `SELECT v.trait_id, v.embedding <=> $1 AS distance,
+		t.id, t.trait, t.category, t.confidence, t.half_life,
+		t.privacy_level, t.chat_id, t.create_at, t.update_at
+		FROM trait_vectors v
+		JOIN traits t ON t.id = v.trait_id
+		WHERE t.user_id = $2 AND t.chat_id = $3
+		ORDER BY distance
+		LIMIT $4`
+
+	rows, err := s.db().Query(sqlQuery, pgVec, userID, chatID, topK)
+	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d chatID=%d]:\n%v", sqlQuery, userID, chatID, err)
+		return nil, fmt.Errorf("vector search in chat failed. %w", err)
+	}
+	defer rows.Close()
+
+	var results []PersonalTrait
+	for rows.Next() {
+		var (
+			traitID                        int64
+			distance                       float64
+			traitCat, confidence, halfLife int64
+			privacyLevel                   int
+			traitChatID                    int64
+			traitText                      string
+			createAt, updateAt             time.Time
+		)
+		if err := rows.Scan(&traitID, &distance, &traitID, &traitText, &traitCat,
+			&confidence, &halfLife, &privacyLevel, &traitChatID, &createAt, &updateAt); err != nil {
+			return nil, err
+		}
+
+		score := 1.0 - distance
+
+		pt := PersonalTrait{
+			ID:           traitID,
+			Trait:        traitText,
+			Category:     int(traitCat),
+			Confidence:   int(confidence),
+			HalfLife:     int(halfLife),
+			ChatID:       traitChatID,
+			Score:        score,
+			PrivacyLevel: privacyLevel,
+			CreateAt:     createAt,
+			UpdateAt:     updateAt,
+		}
+		results = append(results, pt)
+	}
+	if err := rows.Err(); err != nil {
+		s.logger.Errorf("rows iteration error. %v", err)
+		return nil, err
+	}
+
+	return results, nil
+}
+
 // SearchByKeyword finds traits by matching keywords for a user.
 func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit int) ([]PersonalTrait, error) {
 	if limit <= 0 {

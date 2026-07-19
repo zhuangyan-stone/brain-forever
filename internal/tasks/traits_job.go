@@ -45,6 +45,8 @@ func RegisterPeriodicTraitExtraction(
 	embedderClients map[string]embedder.Embedder,
 	logger zylog.Logger,
 	defaultLang string,
+	dedupEnabled bool,
+	dedupThreshold float64,
 ) {
 	if !cfg.Enabled {
 		logger.Infof("periodic trait extraction task disabled by config")
@@ -53,7 +55,7 @@ func RegisterPeriodicTraitExtraction(
 
 	interval := time.Duration(cfg.IntervalSeconds) * time.Second
 	err := Global().AddRecurring("periodic-trait-extraction", interval, func() error {
-		return runPeriodicTraitExtraction(&cfg, chatStore, brainStore, llmClients, embedderClients, logger, defaultLang)
+		return runPeriodicTraitExtraction(&cfg, chatStore, brainStore, llmClients, embedderClients, logger, defaultLang, dedupEnabled, dedupThreshold)
 	})
 	if err != nil {
 		logger.Errorf("failed to register periodic trait extraction task. %v", err)
@@ -76,6 +78,8 @@ func runPeriodicTraitExtraction(
 	embedderClients map[string]embedder.Embedder,
 	logger zylog.Logger,
 	defaultLang string,
+	dedupEnabled bool,
+	dedupThreshold float64,
 ) error {
 	// 1. Check time window constraint.
 	if !cfg.IsAllowedTimePoint(time.Now()) {
@@ -98,7 +102,7 @@ func runPeriodicTraitExtraction(
 
 	// 3. Process each chat.
 	for _, row := range rows {
-		processChatForExtraction(row, chatStore, brainStore, llmClients, embedderClients, logger, defaultLang)
+		processChatForExtraction(row, chatStore, brainStore, llmClients, embedderClients, logger, defaultLang, dedupEnabled, dedupThreshold)
 	}
 
 	return nil
@@ -139,6 +143,8 @@ func processChatForExtraction(
 	embedderClients map[string]embedder.Embedder,
 	logger zylog.Logger,
 	defaultLang string,
+	dedupEnabled bool,
+	dedupThreshold float64,
 ) {
 	// 1. Parse user settings from the JOIN result.
 	var userSettings store.UserSettings
@@ -226,7 +232,7 @@ func processChatForExtraction(
 	//    in a single database transaction. No separate B/C calls needed.
 	lastMsgID := messages[len(messages)-1].ID
 	if len(result.Features) > 0 {
-		storedCount, err := agent.StoreTraitsStandalone(ctx, result.Features, row.ID, row.UserID, lastMsgID, embedderClient, embedderAPIKey)
+		storedCount, err := agent.StoreTraitsStandalone(ctx, result.Features, row.ID, row.UserID, lastMsgID, embedderClient, embedderAPIKey, dedupEnabled, dedupThreshold)
 		if err != nil {
 			logger.Errorf("store traits for chat %d failed. %v", row.ID, err)
 			return

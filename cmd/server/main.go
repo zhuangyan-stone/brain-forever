@@ -207,6 +207,8 @@ func main() {
 			agent.GetEmbedderClients(),
 			theLogger,
 			defaultLang,
+			cfg.TraitExtractionTask.DeduplicateEnabled,
+			cfg.TraitExtractionTask.DeduplicateThreshold,
 		)
 	} else {
 		theLogger.Infof("bkgnd task queue disabled by config")

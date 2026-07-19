@@ -121,11 +121,13 @@ func DefaultConfig() Config {
 			QueueSize:            100,
 		},
 		TraitExtractionTask: TraitExtractionTaskConfig{
-			Enabled:           true,
-			IntervalSeconds:   3600,
-			ExtractDelayHours: 20,
-			BatchLimit:        50,
-			AllowedWindows:    [][]TimeOfDay{},
+			Enabled:              true,
+			IntervalSeconds:      3600,
+			ExtractDelayHours:    20,
+			BatchLimit:           50,
+			AllowedWindows:       [][]TimeOfDay{},
+			DeduplicateEnabled:   false,
+			DeduplicateThreshold: 0.95,
 		},
 	}
 }
@@ -458,6 +460,20 @@ type TraitExtractionTaskConfig struct {
 	// If stop <= start, the window wraps past midnight (e.g. ["22:00", "06:00"]).
 	// TOML example: allowed_windows = [["02:00", "06:00"], ["22:00", "23:59"]]
 	AllowedWindows [][]TimeOfDay `toml:"allowed_windows"`
+
+	// DeduplicateEnabled enables trait embedding deduplication before insertion.
+	// When enabled, each new trait's embedding is compared against existing traits
+	// in the same chat; if the cosine similarity exceeds DeduplicateThreshold,
+	// the trait is skipped to avoid storing near-duplicate entries.
+	// Default: false (deduplication disabled).
+	DeduplicateEnabled bool `toml:"deduplicate_enabled"`
+
+	// DeduplicateThreshold is the cosine similarity threshold (0.0-1.0) for
+	// trait deduplication. Only meaningful when DeduplicateEnabled is true.
+	// A new trait with similarity >= this value to any existing trait in the
+	// same chat is considered a duplicate and will not be stored.
+	// Default: 0.95 (recommended).
+	DeduplicateThreshold float64 `toml:"deduplicate_threshold"`
 }
 
 // IsAllowedTimePoint returns true if the given time falls within at least one

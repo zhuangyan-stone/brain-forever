@@ -165,3 +165,13 @@ batch_limit = 50
 # 示例：
 #   allowed_windows = [["02:00", "06:00"], ["22:00", "23:59"]]
 allowed_windows = []
+
+# trait 入库去重开关（可选）
+# 启用后，新提取的 trait 会与同 chat 下已有 trait 做 embedding 相似度比对，
+# 相似度超过 deduplicate_threshold 时视为重复，跳过入库。
+# 默认 false（关闭去重）。
+deduplicate_enabled = false
+
+# embedding 相似度去重阈值（0.0-1.0），仅 deduplicate_enabled = true 时生效。
+# 建议值：0.95。
+deduplicate_threshold = 0.95
