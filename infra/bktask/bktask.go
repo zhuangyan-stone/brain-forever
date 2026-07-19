@@ -42,6 +42,7 @@ type Logger interface {
 //   - OneShot == true: one-shot — runs once after Interval delay, then removed.
 //   - Interval == 0 (and OneShot == true): executes on the next check tick.
 type BkgndTask struct {
+	Name     string        // Optional human-readable name for logging
 	Job      func() error  // The job function to execute
 	OneShot  bool          // true: one-shot; false: recurring
 	Interval time.Duration // Delay between executions (recurring) or before execution (one-shot)
@@ -129,20 +130,17 @@ func (q *TaskQueue) Add(task BkgndTask) error {
 	if task.OneShot && task.Interval == 0 {
 		// One-shot, no delay: execute on the very next tick
 		entry.nextRun = now
-	} else if task.OneShot {
-		// One-shot with delay
-		entry.nextRun = now.Add(task.Interval)
 	} else {
-		// Recurring: first run after one check interval
-		entry.nextRun = now.Add(q.checkInterval)
+		// One-shot with delay or recurring: schedule after the specified interval
+		entry.nextRun = now.Add(task.Interval)
 	}
 
 	q.mu.Lock()
 	q.tasks = append(q.tasks, entry)
 	q.mu.Unlock()
 
-	q.logger.Infof("bktask: task added (oneShot=%v, interval=%v, nextRun=%s)",
-		task.OneShot, task.Interval, entry.nextRun.Format(time.RFC3339))
+	q.logger.Infof("bktask: task added (name=%q, oneShot=%v, interval=%v, nextRun=%s)",
+		task.Name, task.OneShot, task.Interval, entry.nextRun.Format(time.RFC3339))
 	return nil
 }
 
@@ -278,22 +276,23 @@ func (q *TaskQueue) safeRun(entry *taskEntry) {
 		}
 	}()
 
-	q.logger.Infof("bktask: executing task (oneShot=%v, interval=%v)",
-		entry.task.OneShot, entry.task.Interval)
+	q.logger.Infof("bktask: executing task (name=%q, oneShot=%v, interval=%v)",
+		entry.task.Name, entry.task.OneShot, entry.task.Interval)
 
 	err := entry.task.Job()
 
 	if err != nil {
-		q.logger.Errorf("bktask: job failed (oneShot=%v, interval=%v). %v",
-			entry.task.OneShot, entry.task.Interval, err)
+		q.logger.Errorf("bktask: job failed (name=%q, oneShot=%v, interval=%v). %v",
+			entry.task.Name, entry.task.OneShot, entry.task.Interval, err)
 	} else {
-		q.logger.Infof("bktask: task completed (oneShot=%v, interval=%v)",
-			entry.task.OneShot, entry.task.Interval)
+		q.logger.Infof("bktask: task completed (name=%q, oneShot=%v, interval=%v)",
+			entry.task.Name, entry.task.OneShot, entry.task.Interval)
 	}
 
 	// Recurring task: re-add to the queue for the next cycle.
 	if !entry.task.OneShot {
 		q.Add(BkgndTask{
+			Name:     entry.task.Name,
 			Job:      entry.task.Job,
 			OneShot:  false,
 			Interval: entry.task.Interval,

@@ -534,6 +534,11 @@ func TestConcurrentStress(t *testing.T) {
 
 	q.Start()
 
+	// Allow the recurring task to execute at least once before hammering starts,
+	// since with corrected scheduling (using task.Interval) the task needs ~30ms
+	// to fire and would otherwise be cleared by Goroutine 2 before executing.
+	time.Sleep(35 * time.Millisecond)
+
 	var wg sync.WaitGroup
 
 	// Goroutine 1: hammer Pause/Resume

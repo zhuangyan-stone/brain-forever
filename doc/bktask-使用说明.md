@@ -22,6 +22,7 @@
 
 ```go
 type BkgndTask struct {
+    Name     string        // 可选的任务名称（用于日志标识）
     Job      func() error  // 要执行的函数
     OneShot  bool          // true=一次性, false=定期
     Interval time.Duration // 延迟/间隔时间
@@ -67,7 +68,7 @@ q := bktask.New(30*time.Second, logger) // 每 30 秒检查一次
 | 函数/方法 | 签名 | 说明 |
 |-----------|------|------|
 | [`New`](../infra/bktask/bktask.go:72) | `New(interval time.Duration, logger zylog.Logger) *TaskQueue` | 创建队列 |
-| [`BkgndTask`](../infra/bktask/bktask.go:30) | `struct{ Job func() error; OneShot bool; Interval time.Duration }` | 任务定义 |
+| [`BkgndTask`](../infra/bktask/bktask.go:30) | `struct{ Name string; Job func() error; OneShot bool; Interval time.Duration }` | 任务定义 |
 | [`Add`](../infra/bktask/bktask.go:100) | `Add(task BkgndTask) error` | 添加任务 |
 | [`Start`](../infra/bktask/bktask.go:171) | `Start()` | 启动循环 |
 | [`Stop`](../infra/bktask/bktask.go:192) | `Stop()` | 停止 + 清空 |
@@ -107,8 +108,9 @@ q := bktask.New(30*time.Second, logger) // 每 30 秒检查一次
 
 ```go
 q.Add(bktask.BkgndTask{
-    Job:     cleanupTempFiles,
-    OneShot: false,
+    Name:     "cleanup-temp",
+    Job:      cleanupTempFiles,
+    OneShot:  false,
     Interval: 30 * time.Minute, // 每 30 分钟执行一次
 })
 ```
@@ -117,8 +119,9 @@ q.Add(bktask.BkgndTask{
 
 ```go
 q.Add(bktask.BkgndTask{
-    Job:     initializeSomething,
-    OneShot: true,
+    Name:     "init-something",
+    Job:      initializeSomething,
+    OneShot:  true,
     // Interval 默认为 0 → 下一 tick 执行
 })
 ```
@@ -127,6 +130,7 @@ q.Add(bktask.BkgndTask{
 
 ```go
 q.Add(bktask.BkgndTask{
+    Name:     "send-report",
     Job:      sendDelayedReport,
     OneShot:  true,
     Interval: 1 * time.Hour, // 1 小时后执行一次
@@ -156,6 +160,7 @@ func main() {
 
     // 定期任务：每 30 分钟清理临时文件
     q.Add(bktask.BkgndTask{
+        Name:     "cleanup-temp",
         Job:      cleanupTempFiles,
         OneShot:  false,
         Interval: 30 * time.Minute,
@@ -163,8 +168,9 @@ func main() {
 
     // 一次性：立即执行
     q.Add(bktask.BkgndTask{
-        Job:     initCache,
-        OneShot: true,
+        Name:     "init-cache",
+        Job:      initCache,
+        OneShot:  true,
     })
 
     select {}
@@ -224,7 +230,7 @@ func (q *TaskQueue) safeRun(entry *taskEntry) {
     if err != nil { log "job failed ..." } // ③ 固定日志
     else           { log "task completed" }
     if !entry.task.OneShot {               // ④ 定期任务自动重入队
-        q.Add(BkgndTask{Job, OneShot: false, Interval})
+        q.Add(BkgndTask{Name, Job, OneShot: false, Interval})
     }
 }
 ```
