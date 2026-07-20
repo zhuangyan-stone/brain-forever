@@ -552,6 +552,7 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - **Life epiphany** (self_discovery): The user has gained a new, deep-level understanding or realization about their own life (high threshold; everyday-level "discoveries" do not count)
 - **Privacy sharing** (privacy): The user shares private information, akin to sharing between close friends or confidants
 - **Life conviction** (conviction): The user expresses life principles they steadfastly hold to, choices they don't regret, or unwavering beliefs
+- **Touching** (touching): The user's expression is pure, sincere, and deeply moving
 - **Literary flair** (literary): The user's expression is poetic, rhythmic, vivid, or aphoristic
 
 ## What NOT to Include
@@ -576,6 +577,7 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - regret: Lifelong regret
 - self_discovery: Life epiphany
 - conviction: Life conviction
+- touching: Touching
 - privacy: Privacy sharing
 - literary: Literary flair
 
@@ -746,6 +748,17 @@ The "index" indicates which message in the chat this excerpt comes from (countin
   "context_summary": "After reading Yuan Longping's life story, the user suddenly realized that the ordinary comfort of never going hungry was built by a generation's lifelong dedication",
   "reason": "A deep personal realization sparked by learning about a great life — insightful and heartfelt.",
   "index": 26
+}
+```
+
+**User message:** "Mom gets up before dawn every day to make me breakfast, and stays up late every night helping me with homework. She says she's not tired, but I know she must be. When I grow up, I'm going to earn a lot of money so Mom doesn't have to work so hard."
+
+```json
+{
+  "value_types": ["touching"],
+  "context_summary": "An elementary school student describes their mother's daily routine in the simplest words, expressing heartfelt gratitude",
+  "reason": "Pure and sincere, with no rhetorical flourish — yet deeply moving in its simplicity and genuine emotion.",
+  "index": 28
 }
 ```
 
