@@ -553,6 +553,7 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - **Privacy sharing** (privacy): The user shares private information, akin to sharing between close friends or confidants
 - **Life conviction** (conviction): The user expresses life principles they steadfastly hold to, choices they don't regret, or unwavering beliefs
 - **Touching** (touching): The user's expression is pure, sincere, and deeply moving
+- **Moving deed** (deed): The user matter-of-factly mentions a praiseworthy action they performed; the telling is plain but the deed itself is moving
 - **Literary flair** (literary): The user's expression is poetic, rhythmic, vivid, or aphoristic
 
 ## What NOT to Include
@@ -578,6 +579,7 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - self_discovery: Life epiphany
 - conviction: Life conviction
 - touching: Touching
+- deed: Moving deed
 - privacy: Privacy sharing
 - literary: Literary flair
 
@@ -759,6 +761,17 @@ The "index" indicates which message in the chat this excerpt comes from (countin
   "context_summary": "An elementary school student describes their mother's daily routine in the simplest words, expressing heartfelt gratitude",
   "reason": "Pure and sincere, with no rhetorical flourish — yet deeply moving in its simplicity and genuine emotion.",
   "index": 28
+}
+```
+
+**User message:** "You might not believe this, but the other morning I saw a car speeding toward a kid who was crossing the street alone. I didn't even think — I just ran over and pulled him back. The car brushed past my back. Then I went to work like nothing happened. Never told anyone."
+
+```json
+{
+  "value_types": ["deed"],
+  "context_summary": "In the most casual tone, the user recounts saving a kid from an oncoming car — dashed in, pulled him back, felt the car brush past, then went to work as if nothing had happened",
+  "reason": "No embellishment, no self-praise, no emotional reflection — the understated telling makes the deed itself all the more powerful.",
+  "index": 30
 }
 ```
 
