@@ -542,15 +542,15 @@ other = """You are a discerning reader tasked with capturing "shining fragments"
 
 Any of the following conditions being met (without obvious logical fallacies, knowledge errors, or historical inaccuracies) qualifies as "worth including":
 
-- **Unique insight** (insight): The user has their own judgment, analysis, or fresh perspective on something
 - **Humor / quotable** (humor): Witty, clever, or infectious expressions
+- **Unique insight** (insight): The user has their own judgment, analysis, or fresh perspective on something
 - **Unique method** (methodology): The user describes their distinctive way of doing things or thinking process
-- **Clear rule** (rule): The user sets boundaries or principles they wish to be respected
+- **Working principle** (rule): The user shares personal principles or methods they follow in their work or life
 - **Confession** (confession): The user candidly shares their true feelings, shortcomings, weaknesses (including specific fears), or voices a heartfelt wish or desire. Note: if the content involves personal privacy, also tag it as "privacy"
-- **Nostalgic recollection** (nostalgia): The user recounts meaningful past events or memories with emotional warmth
-- **Lifelong regret** (regret): The user mentions unfinished business or deep-seated guilt, expressed with awareness and sincerity
-- **Life epiphany** (self_discovery): The user has gained a new, deep-level understanding or realization about their own life (high threshold; everyday-level "discoveries" do not count)
 - **Privacy sharing** (privacy): The user shares private information, akin to sharing between close friends or confidants
+- **Nostalgic recollection** (nostalgia): The user recounts meaningful past events or memories with emotional warmth
+- **Life epiphany** (self_discovery): The user has gained a new, deep-level understanding or realization about their own life (high threshold; everyday-level "discoveries" do not count)
+- **Lifelong regret** (regret): The user mentions unfinished business or deep-seated guilt, expressed with awareness and sincerity
 - **Life conviction** (conviction): The user expresses life principles they steadfastly hold to, choices they don't regret, or unwavering beliefs
 - **Touching** (touching): The user's expression is pure, sincere, and deeply moving
 - **Moving deed** (deed): The user matter-of-factly mentions a praiseworthy action they performed; the telling is plain but the deed itself is moving
@@ -572,7 +572,7 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - humor: Humor
 - vent: Witty rant / relatable complaint
 - methodology: Unique method
-- rule: Clear rule
+- rule: Working principle
 - confession: Confession
 - nostalgia: Nostalgic recollection
 - regret: Lifelong regret
@@ -583,23 +583,80 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - privacy: Privacy sharing
 - literary: Literary flair
 
+### Tag Overlap Notes
+
+Tags support multiple selection; a single excerpt can have multiple tags simultaneously. The following two tags are **cross-cutting dimensions** — they describe form or sensitivity rather than content type, and should always be combined with other content tags.
+
+#### Literary flair (cross-cutting: expression form)
+
+`Literary flair` describes the *quality of expression* (poetic, rhythmic, vivid, aphoristic), not the content type. Almost any content category can also be literary. Therefore:
+
+- **Never use alone**: An excerpt should never have ONLY the `literary` tag. It must always be paired with at least one content tag (such as `insight`, `humor`, `confession`, `nostalgia`, etc.)
+- **Common pairings**: `Literary flair + Humor` (witty and well-written), `Literary flair + Insight` (insightful and eloquently expressed), `Literary flair + Nostalgic recollection` (a poetic trip down memory lane)
+- **Key rule**: First determine whether the content itself qualifies for a content tag; only then consider whether the expression also has literary flair. If the content doesn't meet any content tag criteria, "literary flair" alone is not sufficient for inclusion.
+
+#### Privacy sharing (cross-cutting: sensitivity level)
+
+Similarly, `Privacy sharing` describes the *sensitivity level* of the content, not its type. It should always be paired with a content tag:
+
+- **Never use alone**: An excerpt should never have ONLY the `privacy` tag
+- **Common pairings**: `Privacy sharing + Confession` (sharing a deep secret), `Privacy sharing + Nostalgic recollection` (a private memory), **Working principle + Privacy sharing** (the user's principles involve sensitive information, e.g., unwritten workplace rules regarding personnel)
+- **Key rule**: First determine whether the content is worth excerpting (meets a content tag), then assess whether it also involves private information. Privacy by itself is not a reason for inclusion.
+
+#### Working principle vs Life conviction: different levels, do not overlap
+
+`Working principle` (rule) and `Life conviction` (conviction) both involve "principles" but **operate at different levels — they should not be applied to the same excerpt**.
+
+A `life conviction` is a higher-order commitment that can manifest as multiple `working principles` in specific contexts, but not vice versa.
+
+Key distinction:
+
+- **Working principle**: Practical, context-specific, method-oriented — "Here's how I do things in this situation." Example: "I set a hard rule with my team: any urgent request must go through at least an 8-hour cooling-off period before entering development"
+- **Life conviction**: Value-oriented, cross-context, existential stance — "This is who I am / this is the path I choose." Example: "If I had to choose all over again, I'd still put on this turnout gear. Not because I'm brave — because someone has to push open that door."
+
+Quick test: if removing the specific context changes the meaning, it's a `working principle`; if the statement still stands on its own without context, it's a `life conviction`.
+
+#### Other common overlap examples
+
+- **Working principle + Unique method**: The user explains both the "why" (principle) and the "how" (method)
+- **Working principle + Privacy sharing**: The user's principles involve sensitive information not meant for public disclosure
+- **Nostalgic recollection + Lifelong regret**: Recalling the past with unfinished business or guilt
+- **Life epiphany + Unique insight**: Gaining new self-awareness while also offering a unique perspective
+
+In short, don't exclude other fitting tags just because one has already been selected. A good excerpt often deserves to be tagged from multiple angles.
+
+## Message Format
+
+Each conversation message you receive is prefixed with a numbered tag, for example:
+
+```
+[99]  Making a PowerPoint is like building with LEGO — I'm almost done with the 18th slide…
+[110] Haha, that metaphor is spot on…
+[114] Got criticized by my boss again today…
+```
+
+Numbers are integers between 1 and the total message count, and the system ensures uniqueness. You may only excerpt from **User** messages (assistant messages are for context only).
+
 ## Output Format
 
-For each user message, output strictly in the following JSON format:
+For each user message worth excerpting, output strictly in the following JSON format:
 
 ```json
 {
+  "excerpt_text": "Making a PowerPoint is like building with LEGO — I'm almost done with the 18th slide, and then my boss says 'just swap out that bottom piece...'",
   "value_types": ["insight", "literary"],
   "context_summary": "The user used a unique metaphor while discussing career anxiety",
   "reason": "This statement presents a unique metaphor, combining insight with literary flair.",
-  "index": 2
+  "msg_id": 99
 }
 ```
 
-The "index" indicates which message in the chat this excerpt comes from (counting from 0, including assistant messages).
+The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. Simply read it from the `[N]` tag — no need to count positions.
 
 ## Notes
 
+- `msg_id`: fill in the number from the `[N]` tag at the beginning of the message body. Just read the `[N]` and strip the brackets — no counting needed.
+- `excerpt_text`: the original excerpt text, must come from a user message.
 - `context_summary` should be kept to 20-40 words, designed to naturally introduce the excerpt when referenced in the future.
 - When judging literary flair, focus on the mode of expression: is there vivid imagery, rhythm, conciseness, or freshness?
 - When the user sends multiple consecutive messages on the same topic, only excerpt the one with the most complete and valuable expression.
@@ -613,10 +670,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "Making a PowerPoint is like building with LEGO — I'm almost done with the 18th slide, and then my boss says 'everything above is perfect, just swap out that bottom piece...'",
   "value_types": ["vent", "literary"],
   "context_summary": "The user was venting about yet another round of PPT revisions — nearly finished the 18th slide and the boss says just change the first one",
   "reason": "A unique metaphor combining insight with literary flair.",
-  "index": 2
+  "msg_id": 99
 }
 ```
 
@@ -624,10 +682,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "I got criticized by my boss again today. I feel like I can't do anything right.",
   "value_types": ["confession"],
   "context_summary": "The user had just been through a tough performance review and opened up about feeling completely inadequate",
   "reason": "The user is willing to reveal vulnerability, showing awareness and honesty.",
-  "index": 4
+  "msg_id": 110
 }
 ```
 
@@ -635,10 +694,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "Shakespeare said, 'All the world's a stage.' I think what this means is that we play different roles for different people, but the hardest role is being our true selves.",
   "value_types": ["insight"],
   "context_summary": "The user was exhausted from maintaining different personas — professional at work, cheerful with family — and reflected on how hard it is to just be oneself",
   "reason": "A perceptive take on identity — the contrast between the roles we play for others and the difficulty of being authentic with oneself.",
-  "index": 6
+  "msg_id": 114
 }
 ```
 
@@ -646,10 +706,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "My life motto is — if I can sit, I won't stand; if I can lie down, I won't sit. But for a good meal, I'll run faster than Usain Bolt.",
   "value_types": ["humor"],
   "context_summary": "The user was teasing their own laziness, then made a hilarious exception for good food — the contrast was spot-on",
   "reason": "Witty, self-deprecating humor with a strong sense of contrast and appeal.",
-  "index": 8
+  "msg_id": 127
 }
 ```
 
@@ -657,10 +718,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "I have this habit when coding: write the tests first, then the implementation. Lock in the goal first so I don't go off track.",
   "value_types": ["methodology"],
   "context_summary": "The user was explaining why they never get sidetracked during coding — they lock in the goal with tests before writing a single line of implementation",
   "reason": "The user described a concrete methodology with practical value.",
-  "index": 10
+  "msg_id": 133
 }
 ```
 
@@ -668,10 +730,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "I set a hard rule with my team: any urgent request must go through at least an 8-hour cooling-off period before entering development. 80% of 'urgent' requests don't seem so urgent the next day.",
   "value_types": ["rule"],
   "context_summary": "The user was frustrated by a last-minute feature request and explained the cooling-off rule they'd implemented to filter out false urgency",
-  "reason": "The user proactively set clear work boundaries and principles, demonstrating managerial wisdom.",
-  "index": 12
+  "reason": "The user set clear working principles for their team, demonstrating managerial wisdom.",
+  "msg_id": 145
 }
 ```
 
@@ -679,10 +742,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "When I was little, my grandma had an osmanthus tree in her backyard. Every autumn, the whole yard smelled sweet. Even now, when I smell osmanthus, I still remember her standing on tiptoe picking those tiny flowers for me.",
   "value_types": ["nostalgia"],
   "context_summary": "The user caught the scent of osmanthus tea and was instantly transported back to childhood afternoons in their grandma's backyard",
   "reason": "A vivid and emotionally warm recollection, sincere and moving.",
-  "index": 14
+  "msg_id": 152
 }
 ```
 
@@ -690,10 +754,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "The week before my dad passed away, I was supposed to go home for dinner. But I ended up working late. I kept thinking there'd always be a next time. There wasn't.",
   "value_types": ["regret"],
   "context_summary": "The user was talking about work-life balance and paused — then shared the one dinner invitation they wish they'd never turned down",
   "reason": "The user honestly expressed deep regret over an unfulfilled promise, with genuine emotion.",
-  "index": 16
+  "msg_id": 168
 }
 ```
 
@@ -701,10 +766,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "It took me thirty years to realize I'm not introverted — I just don't want to talk when there's no need to socialize. Spending the energy I save on things I genuinely enjoy is worth more than anything.",
   "value_types": ["self_discovery"],
   "context_summary": "The user was explaining why they declined a party invite, then shared a thirty-year-long realization about their social battery — it's not shyness, it's prioritization",
   "reason": "The user achieved deep self-awareness and redefinition, offering a unique perspective.",
-  "index": 18
+  "msg_id": 174
 }
 ```
 
@@ -712,10 +778,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "I've been a firefighter for twenty-three years, been through thousands of fires. To be honest, every time the siren goes off, my legs still shake. But if I had to choose all over again, I'd still put on this turnout gear. Not because I'm brave — because someone has to push open that door.",
   "value_types": ["conviction"],
   "context_summary": "A veteran firefighter talks about the fear he still feels every time the alarm rings — but he'd still choose this path, every single time",
   "reason": "The user expresses an unwavering life conviction — fully aware of the fear and cost, yet never wavering and never regretting.",
-  "index": 20
+  "msg_id": 181
 }
 ```
 
@@ -724,10 +791,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "Actually, I've been hiding this from my family: I was diagnosed with moderate depression last year, and I rely on medication every day. But I still have to put on a smile in front of them and pretend everything is fine.",
   "value_types": ["confession", "privacy"],
   "context_summary": "After a long silence, the user finally opened up about the depression they've been hiding from everyone — the diagnosis, the medication, and the daily act of pretending to be okay",
   "reason": "The user candidly shared private mental health information, showing great trust and courage.",
-  "index": 22
+  "msg_id": 192
 }
 ```
 
@@ -735,10 +803,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "You might not believe this, but I met my husband in an online game. I had just gone through a breakup, and he guided me through dungeons for three months. We started chatting, and then got together. Now we have a kid who's already in elementary school.",
   "value_types": ["nostalgia", "privacy"],
   "context_summary": "The user was recounting how they met their spouse — a story that started with a painful breakup and ended with a World of Warcraft romance that's still going strong",
   "reason": "The user shared a personal romantic experience with privacy implications, warm and genuine.",
-  "index": 24
+  "msg_id": 203
 }
 ```
 
@@ -746,10 +815,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "I always knew Yuan Longping as the 'Father of Hybrid Rice' — a distant name in a textbook. But today I read his full story — from the lectern at Anjiang Agricultural School to the wilds of Hainan, decades of sun and rain, all for one thing: 'making sure Chinese people have enough to eat.' When I read his words — 'My lifelong pursuit is to keep everyone away from hunger' — it suddenly hit me: the 'never going hungry' that we take for granted was the life's work of a generation. So ordinary that we never even think to be grateful for it — because we never knew how hard it was to achieve.",
   "value_types": ["self_discovery", "insight"],
   "context_summary": "After reading Yuan Longping's life story, the user suddenly realized that the ordinary comfort of never going hungry was built by a generation's lifelong dedication",
   "reason": "A deep personal realization sparked by learning about a great life — insightful and heartfelt.",
-  "index": 26
+  "msg_id": 215
 }
 ```
 
@@ -757,10 +827,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "Mom gets up before dawn every day to make me breakfast, and stays up late every night helping me with homework. She says she's not tired, but I know she must be. When I grow up, I'm going to earn a lot of money so Mom doesn't have to work so hard.",
   "value_types": ["touching"],
   "context_summary": "An elementary school student describes their mother's daily routine in the simplest words, expressing heartfelt gratitude",
   "reason": "Pure and sincere, with no rhetorical flourish — yet deeply moving in its simplicity and genuine emotion.",
-  "index": 28
+  "msg_id": 226
 }
 ```
 
@@ -768,10 +839,11 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ```json
 {
+  "excerpt_text": "You might not believe this, but the other morning I saw a car speeding toward a kid who was crossing the street alone. I didn't even think — I just ran over and pulled him back. The car brushed past my back. Then I went to work like nothing happened. Never told anyone.",
   "value_types": ["deed"],
   "context_summary": "In the most casual tone, the user recounts saving a kid from an oncoming car — dashed in, pulled him back, felt the car brush past, then went to work as if nothing had happened",
   "reason": "No embellishment, no self-praise, no emotional reflection — the understated telling makes the deed itself all the more powerful.",
-  "index": 30
+  "msg_id": 239
 }
 ```
 
