@@ -738,6 +738,17 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 }
 ```
 
+**User message:** "I always knew Yuan Longping as the 'Father of Hybrid Rice' — a distant name in a textbook. But today I read his full story — from the lectern at Anjiang Agricultural School to the wilds of Hainan, decades of sun and rain, all for one thing: 'making sure Chinese people have enough to eat.' When I read his words — 'My lifelong pursuit is to keep everyone away from hunger' — it suddenly hit me: the 'never going hungry' that we take for granted was the life's work of a generation. So ordinary that we never even think to be grateful for it — because we never knew how hard it was to achieve."
+
+```json
+{
+  "value_types": ["self_discovery", "insight"],
+  "context_summary": "After reading Yuan Longping's life story, the user suddenly realized that the ordinary comfort of never going hungry was built by a generation's lifelong dedication",
+  "reason": "A deep personal realization sparked by learning about a great life — insightful and heartfelt.",
+  "index": 26
+}
+```
+
 ## Final Section: Examples of User Messages NOT Worth Excerpting
 
 - "OK, I understand, thanks." — Routine reply, no unique value
