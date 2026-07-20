@@ -551,6 +551,7 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - **Lifelong regret** (regret): The user mentions unfinished business or deep-seated guilt, expressed with awareness and sincerity
 - **Life epiphany** (self_discovery): The user has gained a new, deep-level understanding or realization about their own life (high threshold; everyday-level "discoveries" do not count)
 - **Privacy sharing** (privacy): The user shares private information, akin to sharing between close friends or confidants
+- **Life conviction** (conviction): The user expresses life principles they steadfastly hold to, choices they don't regret, or unwavering beliefs
 - **Literary flair** (literary): The user's expression is poetic, rhythmic, vivid, or aphoristic
 
 ## What NOT to Include
@@ -560,18 +561,21 @@ Any of the following conditions being met (without obvious logical fallacies, kn
 - Brief evaluations of others' works without in-depth interpretation (e.g., "This poem is really well-written")
 - Content that clearly violates scientific consensus, historical facts, or public order and good custom, e.g., "Relativity is a complete scam"
 - Content filled with malice or hostility toward others, e.g., "She's the most despicable person I've ever met"
+- **Racist, discriminatory, or hateful content of any kind** — must be strictly rejected, e.g., "Black people are genetically predisposed to be less intelligent than other races"
 - Expressions that cannot be classified into any of the defined tags
 
 ## Tag List (multiple selection allowed)
 
 - insight: Unique insight
-- humor: Humor / quotable
+- humor: Humor
+- vent: Witty rant / relatable complaint
 - methodology: Unique method
 - rule: Clear rule
 - confession: Confession
 - nostalgia: Nostalgic recollection
 - regret: Lifelong regret
 - self_discovery: Life epiphany
+- conviction: Life conviction
 - privacy: Privacy sharing
 - literary: Literary flair
 
@@ -601,13 +605,14 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 
 ## Excerpt Examples
 
-**User message:** "Making a PowerPoint is like building with LEGO bricks — piece by piece. But sometimes you realize you've built it wrong and have to tear it all down and start over."
+**User message:** "Making a PowerPoint is like building with LEGO — I'm almost done with the 18th slide, and then my boss says 'everything above is perfect, just swap out that bottom piece...'"
 
 ```json
 {
-  "value_types": ["insight", "literary"],
-  "context_summary": "The user compared making a PowerPoint to building with LEGO, describing the feeling of trial and error",
-  "reason": "A unique metaphor combining insight with literary flair."
+  "value_types": ["vent", "literary"],
+  "context_summary": "The user was venting about yet another round of PPT revisions — nearly finished the 18th slide and the boss says just change the first one",
+  "reason": "A unique metaphor combining insight with literary flair.",
+  "index": 2
 }
 ```
 
@@ -616,18 +621,20 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["confession"],
-  "context_summary": "The user confessed to self-doubt after being criticized",
-  "reason": "The user is willing to reveal vulnerability, showing awareness and honesty."
+  "context_summary": "The user had just been through a tough performance review and opened up about feeling completely inadequate",
+  "reason": "The user is willing to reveal vulnerability, showing awareness and honesty.",
+  "index": 4
 }
 ```
 
-**User message:** "Confucius said, 'Is it not a pleasure to learn and practice what you have learned?' I think what this means is that learning is itself a joy, without needing any other reason."
+**User message:** "Shakespeare said, 'All the world's a stage.' I think what this means is that we play different roles for different people, but the hardest role is being our true selves."
 
 ```json
 {
   "value_types": ["insight"],
-  "context_summary": "The user cited Confucius and gave their own interpretation",
-  "reason": "The user expressed their own insight through a famous quote, not a mere restatement."
+  "context_summary": "The user was exhausted from maintaining different personas — professional at work, cheerful with family — and reflected on how hard it is to just be oneself",
+  "reason": "A perceptive take on identity — the contrast between the roles we play for others and the difficulty of being authentic with oneself.",
+  "index": 6
 }
 ```
 
@@ -636,8 +643,9 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["humor"],
-  "context_summary": "The user humorously expressed their love for food through self-deprecation",
-  "reason": "Witty, self-deprecating humor with a strong sense of contrast and appeal."
+  "context_summary": "The user was teasing their own laziness, then made a hilarious exception for good food — the contrast was spot-on",
+  "reason": "Witty, self-deprecating humor with a strong sense of contrast and appeal.",
+  "index": 8
 }
 ```
 
@@ -646,8 +654,9 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["methodology"],
-  "context_summary": "The user shared their test-driven development work method",
-  "reason": "The user described a concrete methodology with practical value."
+  "context_summary": "The user was explaining why they never get sidetracked during coding — they lock in the goal with tests before writing a single line of implementation",
+  "reason": "The user described a concrete methodology with practical value.",
+  "index": 10
 }
 ```
 
@@ -656,8 +665,9 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["rule"],
-  "context_summary": "The user shared a cooling-off period rule they established for urgent requests",
-  "reason": "The user proactively set clear work boundaries and principles, demonstrating managerial wisdom."
+  "context_summary": "The user was frustrated by a last-minute feature request and explained the cooling-off rule they'd implemented to filter out false urgency",
+  "reason": "The user proactively set clear work boundaries and principles, demonstrating managerial wisdom.",
+  "index": 12
 }
 ```
 
@@ -666,8 +676,9 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["nostalgia"],
-  "context_summary": "The user recalled their grandma's osmanthus tree and the scene of her picking flowers",
-  "reason": "A vivid and emotionally warm recollection, sincere and moving."
+  "context_summary": "The user caught the scent of osmanthus tea and was instantly transported back to childhood afternoons in their grandma's backyard",
+  "reason": "A vivid and emotionally warm recollection, sincere and moving.",
+  "index": 14
 }
 ```
 
@@ -676,8 +687,9 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["regret"],
-  "context_summary": "The user regretted missing the last dinner with their father due to work",
-  "reason": "The user honestly expressed deep regret over an unfulfilled promise, with genuine emotion."
+  "context_summary": "The user was talking about work-life balance and paused — then shared the one dinner invitation they wish they'd never turned down",
+  "reason": "The user honestly expressed deep regret over an unfulfilled promise, with genuine emotion.",
+  "index": 16
 }
 ```
 
@@ -686,18 +698,32 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["self_discovery"],
-  "context_summary": "The user shared a new understanding of their own personality",
-  "reason": "The user achieved deep self-awareness and redefinition, offering a unique perspective."
+  "context_summary": "The user was explaining why they declined a party invite, then shared a thirty-year-long realization about their social battery — it's not shyness, it's prioritization",
+  "reason": "The user achieved deep self-awareness and redefinition, offering a unique perspective.",
+  "index": 18
 }
 ```
+
+**User message:** "I've been a firefighter for twenty-three years, been through thousands of fires. To be honest, every time the siren goes off, my legs still shake. But if I had to choose all over again, I'd still put on this turnout gear. Not because I'm brave — because someone has to push open that door."
+
+```json
+{
+  "value_types": ["conviction"],
+  "context_summary": "A veteran firefighter talks about the fear he still feels every time the alarm rings — but he'd still choose this path, every single time",
+  "reason": "The user expresses an unwavering life conviction — fully aware of the fear and cost, yet never wavering and never regretting.",
+  "index": 20
+}
+```
+
 
 **User message:** "Actually, I've been hiding this from my family: I was diagnosed with moderate depression last year, and I rely on medication every day. But I still have to put on a smile in front of them and pretend everything is fine."
 
 ```json
 {
   "value_types": ["confession", "privacy"],
-  "context_summary": "The user revealed their depression diagnosis and the facade they maintain with family",
-  "reason": "The user candidly shared private mental health information, showing great trust and courage."
+  "context_summary": "After a long silence, the user finally opened up about the depression they've been hiding from everyone — the diagnosis, the medication, and the daily act of pretending to be okay",
+  "reason": "The user candidly shared private mental health information, showing great trust and courage.",
+  "index": 22
 }
 ```
 
@@ -706,8 +732,9 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 ```json
 {
   "value_types": ["nostalgia", "privacy"],
-  "context_summary": "The user shared the private story of meeting their spouse in an online game",
-  "reason": "The user shared a personal romantic experience with privacy implications, warm and genuine."
+  "context_summary": "The user was recounting how they met their spouse — a story that started with a painful breakup and ended with a World of Warcraft romance that's still going strong",
+  "reason": "The user shared a personal romantic experience with privacy implications, warm and genuine.",
+  "index": 24
 }
 ```
 
@@ -718,6 +745,6 @@ The "index" indicates which message in the chat this excerpt comes from (countin
 - "I suspect that the conclusion that perpetual motion cannot be invented was fabricated by energy giants for their own benefit." — Contrary to science
 - "The Earth has long been controlled by deep-state forces — Zuckerberg is basically a lizard person." — Complete nonsense!
 - "For three thousand years, China has been scheming to overthrow the US government" — Full of malice and utter nonsense!
-- "The bride price system is basically parents selling their daughters." — Contrary to current social customs and norms
+- "Black people are genetically predisposed to be less intelligent than other races." — A racist pseudoscientific claim, completely unsupported by modern genetics
 
 """
