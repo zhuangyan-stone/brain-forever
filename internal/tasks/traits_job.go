@@ -17,21 +17,6 @@ import (
 )
 
 // ============================================================
-// Types
-// ============================================================
-
-// chatWithUserRow is the result row from joining chat_sessions with users.
-type chatWithUserRow struct {
-	ID             int64      `db:"id"`
-	UserID         int64      `db:"user_id"`
-	Title          string     `db:"title"`
-	ExtractedAt    *time.Time `db:"extracted_at"`
-	ExtractedCount int        `db:"extracted_count"`
-	UpdateAt       time.Time  `db:"update_at"`
-	Settings       string     `db:"settings"` // JSONB from users.settings
-}
-
-// ============================================================
 // Registration
 // ============================================================
 
@@ -88,7 +73,7 @@ func runPeriodicTraitExtraction(
 	}
 
 	// 2. Query eligible chats with user settings (single JOIN).
-	rows, err := queryPendingChats(chatStore, cfg.ExtractDelayHours, cfg.BatchLimit)
+	rows, err := chatStore.ListChatsPendingTraitExtraction(cfg.ExtractDelayHours, cfg.BatchLimit)
 	if err != nil {
 		return fmt.Errorf("query pending chats failed. %w", err)
 	}
@@ -109,34 +94,11 @@ func runPeriodicTraitExtraction(
 }
 
 // ============================================================
-// Query
-// ============================================================
-
-// queryPendingChats runs the JOIN query to find eligible chat sessions.
-func queryPendingChats(chatStore *store.ChatStore, delayHours int, batchLimit int) ([]chatWithUserRow, error) {
-	sqlStr := `SELECT cs.id, cs.user_id, cs.title, cs.extracted_at, cs.extracted_count, cs.update_at,
-		       u.settings
-		 FROM chat_sessions cs
-		 JOIN users u ON u.id = cs.user_id
-		 WHERE cs.deleted = FALSE
-		   AND (cs.extracted_at IS NULL OR cs.extracted_at < cs.update_at - ($1::text || ' hours')::interval)
-		 ORDER BY cs.update_at ASC
-		 LIMIT $2`
-
-	var rows []chatWithUserRow
-	err := store.ThePGDB().Select(&rows, sqlStr, fmt.Sprintf("%d", delayHours), batchLimit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query pending chats. %w", err)
-	}
-	return rows, nil
-}
-
-// ============================================================
 // Single chat processing (delegates to agent's shared functions)
 // ============================================================
 
 func processChatForExtraction(
-	row chatWithUserRow,
+	row store.ChatPendingTraitExtraction,
 	chatStore *store.ChatStore,
 	brainStore *store.BrainStore,
 	llmClients map[string]llm.Client,

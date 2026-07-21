@@ -341,34 +341,39 @@ type ChatTitleTag struct {
 // Pending trait extraction queries
 // ============================================================
 
-// ChatPendingExtraction represents a chat session that may need trait extraction.
-// Includes user_id so the caller can look up per-user API settings.
-type ChatPendingExtraction struct {
+// ChatPendingTraitExtraction represents a chat session that may need trait extraction.
+// Joins with users to include user_id, title, and per-user settings (JSONB) so the
+// caller can look up per-user API keys and language preferences.
+type ChatPendingTraitExtraction struct {
 	ID             int64      `db:"id"`
 	UserID         int64      `db:"user_id"`
-	SN             string     `db:"sn"`
+	Title          string     `db:"title"`
 	ExtractedAt    *time.Time `db:"extracted_at"`
 	ExtractedCount int        `db:"extracted_count"`
 	UpdateAt       time.Time  `db:"update_at"`
+	Settings       string     `db:"settings"` // JSONB from users.settings
 }
 
-// ListChatsPendingExtraction queries chat sessions eligible for trait extraction.
+// ListChatsPendingTraitExtraction queries chat sessions eligible for trait extraction.
+// Joins with users to resolve per-user API keys and language settings.
 //
 // Criteria: deleted=false AND (extracted_at IS NULL OR extracted_at < update_at - delayHours).
 // Results are ordered by update_at ascending so older/changed chats are processed first.
 // batchLimit caps the number of results to prevent overloading the LLM API.
-func (s *ChatStore) ListChatsPendingExtraction(delayHours int, batchLimit int) ([]ChatPendingExtraction, error) {
-	sqlStr := `SELECT id, user_id, sn, extracted_at, extracted_count, update_at
-		 FROM chat_sessions
-		 WHERE deleted = FALSE
-		   AND (extracted_at IS NULL OR extracted_at < update_at - ($1::text || ' hours')::interval)
-		 ORDER BY update_at ASC
+func (s *ChatStore) ListChatsPendingTraitExtraction(delayHours int, batchLimit int) ([]ChatPendingTraitExtraction, error) {
+	sqlStr := `SELECT cs.id, cs.user_id, cs.title, cs.extracted_at, cs.extracted_count, cs.update_at,
+		       u.settings
+		 FROM chat_sessions cs
+		 JOIN users u ON u.id = cs.user_id
+		 WHERE cs.deleted = FALSE
+		   AND (cs.extracted_at IS NULL OR cs.extracted_at < cs.update_at - ($1::text || ' hours')::interval)
+		 ORDER BY cs.update_at ASC
 		 LIMIT $2`
-	var rows []ChatPendingExtraction
+	var rows []ChatPendingTraitExtraction
 	err := s.db().Select(&rows, sqlStr, fmt.Sprintf("%d", delayHours), batchLimit)
 	if err != nil {
 		s.logger.Errorf("SQL [%s] args=[delayHours=%d batchLimit=%d]:\n%v", sqlStr, delayHours, batchLimit, err)
-		return nil, fmt.Errorf("failed to list chats pending extraction. %w", err)
+		return nil, fmt.Errorf("failed to list chats pending trait extraction. %w", err)
 	}
 	return rows, nil
 }
