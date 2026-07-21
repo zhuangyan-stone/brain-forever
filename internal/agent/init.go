@@ -110,9 +110,9 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
 
 	gcCfg := session.FromTOMLConfig(session.SessionGCConfigTOML{
-		AnonymousTTLMinutes: cfg.SessionGC.AnonymousTTLMinutes,
-		LoggedInTTLMinutes:  cfg.SessionGC.LoggedInTTLMinutes,
-		IntervalMinutes:     cfg.SessionGC.IntervalMinutes,
+		AnonymousTTLMinutes: cfg.SessionGCTask.AnonymousTTLMinutes,
+		LoggedInTTLMinutes:  cfg.SessionGCTask.LoggedInTTLMinutes,
+		IntervalMinutes:     cfg.SessionGCTask.IntervalMinutes,
 	})
 
 	chatHandler := NewChatHandler(
@@ -140,9 +140,6 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	} else {
 		logger.Fatalf("Redis not configured")
 	}
-
-	// Start the in-memory session GC.
-	chatHandler.GetSessionManager().StartGC(ctx)
 
 	return chatHandler, nil
 }

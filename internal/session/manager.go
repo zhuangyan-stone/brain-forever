@@ -70,8 +70,7 @@ type Manager struct {
 	redis    *cache.RedisSessionStore // unexported: use Redis() or HasRedis()
 	Ctx      context.Context          // Background context for Redis operations
 	logger   zylog.Logger
-	gcConfig GCConfig           // new: in-memory session GC config
-	gcStop   context.CancelFunc // new: cancels the GC goroutine
+	gcConfig GCConfig // in-memory session GC config
 }
 
 // SetRedisStore attaches a Redis session store to the Manager.
@@ -95,14 +94,9 @@ func (m *Manager) HasRedis() bool {
 	return m.redis != nil
 }
 
-// Close releases all sessions and stops the GC goroutine.
+// Close releases all sessions.
 // No database stores to close since they are opened on-demand and closed after use.
 func (m *Manager) Close() {
-	// Stop the GC goroutine first
-	if m.gcStop != nil {
-		m.gcStop()
-	}
-
 	m.Mu.Lock()
 	defer m.Mu.Unlock()
 
@@ -205,72 +199,13 @@ func (m *Manager) Remove(sessionID string) {
 // GC — In-memory session garbage collector
 // ============================================================
 
-// StartGC starts the background session GC goroutine.
-// It periodically sweeps expired sessions from memory.
-// The goroutine stops when ctx is cancelled.
-// Must only be called once per Manager.
-func (m *Manager) StartGC(ctx context.Context) {
-	ctx, cancel := context.WithCancel(ctx)
-	m.gcStop = cancel
-
-	// Validate GC configuration before starting.
-	// Expected ordering: 0 < Interval <= AnonymousTTL <= LoggedInTTL.
-	// If violated, fall back to defaults.
-	needFallback := false
-
-	if m.gcConfig.AnonymousTTL <= 0 || m.gcConfig.LoggedInTTL <= 0 || m.gcConfig.Interval <= 0 {
-		m.logger.Errorf("Session GC: invalid config (anonymous_ttl=%v, logged_in_ttl=%v, interval=%v). Falling back to defaults.",
-			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL, m.gcConfig.Interval)
-		needFallback = true
-	} else if m.gcConfig.AnonymousTTL > m.gcConfig.LoggedInTTL {
-		m.logger.Errorf("Session GC: anonymous_ttl (%v) > logged_in_ttl (%v). Anonymous sessions should expire sooner. Falling back to defaults.",
-			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL)
-		needFallback = true
-	} else if m.gcConfig.Interval > m.gcConfig.AnonymousTTL {
-		m.logger.Errorf("Session GC: interval (%v) > anonymous_ttl (%v). GC interval must not exceed the shorter TTL. Falling back to defaults.",
-			m.gcConfig.Interval, m.gcConfig.AnonymousTTL)
-		needFallback = true
-	}
-
-	if needFallback {
-		m.gcConfig = DefaultGCConfig()
-		m.logger.Infof("Session GC: using defaults (anonymous_ttl=%v, logged_in_ttl=%v, interval=%v)",
-			m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL, m.gcConfig.Interval)
-	} else {
-		// Warn about suboptimal but valid configurations.
-		const minRecommendedTTL = 5 * time.Minute
-		if m.gcConfig.AnonymousTTL < minRecommendedTTL {
-			m.logger.Warnf("Session GC: anonymous_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
-				m.gcConfig.AnonymousTTL, minRecommendedTTL)
-		}
-		if m.gcConfig.LoggedInTTL < minRecommendedTTL {
-			m.logger.Warnf("Session GC: logged_in_ttl (%v) is very short (< %v). Long streaming responses may cause premature session eviction.",
-				m.gcConfig.LoggedInTTL, minRecommendedTTL)
-		}
-	}
-
-	go func() {
-		ticker := time.NewTicker(m.gcConfig.Interval)
-		defer ticker.Stop()
-
-		// Log GC startup
-		m.logger.Infof("Session GC started (interval=%s, anonymous_ttl=%s, logged_in_ttl=%s)",
-			m.gcConfig.Interval, m.gcConfig.AnonymousTTL, m.gcConfig.LoggedInTTL)
-
-		for {
-			select {
-			case <-ticker.C:
-				m.gc()
-			case <-ctx.Done():
-				m.logger.Infof("Session GC stopped")
-				return
-			}
-		}
-	}()
+// GCOnce performs one sweep of expired sessions.
+// Exported for use as a periodic task via the background task queue.
+func (m *Manager) GCOnce() {
+	m.gc()
 }
 
 // gc performs one sweep of expired sessions.
-// Called periodically by the GC goroutine.
 func (m *Manager) gc() {
 	// Snapshot the current state under read lock.
 	type sessionInfo struct {

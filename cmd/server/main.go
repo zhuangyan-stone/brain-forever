@@ -210,6 +210,30 @@ func main() {
 			cfg.TraitTask.DeduplicateEnabled,
 			cfg.TraitTask.DeduplicateThreshold,
 		)
+
+		// Register periodic excerpt generation task.
+		excerptStore := store.NewExcerptStore(theLogger)
+		vdCache := cache.NewExcerptValueDictCache()
+		dicts, err := excerptStore.ListAllValueDicts()
+		if err != nil {
+			theLogger.Fatalf("failed to load excerpt value dict. %v", err)
+		}
+		vdCache.Load(dicts)
+		tasks.RegisterPeriodicExcerptGeneration(
+			cfg.ExcerptTask,
+			excerptStore,
+			agent.GetLLMClients(),
+			defaultLang,
+			vdCache,
+			theLogger,
+		)
+
+		// Register periodic session GC task.
+		tasks.RegisterPeriodicSessionGC(
+			cfg.SessionGCTask,
+			chatHandler.GetSessionManager(),
+			theLogger,
+		)
 	} else {
 		theLogger.Infof("bkgnd task queue disabled by config")
 	}

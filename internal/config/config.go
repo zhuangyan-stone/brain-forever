@@ -61,17 +61,17 @@ func GetDefaultEmbeddingProvider() string {
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
-	Logger      LoggerConfig
-	Server      ServerConfig
-	Frontend    FrontendConfig
-	Database    DatabaseConfig
-	Redis       RedisConfig
-	Captcha     CaptchaConfig
-	SessionGC   SessionGCConfig   `toml:"session-gc"`
-	ApiKeys     ApiKeysConfig     `toml:"api-keys"`
-	TaskQueue   TaskQueueConfig   `toml:"bkgnd-task-queue"`
-	TraitTask   TraitTaskConfig   `toml:"trait-task"`
-	ExcerptTask ExcerptTaskConfig `toml:"excerpt-task"`
+	Logger        LoggerConfig
+	Server        ServerConfig
+	Frontend      FrontendConfig
+	Database      DatabaseConfig
+	Redis         RedisConfig
+	Captcha       CaptchaConfig
+	SessionGCTask SessionGCConfig   `toml:"session-gc-task"`
+	ApiKeys       ApiKeysConfig     `toml:"api-keys"`
+	TaskQueue     TaskQueueConfig   `toml:"bkgnd-task-queue"`
+	TraitTask     TraitTaskConfig   `toml:"trait-task"`
+	ExcerptTask   ExcerptTaskConfig `toml:"excerpt-task"`
 }
 
 // DefaultConfig returns a Config populated with built-in default values.
@@ -110,7 +110,8 @@ func DefaultConfig() Config {
 			URLBase: "/static/img/captchas/",
 			DirBase: "./frontend/static/img/captchas/",
 		},
-		SessionGC: SessionGCConfig{
+		SessionGCTask: SessionGCConfig{
+			Enabled:             true,
 			AnonymousTTLMinutes: 60,   // 1 hour
 			LoggedInTTLMinutes:  1440, // 24 hours
 			IntervalMinutes:     10,   // 10 minutes
@@ -370,9 +371,12 @@ type CaptchaConfig struct {
 // ============================================================
 
 // SessionGCConfig configures the in-memory session garbage collector.
-// These values are read from the TOML config file under [session-gc].
+// These values are read from the TOML config file under [session-gc-task].
 // If not configured, DefaultConfig() provides sensible defaults.
 type SessionGCConfig struct {
+	// Enabled enables the periodic session GC task. Default: true.
+	Enabled bool `toml:"enabled"`
+
 	// AnonymousTTLMinutes is the max idle time (minutes) before an
 	// anonymous (not logged in) session is evicted from memory.
 	// Default: 60 (1 hour).

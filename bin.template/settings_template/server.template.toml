@@ -117,11 +117,14 @@ default_embedding_provider  = "zhipu"
 "embedding@zhipu" = []
 
 # ============================================================
-# Session 内存 GC 配置（可选）
+# 周期性 Session GC 任务（可选）
 # 控制内存中 session 对象的自动清理，防止长时间运行后内存泄漏。
+# 注册到 bktask 后台任务队列，与 trait-task、excerpt-task 共享调度。
 # 如果未配置此节，使用 DefaultConfig() 中的内置默认值。
 # ============================================================
-[session-gc]
+[session-gc-task]
+# 是否启用
+enabled = true
 # 匿名 session 无活动超过此时间（分钟）则从内存中清除
 anonymous_ttl_minutes = 60
 # 已登录 session 无活动超过此时间（分钟）则从内存中清除
