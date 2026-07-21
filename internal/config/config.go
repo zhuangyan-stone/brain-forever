@@ -61,14 +61,18 @@ func GetDefaultEmbeddingProvider() string {
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
-	Logger        LoggerConfig
-	Server        ServerConfig
-	Frontend      FrontendConfig
-	Database      DatabaseConfig
-	Redis         RedisConfig
-	Captcha       CaptchaConfig
+	Logger LoggerConfig
+	Server ServerConfig
+
+	Frontend FrontendConfig
+
+	Database DatabaseConfig
+	Redis    RedisConfig
+
+	Captcha CaptchaConfig
+	ApiKeys ApiKeysConfig `toml:"api-keys"`
+
 	SessionGCTask SessionGCConfig   `toml:"session-gc-task"`
-	ApiKeys       ApiKeysConfig     `toml:"api-keys"`
 	TaskQueue     TaskQueueConfig   `toml:"bkgnd-task-queue"`
 	TraitTask     TraitTaskConfig   `toml:"trait-task"`
 	ExcerptTask   ExcerptTaskConfig `toml:"excerpt-task"`
@@ -110,17 +114,17 @@ func DefaultConfig() Config {
 			URLBase: "/static/img/captchas/",
 			DirBase: "./frontend/static/img/captchas/",
 		},
-		SessionGCTask: SessionGCConfig{
-			Enabled:             true,
-			AnonymousTTLMinutes: 60,   // 1 hour
-			LoggedInTTLMinutes:  1440, // 24 hours
-			IntervalMinutes:     10,   // 10 minutes
-		},
 		TaskQueue: TaskQueueConfig{
 			Enabled:              true,
 			CheckIntervalSeconds: 30,
 			WorkerCount:          3,
 			QueueSize:            100,
+		},
+		SessionGCTask: SessionGCConfig{
+			Enabled:             true,
+			AnonymousTTLMinutes: 60,   // 1 hour
+			LoggedInTTLMinutes:  1440, // 24 hours
+			IntervalMinutes:     10,   // 10 minutes
 		},
 		TraitTask: TraitTaskConfig{
 			Enabled:              true,
