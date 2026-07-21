@@ -137,8 +137,8 @@ func DefaultConfig() Config {
 		},
 		ExcerptTask: ExcerptTaskConfig{
 			Enabled:           true,
-			IntervalSeconds:   86400, // once per day
-			ExtractDelayHours: 24,    // wait 24 hours after update before re-processing
+			IntervalSeconds:   3600 * 2, // two hours
+			ExtractDelayHours: 24,       // wait 24 hours after update before re-processing
 			BatchLimit:        100,
 			AllowedWindows:    [][]TimeOfDay{},
 		},
