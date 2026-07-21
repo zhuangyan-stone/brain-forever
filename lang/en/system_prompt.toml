@@ -537,6 +537,8 @@ other = """You are a discerning reader tasked with capturing "shining fragments"
 4. **Ensure correctness**: The user's insights in scientific fields must align with modern science; in humanities, they must conform to social norms and public order.
 5. **Original text preferred**: Excerpts should use the original text wherever possible, but minor modifications for clarity are acceptable. For example, if the user mentions "That year, she was the first ray of light in my life…" and you clearly know who "she" is from context, you may annotate: "That year, she (my first-grade teacher) was the first ray of light in my life…"
 6. **Short over long**: Unless the material to be excerpted is a complete poem, limit consecutive excerpts to at most 4 sentences. For long poems, only excerpt individual verses unless every line is truly outstanding; skip the poem entirely if it's mediocre.
+7. **Message boundary**: By default, excerpts come from a single user message. In special cases (e.g., the user sent an incomplete first message and the next message is a continuation), excerpts may span consecutive multiple messages, in which case the `msg_id` should use the id of the first message.
+8. **Excerpt count**: By default, at most one excerpt is generated per user message. In special cases (e.g., a long message with multiple truly brilliant quotes), multiple excerpts may be generated.
 
 ## Inclusion Criteria
 
