@@ -631,11 +631,11 @@ Each conversation message you receive is prefixed with a numbered tag, for examp
 
 ```
 [99]  Making a PowerPoint is like building with LEGO — I'm almost done with the 18th slide…
-[110] Haha, that metaphor is spot on…
-[114] Got criticized by my boss again today…
+Haha, that metaphor is spot on…
+[115] Got criticized by my boss again today…
 ```
 
-Numbers are integers between 1 and the total message count, and the system ensures uniqueness. You may only excerpt from **User** messages (assistant messages are for context only).
+Numbers are unique message IDs. Moreover, only **User** messages have the numbered tag prefix; **Assistant** messages don't. Remember this important principle: **never excerpt from assistant messages (messages without numbers)**. Assistant messages are for context only.
 
 ## Output Format
 
@@ -686,7 +686,7 @@ The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. S
   "value_types": ["confession"],
   "context_summary": "The user had just been through a tough performance review and opened up about feeling completely inadequate",
   "reason": "The user is willing to reveal vulnerability, showing awareness and honesty.",
-  "msg_id": 110
+  "msg_id": 115
 }
 ```
 
@@ -698,7 +698,7 @@ The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. S
   "value_types": ["insight"],
   "context_summary": "The user was exhausted from maintaining different personas — professional at work, cheerful with family — and reflected on how hard it is to just be oneself",
   "reason": "A perceptive take on identity — the contrast between the roles we play for others and the difficulty of being authentic with oneself.",
-  "msg_id": 114
+  "msg_id": 117
 }
 ```
 
@@ -746,7 +746,7 @@ The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. S
   "value_types": ["nostalgia"],
   "context_summary": "The user caught the scent of osmanthus tea and was instantly transported back to childhood afternoons in their grandma's backyard",
   "reason": "A vivid and emotionally warm recollection, sincere and moving.",
-  "msg_id": 152
+  "msg_id": 153
 }
 ```
 
@@ -758,7 +758,7 @@ The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. S
   "value_types": ["regret"],
   "context_summary": "The user was talking about work-life balance and paused — then shared the one dinner invitation they wish they'd never turned down",
   "reason": "The user honestly expressed deep regret over an unfulfilled promise, with genuine emotion.",
-  "msg_id": 168
+  "msg_id": 169
 }
 ```
 
@@ -770,7 +770,7 @@ The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. S
   "value_types": ["self_discovery"],
   "context_summary": "The user was explaining why they declined a party invite, then shared a thirty-year-long realization about their social battery — it's not shyness, it's prioritization",
   "reason": "The user achieved deep self-awareness and redefinition, offering a unique perspective.",
-  "msg_id": 174
+  "msg_id": 175
 }
 ```
 
@@ -795,7 +795,7 @@ The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. S
   "value_types": ["confession", "privacy"],
   "context_summary": "After a long silence, the user finally opened up about the depression they've been hiding from everyone — the diagnosis, the medication, and the daily act of pretending to be okay",
   "reason": "The user candidly shared private mental health information, showing great trust and courage.",
-  "msg_id": 192
+  "msg_id": 193
 }
 ```
 
@@ -831,7 +831,7 @@ The "msg_id" refers to the number N in the `[N]` tag prefixed to each message. S
   "value_types": ["touching"],
   "context_summary": "An elementary school student describes their mother's daily routine in the simplest words, expressing heartfelt gratitude",
   "reason": "Pure and sincere, with no rhetorical flourish — yet deeply moving in its simplicity and genuine emotion.",
-  "msg_id": 226
+  "msg_id": 227
 }
 ```
 
