@@ -44,7 +44,7 @@ func RegisterPeriodicExcerptGeneration(
 	excerptVDCache = vdCache
 
 	interval := time.Duration(cfg.IntervalSeconds) * time.Second
-	err := Global().AddRecurring("periodic-excerpt-generation", interval, func() error {
+	err := TheBkTaskQueue().AddRecurring("periodic-excerpt-generation", interval, func() error {
 		return runPeriodicExcerptGeneration(&cfg, excerptStore, llmClients, defaultLang, logger)
 	})
 	if err != nil {

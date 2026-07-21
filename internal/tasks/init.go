@@ -6,31 +6,31 @@ package tasks
 
 import "BrainForever/infra/bktask"
 
-var globalQueue *bktask.TaskQueue
+var theBkTaskQueue *bktask.TaskQueue
 
-// InitGlobal initializes the global background task queue singleton
+// InitTheBkTaskQueue initializes the global background task queue singleton
 // with the given config and logger, then starts it.
 // Must be called once during startup (typically in main).
 // Subsequent calls are no-ops.
-func InitGlobal(cfg bktask.Config, logger bktask.Logger) {
-	if globalQueue != nil {
+func InitTheBkTaskQueue(cfg bktask.Config, logger bktask.Logger) {
+	if theBkTaskQueue != nil {
 		return
 	}
-	globalQueue = bktask.New(cfg, logger)
-	globalQueue.Start()
+	theBkTaskQueue = bktask.New(cfg, logger)
+	theBkTaskQueue.Start()
 }
 
-// Global returns the global TaskQueue instance previously initialized
-// by InitGlobal. Returns nil if InitGlobal has not been called.
-func Global() *bktask.TaskQueue {
-	return globalQueue
+// TheBkTaskQueue returns the global TaskQueue instance previously initialized
+// by InitTheBkTaskQueue. Returns nil if InitTheBkTaskQueue has not been called.
+func TheBkTaskQueue() *bktask.TaskQueue {
+	return theBkTaskQueue
 }
 
-// StopGlobal gracefully stops the global task queue and clears all tasks.
+// StopTheBkTaskQueue gracefully stops the global task queue and clears all tasks.
 // Typically called via defer in main.
-func StopGlobal() {
-	if globalQueue != nil {
-		globalQueue.Stop()
-		globalQueue = nil
+func StopTheBkTaskQueue() {
+	if theBkTaskQueue != nil {
+		theBkTaskQueue.Stop()
+		theBkTaskQueue = nil
 	}
 }

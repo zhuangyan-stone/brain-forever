@@ -54,7 +54,7 @@ func RegisterPeriodicTraitExtraction(
 	}
 
 	interval := time.Duration(cfg.IntervalSeconds) * time.Second
-	err := Global().AddRecurring("periodic-trait-extraction", interval, func() error {
+	err := TheBkTaskQueue().AddRecurring("periodic-trait-extraction", interval, func() error {
 		return runPeriodicTraitExtraction(&cfg, chatStore, brainStore, llmClients, embedderClients, logger, defaultLang, dedupEnabled, dedupThreshold)
 	})
 	if err != nil {

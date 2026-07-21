@@ -189,12 +189,12 @@ func main() {
 	// Initialize global background slow-task queue
 	// ============================================================
 	if cfg.TaskQueue.Enabled {
-		tasks.InitGlobal(bktask.Config{
+		tasks.InitTheBkTaskQueue(bktask.Config{
 			CheckInterval: time.Duration(cfg.TaskQueue.CheckIntervalSeconds) * time.Second,
 			WorkerCount:   cfg.TaskQueue.WorkerCount,
 			QueueSize:     cfg.TaskQueue.QueueSize,
 		}, theLogger)
-		defer tasks.StopGlobal()
+		defer tasks.StopTheBkTaskQueue()
 		theLogger.Infof("bkgnd task queue initialized (checkInterval=%ds, workers=%d, queueSize=%d)",
 			cfg.TaskQueue.CheckIntervalSeconds, cfg.TaskQueue.WorkerCount, cfg.TaskQueue.QueueSize)
 
