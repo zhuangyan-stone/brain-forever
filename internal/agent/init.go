@@ -121,8 +121,8 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		avatarDir,
 		logger,
 		gcCfg,
-		cfg.TraitExtractionTask.DeduplicateEnabled,
-		cfg.TraitExtractionTask.DeduplicateThreshold,
+		cfg.TraitTask.DeduplicateEnabled,
+		cfg.TraitTask.DeduplicateThreshold,
 	)
 
 	redisStore := InitRedisStore(cfg.Redis)

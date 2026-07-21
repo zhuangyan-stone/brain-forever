@@ -1,0 +1,23 @@
+[description]
+other = "从用户消息中摘录精彩的片段并输出结构化的结果"
+
+[param_excerpts_desc]
+other = "摘录条目列表，每条包含摘录原文、分类标签、上下文摘要、收录理由和消息 ID"
+
+[param_excerpt_text_desc]
+other = "摘录的原文，必须来自用户消息"
+
+[param_value_types_desc]
+other = "分类标签列表。可选值：insight（深刻见解）、humor（幽默搞笑）、vent（精彩吐槽）、methodology（独到方法）、rule（做事原则）、confession（内心独白）、nostalgia（深情回忆）、regret（一生遗憾）、self_discovery（人生顿悟）、conviction（人生信念）、touching（感人言论）、deed（动人事迹）、privacy（隐私分享）、literary（文采出众）"
+
+[param_context_summary_desc]
+other = "上下文摘要，控制在 20-40 字，用于未来引用时自然地引出该摘录"
+
+[param_reason_desc]
+other = "收录理由，说明为什么这段话值得摘录"
+
+[param_msg_id_desc]
+other = "摘录来源消息的 ID（数据库中的 chat_messages.id），直接读取消息前的 [N] 编号填入"
+
+[pending]
+other = "正在提取用户摘录……"

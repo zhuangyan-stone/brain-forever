@@ -61,16 +61,17 @@ func GetDefaultEmbeddingProvider() string {
 
 // Config is the top-level configuration for the agent layer.
 type Config struct {
-	Logger              LoggerConfig
-	Server              ServerConfig
-	Frontend            FrontendConfig
-	Database            DatabaseConfig
-	Redis               RedisConfig
-	Captcha             CaptchaConfig
-	SessionGC           SessionGCConfig           `toml:"session-gc"`
-	ApiKeys             ApiKeysConfig             `toml:"api-keys"`
-	BkgndTaskQueue      BkgndTaskQueueConfig      `toml:"bkgnd-task-queue"`
-	TraitExtractionTask TraitExtractionTaskConfig `toml:"trait-extraction-task"`
+	Logger      LoggerConfig
+	Server      ServerConfig
+	Frontend    FrontendConfig
+	Database    DatabaseConfig
+	Redis       RedisConfig
+	Captcha     CaptchaConfig
+	SessionGC   SessionGCConfig   `toml:"session-gc"`
+	ApiKeys     ApiKeysConfig     `toml:"api-keys"`
+	TaskQueue   TaskQueueConfig   `toml:"bkgnd-task-queue"`
+	TraitTask   TraitTaskConfig   `toml:"trait-task"`
+	ExcerptTask ExcerptTaskConfig `toml:"excerpt-task"`
 }
 
 // DefaultConfig returns a Config populated with built-in default values.
@@ -114,13 +115,13 @@ func DefaultConfig() Config {
 			LoggedInTTLMinutes:  1440, // 24 hours
 			IntervalMinutes:     10,   // 10 minutes
 		},
-		BkgndTaskQueue: BkgndTaskQueueConfig{
+		TaskQueue: TaskQueueConfig{
 			Enabled:              true,
 			CheckIntervalSeconds: 30,
 			WorkerCount:          3,
 			QueueSize:            100,
 		},
-		TraitExtractionTask: TraitExtractionTaskConfig{
+		TraitTask: TraitTaskConfig{
 			Enabled:              true,
 			IntervalSeconds:      3600,
 			ExtractDelayHours:    20,
@@ -128,6 +129,13 @@ func DefaultConfig() Config {
 			AllowedWindows:       [][]TimeOfDay{},
 			DeduplicateEnabled:   false,
 			DeduplicateThreshold: 0.95,
+		},
+		ExcerptTask: ExcerptTaskConfig{
+			Enabled:           true,
+			IntervalSeconds:   86400, // once per day
+			ExtractDelayHours: 24,    // wait 24 hours after update before re-processing
+			BatchLimit:        100,
+			AllowedWindows:    [][]TimeOfDay{},
 		},
 	}
 }
@@ -381,13 +389,13 @@ type SessionGCConfig struct {
 }
 
 // ============================================================
-// BkgndTaskQueueConfig — Global background slow-task queue
+// TaskQueueConfig — Global background slow-task queue
 // ============================================================
 
-// BkgndTaskQueueConfig configures the global background slow-task queue.
+// TaskQueueConfig configures the global background slow-task queue.
 // These values are read from the TOML config file under [bkgnd-task-queue].
 // If not configured, DefaultConfig() provides sensible defaults.
-type BkgndTaskQueueConfig struct {
+type TaskQueueConfig struct {
 	// Enabled enables the background task queue. Default: true.
 	Enabled bool `toml:"enabled"`
 
@@ -429,14 +437,14 @@ func (t *TimeOfDay) UnmarshalText(text []byte) error {
 }
 
 // ============================================================
-// TraitExtractionTaskConfig — Periodic personal trait extraction
+// TraitTaskConfig — Periodic personal trait extraction
 // ============================================================
 
-// TraitExtractionTaskConfig configures the periodic background task that scans
+// TraitTaskConfig configures the periodic background task that scans
 // chat_sessions for chats pending personal trait extraction and processes them.
 // These values are read from the TOML config file under [trait-extraction-task].
 // If not configured, DefaultConfig() provides sensible defaults.
-type TraitExtractionTaskConfig struct {
+type TraitTaskConfig struct {
 	// Enabled enables the periodic trait extraction task. Default: true.
 	Enabled bool `toml:"enabled"`
 
@@ -476,17 +484,48 @@ type TraitExtractionTaskConfig struct {
 	DeduplicateThreshold float64 `toml:"deduplicate_threshold"`
 }
 
-// IsAllowedTimePoint returns true if the given time falls within at least one
-// allowed window. An empty AllowedWindows slice means all times are allowed.
+// ============================================================
+// ExcerptTaskConfig — Periodic excerpt generation
+// ============================================================
+
+// ExcerptTaskConfig configures the periodic background task that scans chat
+// messages and generates user quote excerpts via LLM.
+type ExcerptTaskConfig struct {
+	// Enabled enables the periodic excerpt generation task. Default: true.
+	Enabled bool `toml:"enabled"`
+
+	// IntervalSeconds is how often (seconds) the task runs its scan-and-generate cycle.
+	// Default: 86400 (once per day).
+	IntervalSeconds int `toml:"interval_seconds"`
+
+	// ExtractDelayHours is the threshold (hours) for re-extraction:
+	// chats with processed_at older than update_at minus this many hours are eligible
+	// for re-processing. This prevents re-processing chats that were just updated.
+	// Default: 24.
+	ExtractDelayHours int `toml:"extract_delay_hours"`
+
+	// BatchLimit is the maximum number of chat sessions processed per cycle.
+	// Default: 100.
+	BatchLimit int `toml:"batch_limit"`
+
+	// AllowedWindows restricts execution to specific time-of-day windows.
+	// Same semantics as TraitExtractionTaskConfig.AllowedWindows.
+	// Empty slice (default) means always allowed.
+	AllowedWindows [][]TimeOfDay `toml:"allowed_windows"`
+}
+
+// isAllowedTimePoint is the shared implementation of time-window checking.
+// windows defines the allowed time-of-day ranges (half-open [start, stop)).
+// An empty windows slice means all times are allowed.
 // Windows that wrap past midnight (stop <= start) are handled correctly.
-func (c *TraitExtractionTaskConfig) IsAllowedTimePoint(t time.Time) bool {
-	if len(c.AllowedWindows) == 0 {
+func isAllowedTimePoint(windows [][]TimeOfDay, t time.Time) bool {
+	if len(windows) == 0 {
 		return true
 	}
 
 	currentMinutes := t.Hour()*60 + t.Minute()
 
-	for _, w := range c.AllowedWindows {
+	for _, w := range windows {
 		if len(w) != 2 {
 			continue
 		}
@@ -506,4 +545,18 @@ func (c *TraitExtractionTaskConfig) IsAllowedTimePoint(t time.Time) bool {
 		}
 	}
 	return false
+}
+
+// IsAllowedTimePoint returns true if the given time falls within at least one
+// allowed window. An empty AllowedWindows slice means all times are allowed.
+// Windows that wrap past midnight (stop <= start) are handled correctly.
+func (c *ExcerptTaskConfig) IsAllowedTimePoint(t time.Time) bool {
+	return isAllowedTimePoint(c.AllowedWindows, t)
+}
+
+// IsAllowedTimePoint returns true if the given time falls within at least one
+// allowed window. An empty AllowedWindows slice means all times are allowed.
+// Windows that wrap past midnight (stop <= start) are handled correctly.
+func (c *TraitTaskConfig) IsAllowedTimePoint(t time.Time) bool {
+	return isAllowedTimePoint(c.AllowedWindows, t)
 }

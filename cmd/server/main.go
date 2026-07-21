@@ -188,27 +188,27 @@ func main() {
 	// ============================================================
 	// Initialize global background slow-task queue
 	// ============================================================
-	if cfg.BkgndTaskQueue.Enabled {
+	if cfg.TaskQueue.Enabled {
 		tasks.InitGlobal(bktask.Config{
-			CheckInterval: time.Duration(cfg.BkgndTaskQueue.CheckIntervalSeconds) * time.Second,
-			WorkerCount:   cfg.BkgndTaskQueue.WorkerCount,
-			QueueSize:     cfg.BkgndTaskQueue.QueueSize,
+			CheckInterval: time.Duration(cfg.TaskQueue.CheckIntervalSeconds) * time.Second,
+			WorkerCount:   cfg.TaskQueue.WorkerCount,
+			QueueSize:     cfg.TaskQueue.QueueSize,
 		}, theLogger)
 		defer tasks.StopGlobal()
 		theLogger.Infof("bkgnd task queue initialized (checkInterval=%ds, workers=%d, queueSize=%d)",
-			cfg.BkgndTaskQueue.CheckIntervalSeconds, cfg.BkgndTaskQueue.WorkerCount, cfg.BkgndTaskQueue.QueueSize)
+			cfg.TaskQueue.CheckIntervalSeconds, cfg.TaskQueue.WorkerCount, cfg.TaskQueue.QueueSize)
 
 		// Register periodic trait extraction task.
 		tasks.RegisterPeriodicTraitExtraction(
-			cfg.TraitExtractionTask,
+			cfg.TraitTask,
 			agent.GetChatStore(),
 			agent.GetBrainStore(),
 			agent.GetLLMClients(),
 			agent.GetEmbedderClients(),
 			theLogger,
 			defaultLang,
-			cfg.TraitExtractionTask.DeduplicateEnabled,
-			cfg.TraitExtractionTask.DeduplicateThreshold,
+			cfg.TraitTask.DeduplicateEnabled,
+			cfg.TraitTask.DeduplicateThreshold,
 		)
 	} else {
 		theLogger.Infof("bkgnd task queue disabled by config")

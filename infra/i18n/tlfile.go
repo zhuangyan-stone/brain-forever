@@ -92,6 +92,7 @@ var Tools = NewTLTools(
 	"web_search",
 	"traits_extract",
 	"trip_traits",
+	"trip_excerpts",
 	"trait_search_by_text",
 	"trait_search_by_keyword",
 	"trip_highlights",

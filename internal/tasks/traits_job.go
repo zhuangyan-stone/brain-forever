@@ -38,7 +38,7 @@ type chatWithUserRow struct {
 // RegisterPeriodicTraitExtraction registers the periodic trait extraction task
 // into the global bktask queue. Must be called after InitGlobal().
 func RegisterPeriodicTraitExtraction(
-	cfg config.TraitExtractionTaskConfig,
+	cfg config.TraitTaskConfig,
 	chatStore *store.ChatStore,
 	brainStore *store.BrainStore,
 	llmClients map[string]llm.Client,
@@ -71,7 +71,7 @@ func RegisterPeriodicTraitExtraction(
 
 // runPeriodicTraitExtraction performs one scan-and-extract cycle.
 func runPeriodicTraitExtraction(
-	cfg *config.TraitExtractionTaskConfig,
+	cfg *config.TraitTaskConfig,
 	chatStore *store.ChatStore,
 	brainStore *store.BrainStore,
 	llmClients map[string]llm.Client,
