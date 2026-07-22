@@ -34,7 +34,7 @@ func RegisterPeriodicTraitExtraction(
 	dedupThreshold float64,
 ) {
 	if !cfg.Enabled {
-		logger.Infof("periodic trait extraction task disabled by config")
+		logger.Infof("✓ periodic trait extraction task disabled by config")
 		return
 	}
 
@@ -48,7 +48,7 @@ func RegisterPeriodicTraitExtraction(
 		if err != nil {
 			logger.Errorf("failed to register startup trait extraction task. %v", err)
 		} else {
-			logger.Infof("startup trait extraction task registered (run_on_startup=true)")
+			logger.Infof("✓ startup trait extraction task registered (run_on_startup=true)")
 		}
 	}
 
@@ -60,7 +60,7 @@ func RegisterPeriodicTraitExtraction(
 		logger.Errorf("failed to register periodic trait extraction task. %v", err)
 		return
 	}
-	logger.Infof("periodic trait extraction task registered (interval=%v, delayHours=%d, batchLimit=%d, windows=%d)",
+	logger.Infof("✓ periodic trait extraction task registered (interval=%v, delayHours=%d, batchLimit=%d, windows=%d)",
 		interval, cfg.ExtractDelayHours, cfg.BatchLimit, len(cfg.AllowedWindows))
 }
 

@@ -167,8 +167,8 @@ func (q *TaskQueue) Add(task BkgndTask) error {
 	q.tasks = append(q.tasks, entry)
 	q.mu.Unlock()
 
-	q.logger.Infof("bktask: task added (name=%q, oneShot=%v, interval=%v, nextRun=%s)",
-		task.Name, task.OneShot, task.Interval, entry.nextRun.Format(time.RFC3339))
+	q.logger.Infof("bktask: task added (name=%q, oneShot=%v, interval=%v, firstRun=%s)",
+		task.Name, task.OneShot, task.Interval, entry.nextRun.Format("2006-01-02 15:04:05"))
 	return nil
 }
 

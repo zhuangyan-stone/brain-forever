@@ -36,7 +36,7 @@ func RegisterPeriodicExcerptGeneration(
 	logger zylog.Logger,
 ) {
 	if !cfg.Enabled {
-		logger.Infof("periodic excerpt generation task disabled by config")
+		logger.Infof("✓ periodic excerpt generation task disabled by config")
 		return
 	}
 
@@ -53,7 +53,7 @@ func RegisterPeriodicExcerptGeneration(
 		if err != nil {
 			logger.Errorf("failed to register startup excerpt generation task. %v", err)
 		} else {
-			logger.Infof("startup excerpt generation task registered (run_on_startup=true)")
+			logger.Infof("✓ startup excerpt generation task registered (run_on_startup=true)")
 		}
 	}
 
@@ -65,7 +65,7 @@ func RegisterPeriodicExcerptGeneration(
 		logger.Errorf("failed to register periodic excerpt generation task. %v", err)
 		return
 	}
-	logger.Infof("periodic excerpt generation task registered (interval=%v, batchLimit=%d, windows=%d, delayHours=%d)",
+	logger.Infof("✓ periodic excerpt generation task registered (interval=%v, batchLimit=%d, windows=%d, delayHours=%d)",
 		interval, cfg.BatchLimit, len(cfg.AllowedWindows), cfg.ExtractDelayHours)
 }
 

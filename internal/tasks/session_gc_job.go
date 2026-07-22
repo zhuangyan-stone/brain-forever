@@ -22,7 +22,7 @@ func RegisterPeriodicSessionGC(
 	logger zylog.Logger,
 ) {
 	if !cfg.Enabled {
-		logger.Infof("periodic session GC task disabled by config")
+		logger.Infof("✓ periodic session GC task disabled by config")
 		return
 	}
 
@@ -35,5 +35,5 @@ func RegisterPeriodicSessionGC(
 		logger.Errorf("failed to register session GC task. %v", err)
 		return
 	}
-	logger.Infof("session GC task registered (interval=%v)", interval)
+	logger.Infof("✓ session GC task registered (interval=%v)", interval)
 }
