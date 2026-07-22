@@ -529,13 +529,6 @@ func NewLogger(cfg Config) (Logger, error) {
 	// Create the slog.Logger wrapper, passing the name
 	logger := newSlogLoggerWithName(slog.New(customHandler), cfg.Name)
 
-	ln := cfg.LevelNames
-	levelName := ln[slog.Level(cfg.Level)][0] + "/" + ln[slog.Level(cfg.Level)][1]
-
-	// Log the initialization info
-	logger.Tracef("logger created. Level=%s, ConsoleMode=%d, File=%s, MaxSize=%dM",
-		levelName, cfg.Console, cfg.File, cfg.MaxSize)
-
 	return logger, nil
 }
 
