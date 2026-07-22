@@ -11,7 +11,7 @@ other = "The original text of the excerpt, must come from the user's message"
 other = "List of value type labels. Options: insight, humor, vent, methodology, rule, confession, nostalgia, regret, self_discovery, conviction, touching, deed, privacy, literary"
 
 [param_context_summary_desc]
-other = "Context summary in 20-40 characters, used to naturally introduce this excerpt in future references"
+other = "Context summary in 20-80 characters, used to naturally introduce this excerpt in future references"
 
 [param_reason_desc]
 other = "Reason why this excerpt is worth collecting"
