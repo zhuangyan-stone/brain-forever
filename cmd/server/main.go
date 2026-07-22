@@ -310,7 +310,7 @@ func main() {
 	// --init-only: validate all environment & configuration then exit
 	// without starting the HTTP server.
 	if *initOnly {
-		theLogger.Infof("✓ --init-only: all checks passed, exiting")
+		theLogger.Infof("〇 --init-only: all checks passed, exiting")
 		os.Exit(0)
 	}
 
