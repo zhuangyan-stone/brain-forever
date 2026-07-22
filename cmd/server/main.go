@@ -37,6 +37,7 @@ func main() {
 	// Command-line flags
 	// ============================================================
 	withNginx := flag.Bool("with-nginx", false, "Enable Nginx reverse proxy mode: disable built-in static file serving")
+	initOnly := flag.Bool("init-only", false, "Run SQL schema initialization then exit (skip server startup)")
 	flag.Parse()
 
 	// ============================================================
@@ -114,6 +115,12 @@ func main() {
 		theLogger.Fatalf("failed to initialize database schema. %v", err)
 	}
 	theLogger.Infof("database schema initialized (dimension=%d)", vectorDimension)
+
+	// Exit early if --init-only flag is set.
+	if *initOnly {
+		theLogger.Infof("--init-only flag set, exiting after schema initialization")
+		os.Exit(0)
+	}
 
 	// ============================================================
 	// Initialize global UserStore singleton (based on PostgreSQL)
