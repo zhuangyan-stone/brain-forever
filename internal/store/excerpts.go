@@ -2,7 +2,10 @@ package store
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"BrainForever/infra/zylog"
@@ -10,6 +13,79 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pgvector/pgvector-go"
 )
+
+// ============================================================
+// Int16Array — PostgreSQL SMALLINT[] scanner/valuer for pgx v5
+//
+// pgx v5 returns PostgreSQL SMALLINT[] arrays as string (e.g. "{1,2,3}")
+// when accessed through database/sql. This type implements sql.Scanner
+// to parse that format into a Go []int16 slice, and driver.Valuer to
+// convert back when writing.
+// ============================================================
+
+// Int16Array wraps []int16 with database/sql-compatible scan/valuer
+// implementations for PostgreSQL SMALLINT[] columns.
+type Int16Array []int16
+
+// Scan implements the sql.Scanner interface.
+func (a *Int16Array) Scan(src interface{}) error {
+	if src == nil {
+		*a = nil
+		return nil
+	}
+
+	var source string
+	switch v := src.(type) {
+	case string:
+		source = v
+	case []byte:
+		source = string(v)
+	default:
+		return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type *Int16Array", src)
+	}
+
+	// Parse PostgreSQL array format: {1,2,3}
+	source = strings.TrimSpace(source)
+	if source == "" {
+		*a = Int16Array{}
+		return nil
+	}
+	if len(source) < 2 || source[0] != '{' || source[len(source)-1] != '}' {
+		return fmt.Errorf("invalid PostgreSQL array format: %q", source)
+	}
+
+	inner := source[1 : len(source)-1]
+	if inner == "" {
+		*a = Int16Array{}
+		return nil
+	}
+
+	parts := strings.Split(inner, ",")
+	result := make(Int16Array, len(parts))
+	for i, p := range parts {
+		p = strings.TrimSpace(p)
+		n, err := strconv.ParseInt(p, 10, 16)
+		if err != nil {
+			return fmt.Errorf("failed to parse int16 from %q. %w", p, err)
+		}
+		result[i] = int16(n)
+	}
+
+	*a = result
+	return nil
+}
+
+// Value implements the driver.Valuer interface.
+func (a Int16Array) Value() (driver.Value, error) {
+	if a == nil {
+		return nil, nil
+	}
+	parts := make([]string, len(a))
+	for i, v := range a {
+		parts[i] = strconv.FormatInt(int64(v), 10)
+	}
+	return "{" + strings.Join(parts, ",") + "}", nil
+}
 
 // ============================================================
 // ExcerptValueDict - excerpt value type dictionary
@@ -35,7 +111,7 @@ type Excerpt struct {
 	MsgTime        time.Time  `db:"msg_time"`    // source message creation time (non-null)
 	LastRefAt      *time.Time `db:"last_ref_at"` // last referenced time (null when never referenced)
 	RefCount       int        `db:"ref_count"`   // number of times referenced
-	Values         []int16    `db:"values"`
+	Values         Int16Array `db:"values"`
 	Content        string     `db:"content"`
 	ContextSummary string     `db:"context_summary"`
 	Reason         string     `db:"reason"`
