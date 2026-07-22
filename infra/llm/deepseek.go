@@ -171,7 +171,7 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 		apiKey = c.apiKey
 	}
 	if apiKey == "" {
-		return nil, fmt.Errorf("API client not initialized (API key may be missing)")
+		return nil, fmt.Errorf("aPI client not initialized (API key may be missing)")
 	}
 
 	// If model not specified, use client default model
@@ -203,13 +203,13 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("API request failed. %w", err)
+		return nil, fmt.Errorf("aPI request failed. %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("aPI request failed with status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var chatResp ChatCompletionResponse
@@ -248,7 +248,7 @@ func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatComp
 		apiKey = c.apiKey
 	}
 	if apiKey == "" {
-		return newChatCompletionChunkDecoderError(fmt.Errorf("API client not initialized (API key may be missing)"))
+		return newChatCompletionChunkDecoderError(fmt.Errorf("aPI client not initialized (API key may be missing)"))
 	}
 
 	if req.Model == "" {
@@ -288,13 +288,13 @@ func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatComp
 
 	resp, err := c.streamHTTPClient.Do(httpReq)
 	if err != nil {
-		return newChatCompletionChunkDecoderError(fmt.Errorf("API request failed. %w", err))
+		return newChatCompletionChunkDecoderError(fmt.Errorf("aPI request failed. %w", err))
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return newChatCompletionChunkDecoderError(fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(respBody)))
+		return newChatCompletionChunkDecoderError(fmt.Errorf("aPI request failed with status %d: %s", resp.StatusCode, string(respBody)))
 	}
 
 	return NewChatCompletionChunkDecoder(resp.Body)
@@ -502,7 +502,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 			c.SetUsageInfo(accumulatedUsage)
 		})
 		if err != nil {
-			return "", "", fmt.Errorf("Read chunks from stream fail. %w", err)
+			return "", "", fmt.Errorf("read chunks from stream fail. %w", err)
 		}
 
 		// Track whether any "thinking" activity has occurred across all iterations.
@@ -531,7 +531,7 @@ func (c *DeepSeekClient) ChatWithPipeline(
 
 			// Execute each tool call via the ToolCaller
 			if err = executeToolCalls(pipeline, streamResult.ToolCalls, &messages); err != nil {
-				return "", "", fmt.Errorf("Call tools fail. %w", err)
+				return "", "", fmt.Errorf("call tools fail. %w", err)
 			}
 
 			// Close current stream before looping

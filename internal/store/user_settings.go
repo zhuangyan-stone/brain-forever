@@ -176,7 +176,7 @@ func (s *UserStore) GetUserSettings(id int64) (*UserSettings, error) {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found (id=%d)", id)
 		}
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return nil, fmt.Errorf("failed to query user settings. %w", err)
 	}
 
@@ -200,7 +200,7 @@ func (s *UserStore) SetUserSettings(id int64, settings *UserSettings) error {
 	sqlStr := "UPDATE users SET settings = $1::jsonb WHERE id = $2"
 	result, err := ThePGDB().Exec(sqlStr, jsonStr, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -221,7 +221,7 @@ func (s *UserStore) UpdateThemeActiveMode(id int64, active string) error {
 	sqlStr := "UPDATE users SET settings = jsonb_set(settings, '{theme,active}', to_jsonb($1::text)) WHERE id = $2"
 	result, err := ThePGDB().Exec(sqlStr, active, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -238,7 +238,7 @@ func (s *UserStore) UpdateThemeSyncMode(id int64, sync bool) error {
 	sqlStr := "UPDATE users SET settings = jsonb_set(settings, '{theme,sync}', to_jsonb($1)) WHERE id = $2"
 	result, err := ThePGDB().Exec(sqlStr, sync, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to update theme sync mode. %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -263,7 +263,7 @@ func (s *UserStore) UpdateUserSettingsAPIKey(id int64, apis *UserSettingsAPIKey)
 	sqlStr := "UPDATE users SET settings = jsonb_set(settings, '{api_key}', $1::jsonb) WHERE id = $2"
 	result, err := ThePGDB().Exec(sqlStr, string(jsonBytes), id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user API key settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -287,7 +287,7 @@ func (s *UserStore) UpdateThemes(id int64, light, dark, active string) error {
 	) WHERE id = $4`
 	result, err := ThePGDB().Exec(sqlStr, light, dark, active, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to update user settings. %w", err)
 	}
 	rows, _ := result.RowsAffected()

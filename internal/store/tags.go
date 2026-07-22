@@ -29,7 +29,7 @@ func (s *ChatStore) SelectTagsGroup() (map[string]int, error) {
 		 GROUP BY tag`
 	err := s.db().Select(&rows, sqlStr)
 	if err != nil {
-		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
+		s.logger.Errorf("sQL [%s]:\n%v", sqlStr, err)
 		return nil, fmt.Errorf("failed to select tag groups. %w", err)
 	}
 
@@ -53,7 +53,7 @@ func (s *ChatStore) SelectNonEmptyTagsGroup() (map[string]int, error) {
 		 GROUP BY tag`
 	err := s.db().Select(&rows, sqlStr)
 	if err != nil {
-		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
+		s.logger.Errorf("sQL [%s]:\n%v", sqlStr, err)
 		return nil, fmt.Errorf("failed to select non-empty tag groups. %w", err)
 	}
 
@@ -72,7 +72,7 @@ func (s *ChatStore) InsertChatTag(chatID int64, tag string) (*ChatTag, error) {
 	var chatTag ChatTag
 	err := s.db().Get(&chatTag, sqlStr, chatID, tag)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to insert chat tag. %w", err)
 	}
 	return &chatTag, nil
@@ -87,7 +87,7 @@ func (s *ChatStore) ListChatTagsByChatID(chatID int64) ([]ChatTag, error) {
 	var tags []ChatTag
 	err := s.db().Select(&tags, sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list chat tags. %w", err)
 	}
 	return tags, nil
@@ -98,7 +98,7 @@ func (s *ChatStore) DeleteChatTag(id int64) error {
 	sqlStr := "DELETE FROM chat_tags WHERE id = $1"
 	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to delete chat tag. %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -129,14 +129,14 @@ func (s *ChatStore) DeleteChatTagAndUpdateTaged(chatID int64, tag string) (int, 
 
 	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1 AND tag = $2"
 	if _, err := tx.Exec(sqlStr, chatID, tag); err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d tag=%s]:\n%v", sqlStr, chatID, tag, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d tag=%s]:\n%v", sqlStr, chatID, tag, err)
 		return 0, fmt.Errorf("failed to delete chat tag. %w", err)
 	}
 
 	sqlStr = "SELECT COUNT(1) FROM chat_tags WHERE chat_id = $1 AND tag != ''"
 	var count int
 	if err := tx.Get(&count, sqlStr, chatID); err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return 0, fmt.Errorf("failed to count chat tags. %w", err)
 	}
 
@@ -145,7 +145,7 @@ func (s *ChatStore) DeleteChatTagAndUpdateTaged(chatID int64, tag string) (int, 
 	if count == 0 {
 		sqlStr = "UPDATE chat_sessions SET taged = FALSE WHERE id = $1"
 		if _, err := tx.Exec(sqlStr, chatID); err != nil {
-			s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+			s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 			return 0, fmt.Errorf("failed to update chat taged flag. %w", err)
 		}
 	}
@@ -178,7 +178,7 @@ func (s *ChatStore) ReplaceChatTags(chatID int64, tags []string) error {
 	// Step 1: Delete all existing tags
 	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1"
 	if _, err := tx.Exec(sqlStr, chatID); err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return fmt.Errorf("failed to delete chat tags. %w", err)
 	}
 
@@ -186,7 +186,7 @@ func (s *ChatStore) ReplaceChatTags(chatID int64, tags []string) error {
 	for _, tag := range tags {
 		sqlStr = "INSERT INTO chat_tags(chat_id, tag) VALUES($1, $2)"
 		if _, err := tx.Exec(sqlStr, chatID, tag); err != nil {
-			s.logger.Errorf("SQL [%s] args=[chatID=%d tag=%s]:\n%v", sqlStr, chatID, tag, err)
+			s.logger.Errorf("sQL [%s] args=[chatID=%d tag=%s]:\n%v", sqlStr, chatID, tag, err)
 			return fmt.Errorf("failed to insert chat tag %q. %w", tag, err)
 		}
 	}
@@ -194,7 +194,7 @@ func (s *ChatStore) ReplaceChatTags(chatID int64, tags []string) error {
 	// Step 3: Mark as classified — taged=true means LLM has processed this chat
 	sqlStr = "UPDATE chat_sessions SET taged = TRUE WHERE id = $1"
 	if _, err := tx.Exec(sqlStr, chatID); err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return fmt.Errorf("failed to update chat taged flag. %w", err)
 	}
 
@@ -208,7 +208,7 @@ func (s *ChatStore) DeleteChatTagByChatIDAndTag(chatID int64, tag string) error 
 	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1 AND tag = $2"
 	_, err := s.db().Exec(sqlStr, chatID, tag)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d, tag=%s]:\n%v", sqlStr, chatID, tag, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d, tag=%s]:\n%v", sqlStr, chatID, tag, err)
 		return fmt.Errorf("failed to delete chat tag by chat_id and tag. %w", err)
 	}
 	return nil
@@ -219,7 +219,7 @@ func (s *ChatStore) DeleteChatTagsByChatID(chatID int64) error {
 	sqlStr := "DELETE FROM chat_tags WHERE chat_id = $1"
 	_, err := s.db().Exec(sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return fmt.Errorf("failed to delete chat tags for chat (id=%d). %w", chatID, err)
 	}
 	return nil

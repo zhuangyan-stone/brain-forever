@@ -265,7 +265,7 @@ func (m *Manager) gc() {
 		remainingAnon = anonymousCount - expiredAnon
 		remainingLoggedIn = loggedInCount - expiredLoggedIn
 
-		m.logger.Infof("Session GC cleaned up %d expired (anonymous: %d/%d, logged-in: %d/%d), %d remaining",
+		m.logger.Infof("session GC cleaned up %d expired (anonymous: %d/%d, logged-in: %d/%d), %d remaining",
 			len(expired),
 			expiredAnon, anonymousCount,
 			expiredLoggedIn, loggedInCount,
@@ -274,7 +274,7 @@ func (m *Manager) gc() {
 		remainingAnon = anonymousCount
 		remainingLoggedIn = loggedInCount
 
-		m.logger.Infof("Session GC sweep: 0 expired, %d total (%d anonymous, %d logged-in)",
+		m.logger.Infof("session GC sweep: 0 expired, %d total (%d anonymous, %d logged-in)",
 			len(infos), anonymousCount, loggedInCount)
 	}
 

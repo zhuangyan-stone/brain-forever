@@ -286,7 +286,7 @@ func (a ApiKeysConfig) ValidateDefaultProviders() error {
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("API key configuration validation failed. %v", missing)
+		return fmt.Errorf("aPI key configuration validation failed. %v", missing)
 	}
 	return nil
 }

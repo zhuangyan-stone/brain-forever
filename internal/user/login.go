@@ -190,7 +190,7 @@ func (h *Handler) OnGetSMSVerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Debugf("SMS verify code for %s: %s (valid for 5 minutes)", tel, verifyCode)
+	h.logger.Debugf("sMS verify code for %s: %s (valid for 5 minutes)", tel, verifyCode)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{

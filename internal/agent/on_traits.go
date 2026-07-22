@@ -214,7 +214,7 @@ func (h *ChatAgent) callTraitsLLM(ctx context.Context, title string, dbMessages 
 
 	traitResult := callTraitsLLMWithTool(ctx, llmMsgs, lang, client, apiSetting.ApiKey)
 	if traitResult == nil {
-		return nil, fmt.Errorf("LLM call failed")
+		return nil, fmt.Errorf("lLM call failed")
 	}
 
 	result := &traitsResponse{

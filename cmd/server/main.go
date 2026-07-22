@@ -99,7 +99,7 @@ func main() {
 	// Must be before InitTheUserStore, which depends on it.
 	// ============================================================
 	if cfg.Database.DSN == "" {
-		theLogger.Fatalf("PG_DSN environment variable is required")
+		theLogger.Fatalf("pG_DSN environment variable is required")
 	}
 	if err := store.InitPGDB(&cfg.Database); err != nil {
 		theLogger.Fatalf("failed to initialize PostgreSQL: %v", err)
@@ -270,7 +270,7 @@ func main() {
 	// If any default provider's key array is empty (or missing entirely),
 	// the server cannot operate and must shut down immediately.
 	if err := config.GetApiKeysPool().ValidateDefaultProviders(); err != nil {
-		theLogger.Fatalf("API key configuration error: %v", err)
+		theLogger.Fatalf("aPI key configuration error: %v", err)
 	}
 	theLogger.Infof("✓ API key pool validated — all default providers have keys")
 

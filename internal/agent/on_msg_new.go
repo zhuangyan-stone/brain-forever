@@ -46,7 +46,7 @@ func appendNewRequestMessage(sess *session.Session, reqMsg *Message, chatStore *
 		return false, err
 	}
 	if sess.User.CurrentChat.DBCHat == nil {
-		return false, fmt.Errorf("DBCHat is nil after ensureSessionDBForChat")
+		return false, fmt.Errorf("dBCHat is nil after ensureSessionDBForChat")
 	}
 
 	chatID := sess.User.CurrentChat.DBCHat.ID

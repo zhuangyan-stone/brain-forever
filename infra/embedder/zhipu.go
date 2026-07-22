@@ -82,7 +82,7 @@ func (z *ZhipuEmbedder) Embed(ctx context.Context, text string, apiKey string) (
 		apiKey = z.apiKey
 	}
 	if apiKey == "" {
-		return nil, fmt.Errorf("API client not initialized (API key may be missing)")
+		return nil, fmt.Errorf("aPI client not initialized (API key may be missing)")
 	}
 
 	reqBody := zhipuRequest{
@@ -104,13 +104,13 @@ func (z *ZhipuEmbedder) Embed(ctx context.Context, text string, apiKey string) (
 
 	resp, err := z.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("API request failed. %w", err)
+		return nil, fmt.Errorf("aPI request failed. %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API returned error [%d]. %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("aPI returned error [%d]. %s", resp.StatusCode, string(body))
 	}
 
 	var apiResp zhipuResponse
@@ -119,7 +119,7 @@ func (z *ZhipuEmbedder) Embed(ctx context.Context, text string, apiKey string) (
 	}
 
 	if len(apiResp.Data) == 0 {
-		return nil, fmt.Errorf("API returned empty data")
+		return nil, fmt.Errorf("aPI returned empty data")
 	}
 
 	// Zhipu returns float64, convert to float32

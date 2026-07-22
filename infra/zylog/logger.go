@@ -533,7 +533,7 @@ func NewLogger(cfg Config) (Logger, error) {
 	levelName := ln[slog.Level(cfg.Level)][0] + "/" + ln[slog.Level(cfg.Level)][1]
 
 	// Log the initialization info
-	logger.Tracef("Logger created. Level=%s, ConsoleMode=%d, File=%s, MaxSize=%dM",
+	logger.Tracef("logger created. Level=%s, ConsoleMode=%d, File=%s, MaxSize=%dM",
 		levelName, cfg.Console, cfg.File, cfg.MaxSize)
 
 	return logger, nil

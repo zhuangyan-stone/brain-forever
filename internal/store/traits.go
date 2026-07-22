@@ -78,7 +78,7 @@ func (s *BrainStore) AddKeyword(kw *TraitKeyword) (int64, error) {
 	var id int64
 	err := s.db().QueryRow(sqlStr, kw.Word, kw.Kind, kw.TraitID).Scan(&id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
+		s.logger.Errorf("sQL [%s]:\n%v", sqlStr, err)
 		return 0, fmt.Errorf("failed to insert keyword. %w", err)
 	}
 	return id, nil
@@ -108,7 +108,7 @@ func (s *BrainStore) SearchByVector(userID int64, query []float32, category int,
 
 	rows, err := s.db().Query(sqlQuery, args...)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlQuery, userID, err)
+		s.logger.Errorf("sQL [%s] args=[userID=%d]:\n%v", sqlQuery, userID, err)
 		return nil, fmt.Errorf("vector search failed. %w", err)
 	}
 	defer rows.Close()
@@ -168,7 +168,7 @@ func (s *BrainStore) SearchByVectorInChat(userID int64, chatID int64, query []fl
 
 	rows, err := s.db().Query(sqlQuery, pgVec, userID, chatID, topK)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[userID=%d chatID=%d]:\n%v", sqlQuery, userID, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[userID=%d chatID=%d]:\n%v", sqlQuery, userID, chatID, err)
 		return nil, fmt.Errorf("vector search in chat failed. %w", err)
 	}
 	defer rows.Close()
@@ -242,7 +242,7 @@ func (s *BrainStore) SearchByKeyword(userID int64, word string, kind int, limit 
 
 	rows, err := s.db().Query(query, args...)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[userID=%d word=%s]:\n%v", query, userID, word, err)
+		s.logger.Errorf("sQL [%s] args=[userID=%d word=%s]:\n%v", query, userID, word, err)
 		return nil, fmt.Errorf("keyword search failed. %w", err)
 	}
 	defer rows.Close()
@@ -296,7 +296,7 @@ func (s *BrainStore) SearchByKeywordFuzzy(userID int64, word string, kind int, l
 
 	rows, err := s.db().Query(query, args...)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[userID=%d word=%s]:\n%v", query, userID, word, err)
+		s.logger.Errorf("sQL [%s] args=[userID=%d word=%s]:\n%v", query, userID, word, err)
 		return nil, fmt.Errorf("fuzzy keyword search failed. %w", err)
 	}
 	defer rows.Close()
@@ -326,7 +326,7 @@ func (s *BrainStore) Delete(id int64) error {
 	sqlStr := "DELETE FROM traits WHERE id = $1"
 	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to delete trait. %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -345,7 +345,7 @@ func (s *BrainStore) DeleteByChatID(chatID int64) (int, error) {
 	sqlStr := "DELETE FROM traits WHERE chat_id = $1"
 	result, err := s.db().Exec(sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return 0, fmt.Errorf("failed to delete traits by chat ID. %w", err)
 	}
 	n, _ := result.RowsAffected()
@@ -373,7 +373,7 @@ func (s *BrainStore) ListTraitsByChat(chatID int64) ([]PersonalTrait, error) {
 		 ORDER BY create_at DESC`
 	rows, err := s.db().Query(sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return nil, fmt.Errorf("failed to list traits by chat. %w", err)
 	}
 	defer rows.Close()
@@ -405,7 +405,7 @@ func (s *BrainStore) ListAllTraitsByCreateTime(userID int64) ([]PersonalTrait, e
 		 ORDER BY create_at DESC`
 	rows, err := s.db().Query(sqlStr, userID)
 	if err != nil {
-		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
+		s.logger.Errorf("sQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
 		return nil, fmt.Errorf("failed to list all traits. %w", err)
 	}
 	defer rows.Close()
@@ -452,7 +452,7 @@ func (s *BrainStore) Close() error {
 func (s *BrainStore) AddTraits(ctx context.Context, chatID int64, upToMsgID int64, insertions []TraitInsertion) (int, error) {
 	tx, err := s.db().Beginx()
 	if err != nil {
-		return 0, fmt.Errorf("BEGIN transaction failed. %w", err)
+		return 0, fmt.Errorf("bEGIN transaction failed. %w", err)
 	}
 	defer tx.Rollback()
 
@@ -515,7 +515,7 @@ func (s *BrainStore) AddTraits(ctx context.Context, chatID int64, upToMsgID int6
 	}
 
 	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("COMMIT transaction failed. %w", err)
+		return 0, fmt.Errorf("cOMMIT transaction failed. %w", err)
 	}
 	return storedCount, nil
 }

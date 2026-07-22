@@ -242,12 +242,12 @@ func (s *Server) Start() {
 
 	go func() {
 		defer s.wg.Done()
-		s.logger.Infof("Starting, listening on %s", s.svc.Addr)
+		s.logger.Infof("starting, listening on %s", s.svc.Addr)
 		close(started)
 
 		if err := s.svc.ListenAndServe(); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
-				s.logger.Fatalf("Failed to start. %v", err)
+				s.logger.Fatalf("failed to start. %v", err)
 			}
 		}
 	}()
@@ -265,7 +265,7 @@ func (s *Server) Stop(reason string) {
 	s.logger.Info("Processing all pending requests...")
 
 	if err := s.svc.Shutdown(ctx); err != nil {
-		s.logger.Fatalf("Shutdown failed, will force exit. %v", err)
+		s.logger.Fatalf("shutdown failed, will force exit. %v", err)
 	} else {
 		s.logger.Info("Gracefully exited")
 	}
