@@ -33,7 +33,7 @@ flowchart TD
 
 | 决策 | 方案 | 理由 |
 |------|------|------|
-| 进度追踪 | 独立表 `chat_excerpt_progress` | 解耦 chat_sessions，便于未来扩展其他操作 |
+| 进度追踪 | 独立表 `excerpt_progress` | 解耦 chat_sessions，便于未来扩展其他操作 |
 | 查询条件 | `processed_at IS NULL OR processed_at < update_at - delayHours` | 避免对话一更新就反复处理，默认延迟 24h |
 | 输入粒度 | 每次处理对话的**全部**消息 | LLM 需要完整上下文判断摘录价值 |
 | 存储方式 | 一次性 `BatchInsertExcerpts`（事务） | 原子性保障 |
@@ -52,7 +52,7 @@ flowchart TD
 | 2 | [`infra/i18n/tlfile.go`](infra/i18n/tlfile.go:95) | 注册 `"trip_excerpts"` 到全局 `Tools` 列表 |
 | 3 | [`internal/store/excerpts.go`](internal/store/excerpts.go:317) | 新增 `ChatPendingExcerpt`、`ListChatsPendingExcerpt`、`UpsertExcerptProgress`；`Excerpt`/`ExcerptInsertion` 新增 `MsgTime` 字段；6 处 SQL 同步更新 |
 | 4 | [`internal/tasks/excerpt_job.go`](internal/tasks/excerpt_job.go) | 完整覆写 — 实现完整任务逻辑；依据 LLM 返回的 `msg_id` 倒查消息 `CreateAt` 填充 `MsgTime` |
-| 5 | [`bin.template/.../002.excerpts.template.sql`](bin.template/settings_template/init_sql.template/002.excerpts.template.sql:39) | `excerpts` 表新增 `msg_time TIMESTAMPTZ` 列；新增复合索引 `idx_excerpts_user_msg_time(user_id, msg_time DESC)`；新增 `chat_excerpt_progress` DDL |
+| 5 | [`bin.template/.../002.excerpts.template.sql`](bin.template/settings_template/init_sql.template/002.excerpts.template.sql:39) | `excerpts` 表新增 `msg_time TIMESTAMPTZ` 列；新增复合索引 `idx_excerpts_user_msg_time(user_id, msg_time DESC)`；新增 `excerpt_progress` DDL |
 
 ### 2.2 新建的文件
 
@@ -171,7 +171,7 @@ type ChatPendingExcerpt struct {
     ID          int64      `db:"id"`
     UserID      int64      `db:"user_id"`
     Title       string     `db:"title"`
-    ProcessedAt *time.Time `db:"processed_at"` // 来自 chat_excerpt_progress
+    ProcessedAt *time.Time `db:"processed_at"` // 来自 excerpt_progress
     UpdateAt    time.Time  `db:"update_at"`
     Settings    string     `db:"settings"`     // users.settings JSONB
 }
@@ -185,7 +185,7 @@ SELECT cs.id, cs.user_id, cs.title, cs.update_at,
        u.settings
 FROM chat_sessions cs
 JOIN users u ON u.id = cs.user_id
-LEFT JOIN chat_excerpt_progress cep ON cep.chat_id = cs.id
+LEFT JOIN excerpt_progress cep ON cep.chat_id = cs.id
 WHERE cs.deleted = FALSE
   AND (cep.processed_at IS NULL
     OR cep.processed_at < cs.update_at - ($1::text || ' hours')::interval)
@@ -196,7 +196,7 @@ LIMIT $2
 **`UpsertExcerptProgress(chatID)`**
 
 ```sql
-INSERT INTO chat_excerpt_progress(chat_id, processed_at)
+INSERT INTO excerpt_progress(chat_id, processed_at)
 VALUES($1, NOW())
 ON CONFLICT (chat_id) DO UPDATE SET processed_at = NOW()
 ```
@@ -256,7 +256,7 @@ func resolveValueTypeIDs(valueTypes []string) []int16
 [`bin.template/.../002.excerpts.template.sql:52`](bin.template/settings_template/init_sql.template/002.excerpts.template.sql:52)
 
 ```sql
-CREATE TABLE IF NOT EXISTS chat_excerpt_progress (
+CREATE TABLE IF NOT EXISTS excerpt_progress (
     chat_id      BIGINT       PRIMARY KEY REFERENCES chat_sessions(id) ON DELETE CASCADE,
     processed_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -318,7 +318,7 @@ tasks.RegisterPeriodicExcerptGeneration(
 
 | 维度 | Trait Extraction | Excerpt Generation |
 |------|-----------------|-------------------|
-| 进度字段 | `chat_sessions.extracted_at` | 独立表 `chat_excerpt_progress` |
+| 进度字段 | `chat_sessions.extracted_at` | 独立表 `excerpt_progress` |
 | 消息粒度 | 仅 `extracted=false` 的消息 | 对话的**全部**消息 |
 | LLM 工具 | `trip_traits` | `trip_excerpts` |
 | 输出结构 | `features[]` 含 category/keyword/halflife/privacy | `excerpts[]` 含 text/types/summary/reason |
