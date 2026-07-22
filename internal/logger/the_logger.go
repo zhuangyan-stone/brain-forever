@@ -16,13 +16,16 @@ func TheLogger() zylog.Logger {
 }
 
 // CreateTheLogger create the golbal logger
-func CreateTheLogger(level zylog.Level, logFile string, lang zylog.Language, customLevelNames ...[]string) error {
+func CreateTheLogger(level zylog.Level, logFile string, lang zylog.Language, maxSize int, console string, customLevelNames ...[]string) error {
+	// Convert console string to ConsoleMode
+	consoleMode := zylog.ConsoleModeFromStr(console)
+
 	cfg := zylog.Config{
 		Name:     "BrainForever",
 		Level:    level,
 		File:     logFile,
-		MaxSize:  8,
-		Console:  zylog.ConsoleModeColor,
+		MaxSize:  maxSize,
+		Console:  consoleMode,
 		Language: lang,
 		LevelColors: map[zylog.Level]zylog.ConsoleColorCode{
 			zylog.LevelTrace: zylog.ColorGray,

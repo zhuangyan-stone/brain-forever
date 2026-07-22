@@ -85,14 +85,15 @@ func main() {
 	}
 
 	if err := logger.CreateTheLogger(zylog.NameToLevel(cfg.Logger.Level), cfg.Logger.File,
-		zylog.Language(cfg.Logger.Lang), cfg.Logger.CustomLevelNames); err != nil {
+		zylog.Language(cfg.Logger.Lang), cfg.Logger.MaxSize, cfg.Logger.Console, cfg.Logger.CustomLevelNames); err != nil {
 		log.Fatalf("create the logger fail. %v", err)
 	}
 
 	theLogger := logger.TheLogger()
 
 	// first log
-	theLogger.Infof("✓ the logger is created with level. level %s. file %s", cfg.Logger.Level, cfg.Logger.File)
+	theLogger.Infof("✓ the logger is created. level %s. file %s. maxsize %dMB. console %s",
+		cfg.Logger.Level, cfg.Logger.File, cfg.Logger.MaxSize, cfg.Logger.Console)
 
 	// ============================================================
 	// Initialize global PostgreSQL connection (thePGDBC)

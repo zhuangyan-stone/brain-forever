@@ -95,9 +95,11 @@ func DefaultConfig() Config {
 			CacheDisable: false,
 		},
 		Logger: LoggerConfig{
-			File:  "log/brain-forever.log",
-			Level: "TRACE",
-			Lang:  0,
+			File:    "log/brain-forever.log",
+			Level:   "TRACE",
+			Lang:    0,
+			MaxSize: 8,
+			Console: "color",
 		},
 		Database: DatabaseConfig{
 			DSN:          os.Getenv("MYSQL_DSN_d2brain"),
@@ -326,6 +328,8 @@ type LoggerConfig struct {
 	File             string
 	Level            string   // TRACE, DEBUG, INFO, WARN, ERROR, FATAL
 	Lang             int      // 0 en, 1 custom
+	MaxSize          int      // Max log file size in MB, 0 = no rotation. Default: 8
+	Console          string   // Console output mode: none, normal, color. Default: color
 	CustomLevelNames []string // Custom level names for LanguageCustom, e.g. {"TRACE","DEBUG","INFO","WARN","ERROR","FATAL","OFF"}
 }
 
