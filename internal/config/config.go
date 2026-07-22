@@ -490,6 +490,10 @@ type TraitTaskConfig struct {
 	// same chat is considered a duplicate and will not be stored.
 	// Default: 0.95 (recommended).
 	DeduplicateThreshold float64 `toml:"deduplicate_threshold"`
+
+	// RunOnStartup triggers an immediate one-shot trait scan when the program starts,
+	// before the first periodic interval elapses. Default: false.
+	RunOnStartup bool `toml:"run_on_startup"`
 }
 
 // ============================================================
@@ -520,6 +524,10 @@ type ExcerptTaskConfig struct {
 	// Same semantics as TraitExtractionTaskConfig.AllowedWindows.
 	// Empty slice (default) means always allowed.
 	AllowedWindows [][]TimeOfDay `toml:"allowed_windows"`
+
+	// RunOnStartup triggers an immediate one-shot excerpt scan when the program starts,
+	// before the first periodic interval elapses. Default: false.
+	RunOnStartup bool `toml:"run_on_startup"`
 }
 
 // isAllowedTimePoint is the shared implementation of time-window checking.

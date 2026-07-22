@@ -168,6 +168,8 @@ batch_limit = 50
 # 示例：
 #   allowed_windows = [["02:00", "06:00"], ["22:00", "23:59"]]
 allowed_windows = []
+# 启动时立即执行一次提取（true/false），默认 false
+run_on_startup = false
 
 # trait 入库去重开关（可选）
 # 启用后，新提取的 trait 会与同 chat 下已有 trait 做 embedding 相似度比对，
@@ -199,3 +201,5 @@ batch_limit = 100
 # 示例：
 #   allowed_windows = [["02:00", "06:00"]]
 allowed_windows = []
+# 启动时立即执行一次摘录提取（true/false），默认 false
+run_on_startup = false

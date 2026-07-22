@@ -43,6 +43,20 @@ func RegisterPeriodicExcerptGeneration(
 	// Store the value dict cache globally for use in the task runner.
 	excerptVDCache = vdCache
 
+	// If RunOnStartup is enabled, schedule an immediate one-shot task
+	// that runs the excerpt scan right after registration.
+	if cfg.RunOnStartup {
+		err := TheBkTaskQueue().AddOneShot("excerpt-generation-startup", 0, func() error {
+			logger.Infof("running initial excerpt generation (run_on_startup)")
+			return runPeriodicExcerptGeneration(&cfg, excerptStore, llmClients, defaultLang, logger)
+		})
+		if err != nil {
+			logger.Errorf("failed to register startup excerpt generation task. %v", err)
+		} else {
+			logger.Infof("startup excerpt generation task registered (run_on_startup=true)")
+		}
+	}
+
 	interval := time.Duration(cfg.IntervalSeconds) * time.Second
 	err := TheBkTaskQueue().AddRecurring("periodic-excerpt-generation", interval, func() error {
 		return runPeriodicExcerptGeneration(&cfg, excerptStore, llmClients, defaultLang, logger)

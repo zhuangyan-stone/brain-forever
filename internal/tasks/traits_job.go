@@ -38,6 +38,20 @@ func RegisterPeriodicTraitExtraction(
 		return
 	}
 
+	// If RunOnStartup is enabled, schedule an immediate one-shot task
+	// that runs the trait scan right after registration.
+	if cfg.RunOnStartup {
+		err := TheBkTaskQueue().AddOneShot("trait-extraction-startup", 0, func() error {
+			logger.Infof("running initial trait extraction (run_on_startup)")
+			return runPeriodicTraitExtraction(&cfg, chatStore, brainStore, llmClients, embedderClients, logger, defaultLang, dedupEnabled, dedupThreshold)
+		})
+		if err != nil {
+			logger.Errorf("failed to register startup trait extraction task. %v", err)
+		} else {
+			logger.Infof("startup trait extraction task registered (run_on_startup=true)")
+		}
+	}
+
 	interval := time.Duration(cfg.IntervalSeconds) * time.Second
 	err := TheBkTaskQueue().AddRecurring("periodic-trait-extraction", interval, func() error {
 		return runPeriodicTraitExtraction(&cfg, chatStore, brainStore, llmClients, embedderClients, logger, defaultLang, dedupEnabled, dedupThreshold)
