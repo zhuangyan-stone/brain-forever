@@ -76,7 +76,7 @@ func (s *ExcerptStore) ListAllValueDicts() ([]ExcerptValueDict, error) {
 	var rows []ExcerptValueDict
 	err := s.db().Select(&rows, sqlStr)
 	if err != nil {
-		s.logger.Errorf("sQL [%s]:\n%v", sqlStr, err)
+		s.logger.Errorf("SQL [%s]:\n%v", sqlStr, err)
 		return nil, fmt.Errorf("failed to list excerpt value dict. %w", err)
 	}
 	return rows, nil
@@ -94,7 +94,7 @@ func (s *ExcerptStore) GetValueDictByID(id int16) (*ExcerptValueDict, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return nil, fmt.Errorf("failed to get value dict by id. %w", err)
 	}
 	return &row, nil
@@ -112,7 +112,7 @@ func (s *ExcerptStore) GetValueDictByValue(value string) (*ExcerptValueDict, err
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		s.logger.Errorf("sQL [%s] args=[value=%s]:\n%v", sqlStr, value, err)
+		s.logger.Errorf("SQL [%s] args=[value=%s]:\n%v", sqlStr, value, err)
 		return nil, fmt.Errorf("failed to get value dict by value. %w", err)
 	}
 	return &row, nil
@@ -145,7 +145,7 @@ func (s *ExcerptStore) InsertExcerpt(in *ExcerptInsertion) (*Excerpt, error) {
 		in.Content, in.ContextSummary, in.Reason,
 	).Scan(&excerpt.ID, &excerpt.CreateAt)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[userID=%d chatID=%d msgID=%d]:\n%v", sqlStr, in.UserID, in.ChatID, in.MsgID, err)
+		s.logger.Errorf("SQL [%s] args=[userID=%d chatID=%d msgID=%d]:\n%v", sqlStr, in.UserID, in.ChatID, in.MsgID, err)
 		return nil, fmt.Errorf("failed to insert excerpt. %w", err)
 	}
 	excerpt.UserID = in.UserID
@@ -180,7 +180,7 @@ func (s *ExcerptStore) BatchInsertExcerpts(insertions []ExcerptInsertion) (int, 
 			in.Content, in.ContextSummary, in.Reason,
 		)
 		if err != nil {
-			s.logger.Errorf("sQL [%s] args=[userID=%d chatID=%d msgID=%d]:\n%v",
+			s.logger.Errorf("SQL [%s] args=[userID=%d chatID=%d msgID=%d]:\n%v",
 				sqlStr, in.UserID, in.ChatID, in.MsgID, err)
 			return 0, fmt.Errorf("failed to batch insert excerpt. %w", err)
 		}
@@ -204,7 +204,7 @@ func (s *ExcerptStore) GetExcerptByID(id int64) (*Excerpt, error) {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return nil, fmt.Errorf("failed to get excerpt by id. %w", err)
 	}
 	return &excerpt, nil
@@ -228,7 +228,7 @@ func (s *ExcerptStore) ListExcerptsByUser(userID int64, limit int, offset int) (
 	var rows []Excerpt
 	err := s.db().Select(&rows, sqlStr, userID, limit, offset)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[userID=%d limit=%d offset=%d]:\n%v", sqlStr, userID, limit, offset, err)
+		s.logger.Errorf("SQL [%s] args=[userID=%d limit=%d offset=%d]:\n%v", sqlStr, userID, limit, offset, err)
 		return nil, fmt.Errorf("failed to list excerpts by user. %w", err)
 	}
 	return rows, nil
@@ -249,7 +249,7 @@ func (s *ExcerptStore) ListExcerptsByChat(chatID int64, limit int) ([]Excerpt, e
 	var rows []Excerpt
 	err := s.db().Select(&rows, sqlStr, chatID, limit)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[chatID=%d limit=%d]:\n%v", sqlStr, chatID, limit, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d limit=%d]:\n%v", sqlStr, chatID, limit, err)
 		return nil, fmt.Errorf("failed to list excerpts by chat. %w", err)
 	}
 	return rows, nil
@@ -274,7 +274,7 @@ func (s *ExcerptStore) ListExcerptsByValue(userID int64, valueID int16, limit in
 	var rows []Excerpt
 	err := s.db().Select(&rows, sqlStr, userID, valueID, limit, offset)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[userID=%d valueID=%d limit=%d offset=%d]:\n%v",
+		s.logger.Errorf("SQL [%s] args=[userID=%d valueID=%d limit=%d offset=%d]:\n%v",
 			sqlStr, userID, valueID, limit, offset, err)
 		return nil, fmt.Errorf("failed to list excerpts by value. %w", err)
 	}
@@ -290,7 +290,7 @@ func (s *ExcerptStore) UpdateLastRefAt(ids []int64) error {
 	sqlStr := `UPDATE excerpts SET last_ref_at = NOW(), ref_count = ref_count + 1 WHERE id = ANY($1)`
 	_, err := s.db().Exec(sqlStr, ids)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[ids=%v]:\n%v", sqlStr, ids, err)
+		s.logger.Errorf("SQL [%s] args=[ids=%v]:\n%v", sqlStr, ids, err)
 		return fmt.Errorf("failed to update last_ref_at. %w", err)
 	}
 	return nil
@@ -301,7 +301,7 @@ func (s *ExcerptStore) DeleteExcerpt(id int64) error {
 	sqlStr := "DELETE FROM excerpts WHERE id = $1"
 	result, err := s.db().Exec(sqlStr, id)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
+		s.logger.Errorf("SQL [%s] args=[id=%d]:\n%v", sqlStr, id, err)
 		return fmt.Errorf("failed to delete excerpt. %w", err)
 	}
 	rows, _ := result.RowsAffected()
@@ -316,7 +316,7 @@ func (s *ExcerptStore) DeleteExcerptsByChat(chatID int64) (int, error) {
 	sqlStr := "DELETE FROM excerpts WHERE chat_id = $1"
 	result, err := s.db().Exec(sqlStr, chatID)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
 		return 0, fmt.Errorf("failed to delete excerpts by chat. %w", err)
 	}
 	n, _ := result.RowsAffected()
@@ -329,7 +329,7 @@ func (s *ExcerptStore) CountExcerptsByUser(userID int64) (int, error) {
 	var count int
 	err := s.db().Get(&count, sqlStr, userID)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
+		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
 		return 0, fmt.Errorf("failed to count excerpts. %w", err)
 	}
 	return count, nil
@@ -371,7 +371,7 @@ func (s *ExcerptStore) ListChatsPendingExcerpt(delayHours int, batchLimit int) (
 	var rows []ChatPendingExcerpt
 	err := s.db().Select(&rows, sqlStr, fmt.Sprintf("%d", delayHours), batchLimit)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[delayHours=%d batchLimit=%d]:\n%v", sqlStr, delayHours, batchLimit, err)
+		s.logger.Errorf("SQL [%s] args=[delayHours=%d batchLimit=%d]:\n%v", sqlStr, delayHours, batchLimit, err)
 		return nil, fmt.Errorf("failed to list chats pending excerpt. %w", err)
 	}
 	return rows, nil
@@ -386,7 +386,7 @@ func (s *ExcerptStore) UpsertExcerptProgress(chatID int64, lastMsgID int64) erro
 	           ON CONFLICT (chat_id) DO UPDATE SET processed_at = NOW(), last_msg_id = $2`
 	_, err := s.db().Exec(sqlStr, chatID, lastMsgID)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[chatID=%d lastMsgID=%d]:\n%v", sqlStr, chatID, lastMsgID, err)
+		s.logger.Errorf("SQL [%s] args=[chatID=%d lastMsgID=%d]:\n%v", sqlStr, chatID, lastMsgID, err)
 		return fmt.Errorf("failed to upsert excerpt progress. %w", err)
 	}
 	return nil
@@ -424,7 +424,7 @@ func (s *ExcerptStore) ListExcerptsByValues(userID int64, valueIDs []int16, limi
 	           LIMIT $3`
 	err = s.db().Select(&rows, sqlStr, userID, valueIDs, limit)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[userID=%d valueIDs=%v limit=%d]:\n%v",
+		s.logger.Errorf("SQL [%s] args=[userID=%d valueIDs=%v limit=%d]:\n%v",
 			sqlStr, userID, valueIDs, limit, err)
 		return nil, fmt.Errorf("failed to list excerpts by values. %w", err)
 	}
@@ -451,21 +451,21 @@ func (s *ExcerptStore) SearchByVector(userID int64, query []float32, valueIDs []
 	             FROM excerpts e
 	             INNER JOIN excerpt_vectors ev ON ev.excerpt_id = e.id
 	             WHERE e.user_id = $1`
-	args := []interface{}{pgVec, userID}
+	args := []interface{}{userID, pgVec}
 
 	if len(valueIDs) > 0 {
 		sqlQuery += ` AND e.values && $3`
 		args = append(args, valueIDs)
-		sqlQuery += ` ORDER BY ev.embedding <=> $1 LIMIT $4`
+		sqlQuery += ` ORDER BY ev.embedding <=> $2 LIMIT $4`
 	} else {
-		sqlQuery += ` ORDER BY ev.embedding <=> $1 LIMIT $3`
+		sqlQuery += ` ORDER BY ev.embedding <=> $2 LIMIT $3`
 	}
 	args = append(args, topK)
 
 	var rows []Excerpt
 	err := s.db().Select(&rows, sqlQuery, args...)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[userID=%d]:\n%v", sqlQuery, userID, err)
+		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlQuery, userID, err)
 		return nil, fmt.Errorf("vector search failed. %w", err)
 	}
 	return rows, nil
@@ -479,7 +479,7 @@ func (s *ExcerptStore) InsertExcerptVector(excerptID int64, vector []float32) er
 	pgVec := pgvector.NewVector(vector)
 	_, err := s.db().Exec(sqlStr, excerptID, pgVec)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[excerptID=%d]:\n%v", sqlStr, excerptID, err)
+		s.logger.Errorf("SQL [%s] args=[excerptID=%d]:\n%v", sqlStr, excerptID, err)
 		return fmt.Errorf("failed to insert excerpt vector. %w", err)
 	}
 	return nil

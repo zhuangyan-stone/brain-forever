@@ -84,7 +84,7 @@ func (d *DashScopeEmbedder) Embed(ctx context.Context, text string, apiKey strin
 		apiKey = d.apiKey
 	}
 	if apiKey == "" {
-		return nil, fmt.Errorf("aPI client not initialized (API key may be missing)")
+		return nil, fmt.Errorf("API client not initialized (API key may be missing)")
 	}
 
 	reqBody := dashScopeRequest{
@@ -116,13 +116,13 @@ func (d *DashScopeEmbedder) Embed(ctx context.Context, text string, apiKey strin
 
 	resp, err := d.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("aPI request failed. %w", err)
+		return nil, fmt.Errorf("API request failed. %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("aPI returned error [%d]. %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("API returned error [%d]. %s", resp.StatusCode, string(body))
 	}
 
 	var apiResp dashScopeResponse
@@ -131,7 +131,7 @@ func (d *DashScopeEmbedder) Embed(ctx context.Context, text string, apiKey strin
 	}
 
 	if len(apiResp.Output.Embeddings) == 0 {
-		return nil, fmt.Errorf("aPI returned empty data")
+		return nil, fmt.Errorf("API returned empty data")
 	}
 
 	// DashScope returns float64, convert to float32

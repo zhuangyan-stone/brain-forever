@@ -275,7 +275,7 @@ func main() {
 	// If any default provider's key array is empty (or missing entirely),
 	// the server cannot operate and must shut down immediately.
 	if err := config.GetApiKeysPool().ValidateDefaultProviders(); err != nil {
-		theLogger.Fatalf("aPI key configuration error: %v", err)
+		theLogger.Fatalf("API key configuration error: %v", err)
 	}
 	theLogger.Infof("✓ API key pool validated — all default providers have keys")
 
