@@ -199,7 +199,7 @@ func processChatForExcerpt(
 			UserID:         row.UserID,
 			ChatID:         row.ID,
 			MsgID:          item.MsgID,
-			MsgTime:        &msgTime,
+			MsgTime:        msgTime,
 			Values:         valueIDs,
 			Content:        item.ExcerptText,
 			ContextSummary: item.ContextSummary,

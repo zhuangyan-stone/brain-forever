@@ -31,7 +31,8 @@ type Excerpt struct {
 	UserID         int64      `db:"user_id"`
 	ChatID         int64      `db:"chat_id"`
 	MsgID          int64      `db:"msg_id"`
-	MsgTime        *time.Time `db:"msg_time"` // source message creation time
+	MsgTime        time.Time  `db:"msg_time"`    // source message creation time (non-null)
+	LastRefAt      *time.Time `db:"last_ref_at"` // last referenced time (null when never referenced)
 	Values         []int16    `db:"values"`
 	Content        string     `db:"content"`
 	ContextSummary string     `db:"context_summary"`
@@ -124,7 +125,7 @@ type ExcerptInsertion struct {
 	UserID         int64
 	ChatID         int64
 	MsgID          int64
-	MsgTime        *time.Time // source message creation time
+	MsgTime        time.Time // source message creation time
 	Values         []int16
 	Content        string
 	ContextSummary string
@@ -191,7 +192,7 @@ func (s *ExcerptStore) BatchInsertExcerpts(insertions []ExcerptInsertion) (int, 
 
 // GetExcerptByID returns a single excerpt by its ID.
 func (s *ExcerptStore) GetExcerptByID(id int64) (*Excerpt, error) {
-	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, values, content,
+	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, last_ref_at, values, content,
 		          context_summary, reason, create_at
 		 FROM excerpts
 		 WHERE id = $1`
@@ -216,7 +217,7 @@ func (s *ExcerptStore) ListExcerptsByUser(userID int64, limit int, offset int) (
 		offset = 0
 	}
 
-	sqlStr := `SELECT id, user_id, chat_id, msg_id, values, content,
+	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, last_ref_at, values, content,
 		          context_summary, reason, create_at
 		 FROM excerpts
 		 WHERE user_id = $1
@@ -237,7 +238,7 @@ func (s *ExcerptStore) ListExcerptsByChat(chatID int64, limit int) ([]Excerpt, e
 		limit = 100
 	}
 
-	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, values, content,
+	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, last_ref_at, values, content,
 		          context_summary, reason, create_at
 		 FROM excerpts
 		 WHERE chat_id = $1
@@ -262,7 +263,7 @@ func (s *ExcerptStore) ListExcerptsByValue(userID int64, valueID int16, limit in
 		offset = 0
 	}
 
-	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, values, content,
+	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, last_ref_at, values, content,
 		          context_summary, reason, create_at
 		 FROM excerpts
 		 WHERE user_id = $1 AND $2 = ANY(values)
@@ -276,6 +277,21 @@ func (s *ExcerptStore) ListExcerptsByValue(userID int64, valueID int16, limit in
 		return nil, fmt.Errorf("failed to list excerpts by value. %w", err)
 	}
 	return rows, nil
+}
+
+// UpdateLastRefAt sets last_ref_at = NOW() for the given excerpt IDs.
+// Useful when excerpts are referenced in conversation context.
+func (s *ExcerptStore) UpdateLastRefAt(ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	sqlStr := `UPDATE excerpts SET last_ref_at = NOW() WHERE id = ANY($1)`
+	_, err := s.db().Exec(sqlStr, ids)
+	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[ids=%v]:\n%v", sqlStr, ids, err)
+		return fmt.Errorf("failed to update last_ref_at. %w", err)
+	}
+	return nil
 }
 
 // DeleteExcerpt deletes an excerpt by ID.
@@ -327,7 +343,7 @@ type ChatPendingExcerpt struct {
 	ID          int64      `db:"id"`
 	UserID      int64      `db:"user_id"`
 	Title       string     `db:"title"`
-	ProcessedAt *time.Time `db:"processed_at"` // chat_excerpt_progress.processed_at
+	ProcessedAt *time.Time `db:"processed_at"` // excerpt_progress.processed_at
 	UpdateAt    time.Time  `db:"update_at"`
 	Settings    string     `db:"settings"` // JSONB from users.settings
 }
@@ -343,7 +359,7 @@ func (s *ExcerptStore) ListChatsPendingExcerpt(delayHours int, batchLimit int) (
 		          u.settings
 	           FROM chat_sessions cs
 	           JOIN users u ON u.id = cs.user_id
-	           LEFT JOIN chat_excerpt_progress cep ON cep.chat_id = cs.id
+	           LEFT JOIN excerpt_progress cep ON cep.chat_id = cs.id
 	           WHERE cs.deleted = FALSE
 	             AND (cep.processed_at IS NULL
 	               OR cep.processed_at < cs.update_at - ($1::text || ' hours')::interval)
@@ -361,7 +377,7 @@ func (s *ExcerptStore) ListChatsPendingExcerpt(delayHours int, batchLimit int) (
 // UpsertExcerptProgress inserts or updates the excerpt processing progress
 // for a chat session. Sets processed_at to the current time.
 func (s *ExcerptStore) UpsertExcerptProgress(chatID int64) error {
-	sqlStr := `INSERT INTO chat_excerpt_progress(chat_id, processed_at)
+	sqlStr := `INSERT INTO excerpt_progress(chat_id, processed_at)
 	           VALUES($1, NOW())
 	           ON CONFLICT (chat_id) DO UPDATE SET processed_at = NOW()`
 	_, err := s.db().Exec(sqlStr, chatID)
