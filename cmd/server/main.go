@@ -107,15 +107,11 @@ func main() {
 	theLogger.Infof("PostgreSQL connection established")
 
 	// ============================================================
-	// Initialize all database schemas (single unified init.sql)
+	// Initialize database schemas (multiple XXX.sql files in order)
 	// ============================================================
 	const vectorDimension = 1024
-	initSQL, err := store.InitSchema(vectorDimension)
-	if err != nil {
-		theLogger.Fatalf("failed to initialize database schema: %v", err)
-	}
-	if initSQL != "" {
-		theLogger.Infof("executed schema: %s", initSQL)
+	if err := store.InitSchema(theLogger, vectorDimension); err != nil {
+		theLogger.Fatalf("failed to initialize database schema. %v", err)
 	}
 	theLogger.Infof("database schema initialized (dimension=%d)", vectorDimension)
 
