@@ -25,9 +25,10 @@ import (
 // ============================================================
 
 // Logger is the logging interface required by TaskQueue.
-// Any logger with Infof/Errorf methods (e.g. zylog.Logger, slog.Logger)
+// Any logger with Tracef/Infof/Errorf methods (e.g. zylog.Logger, slog.Logger)
 // satisfies it without additional adapter code.
 type Logger interface {
+	Tracef(format string, args ...any)
 	Infof(format string, args ...any)
 	Errorf(format string, args ...any)
 }
@@ -167,7 +168,7 @@ func (q *TaskQueue) Add(task BkgndTask) error {
 	q.tasks = append(q.tasks, entry)
 	q.mu.Unlock()
 
-	q.logger.Infof("bktask: task added (name=%q, oneShot=%v, interval=%v, nextRun=%s)",
+	q.logger.Tracef("bktask: task added (name=%q, oneShot=%v, interval=%v, nextRun=%s)",
 		task.Name, task.OneShot, task.Interval, entry.nextRun.Format("2006-01-02 15:04:05"))
 	return nil
 }
@@ -378,5 +379,6 @@ func (q *TaskQueue) safeRun(entry *taskEntry) {
 // nopLogger silently discards all log output.
 type nopLogger struct{}
 
+func (nopLogger) Tracef(format string, args ...any) {}
 func (nopLogger) Infof(format string, args ...any)  {}
 func (nopLogger) Errorf(format string, args ...any) {}
