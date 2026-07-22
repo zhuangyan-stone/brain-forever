@@ -33,7 +33,7 @@ const TOOL_ICONS = {
     current_time: '🕐',
     trait_search_by_text: '🧑',
     trait_search_by_keyword: '🧑',
-    search_excerpts: '💬',
+    excerpts_search: '💬',
 };
 
 /**

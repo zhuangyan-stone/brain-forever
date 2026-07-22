@@ -98,5 +98,5 @@ var Tools = NewTLTools(
 	"trip_highlights",
 	"chat_tag",
 	"chat_samples_messages",
-	"search_excerpts",
+	"excerpts_search",
 )

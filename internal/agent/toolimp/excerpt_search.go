@@ -13,9 +13,9 @@ import (
 )
 
 // ============================================================
-// search_excerpts -Tool for retrieving user quote excerpts
+// excerpts_search -Tool for retrieving user quote excerpts
 //
-// search_excerpts supports two retrieval modes:
+// excerpts_search supports two retrieval modes:
 //  1. Value-based filtering: filter by value_types (e.g., "insight", "humor")
 //     Uses GIN index on excerpts.values — zero additional cost.
 //  2. Semantic search: provide a natural language query text.
@@ -25,7 +25,7 @@ import (
 // ============================================================
 
 // ExcerptSearchToolName is the name of the excerpt search tool.
-const ExcerptSearchToolName = "search_excerpts"
+const ExcerptSearchToolName = "excerpts_search"
 
 // defaultExcerptTopK is the default number of results returned.
 const defaultExcerptTopK = 5
@@ -70,7 +70,7 @@ type ExcerptSearchParams struct {
 	Limit      int      `json:"limit"`
 }
 
-// SearchExcerptToolImp implements llm.ToolIMP for the search_excerpts tool.
+// SearchExcerptToolImp implements llm.ToolIMP for the excerpts_search tool.
 type SearchExcerptToolImp struct {
 	ctx      context.Context
 	def      llm.ToolDefinition
@@ -121,7 +121,7 @@ func searchExcerptsToolDefinition(lang string) llm.ToolDefinition {
 						"description": i18n.Tools.TL(lang, ExcerptSearchToolName, "param_limit_desc"),
 					},
 				},
-				"required":             []string{},
+				"required":             []string{"value_types", "query", "limit"},
 				"additionalProperties": false,
 			},
 		},
@@ -157,7 +157,7 @@ func (imp *SearchExcerptToolImp) GetDefinition() llm.ToolDefinition { return imp
 // SetArgument parses and stores the JSON arguments from the LLM tool call.
 func (imp *SearchExcerptToolImp) SetArgument(arguments string) error {
 	if err := json.Unmarshal([]byte(arguments), &imp.params); err != nil {
-		return fmt.Errorf("parse search_excerpts arguments failed. %w", err)
+		return fmt.Errorf("parse excerpts_search arguments failed. %w", err)
 	}
 	return nil
 }
