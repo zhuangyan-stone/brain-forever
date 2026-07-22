@@ -13,7 +13,7 @@
         <mxCell id="qAyuwfmOVgvhHWZnBFao-1" parent="WIyWlLk6GJQsqaUBKTNV-1" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.devices.cell_phone_iphone_standalone;" value="微信小程序" vertex="1">
           <mxGeometry height="60" width="40" x="65" y="336" as="geometry" />
         </mxCell>
-        <mxCell id="qAyuwfmOVgvhHWZnBFao-3" parent="WIyWlLk6GJQsqaUBKTNV-1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;物联网设备&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;管理服务&lt;/div&gt;" vertex="1">
+        <mxCell id="qAyuwfmOVgvhHWZnBFao-3" parent="WIyWlLk6GJQsqaUBKTNV-1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;设备管理服务&lt;/div&gt;" vertex="1">
           <mxGeometry height="170" width="110" x="510" y="79" as="geometry" />
         </mxCell>
         <mxCell id="qAyuwfmOVgvhHWZnBFao-4" parent="WIyWlLk6GJQsqaUBKTNV-1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;设备&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;-&lt;/div&gt;&lt;div&gt;共享饮水机&lt;/div&gt;&lt;div&gt;共享广告机&lt;/div&gt;&lt;div&gt;共享洗衣机&lt;/div&gt;&lt;div&gt;……&lt;/div&gt;" vertex="1">
@@ -40,7 +40,7 @@
             <mxPoint x="465" y="350" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="qAyuwfmOVgvhHWZnBFao-10" parent="WIyWlLk6GJQsqaUBKTNV-1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;物联网设备&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;业务服务&lt;/div&gt;" vertex="1">
+        <mxCell id="qAyuwfmOVgvhHWZnBFao-10" parent="WIyWlLk6GJQsqaUBKTNV-1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;业务系统服务&lt;/div&gt;" vertex="1">
           <mxGeometry height="150" width="110" x="510" y="350" as="geometry" />
         </mxCell>
         <mxCell id="qAyuwfmOVgvhHWZnBFao-11" parent="WIyWlLk6GJQsqaUBKTNV-1" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.devices.cell_phone_iphone_standalone;" value="HTML 5" vertex="1">
