@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS excerpts (
 	user_id         BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	chat_id         BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 	msg_id          BIGINT       NOT NULL,
-	msg_time        TIMESTAMPTZ,               -- 来源消息的发送时间，方便前端展示
+	msg_time        TIMESTAMPTZ  NOT NULL,      -- 来源消息的发送时间，方便前端展示
+	last_ref_at     TIMESTAMPTZ,               -- 上次被引用时间，方便排序
 	values          SMALLINT[]   NOT NULL,
 	content         VARCHAR(380) NOT NULL,
 	context_summary VARCHAR(520) NOT NULL DEFAULT '',
@@ -50,11 +51,12 @@ CREATE INDEX IF NOT EXISTS idx_excerpts_msg_id     ON excerpts(msg_id);
 CREATE INDEX IF NOT EXISTS idx_excerpts_create_at  ON excerpts(create_at);
 CREATE INDEX IF NOT EXISTS idx_excerpts_values_gin ON excerpts USING GIN(values);
 CREATE INDEX IF NOT EXISTS idx_excerpts_user_msg_time ON excerpts(user_id, msg_time DESC);
+CREATE INDEX IF NOT EXISTS idx_excerpts_user_last_ref ON excerpts(user_id, last_ref_at DESC);
 
 -- ============================================================
--- chat_excerpt_progress table: tracks excerpt extraction progress per chat
+-- excerpt_progress table: tracks excerpt extraction progress per chat
 -- ============================================================
-CREATE TABLE IF NOT EXISTS chat_excerpt_progress (
+CREATE TABLE IF NOT EXISTS excerpt_progress (
 	chat_id      BIGINT       PRIMARY KEY REFERENCES chat_sessions(id) ON DELETE CASCADE,
 	processed_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

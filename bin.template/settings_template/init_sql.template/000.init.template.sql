@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 	update_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id ON chat_messages(chat_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_chat_id ON chat_messages(chat_id, group_index, id);
 
 -- ============================================================
 -- web_sources table: stores web sources cited in messages
