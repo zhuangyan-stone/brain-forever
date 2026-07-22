@@ -255,25 +255,38 @@ func (a *ApiKeysConfig) GetOne(purpose, provider string) string {
 	}
 }
 
-// ValidateDefaultProviders checks that each default provider
-// (LLM, WebSearch, Embedding) has at least one API key configured.
-// If any default provider's key array is empty (or missing entirely),
-// it returns an error listing which providers are missing keys.
+// ValidateDefaultProviders checks that the [api-keys] configuration is valid:
+//  1. All default_xx_provider fields must have a non-empty provider name.
+//  2. For each default provider, the corresponding key array must be
+//     configured and non-empty.
+//
+// Returns an error listing all violations found.
 func (a ApiKeysConfig) ValidateDefaultProviders() error {
 	var missing []string
 
-	if a.GetOne("llm", a.DefaultLLMProvider) == "" {
-		missing = append(missing, "llm@"+a.DefaultLLMProvider)
+	// Check provider name presence and key availability for each purpose.
+	type purposeEntry struct {
+		purpose  string
+		provider string
 	}
-	if a.GetOne("websearch", a.DefaultWebSearchProvider) == "" {
-		missing = append(missing, "websearch@"+a.DefaultWebSearchProvider)
+	entries := []purposeEntry{
+		{"llm", a.DefaultLLMProvider},
+		{"websearch", a.DefaultWebSearchProvider},
+		{"embedding", a.DefaultEmbeddingProvider},
 	}
-	if a.GetOne("embedding", a.DefaultEmbeddingProvider) == "" {
-		missing = append(missing, "embedding@"+a.DefaultEmbeddingProvider)
+
+	for _, e := range entries {
+		if e.provider == "" {
+			missing = append(missing, e.purpose+": default provider name is empty")
+			continue
+		}
+		if a.GetOne(e.purpose, e.provider) == "" {
+			missing = append(missing, e.purpose+"@"+e.provider+": no API keys configured")
+		}
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("default API provider(s) have no keys configured. %v", missing)
+		return fmt.Errorf("API key configuration validation failed. %v", missing)
 	}
 	return nil
 }

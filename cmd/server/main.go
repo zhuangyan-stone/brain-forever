@@ -37,7 +37,7 @@ func main() {
 	// Command-line flags
 	// ============================================================
 	withNginx := flag.Bool("with-nginx", false, "Enable Nginx reverse proxy mode: disable built-in static file serving")
-	initOnly := flag.Bool("init-only", false, "Run SQL schema initialization then exit (skip server startup)")
+	initOnly := flag.Bool("init-only", false, "Validate all environment & configuration then exit (skip server startup)")
 	flag.Parse()
 
 	// ============================================================
@@ -92,7 +92,7 @@ func main() {
 	theLogger := logger.TheLogger()
 
 	// first log
-	theLogger.Infof("the logger is created with level. level %s. file %s", cfg.Logger.Level, cfg.Logger.File)
+	theLogger.Infof("✓ the logger is created with level. level %s. file %s", cfg.Logger.Level, cfg.Logger.File)
 
 	// ============================================================
 	// Initialize global PostgreSQL connection (thePGDBC)
@@ -105,7 +105,7 @@ func main() {
 		theLogger.Fatalf("failed to initialize PostgreSQL: %v", err)
 	}
 	defer store.ClosePGDB()
-	theLogger.Infof("PostgreSQL connection established")
+	theLogger.Infof("✓ PostgreSQL connection established")
 
 	// ============================================================
 	// Initialize database schemas (multiple XXX.sql files in order)
@@ -114,13 +114,7 @@ func main() {
 	if err := store.InitSchema(theLogger, vectorDimension); err != nil {
 		theLogger.Fatalf("failed to initialize database schema. %v", err)
 	}
-	theLogger.Infof("database schema initialized (dimension=%d)", vectorDimension)
-
-	// Exit early if --init-only flag is set.
-	if *initOnly {
-		theLogger.Infof("--init-only flag set, exiting after schema initialization")
-		os.Exit(0)
-	}
+	theLogger.Infof("✓ database schema initialized (dimension=%d)", vectorDimension)
 
 	// ============================================================
 	// Initialize global UserStore singleton (based on PostgreSQL)
@@ -130,7 +124,7 @@ func main() {
 		theLogger.Fatalf("failed to initialize user store: %v", err)
 	}
 	defer store.CloseTheUserStore()
-	theLogger.Infof("user store (PostgreSQL) initialized")
+	theLogger.Infof("✓ user store (PostgreSQL) initialized")
 
 	// ============================================================
 	// Initialize i18n with local language resources
@@ -146,7 +140,7 @@ func main() {
 	}
 
 	i18n.SetDefaultLanguage(defaultLang)
-	theLogger.Infof("default lang set to %s", defaultLang)
+	theLogger.Infof("✓ default lang set to %s", defaultLang)
 
 	// ============================================================
 	// Create a signal-aware context: auto-cancels on SIGINT/SIGTERM
@@ -162,7 +156,7 @@ func main() {
 		theLogger.Fatalf("failed to initialize agent: %v", err)
 	}
 	defer chatHandler.Close()
-	theLogger.Infof("AI agent (Brain-Forever) is now active")
+	theLogger.Infof("✓ AI agent (Brain-Forever) is now active")
 
 	// ============================================================
 	// Initialize CaptchaProvider (click-based captcha)
@@ -170,10 +164,10 @@ func main() {
 	var captchaStore captcha.ICaptchaStore
 	if sm := chatHandler.GetSessionManager(); sm.HasRedis() {
 		captchaStore = cache.NewRedisCaptchaStore(sm.Redis().Client())
-		theLogger.Infof("CaptchaStore: Redis backend")
+		theLogger.Infof("✓ CaptchaStore: Redis backend")
 	} else {
 		captchaStore = cache.NewMemoryCaptchaStore()
-		theLogger.Infof("CaptchaStore: in-memory backend (dev mode)")
+		theLogger.Infof("✓ CaptchaStore: in-memory backend (dev mode)")
 	}
 
 	captchaProvider, err := captcha.NewCaptchaProvider(
@@ -186,7 +180,7 @@ func main() {
 	if err != nil {
 		theLogger.Fatalf("failed to initialize captcha provider: %v", err)
 	}
-	theLogger.Infof("captcha provider initialized (activeDir=%s, count=%d)", captchaProvider.ActiveDir(), captchaProvider.ActiveCount())
+	theLogger.Infof("✓ captcha provider initialized (activeDir=%s, count=%d)", captchaProvider.ActiveDir(), captchaProvider.ActiveCount())
 
 	// ============================================================
 	// Initialize global background slow-task queue
@@ -198,7 +192,7 @@ func main() {
 			QueueSize:     cfg.TaskQueue.QueueSize,
 		}, theLogger)
 		defer tasks.StopTheBkTaskQueue()
-		theLogger.Infof("bkgnd task queue initialized (checkInterval=%ds, workers=%d, queueSize=%d)",
+		theLogger.Infof("✓ bkgnd task queue initialized (checkInterval=%ds, workers=%d, queueSize=%d)",
 			cfg.TaskQueue.CheckIntervalSeconds, cfg.TaskQueue.WorkerCount, cfg.TaskQueue.QueueSize)
 
 		// Register periodic trait extraction task.
@@ -278,7 +272,7 @@ func main() {
 	if err := config.GetApiKeysPool().ValidateDefaultProviders(); err != nil {
 		theLogger.Fatalf("API key configuration error: %v", err)
 	}
-	theLogger.Infof("API key pool validated — all default providers have keys")
+	theLogger.Infof("✓ API key pool validated — all default providers have keys")
 
 	// Initialize theme handler for manifest and user handler for user operations
 	themeHandler := theme.NewHandler()
@@ -303,7 +297,7 @@ func main() {
 		// Nginx reverse proxy mode: only handle / and /index.html with login check,
 		// other static files (/static/, /themes/, /signin/) are served by Nginx directly.
 		initNginxModeStaticServer(srv, cfg.Frontend.Dir, chatHandler)
-		theLogger.Infof("Nginx mode enabled: static files (except /) served by Nginx")
+		theLogger.Infof("✓ Nginx mode enabled: static files (except /) served by Nginx")
 	} else {
 		// Standard mode: Go serves both API and all static files.
 		initStaticFileServer(srv, cfg.Frontend.Dir, cfg.Frontend.CacheDisable, chatHandler)
@@ -312,6 +306,13 @@ func main() {
 	// ============================================================
 	// Start server & wait for shutdown signal
 	// ============================================================
+
+	// --init-only: validate all environment & configuration then exit
+	// without starting the HTTP server.
+	if *initOnly {
+		theLogger.Infof("✓ --init-only: all checks passed, exiting")
+		os.Exit(0)
+	}
 
 	srv.Start()
 	theLogger.Infof("frontend: http://%s", srv.Addr())
