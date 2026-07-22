@@ -14,6 +14,32 @@ import (
 // Excerpt result types
 // ============================================================
 
+// Max DB field lengths for excerpts (matching VARCHAR column definitions).
+const (
+	MaxExcerptTextLen    = 380 // excerpts.content VARCHAR(380)
+	MaxContextSummaryLen = 520 // excerpts.context_summary VARCHAR(520)
+	MaxReasonLen         = 400 // excerpts.reason VARCHAR(400)
+)
+
+// TruncateExcerptItem truncates all string fields of an ExcerptItem to fit
+// within the DB column limits. This is the programmatic safety net after
+// the LLM has been asked (via system prompt) to respect the limits.
+func TruncateExcerptItem(item *ExcerptItem) {
+	item.ExcerptText = truncateToRunes(item.ExcerptText, MaxExcerptTextLen)
+	item.ContextSummary = truncateToRunes(item.ContextSummary, MaxContextSummaryLen)
+	item.Reason = truncateToRunes(item.Reason, MaxReasonLen)
+}
+
+// truncateToRunes truncates a string to the given maximum number of runes.
+// No ellipsis is appended (the DB will reject values that are still too long).
+func truncateToRunes(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+	return string(runes[:maxRunes])
+}
+
 // ExcerptItem represents a single excerpt entry from the LLM response.
 type ExcerptItem struct {
 	ExcerptText    string   `json:"excerpt_text"`

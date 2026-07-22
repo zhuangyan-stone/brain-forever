@@ -399,6 +399,10 @@ func CallTraitsLLMStandalone(ctx context.Context, title string, dbMessages []sto
 	return callTraitsLLMWithTool(ctx, llmMsgs, lang, client, apiKey)
 }
 
+// MaxTraitLen is the maximum length (in runes) for a trait's feature_text.
+// The DB column is TEXT (unlimited) but we impose a programmatic limit.
+const MaxTraitLen = 500
+
 // StoreTraitsStandalone is an exported standalone function that computes embeddings
 // and persists traits, then atomically marks messages and session progress.
 // Usable from external packages like tasks.
@@ -407,6 +411,12 @@ func StoreTraitsStandalone(ctx context.Context, features []TraitFeature, chatID 
 
 	insertions := make([]store.TraitInsertion, 0, len(features))
 	for _, f := range features {
+		// Truncate feature_text to fit the programmatic limit.
+		runes := []rune(f.FeatureText)
+		if len(runes) > MaxTraitLen {
+			f.FeatureText = string(runes[:MaxTraitLen])
+		}
+
 		if f.FeatureText == "" {
 			continue
 		}

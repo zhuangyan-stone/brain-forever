@@ -190,6 +190,8 @@ func processChatForExcerpt(
 	// 8. Convert excerpt items to ExcerptInsertion and batch insert (transactional).
 	insertions := make([]store.ExcerptInsertion, 0, len(result.Excerpts))
 	for _, item := range result.Excerpts {
+		// Truncate string fields to fit DB column limits (safety net after LLM prompt).
+		agent.TruncateExcerptItem(&item)
 		valueIDs := resolveValueTypeIDs(item.ValueTypes)
 		if len(valueIDs) == 0 {
 			continue

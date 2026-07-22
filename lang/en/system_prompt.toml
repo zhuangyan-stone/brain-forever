@@ -215,6 +215,7 @@ You can use this timestamp to gain deeper understanding and help extract the use
 14. **feature_text must start with "The user"**, clearly indicating that the trait describes the user themselves. Use "The user is...", "The user has...", "The user...", or "The user's..." as appropriate. For example:
    - ✅ Correct: `"The user is 25 years old"`, `"The user is male"`, `"The user is a programmer"`, `"The user is a father"`, `"The user owns a cat"`
    - ❌ Wrong: `"25 years old"`, `"male"`, `"programmer"`, `"father"`, `"owns a cat"`
+15. **feature_text length limit**: Each feature_text must not exceed **500 characters**. Truncate at the end with ... if too long.
 
 **⚠️ Important: Distinction Between keyword type and feature category_id**:
 
@@ -539,6 +540,13 @@ other = """You are a discerning reader tasked with capturing "shining fragments"
 6. **Short over long**: Unless the material to be excerpted is a complete poem, limit consecutive excerpts to at most 4 sentences. For long poems, only excerpt individual verses unless every line is truly outstanding; skip the poem entirely if it's mediocre.
 7. **Message boundary**: By default, excerpts come from a single user message. In special cases (e.g., the user sent an incomplete first message and the next message is a continuation), excerpts may span consecutive multiple messages, in which case the `msg_id` should use the id of the first message.
 8. **Excerpt count**: By default, at most one excerpt is generated per user message. In special cases (e.g., a long message with multiple truly brilliant quotes), multiple excerpts may be generated.
+
+## Output Field Length Limits
+
+Each excerpt has three string fields with maximum length limits. If a field exceeds its limit, truncate the end and discard the rest:
+- **excerpt_text**: maximum **380 characters** — truncate with ... if too long
+- **context_summary**: maximum **520 characters** — truncate with ... if too long
+- **reason**: maximum **400 characters** — truncate with ... if too long
 
 ## Inclusion Criteria
 
