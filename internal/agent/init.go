@@ -54,28 +54,28 @@ func InitEmbedder(provider string, dimension int, logger zylog.Logger) embedder.
 	switch provider {
 	case ProviderZhipu:
 		e = embedder.NewZhipuEmbedder("", dimension)
-		logger.Infof("- Using Zhipu Embedder: %s (%d dims)", e.Model(), e.Dimension())
+		logger.Infof("✓ Using Zhipu Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	default:
 		e = embedder.NewDashScopeEmbedder("", dimension)
-		logger.Infof("- Using DashScope Embedder: %s (%d dims)", e.Model(), e.Dimension())
+		logger.Infof("✓ Using DashScope Embedder: %s (%d dims)", e.Model(), e.Dimension())
 	}
 
 	return e
 }
 
 func InitLLMClient(logger zylog.Logger) llm.Client {
-	logger.Infof("- Using DeepSeek LLM client")
+	logger.Infof("✓ Using DeepSeek LLM client")
 	return llm.NewDeepSeekClientFromConfig(llm.DeepseekClientConfig{})
 }
 
 func InitWebSearchRawClient(provider string, logger zylog.Logger) searcher.WebSearcher {
 	switch provider {
 	case ProviderZhipu:
-		logger.Infof("- Web search client registered (bigmodel.cn)")
+		logger.Infof("✓ Web search client registered (bigmodel.cn)")
 		return searcher.NewZhiPuClient(searcher.WebSearchClientConfig{})
 
 	case ProviderBocha:
-		logger.Infof("- Web search client registered (bocha.cn)")
+		logger.Infof("✓ Web search client registered (bocha.cn)")
 		return searcher.NewBochaClient(searcher.WebSearchClientConfig{})
 	}
 
@@ -132,11 +132,11 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 		}
 
 		chatHandler.SetRedisStore(redisStore)
-		logger.Infof("- Redis session store attached (%s)", cfg.Redis.Addr)
+		logger.Infof("✓ Redis session store attached (%s)", cfg.Redis.Addr)
 
 		smsCodeCache := cache.NewSMSCodeCache(redisStore.Client())
 		chatHandler.SetSMSCodeCache(smsCodeCache)
-		logger.Infof("- SMS code cache attached (Redis-based)")
+		logger.Infof("✓ SMS code cache attached (Redis-based)")
 	} else {
 		logger.Fatalf("Redis not configured")
 	}

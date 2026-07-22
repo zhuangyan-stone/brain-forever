@@ -129,8 +129,6 @@ func New(cfg Config, logger Logger) *TaskQueue {
 		semaphore:     semaphore,
 	}
 
-	logger.Infof("bktask: queue created, checkInterval=%v, workers=%d, queueSize=%d",
-		checkInterval, cfg.WorkerCount, cfg.QueueSize)
 	return q
 }
 
@@ -227,7 +225,7 @@ func (q *TaskQueue) Start() {
 
 	go q.loop()
 
-	q.logger.Infof("bktask: started")
+	q.logger.Infof("✓ bktask: started")
 }
 
 // Stop halts the periodic loop and clears all tasks. After Stop, the queue
