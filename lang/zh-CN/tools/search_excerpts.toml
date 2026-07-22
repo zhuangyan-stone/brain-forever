@@ -1,0 +1,23 @@
+[description]
+other = "查询用户以往对话中收录的精彩语录，支持按价值标签筛选或语义搜索"
+
+[param_value_types_desc]
+other = "按价值标签筛选语录。留空表示不筛选。可选值：insight（深刻见解）、humor（幽默搞笑）、vent（精彩吐槽）、methodology（独到方法）、rule（做事原则）、confession（内心独白）、nostalgia（深情回忆）、regret（一生遗憾）、self_discovery（人生顿悟）、conviction（人生信念）、touching（感人言论）、deed（动人事迹）、privacy（隐私分享）、literary（文采出众）"
+
+[param_query_desc]
+other = "语义搜索关键词，用自然语言描述你想找什么样的语录。填写此字段时将使用语义匹配搜索"
+
+[param_limit_desc]
+other = "返回条数上限，默认 5，最大 10"
+
+[format_item]
+other = """{{.Index}}. 原文：{{.Content}} | 场景：{{.Context}} | 标签：{{.Tags}} | 引用：{{.Refs}}次 | {{.LastRef}} | 原因：{{.Reason}}"""
+
+[format_last_ref]
+other = "上次引用：{{.Date}}"
+
+[format_never_ref]
+other = "从未引用"
+
+[pending]
+other = "正在查询用户精彩语录……"

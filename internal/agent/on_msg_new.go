@@ -178,6 +178,22 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 		toolsImp = append(toolsImp, traitSearchByTextToolImp, traitSearchByKeywordToolImp)
 	}
 
+	// Register excerpt search tool (always enabled — excerpts are all positive content).
+	{
+		emb := sessionEmbedder(sess)
+		embedderSetting := sessionEmbedderApiSetting(sess)
+		excerptSearcher := &excerptSearchAdapter{
+			store:          theExcerptStore,
+			vdCache:        theExcerptVDCache,
+			embedder:       emb,
+			embedderAPIKey: embedderSetting.ApiKey,
+			lang:           lang,
+			userID:         sess.User.ID,
+		}
+		excerptSearchToolImp := toolimp.MakeExcerptSearchTool(r.Context(), excerptSearcher, lang)
+		toolsImp = append(toolsImp, excerptSearchToolImp)
+	}
+
 	if chatCreatedSN != "" {
 		sseWriter.WriteEvent(ChatCreatedEvent{
 			Type:    "chat_created",
@@ -215,5 +231,7 @@ func makeSystemPromptContent(lang string, traitSearchEnabled bool, webSearchEnab
 	if webSearchEnabled {
 		sb.WriteString(i18n.SystemPrompt.TL(lang, "chat_web_section"))
 	}
+	// Always include excerpt reference guide.
+	sb.WriteString(i18n.SystemPrompt.TL(lang, "chat_excerpt_section"))
 	return sb.String()
 }

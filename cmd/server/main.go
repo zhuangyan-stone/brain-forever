@@ -217,11 +217,15 @@ func main() {
 			theLogger.Fatalf("failed to load excerpt value dict. %v", err)
 		}
 		vdCache.Load(dicts)
+		// Default embedder provider for excerpt vector generation.
+		const defaultEmbedderProvider = "ali"
 		tasks.RegisterPeriodicExcerptGeneration(
 			cfg.ExcerptTask,
 			excerptStore,
 			agent.GetLLMClients(),
+			agent.GetEmbedderClients(),
 			defaultLang,
+			defaultEmbedderProvider,
 			vdCache,
 			theLogger,
 		)

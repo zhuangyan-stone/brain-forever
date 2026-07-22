@@ -334,3 +334,20 @@ other = "最近对话标题列表（按时间倒序）："
 
 [chat_title_item_format]
 other = "{{.Index}}. {{.Title}}（{{.CreateAt}}）"
+
+# ============================================================
+# Excerpt search tool errors — used in internal/agent/toolimp/excerpt_search.go
+# All keys prefixed with excerpt_search_error_
+# ============================================================
+
+[excerpt_search_error_searcher_not_init]
+other = "精彩语录搜索：搜索器未初始化"
+
+[excerpt_search_error_search_failed]
+other = "精彩语录搜索失败"
+
+[excerpt_search_error_no_criteria]
+other = "请提供至少一个筛选条件：value_types（按标签）或 query（语义搜索），两者不可同时为空"
+
+[excerpt_search_no_results]
+other = "未找到匹配的精彩语录"

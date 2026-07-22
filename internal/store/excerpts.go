@@ -8,6 +8,7 @@ import (
 	"BrainForever/infra/zylog"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pgvector/pgvector-go"
 )
 
 // ============================================================
@@ -33,6 +34,7 @@ type Excerpt struct {
 	MsgID          int64      `db:"msg_id"`
 	MsgTime        time.Time  `db:"msg_time"`    // source message creation time (non-null)
 	LastRefAt      *time.Time `db:"last_ref_at"` // last referenced time (null when never referenced)
+	RefCount       int        `db:"ref_count"`   // number of times referenced
 	Values         []int16    `db:"values"`
 	Content        string     `db:"content"`
 	ContextSummary string     `db:"context_summary"`
@@ -279,13 +281,13 @@ func (s *ExcerptStore) ListExcerptsByValue(userID int64, valueID int16, limit in
 	return rows, nil
 }
 
-// UpdateLastRefAt sets last_ref_at = NOW() for the given excerpt IDs.
+// UpdateLastRefAt sets last_ref_at = NOW() and increments ref_count for the given excerpt IDs.
 // Useful when excerpts are referenced in conversation context.
 func (s *ExcerptStore) UpdateLastRefAt(ids []int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	sqlStr := `UPDATE excerpts SET last_ref_at = NOW() WHERE id = ANY($1)`
+	sqlStr := `UPDATE excerpts SET last_ref_at = NOW(), ref_count = ref_count + 1 WHERE id = ANY($1)`
 	_, err := s.db().Exec(sqlStr, ids)
 	if err != nil {
 		s.logger.Errorf("sQL [%s] args=[ids=%v]:\n%v", sqlStr, ids, err)
@@ -344,6 +346,7 @@ type ChatPendingExcerpt struct {
 	UserID      int64      `db:"user_id"`
 	Title       string     `db:"title"`
 	ProcessedAt *time.Time `db:"processed_at"` // excerpt_progress.processed_at
+	LastMsgID   int64      `db:"last_msg_id"`  // last processed message ID (0 = never processed)
 	UpdateAt    time.Time  `db:"update_at"`
 	Settings    string     `db:"settings"` // JSONB from users.settings
 }
@@ -355,7 +358,7 @@ type ChatPendingExcerpt struct {
 // batchLimit caps the number of results to prevent overloading the LLM API.
 func (s *ExcerptStore) ListChatsPendingExcerpt(delayHours int, batchLimit int) ([]ChatPendingExcerpt, error) {
 	sqlStr := `SELECT cs.id, cs.user_id, cs.title, cs.update_at,
-		          cep.processed_at,
+		          cep.processed_at, COALESCE(cep.last_msg_id, 0) AS last_msg_id,
 		          u.settings
 	           FROM chat_sessions cs
 	           JOIN users u ON u.id = cs.user_id
@@ -375,15 +378,109 @@ func (s *ExcerptStore) ListChatsPendingExcerpt(delayHours int, batchLimit int) (
 }
 
 // UpsertExcerptProgress inserts or updates the excerpt processing progress
-// for a chat session. Sets processed_at to the current time.
-func (s *ExcerptStore) UpsertExcerptProgress(chatID int64) error {
-	sqlStr := `INSERT INTO excerpt_progress(chat_id, processed_at)
-	           VALUES($1, NOW())
-	           ON CONFLICT (chat_id) DO UPDATE SET processed_at = NOW()`
-	_, err := s.db().Exec(sqlStr, chatID)
+// for a chat session. Sets processed_at to the current time and records
+// the lastMsgID so subsequent runs can skip already-processed messages.
+func (s *ExcerptStore) UpsertExcerptProgress(chatID int64, lastMsgID int64) error {
+	sqlStr := `INSERT INTO excerpt_progress(chat_id, processed_at, last_msg_id)
+	           VALUES($1, NOW(), $2)
+	           ON CONFLICT (chat_id) DO UPDATE SET processed_at = NOW(), last_msg_id = $2`
+	_, err := s.db().Exec(sqlStr, chatID, lastMsgID)
 	if err != nil {
-		s.logger.Errorf("sQL [%s] args=[chatID=%d]:\n%v", sqlStr, chatID, err)
+		s.logger.Errorf("sQL [%s] args=[chatID=%d lastMsgID=%d]:\n%v", sqlStr, chatID, lastMsgID, err)
 		return fmt.Errorf("failed to upsert excerpt progress. %w", err)
+	}
+	return nil
+}
+
+// ============================================================
+// Excerpt search methods (for conversation-time retrieval)
+// ============================================================
+
+// ListExcerptsByValues returns excerpts for a user filtered by one or more value type IDs.
+// Ordered by create_at DESC (most recent first).
+// last_ref_at is tracked only for informational purposes and does not affect ordering.
+// If valueIDs is empty, returns the most recent excerpts for the user (no value filter).
+func (s *ExcerptStore) ListExcerptsByValues(userID int64, valueIDs []int16, limit int) ([]Excerpt, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	var rows []Excerpt
+	var err error
+
+	if len(valueIDs) == 0 {
+		// No value filter — return the most recent excerpts.
+		return s.ListExcerptsByUser(userID, limit, 0)
+	}
+
+	sqlStr := `SELECT id, user_id, chat_id, msg_id, msg_time, last_ref_at, values, content,
+	                  context_summary, reason, create_at
+	           FROM excerpts
+	           WHERE user_id = $1 AND values && $2
+	           ORDER BY create_at DESC
+	           LIMIT $3`
+	err = s.db().Select(&rows, sqlStr, userID, valueIDs, limit)
+	if err != nil {
+		s.logger.Errorf("sQL [%s] args=[userID=%d valueIDs=%v limit=%d]:\n%v",
+			sqlStr, userID, valueIDs, limit, err)
+		return nil, fmt.Errorf("failed to list excerpts by values. %w", err)
+	}
+	return rows, nil
+}
+
+// SearchByVector performs vector similarity search on excerpts using pgvector.
+// Optionally filtered by value type IDs for hybrid retrieval.
+// Results are ordered by cosine distance (closest first).
+// score = 1 - distance can be used by the caller for threshold filtering.
+func (s *ExcerptStore) SearchByVector(userID int64, query []float32, valueIDs []int16, topK int) ([]Excerpt, error) {
+	if topK <= 0 {
+		topK = 10
+	}
+	if topK > 50 {
+		topK = 50
+	}
+
+	pgVec := pgvector.NewVector(query)
+
+	sqlQuery := `SELECT e.id, e.user_id, e.chat_id, e.msg_id, e.msg_time,
+	                    e.last_ref_at, e.values, e.content,
+	                    e.context_summary, e.reason, e.create_at
+	             FROM excerpts e
+	             INNER JOIN excerpt_vectors ev ON ev.excerpt_id = e.id
+	             WHERE e.user_id = $1`
+	args := []interface{}{pgVec, userID}
+
+	if len(valueIDs) > 0 {
+		sqlQuery += ` AND e.values && $3`
+		args = append(args, valueIDs)
+		sqlQuery += ` ORDER BY ev.embedding <=> $1 LIMIT $4`
+	} else {
+		sqlQuery += ` ORDER BY ev.embedding <=> $1 LIMIT $3`
+	}
+	args = append(args, topK)
+
+	var rows []Excerpt
+	err := s.db().Select(&rows, sqlQuery, args...)
+	if err != nil {
+		s.logger.Errorf("sQL [%s] args=[userID=%d]:\n%v", sqlQuery, userID, err)
+		return nil, fmt.Errorf("vector search failed. %w", err)
+	}
+	return rows, nil
+}
+
+// InsertExcerptVector inserts or updates the embedding vector for an excerpt.
+// Uses ON CONFLICT to handle re-extraction gracefully (updates the vector).
+func (s *ExcerptStore) InsertExcerptVector(excerptID int64, vector []float32) error {
+	sqlStr := `INSERT INTO excerpt_vectors(excerpt_id, embedding) VALUES($1, $2)
+	           ON CONFLICT (excerpt_id) DO UPDATE SET embedding = $2`
+	pgVec := pgvector.NewVector(vector)
+	_, err := s.db().Exec(sqlStr, excerptID, pgVec)
+	if err != nil {
+		s.logger.Errorf("sQL [%s] args=[excerptID=%d]:\n%v", sqlStr, excerptID, err)
+		return fmt.Errorf("failed to insert excerpt vector. %w", err)
 	}
 	return nil
 }

@@ -223,13 +223,17 @@ ON CONFLICT (id) DO NOTHING;
 -- 来源: 002.excerpts.template.sql
 -- msg_time / last_ref_at 已直接纳入建表（003 变更已合并）
 -- ============================================================
+-- excerpts table: stores user quote excerpts
+-- 来源: 002.excerpts.template.sql + 003 + 006 (ref_count)
+-- ============================================================
 CREATE TABLE IF NOT EXISTS excerpts (
 	id              BIGSERIAL    PRIMARY KEY,
 	user_id         BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	chat_id         BIGINT       NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
 	msg_id          BIGINT       NOT NULL,
 	msg_time        TIMESTAMPTZ  NOT NULL,      -- 来源消息的发送时间，方便前端展示
-	last_ref_at     TIMESTAMPTZ,                -- 上次被引用时间，方便排序
+	last_ref_at     TIMESTAMPTZ,                -- 上次被引用时间
+	ref_count       INT          NOT NULL DEFAULT 0,  -- 被引用次数
 	values          SMALLINT[]   NOT NULL,
 	content         VARCHAR(380) NOT NULL,
 	context_summary VARCHAR(520) NOT NULL DEFAULT '',
@@ -251,8 +255,22 @@ CREATE INDEX IF NOT EXISTS idx_excerpts_user_last_ref ON excerpts(user_id, last_
 -- ============================================================
 CREATE TABLE IF NOT EXISTS excerpt_progress (
 	chat_id      BIGINT       PRIMARY KEY REFERENCES chat_sessions(id) ON DELETE CASCADE,
-	processed_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+	processed_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+	last_msg_id  BIGINT       NOT NULL DEFAULT 0
 );
+
+-- ============================================================
+-- excerpt_vectors table: stores embeddings for excerpt entries
+-- 来源: 004.excerpts_embedding.template.sql
+-- 语义合并: last_msg_id 已合并到 excerpt_progress 建表语句中
+-- ============================================================
+CREATE TABLE IF NOT EXISTS excerpt_vectors (
+	excerpt_id  BIGINT       PRIMARY KEY REFERENCES excerpts(id) ON DELETE CASCADE,
+	embedding   VECTOR(1024) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_excerpt_vectors_embedding
+	ON excerpt_vectors USING hnsw (embedding vector_cosine_ops);
 
 -- ============================================================
 -- Trigger: auto-update update_at for tables that have the column

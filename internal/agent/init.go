@@ -36,6 +36,10 @@ var (
 	// Global store instances (shared, no per-user file management)
 	theChatStore  *store.ChatStore
 	theBrainStore *store.BrainStore
+
+	// Global excerpt store and value dict cache (shared, read-mostly)
+	theExcerptStore   *store.ExcerptStore
+	theExcerptVDCache *cache.ExcerptValueDictCache
 )
 
 // ============================================================
@@ -106,6 +110,16 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// Create global store instances (single shared connection pool via ThePGDB())
 	theChatStore = store.NewChatStore(logger)
 	theBrainStore = store.NewBrainStore(logger)
+	theExcerptStore = store.NewExcerptStore(logger)
+	theExcerptVDCache = cache.NewExcerptValueDictCache()
+
+	// Load excerpt value dict into cache.
+	if dicts, err := theExcerptStore.ListAllValueDicts(); err == nil {
+		theExcerptVDCache.Load(dicts)
+		logger.Infof("✓ excerpt value dict cache loaded (%d entries)", theExcerptVDCache.Size())
+	} else {
+		logger.Errorf("failed to load excerpt value dict cache. %v", err)
+	}
 
 	avatarDir := cfg.Frontend.Dir + "/static/img/avatar"
 

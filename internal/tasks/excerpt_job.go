@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 
+	"BrainForever/infra/embedder"
 	"BrainForever/infra/llm"
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent"
@@ -31,7 +32,9 @@ func RegisterPeriodicExcerptGeneration(
 	cfg config.ExcerptTaskConfig,
 	excerptStore *store.ExcerptStore,
 	llmClients map[string]llm.Client,
+	embedderClients map[string]embedder.Embedder,
 	defaultLang string,
+	defaultEmbedderProvider string,
 	vdCache *cache.ExcerptValueDictCache,
 	logger zylog.Logger,
 ) {
@@ -48,7 +51,7 @@ func RegisterPeriodicExcerptGeneration(
 	if cfg.RunOnStartup {
 		err := TheBkTaskQueue().AddOneShot("excerpt-generation-startup", 0, func() error {
 			logger.Infof("running initial excerpt generation (run_on_startup)")
-			return runPeriodicExcerptGeneration(&cfg, excerptStore, llmClients, defaultLang, logger)
+			return runPeriodicExcerptGeneration(&cfg, excerptStore, llmClients, embedderClients, defaultLang, defaultEmbedderProvider, logger)
 		})
 		if err != nil {
 			logger.Errorf("failed to register startup excerpt generation task. %v", err)
@@ -59,7 +62,7 @@ func RegisterPeriodicExcerptGeneration(
 
 	interval := time.Duration(cfg.IntervalSeconds) * time.Second
 	err := TheBkTaskQueue().AddRecurring("periodic-excerpt-generation", interval, func() error {
-		return runPeriodicExcerptGeneration(&cfg, excerptStore, llmClients, defaultLang, logger)
+		return runPeriodicExcerptGeneration(&cfg, excerptStore, llmClients, embedderClients, defaultLang, defaultEmbedderProvider, logger)
 	})
 	if err != nil {
 		logger.Errorf("failed to register periodic excerpt generation task. %v", err)
@@ -78,7 +81,9 @@ func runPeriodicExcerptGeneration(
 	cfg *config.ExcerptTaskConfig,
 	excerptStore *store.ExcerptStore,
 	llmClients map[string]llm.Client,
+	embedderClients map[string]embedder.Embedder,
 	defaultLang string,
+	defaultEmbedderProvider string,
 	logger zylog.Logger,
 ) error {
 	// 1. Check time window constraint.
@@ -103,7 +108,7 @@ func runPeriodicExcerptGeneration(
 
 	// 3. Process each chat.
 	for _, row := range rows {
-		processChatForExcerpt(row, excerptStore, llmClients, defaultLang, logger)
+		processChatForExcerpt(row, excerptStore, llmClients, embedderClients, defaultLang, defaultEmbedderProvider, logger)
 	}
 
 	return nil
@@ -117,7 +122,9 @@ func processChatForExcerpt(
 	row store.ChatPendingExcerpt,
 	excerptStore *store.ExcerptStore,
 	llmClients map[string]llm.Client,
+	embedderClients map[string]embedder.Embedder,
 	defaultLang string,
+	defaultEmbedderProvider string,
 	logger zylog.Logger,
 ) {
 	// 1. Parse user settings from the JOIN result.
@@ -148,16 +155,28 @@ func processChatForExcerpt(
 		return
 	}
 
-	// 4. Fetch ALL messages for this chat.
+	// 4. Fetch messages: incremental if lastMsgID > 0, else full.
 	chatStore := agent.GetChatStore()
-	messages, err := chatStore.ListMessages(row.ID)
+	const contextWindow = 5 // include 5 preceding messages for context
+	messages, err := chatStore.ListMessagesAfter(row.ID, row.LastMsgID, contextWindow)
 	if err != nil {
 		logger.Errorf("skip chat %d: list messages failed. %v", row.ID, err)
 		return
 	}
 	if len(messages) == 0 {
 		// No messages — still mark as processed to avoid re-scanning.
-		if err := excerptStore.UpsertExcerptProgress(row.ID); err != nil {
+		if err := excerptStore.UpsertExcerptProgress(row.ID, row.LastMsgID); err != nil {
+			logger.Errorf("upsert excerpt progress for chat %d failed. %v", row.ID, err)
+		}
+		return
+	}
+
+	// Compute the max message ID in this batch for progress tracking.
+	maxMsgID := messages[len(messages)-1].ID
+	// If we already processed up to lastMsgID and no new messages beyond it, skip.
+	if row.LastMsgID > 0 && maxMsgID <= row.LastMsgID {
+		logger.Debugf("excerpt generation: chat %d has no new messages beyond %d", row.ID, row.LastMsgID)
+		if err := excerptStore.UpsertExcerptProgress(row.ID, row.LastMsgID); err != nil {
 			logger.Errorf("upsert excerpt progress for chat %d failed. %v", row.ID, err)
 		}
 		return
@@ -170,34 +189,52 @@ func processChatForExcerpt(
 		return
 	}
 
-	// 6. Call LLM for excerpt extraction.
+	// 6. Resolve embedder for generating excerpt embeddings.
+	embProvider := userSettings.APIKey.Embedder.Provider
+	if embProvider == "" {
+		embProvider = defaultEmbedderProvider
+	}
+	embAPIKey := userSettings.APIKey.Embedder.ApiKey
+	embClient, ok := toolset.MapGet(embedderClients, embProvider)
+	if !ok {
+		logger.Warnf("skip chat %d: no embedder client for provider %s, excerpts will be stored without vectors", row.ID, embProvider)
+		embClient = nil
+	}
+
+	// 7. Call LLM for excerpt extraction.
 	ctx := context.Background()
 	result := agent.CallExcerptLLMStandalone(ctx, row.Title, messages, lang, llmClient, llmAPIKey)
 	if result == nil || len(result.Excerpts) == 0 {
 		logger.Debugf("excerpt generation: chat %d has no excerpts to store", row.ID)
-		if err := excerptStore.UpsertExcerptProgress(row.ID); err != nil {
+		if err := excerptStore.UpsertExcerptProgress(row.ID, maxMsgID); err != nil {
 			logger.Errorf("upsert excerpt progress for chat %d failed. %v", row.ID, err)
 		}
 		return
 	}
 
-	// 7. Build a map of msg_id -> CreateAt for quick lookup.
+	// 8. Build a map of msg_id -> CreateAt for quick lookup.
 	msgTimeMap := make(map[int64]time.Time, len(messages))
 	for _, m := range messages {
 		msgTimeMap[m.ID] = m.CreateAt
 	}
 
-	// 8. Convert excerpt items to ExcerptInsertion and batch insert (transactional).
-	insertions := make([]store.ExcerptInsertion, 0, len(result.Excerpts))
+	// 9. Process each excerpt: insert DB record, generate embedding, store vector.
+	storedCount := 0
 	for _, item := range result.Excerpts {
-		// Truncate string fields to fit DB column limits (safety net after LLM prompt).
+		// Skip excerpts from already-processed messages (incremental mode).
+		if row.LastMsgID > 0 && item.MsgID <= row.LastMsgID {
+			continue
+		}
+
+		// Truncate string fields to fit DB column limits.
 		agent.TruncateExcerptItem(&item)
 		valueIDs := resolveValueTypeIDs(item.ValueTypes)
 		if len(valueIDs) == 0 {
 			continue
 		}
 		msgTime := msgTimeMap[item.MsgID]
-		insertions = append(insertions, store.ExcerptInsertion{
+
+		insertion := &store.ExcerptInsertion{
 			UserID:         row.UserID,
 			ChatID:         row.ID,
 			MsgID:          item.MsgID,
@@ -206,20 +243,36 @@ func processChatForExcerpt(
 			Content:        item.ExcerptText,
 			ContextSummary: item.ContextSummary,
 			Reason:         item.Reason,
-		})
-	}
-
-	if len(insertions) > 0 {
-		stored, err := excerptStore.BatchInsertExcerpts(insertions)
-		if err != nil {
-			logger.Errorf("store excerpts for chat %d failed. %v", row.ID, err)
-			return
 		}
-		logger.Infof("excerpt generation: chat %d extracted %d new excerpts", row.ID, stored)
+
+		// Insert the excerpt record.
+		excerpt, err := excerptStore.InsertExcerpt(insertion)
+		if err != nil {
+			logger.Errorf("store excerpt for chat %d failed. %v", row.ID, err)
+			continue
+		}
+		storedCount++
+
+		// Generate and store embedding vector if embedder is available.
+		if embClient != nil {
+			embeddingText := item.ExcerptText + " " + item.ContextSummary
+			vector, err := embClient.Embed(ctx, embeddingText, embAPIKey)
+			if err != nil {
+				logger.Errorf("embed excerpt %d failed. %v", excerpt.ID, err)
+				continue
+			}
+			if err := excerptStore.InsertExcerptVector(excerpt.ID, vector); err != nil {
+				logger.Errorf("store vector for excerpt %d failed. %v", excerpt.ID, err)
+			}
+		}
 	}
 
-	// 8. Mark the chat as processed.
-	if err := excerptStore.UpsertExcerptProgress(row.ID); err != nil {
+	if storedCount > 0 {
+		logger.Infof("excerpt generation: chat %d extracted %d new excerpts (last_msg_id=%d)", row.ID, storedCount, maxMsgID)
+	}
+
+	// 10. Mark the chat as processed with the max message ID.
+	if err := excerptStore.UpsertExcerptProgress(row.ID, maxMsgID); err != nil {
 		logger.Errorf("upsert excerpt progress for chat %d failed. %v", row.ID, err)
 	}
 }

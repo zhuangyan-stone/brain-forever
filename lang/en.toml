@@ -321,3 +321,20 @@ other = "Recent chat titles (in reverse chronological order):"
 
 [chat_title_item_format]
 other = "{{.Index}}. {{.Title}} ({{.CreateAt}})"
+
+# ============================================================
+# Excerpt search tool errors — used in internal/agent/toolimp/excerpt_search.go
+# All keys prefixed with excerpt_search_error_
+# ============================================================
+
+[excerpt_search_error_searcher_not_init]
+other = "Excerpt Search: searcher not initialized"
+
+[excerpt_search_error_search_failed]
+other = "Excerpt Search failed"
+
+[excerpt_search_error_no_criteria]
+other = "Please provide at least one filter: value_types (by tag) or query (semantic search), both cannot be empty"
+
+[excerpt_search_no_results]
+other = "No matching excerpts found"

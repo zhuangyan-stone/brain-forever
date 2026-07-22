@@ -1,0 +1,23 @@
+[description]
+other = "Search the user's past brilliant quotes, supporting value-type filtering and semantic search"
+
+[param_value_types_desc]
+other = "Filter excerpts by value type labels. Leave empty for no filter. Options: insight, humor, vent, methodology, rule, confession, nostalgia, regret, self_discovery, conviction, touching, deed, privacy, literary"
+
+[param_query_desc]
+other = "Semantic search query — describe in natural language what kind of excerpts you're looking for. When provided, semantic matching is used"
+
+[param_limit_desc]
+other = "Maximum number of results to return, default 5, max 10"
+
+[format_item]
+other = """{{.Index}}. Content: {{.Content}} | Context: {{.Context}} | Tags: {{.Tags}} | Refs: {{.Refs}} | {{.LastRef}} | Reason: {{.Reason}}"""
+
+[format_last_ref]
+other = "LastRef: {{.Date}}"
+
+[format_never_ref]
+other = "LastRef: never"
+
+[pending]
+other = "Searching user excerpts..."

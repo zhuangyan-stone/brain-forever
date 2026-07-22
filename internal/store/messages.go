@@ -84,6 +84,34 @@ func (s *ChatStore) ListUnExtractMessages(chatID int64) ([]Message, error) {
 	return msgs, nil
 }
 
+// ListMessagesAfter queries messages after a given message ID for a chat,
+// including a context window of preceding messages.
+// The context window helps the LLM understand the conversation flow.
+// If lastMsgID <= 0, returns all messages (no filtering).
+// contextSize is the number of messages to include before lastMsgID for context.
+func (s *ChatStore) ListMessagesAfter(chatID int64, lastMsgID int64, contextSize int) ([]Message, error) {
+	if lastMsgID <= 0 {
+		return s.ListMessages(chatID)
+	}
+	if contextSize < 0 {
+		contextSize = 0
+	}
+
+	sqlStr := `SELECT id, chat_id, group_index, role, reasoning, content,
+	               extracted, interrupted, create_at, update_at
+	        FROM chat_messages
+	        WHERE chat_id = $1 AND id > $2 - $3
+	        ORDER BY id ASC`
+	var msgs []Message
+	err := s.db().Select(&msgs, sqlStr, chatID, lastMsgID, contextSize)
+	if err != nil {
+		s.logger.Errorf("sQL [%s] args=[chatID=%d lastMsgID=%d contextSize=%d]:\n%v",
+			sqlStr, chatID, lastMsgID, contextSize, err)
+		return nil, fmt.Errorf("failed to list messages after. %w", err)
+	}
+	return msgs, nil
+}
+
 // CountMessages returns the total number of messages in a chat.
 func (s *ChatStore) CountMessages(chatID int64) (int, error) {
 	sqlStr := "SELECT COUNT(1) FROM chat_messages WHERE chat_id = $1"
