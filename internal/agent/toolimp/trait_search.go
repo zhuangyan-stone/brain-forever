@@ -151,7 +151,8 @@ func traitSearchByKeywordArguments(arguments string) (keyword string, kind strin
 
 // kindLetterToInt converts a keyword kind letter (A-F, case-insensitive, or '*') to its integer representation.
 // A=1, B=2, C=3, D=4, E=5, F=6.
-// Returns 0 for '*' (match all kinds) or if the letter is invalid.
+// Returns 0 for '*' (match all kinds), empty string, or if the letter is invalid.
+// Use isWildcardKind to distinguish between a valid wildcard and an invalid letter.
 func kindLetterToInt(kind string) int {
 	if len(kind) == 0 {
 		return 0
@@ -169,6 +170,12 @@ func kindLetterToInt(kind string) int {
 		return int(ch-'A') + 1
 	}
 	return 0
+}
+
+// isWildcardKind returns true if the kind string represents a valid wildcard
+// ("*" or empty), meaning "match all keyword kinds".
+func isWildcardKind(kind string) bool {
+	return kind == "*" || kind == ""
 }
 
 // TraitSearchToolImpBase holds common state for trait search tool implementations.
@@ -315,9 +322,13 @@ func (imp *TraitSearchByKeywordToolImp) Execute() (result string, err error) {
 		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_searcher_not_init", nil))
 	}
 
-	// Convert kind letter (A-F) to integer (1-6) for the searcher interface.
+	// Convert kind letter (A-F/*) to integer for the searcher interface.
+	// kindLetterToInt returns:
+	//   - 1-6 for valid letters A-F
+	//   - 0 for "*" (match all kinds, no filter) or empty string
+	//   - 0 also for truly invalid letters — we distinguish by checking the raw string.
 	kindInt := kindLetterToInt(imp.kind)
-	if kindInt == 0 {
+	if kindInt == 0 && !isWildcardKind(imp.kind) {
 		return "", errors.New(i18n.TL(imp.lang, "trait_search_error_invalid_kind_letter", map[string]any{"Kind": imp.kind}))
 	}
 

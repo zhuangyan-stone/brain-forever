@@ -190,7 +190,7 @@ func (h *ChatAgent) OnNewMessage(w http.ResponseWriter, r *http.Request) {
 			lang:           lang,
 			userID:         sess.User.ID,
 		}
-		excerptSearchToolImp := toolimp.MakeExcerptSearchTool(r.Context(), excerptSearcher, lang)
+		excerptSearchToolImp := toolimp.MakeExcerptSearchTool(r.Context(), excerptSearcher, lang).WithUserID(sess.User.ID)
 		toolsImp = append(toolsImp, excerptSearchToolImp)
 	}
 
