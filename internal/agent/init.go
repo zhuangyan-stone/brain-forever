@@ -34,8 +34,9 @@ var (
 	searcherClientByPvd map[string]searcher.WebSearcher
 
 	// Global store instances (shared, no per-user file management)
-	theChatStore  *store.ChatStore
-	theBrainStore *store.BrainStore
+	theChatStore     *store.ChatStore
+	theBrainStore    *store.BrainStore
+	thePortraitStore *store.PortraitStore
 
 	// Global excerpt store and value dict cache (shared, read-mostly)
 	theExcerptStore   *store.ExcerptStore
@@ -110,6 +111,7 @@ func InitAgent(ctx context.Context, cfg config.Config, cookieName string, defaul
 	// Create global store instances (single shared connection pool via ThePGDB())
 	theChatStore = store.NewChatStore(logger)
 	theBrainStore = store.NewBrainStore(logger)
+	thePortraitStore = store.NewPortraitStore(logger)
 	theExcerptStore = store.NewExcerptStore(logger)
 	theExcerptVDCache = cache.NewExcerptValueDictCache()
 

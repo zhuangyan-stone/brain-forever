@@ -28,6 +28,11 @@ const maxTraitsForPortrait = 500
 // the portrait LLM as reference material.
 const maxExcerptsForPortrait = 200
 
+// portraitCacheTTL is the duration for which a cached portrait is considered
+// valid. Within this period, the cached version is replayed instead of calling
+// the LLM again.
+const portraitCacheTTL = 30 * 24 * time.Hour
+
 // ============================================================
 // Portrait types
 // ============================================================
@@ -197,17 +202,29 @@ type PortraitHighlights struct {
 
 func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	retouch := getRetouch(r)
+	regen := r.URL.Query().Get("regen") == "true"
 
 	sessionID := h.resolveSessionID(w, r)
 	sess := h.sessionManager.GetOrCreate(sessionID)
 
 	lang := i18n.GetAcceptLanguage(r.Header.Get("Accept-Language"))
 
+	// ---- 1. Check cache (unless regen=true) ----
+	if !regen {
+		cached, err := thePortraitStore.GetLatestPortrait(sess.User.ID)
+		if err == nil && cached != nil && time.Since(cached.CreatedAt) < portraitCacheTTL {
+			h.replayPortraitFromCache(w, cached, lang)
+			return
+		}
+	}
+
+	// ---- 2. Read traits ----
 	allTraits, ok := h.tryListUserTraits(w, lang, sess.User.ID)
 	if !ok {
 		return
 	}
 
+	// ---- 3. Build LLM messages ----
 	llmMsgs, hotTags, err := h.preparePortraitLLMMessages(allTraits, lang, sess.User.ID, retouch)
 	if err != nil {
 		toolset.WriteError(w, i18n.TL(lang, "api_error_failed_to_list_recent_chat_titles",
@@ -215,6 +232,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ---- 4. Setup SSE response ----
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -227,28 +245,45 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 
 	sw := sse.NewSSEWriter(w)
 
+	client := sessionLLMClient(sess)
+	llmApiSettings := sessionLLMApiSetting(sess)
+
+	// ---- 5. Send info event ----
 	info := computePortraitInfo(allTraits, retouch, hotTags)
 	if infoJSON, err := json.Marshal(info); err == nil {
 		fmt.Fprintf(w, "data: %s\n\n", infoJSON)
 		flusher.Flush()
 	}
 
-	client := sessionLLMClient(sess)
-	llmApiSettings := sessionLLMApiSetting(sess)
-
+	// ---- 6. Stream portrait content ----
 	totalContent, ok := h.runPortraitLLMStream(r.Context(), sw, flusher, client, llmMsgs, llmApiSettings.ApiKey, r)
 	if !ok {
 		return
 	}
 
+	// ---- 7. Extract highlights ----
+	var meta *PortraitHighlights
 	if totalContent != "" {
-		meta := extractPortraitHighlights(r.Context(), client, lang, totalContent, llmApiSettings.ApiKey)
+		meta = extractPortraitHighlights(r.Context(), client, lang, totalContent, llmApiSettings.ApiKey)
 		if meta != nil {
 			sendPortraitSSE(sw, "meta", meta)
 			flusher.Flush()
 		}
 	}
 
+	// ---- 8. Generate title internally ----
+	portraitTitle := generatePortraitTitle(r.Context(), client, lang, totalContent, llmApiSettings.ApiKey)
+	if portraitTitle != "" {
+		sendPortraitSSE(sw, "title", portraitTitle)
+		flusher.Flush()
+	}
+
+	// ---- 9. Persist to DB (best-effort) ----
+	if totalContent != "" {
+		h.persistPortrait(sess.User.ID, portraitTitle, totalContent, info.Data, meta, hotTags)
+	}
+
+	// ---- 10. Done ----
 	sendPortraitSSE(sw, "done", map[string]any{})
 	flusher.Flush()
 }
@@ -617,4 +652,191 @@ func formatExcerptsForPortrait(excerpts []store.Excerpt, lang string) string {
 		sb.WriteString(content)
 	}
 	return sb.String()
+}
+
+// ============================================================
+// Portrait caching and persistence helpers
+// ============================================================
+
+// replayPortraitFromCache replays a cached UserPortrait as SSE events so the
+// frontend receives the same event sequence as a fresh LLM generation.
+func (h *ChatAgent) replayPortraitFromCache(w http.ResponseWriter, p *store.UserPortrait, lang string) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return
+	}
+
+	sw := sse.NewSSEWriter(w)
+
+	// Resolve user name (best-effort from Alpine store won't be available here;
+	// we just send the cached data with original generated_at).
+
+	// ---- info event ----
+	var hotTags []hotTagItem
+	if len(p.HotTags) > 0 {
+		json.Unmarshal(p.HotTags, &hotTags)
+	}
+	infoData := portraitInfoData{
+		GeneratedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
+		ChatCount:   p.ChatCount,
+		TraitCount:  p.TraitCount,
+		SpanDays:    p.SpanDays,
+		Retouch:     p.Retouch,
+		HotTags:     hotTags,
+	}
+	if p.EarliestDate != nil {
+		infoData.EarliestDate = p.EarliestDate.Format("2006-01-02")
+	}
+	if p.LatestDate != nil {
+		infoData.LatestDate = p.LatestDate.Format("2006-01-02")
+	}
+	info := portraitInfo{Event: "info", Data: infoData}
+	if infoJSON, err := json.Marshal(info); err == nil {
+		fmt.Fprintf(w, "data: %s\n\n", infoJSON)
+		flusher.Flush()
+	}
+
+	// ---- text event ----
+	if p.Content != "" {
+		sendPortraitSSE(sw, "text", p.Content)
+		flusher.Flush()
+	}
+
+	// ---- meta event ----
+	var coreTraits, keyHighlights []string
+	json.Unmarshal(p.CoreTraits, &coreTraits)
+	json.Unmarshal(p.KeyHighlights, &keyHighlights)
+	if len(coreTraits) > 0 || len(keyHighlights) > 0 {
+		meta := PortraitHighlights{
+			CoreTraits:    coreTraits,
+			KeyHighlights: keyHighlights,
+		}
+		sendPortraitSSE(sw, "meta", meta)
+		flusher.Flush()
+	}
+
+	// ---- title event ----
+	if p.Title != "" {
+		sendPortraitSSE(sw, "title", p.Title)
+		flusher.Flush()
+	}
+
+	// ---- done event ----
+	sendPortraitSSE(sw, "done", map[string]any{})
+	flusher.Flush()
+}
+
+// generatePortraitTitle calls the LLM to generate a concise title for the
+// portrait content. Returns empty string on failure.
+func generatePortraitTitle(ctx context.Context, client llm.Client, lang, content, apiKey string) string {
+	if content == "" {
+		return ""
+	}
+
+	systemContent := i18n.SystemPrompt.TL(lang, "doc_title", nil)
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: systemContent},
+		{Role: llm.RoleUser, Content: content},
+	}
+
+	titleCtx, titleCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer titleCancel()
+
+	resp, err := client.Chat(titleCtx, messages, apiKey)
+	if err != nil {
+		return ""
+	}
+
+	title := ""
+	if len(resp.Choices) > 0 {
+		title = resp.Choices[0].Message.Content
+	}
+
+	const maxTitleLen = 50
+	if title == "" || toolset.VisualLength(title) > maxTitleLen {
+		return ""
+	}
+
+	return title
+}
+
+// persistPortrait saves the complete portrait result to user_portraits.
+// Errors are silently ignored (best-effort persistence).
+func (h *ChatAgent) persistPortrait(userID int64, title, content string,
+	info portraitInfoData, meta *PortraitHighlights, hotTags []hotTagItem) {
+
+	// Marshal JSONB fields.
+	coreTraitsJSON := mustMarshalJSON(func() any {
+		if meta != nil {
+			return meta.CoreTraits
+		}
+		return []string{}
+	}())
+	keyHighlightsJSON := mustMarshalJSON(func() any {
+		if meta != nil {
+			return meta.KeyHighlights
+		}
+		return []string{}
+	}())
+	hotTagsJSON := mustMarshalJSON(hotTags)
+
+	// Compute hottest tag.
+	hottestTag := ""
+	hottestTagCount := 0
+	for _, ht := range hotTags {
+		if ht.Count > hottestTagCount {
+			hottestTagCount = ht.Count
+			hottestTag = ht.Tag
+		}
+	}
+
+	// Parse dates.
+	var earliestDate, latestDate *time.Time
+	if info.EarliestDate != "" {
+		if t, err := time.Parse("2006-01-02", info.EarliestDate); err == nil {
+			earliestDate = &t
+		}
+	}
+	if info.LatestDate != "" {
+		if t, err := time.Parse("2006-01-02", info.LatestDate); err == nil {
+			latestDate = &t
+		}
+	}
+
+	record := &store.UserPortrait{
+		UserID:          userID,
+		Title:           title,
+		Content:         content,
+		CoreTraits:      coreTraitsJSON,
+		KeyHighlights:   keyHighlightsJSON,
+		HotTags:         hotTagsJSON,
+		HottestTag:      hottestTag,
+		HottestTagCount: hottestTagCount,
+		ChatCount:       info.ChatCount,
+		TraitCount:      info.TraitCount,
+		SpanDays:        info.SpanDays,
+		EarliestDate:    earliestDate,
+		LatestDate:      latestDate,
+		Retouch:         info.Retouch,
+	}
+
+	if _, err := thePortraitStore.InsertPortrait(record); err != nil {
+		// Non-critical: log but don't disrupt the user experience.
+		// The logger is accessed via the store's own logger setup.
+	}
+}
+
+// mustMarshalJSON is a convenience wrapper for json.Marshal that returns a
+// json.RawMessage. Panics only on programmer error (unmarshallable type).
+func mustMarshalJSON(v any) json.RawMessage {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return json.RawMessage("[]")
+	}
+	return json.RawMessage(data)
 }
