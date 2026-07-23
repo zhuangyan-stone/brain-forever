@@ -91,6 +91,61 @@ other = "AI"
 [portrait_hot_tags_prefix]
 other = "Topics you and AI talk about most often: "
 
+# Excerpt value type names — used by portrait helpers
+[excerpt_value_type_insight]
+other = "Unique Insight"
+
+[excerpt_value_type_humor]
+other = "Humor"
+
+[excerpt_value_type_vent]
+other = "Witty Rant"
+
+[excerpt_value_type_methodology]
+other = "Unique Method"
+
+[excerpt_value_type_rule]
+other = "Working Principle"
+
+[excerpt_value_type_confession]
+other = "Confession"
+
+[excerpt_value_type_nostalgia]
+other = "Nostalgic Recollection"
+
+[excerpt_value_type_regret]
+other = "Lifelong Regret"
+
+[excerpt_value_type_self_discovery]
+other = "Life Epiphany"
+
+[excerpt_value_type_conviction]
+other = "Life Conviction"
+
+[excerpt_value_type_touching]
+other = "Touching"
+
+[excerpt_value_type_deed]
+other = "Moving Deed"
+
+[excerpt_value_type_privacy]
+other = "Privacy Sharing"
+
+[excerpt_value_type_literary]
+other = "Literary Flair"
+
+# Portrait excerpt sections — used by on_portrait.go
+[portrait_excerpt_stats_header]
+other = "Statistics of your brilliant quotes by category: "
+
+[portrait_excerpt_item_format]
+other = """[Excerpt #{{.Index}}]
+Original: {{.Content}}
+Context: {{.ContextSummary}}
+Reason: {{.Reason}}
+Tags: {{.ValueTypes}}
+Time: {{.MsgTime}}"""
+
 # ============================================================
 # Database operation error messages —still used by internal/agent/
 # All keys prefixed with db_

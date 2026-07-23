@@ -20,6 +20,14 @@ import (
 	"BrainForever/toolset"
 )
 
+// maxTraitsForPortrait is the maximum number of personal traits sent to the
+// portrait LLM. Older traits beyond this limit are omitted.
+const maxTraitsForPortrait = 500
+
+// maxExcerptsForPortrait is the maximum number of user quote excerpts sent to
+// the portrait LLM as reference material.
+const maxExcerptsForPortrait = 200
+
 // ============================================================
 // Portrait types
 // ============================================================
@@ -85,7 +93,8 @@ type portraitChatTitleItem struct {
 }
 
 // tryListUserTraits reads the user's personal traits from the store.
-// On read error or empty result, writes an error response and returns ok=false.
+// Caps the result at maxTraitsForPortrait (latest first). On read error or
+// empty result, writes an error response and returns ok=false.
 func (h *ChatAgent) tryListUserTraits(w http.ResponseWriter, lang string, userID int64) (allTraits []store.PersonalTrait, ok bool) {
 	allTraits, err := theBrainStore.ListAllTraitsByCreateTime(userID)
 	if err != nil {
@@ -96,6 +105,11 @@ func (h *ChatAgent) tryListUserTraits(w http.ResponseWriter, lang string, userID
 	if len(allTraits) == 0 {
 		toolset.WriteError(w, i18n.TL(lang, "api_error_no_traits_data"), http.StatusNotFound)
 		return nil, false
+	}
+
+	// Keep only the latest maxTraitsForPortrait entries.
+	if len(allTraits) > maxTraitsForPortrait {
+		allTraits = allTraits[:maxTraitsForPortrait]
 	}
 
 	return allTraits, true
@@ -321,8 +335,8 @@ func (h *ChatAgent) streamPortraitContent(
 	return totalContent, true
 }
 
-// preparePortraitLLMMessages reads hot tags and recent chat titles, then builds
-// the system and user messages for the portrait LLM call.
+// preparePortraitLLMMessages reads hot tags, recent chat titles, and excerpt
+// data, then builds the system and user messages for the portrait LLM call.
 func (h *ChatAgent) preparePortraitLLMMessages(
 	allTraits []store.PersonalTrait,
 	lang string,
@@ -361,11 +375,27 @@ func (h *ChatAgent) preparePortraitLLMMessages(
 	traitsDesc := formatTraitItems(traitItems, lang)
 	chatTitlesStr := formatChatTitles(chatTitleItems, lang)
 
+	// ----- Read excerpt data for portrait enrichment -----
+	excerptStatsStr := ""
+	recentExcerptsStr := ""
+
+	valueTypeStats, statsErr := theExcerptStore.CountExcerptsByValueTypes(userID)
+	if statsErr == nil && len(valueTypeStats) > 0 {
+		excerptStatsStr = buildExcerptStatsString(valueTypeStats, lang)
+	}
+
+	latestExcerpts, excerptsErr := theExcerptStore.ListLatestExcerpts(userID, maxExcerptsForPortrait)
+	if excerptsErr == nil && len(latestExcerpts) > 0 {
+		recentExcerptsStr = formatExcerptsForPortrait(latestExcerpts, lang)
+	}
+
 	systemContent := i18n.SystemPrompt.TL(lang, "portrait", map[string]any{
 		"Retouch":          retouch,
 		"TraitsJSON":       traitsDesc,
 		"TagsInfo":         tagsInfoStr,
 		"RecentChatTitles": chatTitlesStr,
+		"ExcerptStats":     excerptStatsStr,
+		"RecentExcerpts":   recentExcerptsStr,
 	})
 
 	userContent := i18n.SystemPrompt.TL(lang, "portrait_user_prompt", map[string]any{
@@ -521,4 +551,70 @@ func buildTagsInfoString(hotTags []hotTagItem, lang string) string {
 		parts = append(parts, fmt.Sprintf("%s(%d)", ht.Tag, ht.Count))
 	}
 	return prefix + strings.Join(parts, ", ")
+}
+
+// buildExcerptStatsString formats the excerpt value type distribution into a
+// human-readable string for the portrait LLM prompt.
+func buildExcerptStatsString(valueTypeStats map[int16]int, lang string) string {
+	if len(valueTypeStats) == 0 {
+		return ""
+	}
+
+	// Sort value type IDs for deterministic output.
+	ids := make([]int16, 0, len(valueTypeStats))
+	for id := range valueTypeStats {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+
+	var sb strings.Builder
+	sb.WriteString(i18n.TL(lang, "portrait_excerpt_stats_header"))
+	for i, id := range ids {
+		valueName := theExcerptVDCache.GetValueByID(id)
+		if valueName == "" {
+			continue
+		}
+		localized := i18n.TL(lang, "excerpt_value_type_"+valueName)
+		if i > 0 {
+			sb.WriteString("、")
+		}
+		sb.WriteString(fmt.Sprintf("%s(%d)", localized, valueTypeStats[id]))
+	}
+	return sb.String()
+}
+
+// formatExcerptsForPortrait formats a slice of Excerpt into a readable string
+// for the portrait LLM, including content, context summary, reason, value types,
+// and message time for each excerpt.
+func formatExcerptsForPortrait(excerpts []store.Excerpt, lang string) string {
+	if len(excerpts) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	for i, e := range excerpts {
+		if i > 0 {
+			sb.WriteString("\n---\n")
+		}
+
+		// Map value IDs to localized names.
+		typeNames := make([]string, 0, len(e.Values))
+		for _, vid := range e.Values {
+			if v := theExcerptVDCache.GetValueByID(vid); v != "" {
+				localized := i18n.TL(lang, "excerpt_value_type_"+v)
+				typeNames = append(typeNames, localized)
+			}
+		}
+
+		content := i18n.TL(lang, "portrait_excerpt_item_format", map[string]any{
+			"Index":          i + 1,
+			"Content":        e.Content,
+			"ContextSummary": e.ContextSummary,
+			"Reason":         e.Reason,
+			"ValueTypes":     strings.Join(typeNames, ", "),
+			"MsgTime":        e.MsgTime.Local().Format("2006-01-02 15:04"),
+		})
+		sb.WriteString(content)
+	}
+	return sb.String()
 }

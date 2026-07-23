@@ -411,6 +411,39 @@ func (s *ExcerptStore) CountExcerptsByUser(userID int64) (int, error) {
 	return count, nil
 }
 
+// ValueTypeCount represents the count of excerpts for a single value type.
+type ValueTypeCount struct {
+	ValueID int16 `db:"value_id"`
+	Count   int   `db:"cnt"`
+}
+
+// CountExcerptsByValueTypes returns the per-value-type distribution of excerpts
+// for a given user. Uses unnest(values) to expand the SMALLINT[] array and
+// GROUP BY to aggregate counts. Returns a map of value_type_id -> count.
+func (s *ExcerptStore) CountExcerptsByValueTypes(userID int64) (map[int16]int, error) {
+	sqlStr := `SELECT unnest(values) AS value_id, COUNT(*) AS cnt
+		 FROM excerpts
+		 WHERE user_id = $1
+		 GROUP BY value_id`
+	var rows []ValueTypeCount
+	err := s.db().Select(&rows, sqlStr, userID)
+	if err != nil {
+		s.logger.Errorf("SQL [%s] args=[userID=%d]:\n%v", sqlStr, userID, err)
+		return nil, fmt.Errorf("failed to count excerpts by value types. %w", err)
+	}
+	result := make(map[int16]int, len(rows))
+	for _, r := range rows {
+		result[r.ValueID] = r.Count
+	}
+	return result, nil
+}
+
+// ListLatestExcerpts returns the most recent excerpts for a user,
+// ordered by create_at DESC, up to the given limit.
+func (s *ExcerptStore) ListLatestExcerpts(userID int64, limit int) ([]Excerpt, error) {
+	return s.ListExcerptsByUser(userID, limit, 0)
+}
+
 // ============================================================
 // ChatPendingExcerpt — pending chat for excerpt extraction
 // ============================================================

@@ -536,6 +536,16 @@ Additionally, here are the recent topics the user has discussed with AI (in reve
 {{.RecentChatTitles}}
 {{end}}
 
+{{if .ExcerptStats}}
+Additionally, the system has collected your brilliant quotes from conversations. Here is the distribution by category:
+{{.ExcerptStats}}
+{{end}}
+
+{{if .RecentExcerpts}}
+Additionally, here are some recently collected excerpts (with context and selection reasons) for your reference when writing the portrait. If any excerpt is particularly brilliant, you may quote the original text directly in the body (using Markdown blockquote > format):
+{{.RecentExcerpts}}
+{{end}}
+
 Please generate the user's personal portrait based on the above traits.
 """
 

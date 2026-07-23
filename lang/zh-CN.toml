@@ -104,6 +104,61 @@ other = "AI"
 [portrait_hot_tags_prefix]
 other = "你和AI最常谈到的领域有："
 
+# Excerpt value type names — used by portrait helpers
+[excerpt_value_type_insight]
+other = "深刻见解"
+
+[excerpt_value_type_humor]
+other = "幽默搞笑"
+
+[excerpt_value_type_vent]
+other = "精彩吐槽"
+
+[excerpt_value_type_methodology]
+other = "独到方法"
+
+[excerpt_value_type_rule]
+other = "做事原则"
+
+[excerpt_value_type_confession]
+other = "内心独白"
+
+[excerpt_value_type_nostalgia]
+other = "深情回忆"
+
+[excerpt_value_type_regret]
+other = "一生遗憾"
+
+[excerpt_value_type_self_discovery]
+other = "人生顿悟"
+
+[excerpt_value_type_conviction]
+other = "人生信念"
+
+[excerpt_value_type_touching]
+other = "感人言论"
+
+[excerpt_value_type_deed]
+other = "动人事迹"
+
+[excerpt_value_type_privacy]
+other = "隐私分享"
+
+[excerpt_value_type_literary]
+other = "文采出众"
+
+# Portrait excerpt sections — used by on_portrait.go
+[portrait_excerpt_stats_header]
+other = "你在对话中的精彩言论分类统计："
+
+[portrait_excerpt_item_format]
+other = """【语录 {{.Index}}】
+原文：{{.Content}}
+上下文：{{.ContextSummary}}
+入选理由：{{.Reason}}
+分类标签：{{.ValueTypes}}
+发言时间：{{.MsgTime}}"""
+
 # ============================================================
 # Database operation error messages —still used by internal/agent/
 # All keys prefixed with db_
