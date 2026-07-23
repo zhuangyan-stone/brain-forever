@@ -8,6 +8,7 @@ import (
 
 	"BrainForever/infra/zylog"
 	"BrainForever/internal/agent/llmtypes"
+	"BrainForever/internal/config"
 	"BrainForever/internal/store"
 	"BrainForever/internal/store/cache"
 )
@@ -160,6 +161,26 @@ func (m *Manager) GetOrCreate(sessionID string) *Session {
 		if loginData.Settings != "" {
 			restoredSettings.FromString(loginData.Settings)
 		}
+		// Re-inject system-shared API keys from the current pool.
+		// The settings stored in Redis may contain stale keys from a previous
+		// server.toml configuration. By re-injecting here, we ensure the session
+		// always uses the latest pool keys without requiring the user to re-login.
+		// Only overwrite when the pool key differs from the stale value.
+		pool := config.GetApiKeysPool()
+		reinjectKey := func(setting *store.ApiSetting, purpose string, defaultProvider func() string) {
+			if setting.Private {
+				return
+			}
+			if setting.Provider == "" {
+				setting.Provider = defaultProvider()
+			}
+			if k := pool.GetOne(purpose, setting.Provider); k != "" && k != setting.ApiKey {
+				setting.ApiKey = k
+			}
+		}
+		reinjectKey(&restoredSettings.APIKey.LLM, "llm", config.GetDefaultLLMProvider)
+		reinjectKey(&restoredSettings.APIKey.Embedder, "embedding", config.GetDefaultEmbeddingProvider)
+		reinjectKey(&restoredSettings.APIKey.Search, "websearch", config.GetDefaultWebSearchProvider)
 
 		s = &Session{
 			ID:           sessionID,
