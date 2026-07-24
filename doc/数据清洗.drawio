@@ -1,0 +1,87 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="第 1 页" id="aWT7NH1JfRSRbOY4KH2a">
+    <mxGraphModel dx="1360" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-27" edge="1" parent="1" source="_UnDfsPj127Q4Fmg50Yi-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="_UnDfsPj127Q4Fmg50Yi-6" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-26" parent="1" style="html=1;whiteSpace=wrap;shape=isoCube2;backgroundOutline=1;isoAngle=15;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;设备&lt;/div&gt;" vertex="1">
+          <mxGeometry height="90" width="70" x="730" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-10" edge="1" parent="1" source="_UnDfsPj127Q4Fmg50Yi-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="_UnDfsPj127Q4Fmg50Yi-4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-2" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="用户/操作员" vertex="1">
+          <mxGeometry height="60" width="30" x="161" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-12" edge="1" parent="1" source="_UnDfsPj127Q4Fmg50Yi-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="_UnDfsPj127Q4Fmg50Yi-5" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-3" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;" value="缓存" vertex="1">
+          <mxGeometry height="80" width="120" x="396" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-11" edge="1" parent="1" source="_UnDfsPj127Q4Fmg50Yi-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="_UnDfsPj127Q4Fmg50Yi-3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="常规规则校验过滤" vertex="1">
+          <mxGeometry height="60" width="120" x="230" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-13" edge="1" parent="1" source="_UnDfsPj127Q4Fmg50Yi-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="_UnDfsPj127Q4Fmg50Yi-6" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;清洗&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;（非常规规则）&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="585" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-14" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="636" y="350" as="sourcePoint" />
+            <mxPoint x="636" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-18" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="306" />
+              <mxPoint x="560" y="306" />
+            </Array>
+            <mxPoint x="615" y="306" as="sourcePoint" />
+            <mxPoint x="550" y="306" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-6" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" value="&lt;div&gt;持久化&lt;/div&gt;&lt;div&gt;存储&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="60" x="615" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-16" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="653" y="390" as="sourcePoint" />
+            <mxPoint x="653" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="生产加工" vertex="1">
+          <mxGeometry height="60" width="195" x="517" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-19" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="323" />
+              <mxPoint x="610" y="323" />
+            </Array>
+            <mxPoint x="550" y="323" as="sourcePoint" />
+            <mxPoint x="615" y="323" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-9" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;后台&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;检测、清洗任务&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="430" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-21" parent="1" style="verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#B3B3B3;shape=mxgraph.azure.automation;pointerEvents=1;" value="" vertex="1">
+          <mxGeometry height="45" width="50" x="661" y="405" as="geometry" />
+        </mxCell>
+        <mxCell id="_UnDfsPj127Q4Fmg50Yi-25" parent="1" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3D;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.gear;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" value="" vertex="1">
+          <mxGeometry height="26" width="26" x="771" y="315" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
