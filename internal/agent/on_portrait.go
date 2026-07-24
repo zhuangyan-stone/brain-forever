@@ -212,11 +212,13 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	// ---- 1. Check cache (unless regen=true) ----
 	if !regen {
 		cached, err := thePortraitStore.GetLatestPortrait(sess.User.ID)
-		// Compare at day granularity only; fractional days are floored.
-		daysElapsed := int(time.Since(cached.CreatedAt).Hours() / 24)
-		if err == nil && cached != nil && daysElapsed < 30 {
-			h.replayPortraitFromCache(w, cached, lang)
-			return
+		if err == nil && cached != nil {
+			// Compare at day granularity only; fractional days are floored.
+			daysElapsed := int(time.Since(cached.CreatedAt).Hours() / 24)
+			if daysElapsed < 30 {
+				h.replayPortraitFromCache(w, cached, lang)
+				return
+			}
 		}
 	}
 
