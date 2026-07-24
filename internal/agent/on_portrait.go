@@ -437,8 +437,7 @@ func (h *ChatAgent) preparePortraitLLMMessages(
 	})
 
 	userContent := i18n.SystemPrompt.TL(lang, "portrait_user_prompt", map[string]any{
-		"TraitCount": len(allTraits),
-		"Retouch":    retouch,
+		"Retouch": retouch,
 	})
 
 	llmMsgs = []llm.Message{
