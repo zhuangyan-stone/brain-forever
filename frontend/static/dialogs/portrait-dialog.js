@@ -330,7 +330,7 @@ document.addEventListener('alpine:init', function() {
                     meta.core_traits.forEach(function(trait) {
                         parts.push('- ' + trait);
                     });
- c                    parts.push('');
+                    parts.push('');
                 }
 
                 // ---- 3. 印象速写 ----
