@@ -150,6 +150,35 @@ func (c *DeepSeekClient) storeUsage(usage Usage) {
 	c.lastUsage = &usage
 }
 
+// ParseAPIError parses a non-200 HTTP response from the DeepSeek API into
+// a structured *APIError. DeepSeek uses the OpenAI-compatible error format:
+//
+//	{"error":{"message":"...","type":"...","param":null,"code":"..."}}
+func (c *DeepSeekClient) ParseAPIError(statusCode int, body []byte) *APIError {
+	var resp struct {
+		Error struct {
+			Message string `json:"message"`
+			Type    string `json:"type"`
+			Code    string `json:"code"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(body, &resp) == nil && resp.Error.Type != "" {
+		return &APIError{
+			StatusCode: statusCode,
+			Type:       resp.Error.Type,
+			Code:       resp.Error.Code,
+			Message:    resp.Error.Message,
+			Retryable:  statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable,
+			RawBody:    string(body),
+		}
+	}
+	return &APIError{
+		StatusCode: statusCode,
+		Retryable:  statusCode == http.StatusTooManyRequests || statusCode == http.StatusServiceUnavailable,
+		RawBody:    string(body),
+	}
+}
+
 // ============================================================
 // Chat -chat completion (non-streaming)
 // ============================================================
@@ -209,7 +238,7 @@ func (c *DeepSeekClient) ChatWithOptions(ctx context.Context, req ChatCompletion
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(respBody))
+		return nil, c.ParseAPIError(resp.StatusCode, respBody)
 	}
 
 	var chatResp ChatCompletionResponse
@@ -294,7 +323,7 @@ func (c *DeepSeekClient) ChatStreamWithOptions(ctx context.Context, req ChatComp
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return newChatCompletionChunkDecoderError(fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(respBody)))
+		return newChatCompletionChunkDecoderError(c.ParseAPIError(resp.StatusCode, respBody))
 	}
 
 	return NewChatCompletionChunkDecoder(resp.Body)

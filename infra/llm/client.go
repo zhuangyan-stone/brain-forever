@@ -85,6 +85,33 @@ type Client interface {
 		pipeline Pipeline,
 		withDeepThink bool,
 		apiKey string) (reply string, reasoning string, err error)
+
+	// ParseAPIError parses a non-200 HTTP response into a structured *APIError.
+	// Different LLM providers have their own JSON error formats; each implementation
+	// is responsible for extracting the relevant fields.
+	// Returns nil if the error cannot be parsed.
+	ParseAPIError(statusCode int, body []byte) *APIError
+}
+
+// APIError is a structured LLM API error parsed from a non-200 HTTP response.
+// Each LLM provider implementation (e.g. DeepSeek) parses its own JSON error
+// format into this struct, enabling callers to make decisions based on error
+// type/code rather than parsing raw error strings.
+type APIError struct {
+	StatusCode int    // HTTP status code (e.g. 503)
+	Type       string // Provider-specific error type (e.g. "service_unavailable_error")
+	Code       string // Provider-specific error code (e.g. "insufficient_quota")
+	Message    string // Human-readable error description from the provider
+	Retryable  bool   // Whether the request can be retried (503/429 = true, 401/403 = false)
+	RawBody    string // Raw response body for debugging
+}
+
+// Error implements the error interface.
+func (e *APIError) Error() string {
+	if e.Message != "" {
+		return fmt.Sprintf("API request failed with status %d: %s", e.StatusCode, e.Message)
+	}
+	return fmt.Sprintf("API request failed with status %d: %s", e.StatusCode, e.RawBody)
 }
 
 // ============================================================
