@@ -769,7 +769,7 @@ func generatePortraitTitle(ctx context.Context, client llm.Client, lang, content
 	return title
 }
 
-// persistPortrait saves the complete portrait result to user_portraits.
+// persistPortrait saves the complete portrait result to portraits.
 // Errors are silently ignored (best-effort persistence).
 func (h *ChatAgent) persistPortrait(userID int64, title, content string,
 	info portraitInfoData, meta *PortraitHighlights, hotTags []hotTagItem) {

@@ -317,9 +317,9 @@ CREATE TRIGGER trg_traits_update_at
 	EXECUTE FUNCTION update_update_at_column();
 
 -- ============================================================
--- user_portraits table: persisted user portrait (AI impression)
+-- portraits table: persisted user portrait (AI impression)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS user_portraits (
+CREATE TABLE IF NOT EXISTS portraits (
 	id              BIGSERIAL    PRIMARY KEY,
 	user_id         BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	title           TEXT         NOT NULL DEFAULT '',
@@ -338,7 +338,7 @@ CREATE TABLE IF NOT EXISTS user_portraits (
 	created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_portraits_user_id
-	ON user_portraits(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_portraits_user_created
-	ON user_portraits(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_portraits_user_id
+	ON portraits(user_id);
+CREATE INDEX IF NOT EXISTS idx_portraits_user_created
+	ON portraits(user_id, created_at DESC);

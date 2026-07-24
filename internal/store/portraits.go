@@ -15,7 +15,7 @@ import (
 // UserPortrait — persisted user portrait (AI impression)
 // ============================================================
 
-// UserPortrait represents a row in the user_portraits table.
+// UserPortrait represents a row in the portraits table.
 // JSONB columns (core_traits, key_highlights, hot_tags) are stored as
 // json.RawMessage and serialized/deserialized in the store layer.
 type UserPortrait struct {
@@ -51,7 +51,7 @@ type HotTagItem struct {
 // PortraitStore
 // ============================================================
 
-// PortraitStore provides access to the user_portraits table.
+// PortraitStore provides access to the portraits table.
 type PortraitStore struct {
 	logger zylog.Logger
 }
@@ -80,7 +80,7 @@ func (s *PortraitStore) GetLatestPortrait(userID int64) (*UserPortrait, error) {
 		          hottest_tag, hottest_tag_count,
 		          chat_count, trait_count, span_days,
 		          earliest_date, latest_date, retouch, created_at
-		   FROM user_portraits
+		   FROM portraits
 		   WHERE user_id = $1
 		   ORDER BY created_at DESC
 		   LIMIT 1`
@@ -99,7 +99,7 @@ func (s *PortraitStore) GetLatestPortrait(userID int64) (*UserPortrait, error) {
 // InsertPortrait saves a new portrait record. All historical records are kept.
 // Returns the new record ID.
 func (s *PortraitStore) InsertPortrait(p *UserPortrait) (int64, error) {
-	sqlStr := `INSERT INTO user_portraits
+	sqlStr := `INSERT INTO portraits
 		(user_id, title, content,
 		 core_traits, key_highlights, hot_tags,
 		 hottest_tag, hottest_tag_count,
@@ -147,7 +147,7 @@ func (s *PortraitStore) ListPortraits(userID int64, limit int, offset int) ([]Us
 		          hottest_tag, hottest_tag_count,
 		          chat_count, trait_count, span_days,
 		          earliest_date, latest_date, retouch, created_at
-		   FROM user_portraits
+		   FROM portraits
 		   WHERE user_id = $1
 		   ORDER BY created_at DESC
 		   LIMIT $2 OFFSET $3`
