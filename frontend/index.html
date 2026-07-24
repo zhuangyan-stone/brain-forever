@@ -1002,6 +1002,7 @@
                                 x-text="(portraitInfo || {}).latest_date ? (portraitInfo || {}).latest_date.replace(/-/g,'/') : ''"></span>）
                         </div>
                         <div class="portrait-info-line">生成于：<span x-text="(portraitInfo || {}).generated_at"></span>
+                            ｜下次更新：<span x-text="(portraitInfo || {}).next_generated_at"></span>
                         </div>
                     </div>
 

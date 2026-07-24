@@ -310,7 +310,8 @@ document.addEventListener('alpine:init', function() {
                     parts.push('- 跨度 ' + (info.span_days || 0) + ' 天'
                         + (info.earliest_date ? '（' + info.earliest_date.replace(/-/g, '/') : '')
                         + (info.latest_date ? ' - ' + info.latest_date.replace(/-/g, '/') + '）' : ''));
-                    parts.push('- 生成于：' + (info.generated_at || ''));
+                    parts.push('- 生成于：' + (info.generated_at || '')
+                        + ' ｜ 下次更新：' + (info.next_generated_at || ''));
                     parts.push('');
                 }
 
@@ -329,7 +330,7 @@ document.addEventListener('alpine:init', function() {
                     meta.core_traits.forEach(function(trait) {
                         parts.push('- ' + trait);
                     });
-                    parts.push('');
+ c                    parts.push('');
                 }
 
                 // ---- 3. 印象速写 ----

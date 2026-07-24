@@ -213,9 +213,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 	if !regen {
 		cached, err := thePortraitStore.GetLatestPortrait(sess.User.ID)
 		if err == nil && cached != nil {
-			// Compare at day granularity only; fractional days are floored.
-			daysElapsed := int(time.Since(cached.CreatedAt).Hours() / 24)
-			if daysElapsed < 30 {
+			if time.Since(cached.CreatedAt) <= portraitCacheTTL {
 				h.replayPortraitFromCache(w, cached, lang)
 				return
 			}
@@ -499,14 +497,15 @@ type portraitInfo struct {
 }
 
 type portraitInfoData struct {
-	GeneratedAt  string       `json:"generated_at"`
-	ChatCount    int          `json:"chat_count"`
-	TraitCount   int          `json:"trait_count"`
-	SpanDays     int          `json:"span_days"`
-	EarliestDate string       `json:"earliest_date"`
-	LatestDate   string       `json:"latest_date"`
-	Retouch      int          `json:"retouch"`
-	HotTags      []hotTagItem `json:"hot_tags"`
+	GeneratedAt     string       `json:"generated_at"`
+	NextGeneratedAt string       `json:"next_generated_at"`
+	ChatCount       int          `json:"chat_count"`
+	TraitCount      int          `json:"trait_count"`
+	SpanDays        int          `json:"span_days"`
+	EarliestDate    string       `json:"earliest_date"`
+	LatestDate      string       `json:"latest_date"`
+	Retouch         int          `json:"retouch"`
+	HotTags         []hotTagItem `json:"hot_tags"`
 }
 
 func computePortraitInfo(allTraits []store.PersonalTrait, retouch int, hotTags []hotTagItem) portraitInfo {
@@ -537,14 +536,15 @@ func computePortraitInfo(allTraits []store.PersonalTrait, retouch int, hotTags [
 	return portraitInfo{
 		Event: "info",
 		Data: portraitInfoData{
-			GeneratedAt:  time.Now().Format("2006-01-02 15:04:05"),
-			ChatCount:    chatCount,
-			TraitCount:   n,
-			SpanDays:     spanDays,
-			EarliestDate: earliestStr,
-			LatestDate:   latestStr,
-			Retouch:      retouch,
-			HotTags:      hotTags,
+			GeneratedAt:     time.Now().Format("2006-01-02 15:04:05"),
+			NextGeneratedAt: time.Now().Add(portraitCacheTTL + time.Second).Format("2006-01-02 15:04:05"),
+			ChatCount:       chatCount,
+			TraitCount:      n,
+			SpanDays:        spanDays,
+			EarliestDate:    earliestStr,
+			LatestDate:      latestStr,
+			Retouch:         retouch,
+			HotTags:         hotTags,
 		},
 	}
 }
@@ -686,12 +686,13 @@ func (h *ChatAgent) replayPortraitFromCache(w http.ResponseWriter, p *store.User
 		json.Unmarshal(p.HotTags, &hotTags)
 	}
 	infoData := portraitInfoData{
-		GeneratedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
-		ChatCount:   p.ChatCount,
-		TraitCount:  p.TraitCount,
-		SpanDays:    p.SpanDays,
-		Retouch:     p.Retouch,
-		HotTags:     hotTags,
+		GeneratedAt:     p.CreatedAt.Format("2006-01-02 15:04:05"),
+		NextGeneratedAt: p.CreatedAt.Add(portraitCacheTTL + time.Second).Format("2006-01-02 15:04:05"),
+		ChatCount:       p.ChatCount,
+		TraitCount:      p.TraitCount,
+		SpanDays:        p.SpanDays,
+		Retouch:         p.Retouch,
+		HotTags:         hotTags,
 	}
 	if p.EarliestDate != nil {
 		infoData.EarliestDate = p.EarliestDate.Format("2006-01-02")
