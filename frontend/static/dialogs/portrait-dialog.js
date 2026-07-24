@@ -137,17 +137,26 @@ document.addEventListener('alpine:init', function() {
 
             // ---- 计算属性 ----
             get title() {
-                return 'AI 印象';
+            	return 'AI 印象';
             },
-
+         
             get showCancel() {
-                // 流式未完成 → 显示"取消"按钮
-                return this.isStreaming && !this.isDone;
+            	// 流式未完成 → 显示"取消"按钮
+            	return this.isStreaming && !this.isDone;
             },
-
+         
             get showClose() {
-                // 流式已完成 → 显示"关闭"按钮
-                return !this.isStreaming && this.isDone;
+            	// 流式已完成 → 显示"关闭"按钮
+            	return !this.isStreaming && this.isDone;
+            },
+         
+            /**
+             * 左半栏（精华区）数据是否已就绪。
+             * 当 portraitInfo 和 portraitMeta 均到达，或流已完成时返回 true。
+             * 用于控制左栏加载旋转图标的显示/隐藏。
+             */
+            get isLeftReady() {
+            	return (this.portraitInfo !== null && this.portraitMeta !== null) || this.isDone;
             },
 
             // 书签统一使用中等尺寸（不再按文本长度分配不同大小）

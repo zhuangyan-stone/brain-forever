@@ -87,9 +87,6 @@ func initRouters(srv *httpx.Server, chatHandler *agent.ChatAgent, themeHandler *
 	// /api/user/portrait -- GET (generate user portrait, streaming SSE)
 	srv.GET("/api/user/portrait", chatHandler.RequireAuth(chatHandler.OnGetUserPortrait))
 
-	// /api/user/portrait/title -- POST (generate overall title for a document, e.g. portrait)
-	srv.POST("/api/user/portrait/title", chatHandler.RequireAuth(chatHandler.OnGetPortraitTitle))
-
 	// ============================================================
 	// User theme routes (require auth)
 	// ============================================================

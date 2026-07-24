@@ -1018,8 +1018,8 @@
                         </div>
                     </div>
 
-                    <!-- 全过程旋转进度：仅流式接收期间显示，流完成后由右侧标题 loading 接替 -->
-                    <div class="portrait-essence-waiting" x-show="isStreaming">
+                    <!-- 左半栏加载旋转：仅在左栏数据（信息区、人格标签、印象速写）未就绪时显示 -->
+                    <div class="portrait-essence-waiting" x-show="!isLeftReady">
                         <div class="portrait-essence-spinner"></div>
                         <span>正在生成……</span>
                     </div>
@@ -1057,7 +1057,7 @@
                 <div class="portrait-content" x-show="portraitHTML">
                     <!-- 主标题：始终显示（优先 LLM 生成的总标题，否则使用固定默认标题） -->
                     <div class="portrait-content-title">
-                        <span class="portrait-title-spinner" x-show="!isDone"></span>
+                        <span class="portrait-title-spinner" x-show="!portraitTitle && !isDone"></span>
                         <span x-text="portraitTitle || ('AI眼中的' + (userName || '匿名用户'))"></span>
                     </div>
                     <div x-html="portraitHTML"></div>

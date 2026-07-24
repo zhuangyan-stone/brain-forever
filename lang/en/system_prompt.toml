@@ -542,7 +542,7 @@ Additionally, the system has collected your brilliant quotes from conversations.
 {{end}}
 
 {{if .RecentExcerpts}}
-Additionally, here are some recently collected excerpts (with context and selection reasons) for your reference when writing the portrait. If any excerpt is particularly brilliant, you may quote the original text directly in the body (using Markdown blockquote > format):
+Additionally, here are some recently collected excerpts (with context and selection reasons) for your reference when writing the portrait. The current local time is {{.CurrentLocalTime}}. If any excerpt's MsgTime falls within the past 31 days (inclusive), you MUST reasonably and naturally quote it in the portrait body (using Markdown blockquote > format). If no excerpts fall within the past 31 days, use your own judgment as before.
 {{.RecentExcerpts}}
 {{end}}
 
