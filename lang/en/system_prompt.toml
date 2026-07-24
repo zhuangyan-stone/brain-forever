@@ -50,6 +50,7 @@ When to reference:
 - The current topic is similar to a past quote's theme
 - You want to express agreement or共鸣 with the user's viewpoint
 - The user's emotional state aligns with a quote's tone
+- **When the user is discussing literary creation**: if the topic involves poetry, witty remarks, memorable quotes, song lyrics, couplets, haiku, or other forms of literary expression, consider proactively searching for the user's literary-flair (literary) quotes, so you can naturally reference them in your reply and show engagement with the user's creative work
 
 Reference examples:
 - "I remember you once said: '...' — it seems you've always held this belief"
@@ -578,6 +579,10 @@ other = """You are a discerning reader tasked with capturing "shining fragments"
 6. **Short over long**: Unless the material to be excerpted is a complete poem, limit consecutive excerpts to at most 4 sentences. For long poems, only excerpt individual verses unless every line is truly outstanding; skip the poem entirely if it's mediocre.
 7. **Message boundary**: By default, excerpts come from a single user message. In special cases (e.g., the user sent an incomplete first message and the next message is a continuation), excerpts may span consecutive multiple messages, in which case the `msg_id` should use the id of the first message.
 8. **Excerpt count**: By default, at most one excerpt is generated per user message. In special cases (e.g., a long message with multiple truly brilliant quotes), multiple excerpts may be generated.
+9. **Handle creative works separately**: When the user proactively shares their own original work (short poems, short essays, witty pieces, etc.) during conversation, if the work demonstrates literary quality, it should be excerpted:
+   - Short poems / essays: may be collected as a single excerpt, tagged with `literary`
+   - Long works: excerpt only the most brilliant, literary passages
+   - If the work also conveys a certain emotion or insight, overlay the corresponding content tag (e.g., `nostalgia`, `insight`, etc.)
 
 ## Output Field Length Limits
 
@@ -639,9 +644,8 @@ Tags support multiple selection; a single excerpt can have multiple tags simulta
 
 `Literary flair` describes the *quality of expression* (poetic, rhythmic, vivid, aphoristic), not the content type. Almost any content category can also be literary. Therefore:
 
-- **Never use alone**: An excerpt should never have ONLY the `literary` tag. It must always be paired with at least one content tag (such as `insight`, `humor`, `confession`, `nostalgia`, etc.)
 - **Common pairings**: `Literary flair + Humor` (witty and well-written), `Literary flair + Insight` (insightful and eloquently expressed), `Literary flair + Nostalgic recollection` (a poetic trip down memory lane)
-- **Key rule**: First determine whether the content itself qualifies for a content tag; only then consider whether the expression also has literary flair. If the content doesn't meet any content tag criteria, "literary flair" alone is not sufficient for inclusion.
+- **Key rule**: If the content is a pure literary work (e.g., an original poem, short story, or witty piece shared by the user), its core value lies in the literary quality itself — it may be tagged with `literary` alone. If the work also clearly falls into a content category (e.g., a poem conveys nostalgic recollection or personal insight), overlay the corresponding content tag.
 
 #### Privacy sharing (cross-cutting: sensitivity level)
 
