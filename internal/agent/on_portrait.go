@@ -214,7 +214,7 @@ func (h *ChatAgent) OnGetUserPortrait(w http.ResponseWriter, r *http.Request) {
 		cached, err := thePortraitStore.GetLatestPortrait(sess.User.ID)
 		if err == nil && cached != nil {
 			if time.Since(cached.CreatedAt) <= portraitCacheTTL {
-				h.replayPortraitFromCache(w, cached, lang)
+				h.replayPortraitFromCache(w, cached)
 				return
 			}
 		}
@@ -664,7 +664,7 @@ func formatExcerptsForPortrait(excerpts []store.Excerpt, lang string) string {
 
 // replayPortraitFromCache replays a cached UserPortrait as SSE events so the
 // frontend receives the same event sequence as a fresh LLM generation.
-func (h *ChatAgent) replayPortraitFromCache(w http.ResponseWriter, p *store.UserPortrait, lang string) {
+func (h *ChatAgent) replayPortraitFromCache(w http.ResponseWriter, p *store.UserPortrait) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
